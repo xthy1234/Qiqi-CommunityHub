@@ -1,0 +1,284 @@
+<template>
+  <div class="user-card">
+    <div class="user-info">
+      <n-avatar
+        :src="getAvatarUrl(user.avatar)"
+        :size="60"
+        round
+        class="avatar"
+      />
+      
+      <div class="user-details">
+        <div class="user-header">
+          <span class="nickname" @click="goToUserProfile">{{ user.username || user.nickname }}</span>
+          <n-tag v-if="isFriend" type="success" size="small" class="friend-tag">
+            互相关注
+          </n-tag>
+        </div>
+        
+        <p class="signature">{{ user.signature || '暂无签名' }}</p>
+        
+        <div class="actions">
+          <n-button
+            v-if="showFollowBtn"
+            :type="isFollowing ? 'default' : 'primary'"
+            size="small"
+            :loading="actionLoading"
+            @click="handleFollowToggle"
+          >
+            {{ isFollowing ? '已关注' : '关注' }}
+          </n-button>
+          
+          <n-button
+            v-if="showSendMessageBtn"
+            type="primary"
+            size="small"
+            secondary
+            @click="handleSendMessage"
+          >
+            发消息
+          </n-button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="follow-time">
+      <Icon icon="ri:time-line" :size="14" />
+      <span>{{ formatFollowTime(user.followTime) }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { NAvatar, NButton, NTag } from 'naive-ui'
+import { Icon } from '@iconify/vue'
+import { getAvatarUrl } from '@/utils/userUtils'
+import followApi from '@/api/follow'
+
+interface UserCardProps {
+  user: {
+    id: number
+    username?: string
+    nickname?: string
+    avatar?: string
+    signature?: string
+    gender?: number
+    followTime: string
+  }
+  // 新增：场景类型 - 'following'(关注列表) | 'followers'(粉丝列表) | 'search'(搜索结果)
+  sceneType?: 'following' | 'followers' | 'search'
+  currentUserId?: number
+}
+
+const props = withDefaults(defineProps<UserCardProps>(), {
+  sceneType: 'following' // 默认为关注列表场景
+})
+
+const router = useRouter()
+const appContext = computed(() => (window as any).appContext)
+const $http = appContext.value?.$http
+
+const isFollowing = ref(false)
+const isFriend = ref(false)
+const actionLoading = ref(false)
+
+const isCurrentUser = computed(() => {
+  return props.currentUserId === props.user.id
+})
+
+// 是否显示关注按钮 - 仅在搜索场景或特定场景显示
+const showFollowBtn = computed(() => {
+  // 如果是自己，不显示
+  if (isCurrentUser.value) return false
+
+  // 根据场景决定是否显示关注按钮
+  switch (props.sceneType) {
+    case 'search':
+      // 搜索结果：显示关注按钮
+      return true
+    case 'following':
+    case 'followers':
+      // 关注列表/粉丝列表：不显示关注按钮（因为已经关注了）
+      return false
+    default:
+      return false
+  }
+})
+
+// 是否显示发消息按钮 - 在关注列表和粉丝列表中显示
+const showSendMessageBtn = computed(() => {
+  // 如果是自己，不显示
+  if (isCurrentUser.value) return false
+
+  // 在关注列表或粉丝列表中显示
+  return props.sceneType === 'following' || props.sceneType === 'followers'
+})
+
+// 初始化时查询关注状态
+onMounted(async () => {
+  if (props.showFollowBtn && !isCurrentUser.value) {
+    try {
+      // 查询是否关注
+      const status = await followApi.getFollowStatus([props.user.id])
+      isFollowing.value = status[props.user.id] || false
+      
+      // 查询是否互关
+      if (isFollowing.value) {
+        isFriend.value = await followApi.isFriend(props.user.id)
+      }
+    } catch (error) {
+      console.error('查询关注状态失败:', error)
+    }
+  }
+})
+
+const handleFollowToggle = async () => {
+  if (actionLoading.value) return
+  
+  actionLoading.value = true
+  try {
+    await followApi.followOrUnfollow({
+      userId: props.user.id,
+      action: isFollowing.value ? 'unfollow' : 'follow'
+    })
+    
+    isFollowing.value = !isFollowing.value
+    
+    // 如果刚关注，检查是否互关
+    if (isFollowing.value) {
+      isFriend.value = await followApi.isFriend(props.user.id)
+    }
+    
+    appContext.value?.$toolUtil.message(
+      isFollowing.value ? '关注成功' : '已取消关注',
+      'success'
+    )
+    
+    // 触发事件通知父组件
+    emit('follow-change', { userId: props.user.id, isFollowing: isFollowing.value })
+  } catch (error: any) {
+    console.error('关注操作失败:', error)
+    appContext.value?.$toolUtil.message(error.message || '操作失败', 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const handleSendMessage = () => {
+  // TODO: 跳转私信页面
+  appContext.value?.$toolUtil.message('私信功能开发中', 'info')
+}
+
+const goToUserProfile = () => {
+  router.push(`/user/${props.user.id}`)
+}
+
+const formatFollowTime = (time: string) => {
+  const date = new Date(time)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  
+  if (diff < hour) {
+    return `${Math.floor(diff / minute)}分钟前`
+  } else if (diff < day) {
+    return `${Math.floor(diff / hour)}小时前`
+  } else if (diff < 7 * day) {
+    return `${Math.floor(diff / day)}天前`
+  } else {
+    return date.toLocaleDateString()
+  }
+}
+
+const emit = defineEmits<{
+  (e: 'follow-change', data: { userId: number; isFollowing: boolean }): void
+}>()
+</script>
+
+<style lang="scss" scoped>
+.user-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .user-info {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+    
+    .avatar {
+      cursor: pointer;
+      transition: transform 0.3s;
+      
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+    
+    .user-details {
+      flex: 1;
+      min-width: 0;
+      
+      .user-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        
+        .nickname {
+          font-size: 16px;
+          font-weight: 600;
+          color: #303133;
+          cursor: pointer;
+          
+          &:hover {
+            color: #18a058;
+          }
+        }
+        
+        .friend-tag {
+          font-size: 12px;
+        }
+      }
+      
+      .signature {
+        font-size: 13px;
+        color: #909399;
+        margin: 0 0 8px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+    }
+  }
+  
+  .follow-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #c0c4cc;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+}
+</style>

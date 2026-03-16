@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.RoleMenuDao">
+
+    <!-- 角色菜单结果映射 -->
+    <resultMap type="com.gcs.entity.RoleMenu" id="roleMenuMap">
+        <result property="roleId" column="role_id"/>
+        <result property="menuId" column="menu_id"/>
+        <result property="buttons" column="buttons" typeHandler="org.apache.ibatis.type.ArrayTypeHandler"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 根据角色 ID 查询菜单权限 -->
+    <select id="selectByRoleId" resultMap="roleMenuMap">
+        SELECT
+            role_id,
+            menu_id,
+            buttons,
+            create_time,
+            update_time
+        FROM role_menu
+        WHERE role_id = #{roleId}
+        ORDER BY menu_id ASC
+    </select>
+
+    <!-- 根据菜单 ID 查询角色权限 -->
+    <select id="selectByMenuId" resultMap="roleMenuMap">
+        SELECT
+            role_id,
+            menu_id,
+            buttons,
+            create_time,
+            update_time
+        FROM role_menu
+        WHERE menu_id = #{menuId}
+        ORDER BY role_id ASC
+    </select>
+
+    <!-- 删除角色的菜单权限 -->
+    <delete id="deleteByRoleId">
+        DELETE FROM role_menu
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <!-- 删除角色的指定菜单权限 -->
+    <delete id="deleteByRoleIdAndMenuId">
+        DELETE FROM role_menu
+        WHERE role_id = #{roleId} AND menu_id = #{menuId}
+    </delete>
+
+    <!-- 批量插入角色菜单权限 -->
+    <insert id="batchInsert">
+        INSERT INTO role_menu (role_id, menu_id, buttons, create_time, update_time) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.roleId}, #{item.menuId}, #{item.buttons,typeHandler=org.apache.ibatis.type.ArrayTypeHandler}, NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <!-- 根据角色 ID 查询菜单 ID 列表 -->
+    <select id="selectMenuIdsByRoleId" resultType="java.lang.Long">
+        SELECT menu_id
+        FROM role_menu
+        WHERE role_id = #{roleId}
+        ORDER BY menu_id ASC
+    </select>
+
+</mapper>

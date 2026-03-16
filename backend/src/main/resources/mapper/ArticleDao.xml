@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.ArticleDao">
+
+    <!-- 文章结果映射 -->
+    <resultMap type="com.gcs.entity.Article" id="articleMap">
+        <result property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="coverUrl" column="cover_url"/>
+        <result property="attachment" column="attachment"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="content" column="content"/>
+        <result property="authorId" column="author_id"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="dislikeCount" column="dislike_count"/>
+        <result property="favoriteCount" column="favorite_count"/>
+        <result property="shareCount" column="share_count"/>
+        <result property="auditStatus" column="audit_status"/>
+        <result property="auditReply" column="audit_reply"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 文章视图结果映射 -->
+    <resultMap type="com.gcs.entity.view.ArticleView" id="articleViewMap">
+        <result property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="coverUrl" column="cover_url"/>
+        <result property="attachment" column="attachment"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="content" column="content"/>
+        <result property="authorId" column="author_id"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="dislikeCount" column="dislike_count"/>
+        <result property="favoriteCount" column="favorite_count"/>
+        <result property="shareCount" column="share_count"/>
+        <result property="auditStatus" column="audit_status"/>
+        <result property="auditReply" column="audit_reply"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="authorAvatar" column="author_avatar"/>
+        <result property="authorNickname" column="author_nickname"/>
+    </resultMap>
+
+<!--    &lt;!&ndash; 查询文章列表视图 &ndash;&gt;-->
+<!--    <select id="selectListView" resultMap="articleViewMap">-->
+<!--        SELECT-->
+<!--            a.id,-->
+<!--            a.title,-->
+<!--           a.cover_url,-->
+<!--           a.attachment,-->
+<!--            a.category_id,-->
+<!--            a.content,-->
+<!--            a.author_id,-->
+<!--            a.like_count,-->
+<!--            a.dislike_count,-->
+<!--            a.favorite_count,-->
+<!--            a.audit_status,-->
+<!--           a.audit_reply,-->
+<!--            a.view_count,-->
+<!--            a.create_time,-->
+<!--            a.update_time,-->
+<!--            c.category_name,-->
+<!--            u.avatar as author_avatar-->
+<!--        FROM article a-->
+<!--        LEFT JOIN category c ON a.category_id = c.id-->
+<!--            LEFT JOIN users u ON a.author_id = u.id-->
+<!--        <where>-->
+<!--          1=1-->
+<!--            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">-->
+<!--                AND ${ew.sqlSegment}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--    </select>-->
+
+    <!-- 分页查询文章列表视图 -->
+    <select id="selectListView" resultMap="articleViewMap">
+        SELECT
+            a.id,
+            a.title,
+           a.cover_url,
+            a.attachment,
+            a.category_id,
+            a.content,
+            a.author_id,
+           a.like_count,
+            a.dislike_count,
+            a.favorite_count,
+            a.share_count,
+            a.audit_status,
+            a.audit_reply,
+            a.view_count,
+            a.create_time,
+            a.update_time,
+            c.category_name,
+            u.avatar as author_avatar,
+            u.nickname as author_nickname
+        FROM article a
+        LEFT JOIN category c ON a.category_id = c.id
+        LEFT JOIN users u ON a.author_id = u.id
+        <where>
+            1=1
+            AND a.deleted = false
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询单个文章视图 -->
+    <select id="selectView" resultMap="articleViewMap">
+        SELECT
+            a.id,
+           a.title,
+            a.cover_url,
+            a.attachment,
+           a.category_id,
+            a.content,
+            a.author_id,
+            a.like_count,
+            a.dislike_count,
+            a.favorite_count,
+            a.share_count,
+           a.audit_status,
+            a.audit_reply,
+            a.view_count,
+           a.create_time,
+            a.update_time,
+            c.category_name,
+            u.avatar as author_avatar,
+            u.nickname as author_nickname
+        FROM article a
+        LEFT JOIN category c ON a.category_id = c.id
+        LEFT JOIN users u ON a.author_id = u.id
+        <where>
+            a.deleted = false
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据 ID 查询文章视图 -->
+    <select id="selectViewById" resultMap="articleViewMap">
+        SELECT
+            a.id,
+            a.title,
+           a.cover_url,
+            a.attachment,
+            a.category_id,
+            a.content,
+            a.author_id,
+           a.like_count,
+            a.dislike_count,
+            a.favorite_count,
+            a.share_count,
+            a.audit_status,
+            a.audit_reply,
+            a.view_count,
+            a.create_time,
+            a.update_time,
+            c.category_name,
+            u.avatar as author_avatar,
+            u.nickname as author_nickname
+        FROM article a
+        LEFT JOIN category c ON a.category_id = c.id
+        LEFT JOIN users u ON a.author_id = u.id
+        <where>
+
+            AND a.id = #{params.id}
+        </where>
+    </select>
+
+    <!-- 全文搜索文章（基于 PostgreSQL tsvector） -->
+    <select id="searchByFullText" resultType="com.gcs.vo.ArticleSearchVO">
+        SELECT
+            a.id,
+            a.title,
+            a.cover_url as coverUrl,
+            a.category_id as categoryId,
+            c.category_name as categoryName,
+            a.author_id as authorId,
+            u.nickname as authorNickname,
+            u.avatar as authorAvatar,
+            CASE
+                WHEN LENGTH(a.content) > 200
+                THEN SUBSTRING(a.content, 1, 200) || '...'
+                ELSE a.content
+            END as contentSummary,
+            a.like_count as likeCount,
+            a.dislike_count as dislikeCount,
+            a.view_count as viewCount,
+            a.publish_time as publishTime,
+            a.audit_status as auditStatus,
+            ts_rank(a.search_vector, to_tsquery('jieba_cfg', #{params.keyword})) as rank,
+            a.create_time as createTime
+        FROM article a
+        LEFT JOIN category c ON a.category_id = c.id
+        LEFT JOIN users u ON a.author_id = u.id
+        <where>
+            a.deleted = false
+            AND a.audit_status = 1
+            <if test="params.keyword != null and params.keyword != ''">
+                AND a.search_vector @@ to_tsquery('jieba_cfg', #{params.keyword})
+            </if>
+            <if test="params.categoryId != null">
+                AND a.category_id = #{params.categoryId}
+            </if>
+            <if test="params.startDate != null and params.endDate != null">
+                AND a.publish_time BETWEEN #{params.startDate} AND #{params.endDate}
+            </if>
+        </where>
+        ORDER BY rank DESC
+        <if test="params.limit != null">
+            LIMIT #{params.limit}
+        </if>
+    </select>
+
+    <!-- 按值统计 -->
+    <select id="selectValue" resultType="map">
+        SELECT
+            ${params.xColumn} as x_column,
+            ROUND(SUM(${params.yColumn}), 1) as total
+        FROM article a
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+        GROUP BY ${params.xColumn}
+        ORDER BY total DESC
+        LIMIT 10
+    </select>
+
+    <!-- 时间统计 -->
+    <select id="selectTimeStatValue" resultType="map">
+        <choose>
+            <when test='params.timeStatType == "日"'>
+                SELECT
+                    DATE_FORMAT(${params.xColumn}, '%Y-%m-%d') as x_column,
+                    SUM(${params.yColumn}) as total
+                FROM article a
+                <where>
+                    1=1
+                    <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                        AND ${ew.sqlSegment}
+                    </if>
+                </where>
+                GROUP BY DATE_FORMAT(${params.xColumn}, '%Y-%m-%d')
+                ORDER BY total DESC
+                LIMIT 10
+            </when>
+            <when test='params.timeStatType == "月"'>
+                SELECT
+                    DATE_FORMAT(${params.xColumn}, '%Y-%m') as x_column,
+                    SUM(${params.yColumn}) as total
+                FROM article a
+                <where>
+                    1=1
+                    <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                        AND ${ew.sqlSegment}
+                    </if>
+                </where>
+                GROUP BY DATE_FORMAT(${params.xColumn}, '%Y-%m')
+                ORDER BY total DESC
+                LIMIT 10
+            </when>
+            <otherwise>
+                SELECT
+                    DATE_FORMAT(${params.xColumn}, '%Y-%m-%d') as x_column,
+                    SUM(${params.yColumn}) as total
+                FROM article a
+                <where>
+                    1=1
+                    <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                        AND ${ew.sqlSegment}
+                    </if>
+                </where>
+                GROUP BY DATE_FORMAT(${params.xColumn}, '%Y-%m-%d')
+                ORDER BY total DESC
+                LIMIT 10
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 分组统计 -->
+    <select id="selectGroup" resultType="map">
+        SELECT
+            ${params.groupByColumn} as group_column,
+            COUNT(*) as total
+        FROM article a
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+        GROUP BY ${params.groupByColumn}
+        ORDER BY total DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.FollowDao">
+
+    <!-- 查询用户的关注列表（该用户关注的人） -->
+    <select id="selectFollowingList" resultType="com.gcs.vo.FollowUserVO">
+        SELECT 
+            f.id,
+            f.following_id as userId,
+            u.nickname as username,
+            u.avatar,
+            f.create_time as followTime,
+            u.signature,
+            u.gender
+        FROM follow f
+        INNER JOIN users u ON f.following_id = u.id
+        WHERE f.follower_id = #{userId}
+          AND f.status = 0  <!-- 修改：0 表示关注中 -->
+          AND u.is_deleted = false
+        ORDER BY f.create_time DESC
+    </select>
+
+    <!-- 查询用户的粉丝列表（关注该用户的人） -->
+    <select id="selectFollowerList" resultType="com.gcs.vo.FollowUserVO">
+        SELECT 
+            f.id,
+            f.follower_id as userId,
+            u.nickname as username,
+            u.avatar,
+            f.create_time as followTime,
+            u.signature,
+            u.gender
+        FROM follow f
+        INNER JOIN users u ON f.follower_id = u.id
+        WHERE f.following_id = #{userId}
+          AND f.status = 0  <!-- 修改：0 表示关注中 -->
+          AND u.is_deleted = false
+        ORDER BY f.create_time DESC
+    </select>
+
+    <!-- 查询关注状态 -->
+    <select id="selectFollowStatus" resultType="com.gcs.entity.Follow">
+        SELECT 
+            follower_id,
+            following_id,
+            status
+        FROM follow
+        WHERE follower_id = #{followerId}
+          AND following_id IN
+        <foreach collection="targetIds" item="targetId" open="(" separator="," close=")">
+            #{targetId}
+        </foreach>
+    </select>
+
+    <!-- 检查是否互相关注 -->
+    <select id="checkMutualFollow" resultType="boolean">
+        SELECT 
+            CASE 
+                WHEN COUNT(*) = 2 THEN TRUE 
+                ELSE FALSE 
+            END
+        FROM (
+            SELECT follower_id, following_id
+            FROM follow
+            WHERE ((follower_id = #{userId1} AND following_id = #{userId2})
+              OR (follower_id = #{userId2} AND following_id = #{userId1}))
+              AND status = 0  <!-- 修改：0 表示关注中 -->
+        ) AS mutual_follows
+    </select>
+
+    <!-- 统计用户关注数量 -->
+    <select id="countFollowing" resultType="integer">
+        SELECT COUNT(*)
+        FROM follow
+        WHERE follower_id = #{userId}
+          AND status = 0  <!-- 修改：0 表示关注中 -->
+    </select>
+
+    <!-- 统计用户粉丝数量 -->
+    <select id="countFollowers" resultType="integer">
+        SELECT COUNT(*)
+        FROM follow
+        WHERE following_id = #{userId}
+          AND status = 0  <!-- 修改：0 表示关注中 -->
+    </select>
+
+</mapper>

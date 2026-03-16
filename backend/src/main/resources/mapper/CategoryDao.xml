@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.CategoryDao">
+
+    <!-- 分类结果映射 -->
+    <resultMap type="com.gcs.entity.Category" id="categoryMap">
+        <result property="id" column="id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="description" column="description"/>
+        <result property="sort" column="sort"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+<!--    &lt;!&ndash; 查询分类列表视图 &ndash;&gt;-->
+<!--    <select id="selectListView" resultType="com.gcs.entity.view.CategoryView">-->
+<!--        SELECT-->
+<!--            c.id,-->
+<!--            c.category_name as categoryName,-->
+<!--            c.description,-->
+<!--            c.sort,-->
+<!--            c.status,-->
+<!--            c.create_time as createTime,-->
+<!--            c.update_time as updateTime,-->
+<!--            (SELECT COUNT(*) FROM article a WHERE a.category = c.category_name) as articleCount-->
+<!--        FROM category c-->
+<!--        <where>-->
+<!--            1=1-->
+<!--            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">-->
+<!--                AND ${ew.sqlSegment}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        ORDER BY c.sort ASC, c.create_time DESC-->
+<!--    </select>-->
+
+    <!-- 分页查询分类列表视图 -->
+    <select id="selectListView" resultType="com.gcs.entity.view.CategoryView">
+        SELECT
+            c.id,
+            c.category_name as categoryName,
+            c.description,
+            c.sort,
+            c.status,
+            c.create_time as createTime,
+            c.update_time as updateTime,
+            (SELECT COUNT(*) FROM article a WHERE a.category_id = c.id AND a.deleted = false) as articleCount
+        FROM category c
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+        ORDER BY c.sort ASC, c.create_time DESC
+    </select>
+
+    <!-- 查询单个分类视图 -->
+    <select id="selectView" resultType="com.gcs.entity.view.CategoryView">
+        SELECT
+            c.id,
+            c.category_name as categoryName,
+            c.description,
+            c.sort,
+            c.status,
+            c.create_time as createTime,
+            c.update_time as updateTime,
+            (SELECT COUNT(*) FROM article a WHERE a.category_id = c.id AND a.deleted = false) as articleCount
+        FROM category c
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+    </select>
+
+</mapper>

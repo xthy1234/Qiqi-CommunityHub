@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.FeedbackDao">
+
+    <!-- 反馈结果映射 -->
+    <resultMap type="com.gcs.entity.Feedback" id="feedbackMap">
+        <result property="id" column="id"/>
+        <result property="userAccount" column="user_account"/>
+        <result property="userName" column="user_name"/>
+        <result property="content" column="content"/>
+        <result property="feedbackTime" column="feedback_time"/>
+        <result property="replyContent" column="reply_content"/>
+        <result property="replyTime" column="reply_time"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 反馈视图结果映射 -->
+    <resultMap type="com.gcs.entity.view.FeedbackView" id="feedbackViewMap" extends="feedbackMap">
+        <result property="handlerName" column="handler_name"/>
+        <result property="handlerAccount" column="handler_account"/>
+        <result property="statusDescription" column="status_description"/>
+    </resultMap>
+
+<!--    &lt;!&ndash; 查询反馈列表视图 &ndash;&gt;-->
+<!--    <select id="selectListView" resultMap="feedbackViewMap">-->
+<!--        SELECT-->
+<!--            f.id,-->
+<!--            f.user_account,-->
+<!--            f.user_name,-->
+<!--            f.content,-->
+<!--            f.feedback_time,-->
+<!--            f.reply_content,-->
+<!--            f.reply_time,-->
+<!--            f.status,-->
+<!--            f.create_time,-->
+<!--            f.update_time,-->
+<!--            CASE f.status-->
+<!--                WHEN 0 THEN '待处理'-->
+<!--                WHEN 1 THEN '已回复'-->
+<!--                WHEN 2 THEN '已关闭'-->
+<!--                ELSE '未知状态'-->
+<!--            END as status_description-->
+<!--        FROM feedback f-->
+<!--        <where>-->
+<!--            1=1-->
+<!--            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">-->
+<!--                AND ${ew.sqlSegment}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        ORDER BY f.create_time DESC-->
+<!--    </select>-->
+
+    <!-- 分页查询反馈列表视图 -->
+    <select id="selectListView" resultMap="feedbackViewMap">
+        SELECT
+            f.id,
+            f.user_account,
+            f.user_name,
+            f.content,
+            f.feedback_time,
+            f.reply_content,
+            f.reply_time,
+            f.status,
+            f.create_time,
+            f.update_time,
+            CASE f.status
+                WHEN 0 THEN '待处理'
+                WHEN 1 THEN '已回复'
+                WHEN 2 THEN '已关闭'
+                ELSE '未知状态'
+            END as status_description
+        FROM feedback f
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+        ORDER BY f.create_time DESC
+    </select>
+
+    <!-- 查询单个反馈视图 -->
+    <select id="selectView" resultMap="feedbackViewMap">
+        SELECT
+            f.id,
+            f.user_account,
+            f.user_name,
+            f.content,
+            f.feedback_time,
+            f.reply_content,
+            f.reply_time,
+            f.status,
+            f.create_time,
+            f.update_time,
+            CASE f.status
+                WHEN 0 THEN '待处理'
+                WHEN 1 THEN '已回复'
+                WHEN 2 THEN '已关闭'
+                ELSE '未知状态'
+            END as status_description
+        FROM feedback f
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+    </select>
+
+    <!-- 统计不同状态的反馈数量 -->
+    <select id="countByStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM feedback
+        WHERE status = #{status}
+    </select>
+
+    <!-- 批量更新反馈状态 -->
+    <update id="updateStatusBatch">
+        UPDATE feedback
+        SET status = #{status}, update_time = NOW()
+        WHERE id IN
+        <foreach collection="feedbackIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>

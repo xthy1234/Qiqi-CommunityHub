@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.RoleDao">
+
+    <!-- 角色结果映射 -->
+    <resultMap type="com.gcs.entity.Role" id="roleMap">
+        <result property="id" column="id"/>
+        <result property="roleName" column="role_name"/>
+        <result property="tableName" column="table_name"/>
+        <result property="hasBackLogin" column="has_back_login"/>
+        <result property="hasBackRegister" column="has_back_register"/>
+        <result property="hasFrontLogin" column="has_front_login"/>
+        <result property="hasFrontRegister" column="has_front_register"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 角色视图结果映射 -->
+    <resultMap type="com.gcs.entity.view.RoleView" id="roleViewMap" extends="roleMap">
+        <result property="statusDescription" column="status_description"/>
+        <result property="permissionDescription" column="permission_description"/>
+    </resultMap>
+
+    <!-- 分页查询角色列表视图 -->
+    <select id="selectListView" resultMap="roleViewMap">
+        SELECT
+            r.id,
+            r.role_name,
+            r.table_name,
+            r.has_back_login,
+            r.has_back_register,
+            r.has_front_login,
+            r.has_front_register,
+            r.create_time,
+            r.update_time,
+            CASE 
+                WHEN r.has_back_login = TRUE AND r.has_front_login = TRUE THEN '前后端通用'
+                WHEN r.has_back_login = TRUE THEN '仅后台'
+                WHEN r.has_front_login = TRUE THEN '仅前端'
+                ELSE '无登录权限'
+            END as permission_description
+        FROM role r
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC
+    </select>
+
+    <!-- 查询单个角色视图 -->
+    <select id="selectView" resultMap="roleViewMap">
+        SELECT
+            r.id,
+            r.role_name,
+            r.table_name,
+            r.has_back_login,
+            r.has_back_register,
+            r.has_front_login,
+            r.has_front_register,
+            r.create_time,
+            r.update_time,
+            CASE 
+                WHEN r.has_back_login = TRUE AND r.has_front_login = TRUE THEN '前后端通用'
+                WHEN r.has_back_login = TRUE THEN '仅后台'
+                WHEN r.has_front_login = TRUE THEN '仅前端'
+                ELSE '无登录权限'
+            END as permission_description
+        FROM role r
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据角色名称查询角色 -->
+    <select id="selectByRoleName" resultType="com.gcs.entity.Role">
+        SELECT
+            id,
+            role_name,
+            table_name,
+            has_back_login,
+            has_back_register,
+            has_front_login,
+            has_front_register,
+            create_time,
+            update_time
+        FROM role
+        WHERE role_name = #{roleName}
+    </select>
+
+    <!-- 根据表名查询角色 -->
+    <select id="selectByTableName" resultType="com.gcs.entity.Role">
+        SELECT
+            id,
+            role_name,
+            table_name,
+            has_back_login,
+            has_back_register,
+            has_front_login,
+            has_front_register,
+            create_time,
+            update_time
+        FROM role
+        WHERE table_name = #{tableName}
+    </select>
+
+</mapper>

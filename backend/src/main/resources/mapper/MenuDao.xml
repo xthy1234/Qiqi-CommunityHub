@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.MenuDao">
+
+    <!-- 修改后的菜单结果映射 -->
+    <resultMap type="com.gcs.entity.Menu" id="menuMap">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="component" column="component"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="icon" column="icon"/>
+        <result property="path" column="path"/>
+        <result property="sort" column="sort"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <result property="isDeleted" column="is_deleted"/>
+    </resultMap>
+
+    <!-- 菜单视图结果映射 -->
+    <resultMap type="com.gcs.entity.view.MenuView" id="menuViewMap" extends="menuMap">
+        <collection property="children" ofType="com.gcs.entity.view.MenuView">
+            <id property="id" column="child_id"/>
+            <result property="name" column="child_name"/>
+            <result property="parentId" column="child_parent_id"/>
+            <result property="sort" column="child_sort"/>
+        </collection>
+    </resultMap>
+
+<!--    &lt;!&ndash; 查询菜单列表视图 &ndash;&gt;-->
+<!--    <select id="selectListView" resultMap="menuViewMap">-->
+<!--        SELECT-->
+<!--            m.id,-->
+<!--            m.menu_name,-->
+<!--            m.menu_config,-->
+<!--            m.menu_type,-->
+<!--            m.parent_id,-->
+<!--            m.icon,-->
+<!--            m.path,-->
+<!--            m.sort,-->
+<!--            m.status,-->
+<!--            m.create_time,-->
+<!--            m.update_time,-->
+<!--            m.remark,-->
+<!--            p.menu_name as parent_menu_name,-->
+<!--            CASE m.status-->
+<!--                WHEN 0 THEN '禁用'-->
+<!--                WHEN 1 THEN '启用'-->
+<!--                ELSE '未知'-->
+<!--            END as status_description,-->
+<!--            CASE m.menu_type-->
+<!--                WHEN 1 THEN '系统菜单'-->
+<!--                WHEN 2 THEN '业务菜单'-->
+<!--                WHEN 3 THEN '自定义菜单'-->
+<!--                ELSE '未知类型'-->
+<!--            END as menu_type_description-->
+<!--        FROM menu m-->
+<!--        LEFT JOIN menu p ON m.parent_id = p.id-->
+<!--        <where>-->
+<!--            1=1-->
+<!--            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">-->
+<!--                AND ${ew.sqlSegment}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        ORDER BY m.sort ASC, m.create_time DESC-->
+<!--    </select>-->
+
+    <!-- 分页查询菜单列表视图 -->
+    <select id="selectListView" resultMap="menuViewMap">
+        SELECT
+            m.id,
+            m.name,
+            m.component,
+            m.parent_id,
+            m.icon,
+            m.path,
+            m.sort,
+            m.status,
+            m.create_time,
+            m.update_time,
+            m.remark,
+            p.name as parent_menu_name,
+            CASE m.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END as status_description,
+            CASE m.type
+                WHEN 1 THEN '系统菜单'
+                WHEN 2 THEN '业务菜单'
+                WHEN 3 THEN '自定义菜单'
+                ELSE '未知类型'
+            END as menu_type_description
+        FROM menu m
+        LEFT JOIN menu p ON m.parent_id = p.id
+        <where>
+            1=1
+            <if test="ew != null">
+                <if test="ew.entity != null">
+                    <if test="ew.entity.id != null">
+                        AND m.id = #{ew.entity.id}
+                    </if>
+                    <if test="ew.entity.name != null and ew.entity.name != ''">
+                        AND m.name LIKE CONCAT('%', #{ew.entity.name}, '%')
+                    </if>
+                    <if test="ew.entity.type != null">
+                        AND m.type = #{ew.entity.type}
+                    </if>
+                    <if test="ew.entity.parentId != null">
+                        AND m.parent_id = #{ew.entity.parentId}
+                    </if>
+                    <if test="ew.entity.icon != null and ew.entity.icon != ''">
+                        AND m.icon = #{ew.entity.icon}
+                    </if>
+                    <if test="ew.entity.path != null and ew.entity.path != ''">
+                        AND m.path = #{ew.entity.path}
+                    </if>
+                    <if test="ew.entity.sort != null">
+                        AND m.sort = #{ew.entity.sort}
+                    </if>
+                    <if test="ew.entity.status != null">
+                        AND m.status = #{ew.entity.status}
+                    </if>
+                    <if test="ew.entity.isDeleted != null">
+                        AND m.is_deleted = #{ew.entity.isDeleted}
+                    </if>
+                </if>
+            </if>
+        </where>
+        ORDER BY m.sort ASC, m.create_time DESC
+    </select>
+
+    <!-- 查询单个菜单视图 -->
+    <select id="selectView" resultMap="menuViewMap">
+        SELECT
+            m.id,
+            m.name,
+            m.component,
+            m.parent_id,
+            m.icon,
+            m.path,
+            m.sort,
+            m.status,
+            m.create_time,
+            m.update_time,
+            m.remark,
+            p.name as parent_menu_name,
+            CASE m.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END as status_description,
+            CASE m.type
+                WHEN 1 THEN '系统菜单'
+                WHEN 2 THEN '业务菜单'
+                WHEN 3 THEN '自定义菜单'
+                ELSE '未知类型'
+            END as menu_type_description
+        FROM menu m
+        LEFT JOIN menu p ON m.parent_id = p.id
+        <where>
+            1=1
+            <if test="ew != null">
+                <if test="ew.entity != null">
+                    <if test="ew.entity.id != null">
+                        AND m.id = #{ew.entity.id}
+                    </if>
+                </if>
+            </if>
+        </where>
+    </select>
+
+    <!-- 查询所有启用的菜单（树形结构） -->
+    <select id="selectMenuTree" resultMap="menuViewMap">
+        SELECT
+            m.id,
+            m.name,
+            m.component,
+            m.parent_id,
+            m.icon,
+            m.path,
+            m.sort,
+            m.status,
+            m.create_time,
+            m.update_time,
+            m.remark,
+            CASE m.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END as status_description,
+            CASE m.type
+                WHEN 1 THEN '系统菜单'
+                WHEN 2 THEN '业务菜单'
+                WHEN 3 THEN '自定义菜单'
+                ELSE '未知类型'
+            END as menu_type_description
+        FROM menu m
+        WHERE m.status = 1
+        ORDER BY m.parent_id ASC, m.sort ASC, m.create_time ASC
+    </select>
+
+    <!-- 根据父级 ID 查询子菜单 -->
+    <select id="selectChildrenByParentId" resultMap="menuViewMap">
+        SELECT
+            m.id,
+            m.name,
+            m.component,
+            m.parent_id,
+            m.icon,
+            m.path,
+            m.sort,
+            m.status,
+            m.create_time,
+            m.update_time,
+            m.remark,
+            CASE m.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END as status_description,
+            CASE m.type
+                WHEN 1 THEN '系统菜单'
+                WHEN 2 THEN '业务菜单'
+                WHEN 3 THEN '自定义菜单'
+                ELSE '未知类型'
+            END as menu_type_description
+        FROM menu m
+        WHERE m.parent_id = #{parentId}
+        AND m.status = 1
+        ORDER BY m.sort ASC, m.create_time ASC
+    </select>
+
+    <!-- 统计菜单数量 -->
+    <select id="countMenus" resultType="int">
+        SELECT COUNT(*)
+        FROM menu m
+        <where>
+            <if test="type != null">
+                AND m.type = #{type}
+            </if>
+            <if test="status != null">
+                AND m.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据角色 ID 查询菜单 ID 列表 -->
+    <select id="selectMenuIdsByRoleIds" resultType="java.lang.Long">
+        SELECT DISTINCT m.id
+        FROM menu m
+        INNER JOIN role_menu rm ON m.id = rm.menu_id
+        WHERE rm.role_id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+        AND m.status = 1
+        ORDER BY m.id ASC
+    </select>
+
+</mapper>

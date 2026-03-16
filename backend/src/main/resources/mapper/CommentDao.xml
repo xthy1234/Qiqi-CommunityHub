@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.CommentDao">
+
+    <!-- 评论结果映射 -->
+    <resultMap type="com.gcs.entity.Comment" id="commentMap">
+        <result property="id" column="id"/>
+        <result property="contentId" column="content_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userAvatar" column="user_avatar"/>
+        <result property="userNickname" column="user_nickname"/>
+        <result property="content" column="content"/>
+        <result property="replyContent" column="reply_content"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 评论视图结果映射 -->
+    <resultMap type="com.gcs.entity.view.CommentView" id="commentViewMap" extends="commentMap">
+        <result property="contentTitle" column="content_title"/>
+        <result property="isLiked" column="is_liked"/>
+        <collection property="children" ofType="com.gcs.entity.view.CommentView">
+            <id property="id" column="child_id"/>
+            <result property="content" column="child_content"/>
+            <result property="replyContent" column="child_reply_content"/>
+            <result property="parentId" column="child_parent_id"/>
+            <result property="userId" column="child_user_id"/>
+            <result property="userAvatar" column="child_user_avatar"/>
+            <result property="userNickname" column="child_user_nickname"/>
+            <result property="likeCount" column="child_like_count"/>
+            <result property="createTime" column="child_create_time"/>
+        </collection>
+    </resultMap>
+
+<!--    &lt;!&ndash; 查询评论列表视图 &ndash;&gt;-->
+<!--    <select id="selectListView" resultMap="commentViewMap">-->
+<!--        SELECT-->
+<!--            c.id,-->
+<!--            c.content_id,-->
+<!--            c.user_id,-->
+<!--            c.user_avatar,-->
+<!--            c.user_nickname,-->
+<!--            c.content,-->
+<!--            c.reply_content,-->
+<!--            c.parent_id,-->
+<!--            c.likeCount,-->
+<!--            c.status,-->
+<!--            c.create_time,-->
+<!--            c.update_time,-->
+<!--            a.title as content_title-->
+<!--        FROM comment c-->
+<!--        LEFT JOIN article a ON c.content_id = a.id-->
+<!--        <where>-->
+<!--            c.status = 0-->
+<!--            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">-->
+<!--                AND ${ew.sqlSegment}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        ORDER BY c.create_time DESC-->
+<!--    </select>-->
+
+    <!-- 分页查询评论列表视图 -->
+    <select id="selectListView" resultMap="commentViewMap">
+        SELECT
+            c.id,
+            c.content_id,
+            c.user_id,
+            c.user_avatar,
+            c.user_nickname,
+            c.content,
+            c.reply_content,
+            c.parent_id,
+            c.like_count,
+            c.status,
+            c.create_time,
+            c.update_time,
+            a.title as content_title
+        FROM comment c
+        LEFT JOIN article a ON c.content_id = a.id
+        <where>
+            c.status = 0
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 查询单个评论视图 -->
+    <select id="selectView" resultMap="commentViewMap">
+        SELECT
+            c.id,
+            c.content_id,
+            c.user_id,
+            c.user_avatar,
+            c.user_nickname,
+            c.content,
+            c.reply_content,
+            c.parent_id,
+            c.like_count,
+            c.status,
+            c.create_time,
+            c.update_time,
+            a.title as content_title
+        FROM comment c
+        LEFT JOIN article a ON c.content_id = a.id
+        <where>
+            c.status = 0
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据内容 ID 查询评论列表 -->
+    <select id="selectByContentId" resultMap="commentViewMap">
+        SELECT
+            c.id,
+            c.content_id,
+            c.user_id,
+            c.user_avatar,
+            c.user_nickname,
+            c.content,
+            c.reply_content,
+            c.parent_id,
+            c.like_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        FROM comment c
+        <where>
+            c.content_id = #{contentId}
+            AND c.status = 0
+            AND c.parent_id IS NULL
+        </where>
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 分页查询内容评论列表（仅一级评论） -->
+    <select id="selectByContentIdPage" resultMap="commentViewMap">
+        SELECT
+            c.id,
+            c.content_id,
+            c.user_id,
+            u.avatar as user_avatar,
+            u.nickname as user_nickname,
+            c.content,
+            c.reply_content,
+            c.parent_id,
+            c.like_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        FROM comment c
+        LEFT JOIN users u ON c.user_id = u.id
+        <where>
+            c.content_id = #{contentId}
+            AND c.status = 0
+            AND c.is_deleted = false
+            AND c.parent_id IS NULL
+        </where>
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 分页查询评论树结构（仅一级评论） -->
+    <select id="selectPrimaryComments" resultMap="commentViewMap">
+        SELECT
+            c.id,
+            c.content_id,
+            c.user_id,
+            u.avatar as user_avatar,
+            u.nickname as user_nickname,
+            c.content,
+            c.reply_content,
+            c.parent_id,
+            c.like_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        FROM comment c
+        LEFT JOIN users u ON c.user_id = u.id
+        <where>
+            c.content_id = #{contentId}
+            AND c.status = 0
+            AND c.is_deleted = false
+            AND c.parent_id IS NULL
+        </where>
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 查询指定父评论的子评论 -->
+    <select id="selectChildComments" resultMap="commentViewMap">
+        SELECT
+            c.id,
+            c.content_id,
+            c.user_id,
+            u.avatar as user_avatar,
+            u.nickname as user_nickname,
+            c.content,
+            c.reply_content,
+            c.parent_id,
+            c.like_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        FROM comment c
+        LEFT JOIN users u ON c.user_id = u.id
+        <where>
+            c.parent_id = #{parentId}
+            AND c.status = 0
+            AND c.is_deleted = false
+        </where>
+        ORDER BY c.create_time ASC
+    </select>
+
+    <!-- 查询评论树结构（修复重复问题：只查询一级评论，子评论通过递归加载） -->
+    <select id="selectCommentTree" resultMap="commentViewMap">
+        SELECT
+            c.id,
+            c.content_id,
+            c.user_id,
+            u.avatar as user_avatar,
+            u.nickname as user_nickname,
+            c.content,
+            c.reply_content,
+            c.parent_id,
+            c.like_count,
+            c.status,
+            c.create_time,
+            c.update_time
+        FROM comment c
+        LEFT JOIN users u ON c.user_id = u.id
+        <where>
+            c.content_id = #{contentId}
+            AND c.status = 0
+            AND c.is_deleted = false
+            AND c.parent_id IS NULL
+        </where>
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 统计内容的评论数量 -->
+    <select id="countByContentId" resultType="int">
+        SELECT COUNT(*)
+        FROM comment c
+        <where>
+            c.content_id = #{contentId}
+            AND c.status = 0
+            AND c.is_deleted = false
+        </where>
+    </select>
+
+</mapper>

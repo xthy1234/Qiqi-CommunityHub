@@ -1,0 +1,132 @@
+# ###########################
+# 后端 (Spring Boot + Maven)
+# ###########################
+
+# 编译输出
+backend/target/
+backend/*.jar
+backend/*.war
+backend/*.ear
+
+# Maven 缓存
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/pom.xml.next
+backend/release.properties
+backend/dependency-reduced-pom.xml
+backend/buildNumber.properties
+backend/.mvn/timing.properties
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Maven wrapper 可能产生的文件（如果使用）
+backend/mvnw
+backend/mvnw.cmd
+backend/.mvn/wrapper/
+
+# ###########################
+# 前端 (Vue)
+# ###########################
+
+# 依赖目录
+frontend/node_modules/
+frontend/dist/
+frontend/.temp/
+frontend/.cache/
+frontend/build/
+
+admin/node_modules/
+admin/dist/
+admin/.temp/
+admin/.cache/
+admin/build/
+
+# 本地开发环境文件
+frontend/.env.local
+frontend/.env.*.local
+admin/.env.local
+admin/.env.*.local
+
+# 日志
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+admin/npm-debug.log*
+admin/yarn-debug.log*
+admin/yarn-error.log*
+
+# 编辑器/IDE 生成的本地配置文件
+frontend/.vscode/*
+admin/.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+atlassian-ide-plugin.xml
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+.metadata/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.lnk
+
+
+
+*.log
+*.pid
+*.seed
+*.pid.lock
+logs/
+temp/
+tmp/
+
+
+*.zip
+*.tar.gz
+*.rar
+
+
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-dev.yml
+backend/src/main/resources/application-prod.yml
+frontend/.env
+admin/.env

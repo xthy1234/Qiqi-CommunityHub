@@ -1,0 +1,72 @@
+## Tomcat
+server:
+    tomcat:
+        uri-encoding: UTF-8
+    port: 8080
+    servlet:
+        context-path: /
+        encoding:
+            charset: UTF-8
+            force: true
+
+# 应用配置
+spring:
+  application:
+    name: gameCommunity
+    
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/community
+    username: postgres
+    password: 123
+
+  servlet:
+      multipart:
+        max-file-size: 300MB
+        max-request-size: 300MB
+  web:
+    resources:
+      static-locations: classpath:static/,file:static/
+      
+  # Jackson 时间格式化配置
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  typeAliasesPackage: com.gcs.entity
+  type-handlers-package: com.gcs.handler
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-not-delete-value: false
+      logic-delete-value: true
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    cache-enabled: false
+    call-setters-on-nulls: true
+    jdbc-type-for-null: 'null'
+
+# JWT 配置
+jwt:
+  secret: theSecretKeyForXTHY2025itsTooHardToGuessHAHAHAbutTooShortForHS512signatureQwQ
+  expiration: 86400
+
+# Springdoc OpenAPI 配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  version: 1.0.1
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    config-url: /swagger-ui/swagger-initializer.js
+    url: /v3/api-docs
+
+# 服务器配置

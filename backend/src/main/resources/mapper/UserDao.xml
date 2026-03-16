@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.UserDao">
+
+    <!-- 用户结果映射 -->
+    <resultMap type="com.gcs.entity.User" id="userMap">
+        <result property="id" column="id"/>
+        <result property="account" column="account"/>
+        <result property="password" column="password"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatar" column="avatar"/>
+        <result property="gender" column="gender"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="roleId" column="role_id"/>
+        <result property="birthday" column="birthday"/>
+        <result property="signature" column="signature"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="lastLoginTime" column="last_login_time"/>
+        <result property="lastLoginIp" column="last_login_ip"/>
+    </resultMap>
+
+    <!-- 用户视图结果映射 -->
+    <resultMap type="com.gcs.entity.view.UserView" id="userViewMap" extends="userMap">
+        <result property="genderDescription" column="gender_description"/>
+        <result property="statusDescription" column="status_description"/>
+        <result property="articleCount" column="article_count"/>
+        <result property="followerCount" column="follower_count"/>
+        <result property="followingCount" column="following_count"/>
+    </resultMap>
+
+    <!-- 查询用户列表视图 -->
+<!--    <select id="selectListView" resultMap="userViewMap">-->
+<!--        SELECT-->
+<!--            u.id,-->
+<!--            u.account,-->
+<!--            u.password,-->
+<!--            u.nickname,-->
+<!--            u.avatar,-->
+<!--            u.gender,-->
+<!--            u.phone,-->
+<!--            u.email,-->
+<!--            u.birthday,-->
+<!--            u.signature,-->
+<!--            u.status,-->
+<!--            u.create_time,-->
+<!--            u.update_time,-->
+<!--            u.last_login_time,-->
+<!--            u.last_login_ip,-->
+<!--            CASE u.gender-->
+<!--                WHEN 0 THEN '女'-->
+<!--                WHEN 1 THEN '男'-->
+<!--                ELSE '保密'-->
+<!--            END as gender_description,-->
+<!--            CASE u.status-->
+<!--                WHEN 0 THEN '禁用'-->
+<!--                WHEN 1 THEN '启用'-->
+<!--                ELSE '未知'-->
+<!--            END as status_description-->
+<!--        FROM user u-->
+<!--        <where>-->
+<!--            1=1-->
+<!--            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">-->
+<!--                AND ${ew.sqlSegment}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        ORDER BY u.create_time DESC-->
+<!--    </select>-->
+
+    <!-- 分页查询用户列表视图 -->
+    <select id="selectListView" resultMap="userViewMap">
+        SELECT
+            u.id,
+            u.account,
+            u.password,
+            u.nickname,
+            u.avatar,
+            u.gender,
+            u.phone,
+            u.email,
+            u.role_id,
+            u.birthday,
+            u.signature,
+            u.status,
+            u.create_time,
+            u.update_time,
+            u.last_login_time,
+            u.last_login_ip,
+            CASE u.gender
+                WHEN 0 THEN '女'
+                WHEN 1 THEN '男'
+                ELSE '保密'
+            END as gender_description,
+            CASE u.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END as status_description
+        FROM users u
+        <where>
+            1=1
+
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+        ORDER BY u.create_time DESC
+    </select>
+
+    <!-- 查询单个用户视图 -->
+    <select id="selectView" resultMap="userViewMap">
+        SELECT
+            u.id,
+            u.account,
+            u.password,
+            u.nickname,
+            u.avatar,
+            u.gender,
+            u.phone,
+            u.email,
+            u.role_id,
+            u.birthday,
+            u.signature,
+            u.status,
+            u.create_time,
+            u.update_time,
+            u.last_login_time,
+            u.last_login_ip,
+            CASE u.gender
+                WHEN 0 THEN '女'
+                WHEN 1 THEN '男'
+                ELSE '保密'
+            END as gender_description,
+            CASE u.status
+                WHEN 0 THEN '禁用'
+                WHEN 1 THEN '启用'
+                ELSE '未知'
+            END as status_description
+        FROM users u
+        <where>
+            1=1
+            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
+                AND ${ew.sqlSegment}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据账号查询用户 -->
+    <select id="selectByAccount" resultType="com.gcs.entity.User">
+        SELECT
+            id,
+            account,
+            password,
+            nickname,
+            avatar,
+            gender,
+            phone,
+            email,
+            role_id,
+            birthday,
+            signature,
+            status,
+            create_time,
+            update_time,
+            last_login_time,
+            last_login_ip
+        FROM users
+        WHERE account = #{account}
+    </select>
+
+    <!-- 根据手机号查询用户 -->
+    <select id="selectByPhone" resultType="com.gcs.entity.User">
+        SELECT
+            id,
+            account,
+            password,
+            nickname,
+            avatar,
+            gender,
+            phone,
+            email,
+            role_id,
+            birthday,
+            signature,
+            status,
+            create_time,
+            update_time,
+            last_login_time,
+            last_login_ip
+        FROM users
+        WHERE phone = #{phone}
+    </select>
+
+    <!-- 根据邮箱查询用户 -->
+    <select id="selectByEmail" resultType="com.gcs.entity.User">
+        SELECT
+            id,
+            account,
+            password,
+            nickname,
+            avatar,
+            gender,
+            phone,
+            email,
+            role_id,
+            birthday,
+            signature,
+            status,
+            create_time,
+            update_time,
+            last_login_time,
+            last_login_ip
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <!-- 统计用户数量 -->
+    <select id="countUsers" resultType="int">
+        SELECT COUNT(*)
+        FROM users
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 更新用户最后登录信息 -->
+    <update id="updateLastLoginInfo">
+        UPDATE users
+        SET last_login_time = NOW(),
+            last_login_ip = (#{lastLoginIp})::inet,
+            update_time = NOW()
+        WHERE id = #{userId}
+    </update>
+
+</mapper>

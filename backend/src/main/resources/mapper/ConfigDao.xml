@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.ConfigDao">
+
+    <!-- 配置结果映射 -->
+    <resultMap type="com.gcs.entity.Config" id="configMap">
+        <result property="id" column="id"/>
+        <result property="configKey" column="config_key"/>
+        <result property="configValue" column="config_value"/>
+        <result property="description" column="description"/>
+        <result property="configType" column="config_type"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 根据配置键名查询配置 -->
+    <select id="selectByConfigKey" resultMap="configMap">
+        SELECT
+            id,
+            config_key,
+            config_value,
+            description,
+            config_type,
+            status,
+            create_time,
+            update_time
+        FROM config
+        WHERE config_key = #{configKey}
+        AND status = 1
+        LIMIT 1
+    </select>
+
+    <!-- 批量插入配置 -->
+    <insert id="insertBatch">
+        INSERT INTO config (
+            config_key,
+            config_value,
+            description,
+            config_type,
+            status,
+            create_time
+        ) VALUES
+        <foreach collection="configs" item="config" separator=",">
+            (
+                #{config.configKey},
+                #{config.configValue},
+                #{config.description},
+                #{config.configType},
+                #{config.status},
+                NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据配置类型查询配置列表 -->
+    <select id="selectByConfigType" resultMap="configMap">
+        SELECT
+            id,
+            config_key,
+            config_value,
+            description,
+            config_type,
+            status,
+            create_time,
+            update_time
+        FROM config
+        WHERE config_type = #{configType}
+        AND status = 1
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 获取所有启用的配置 -->
+    <select id="selectAllEnabled" resultMap="configMap">
+        SELECT
+            id,
+            config_key,
+            config_value,
+            description,
+            config_type,
+            status,
+            create_time,
+            update_time
+        FROM config
+        WHERE status = 1
+        ORDER BY config_type, create_time DESC
+    </select>
+
+</mapper>
