@@ -90,4 +90,24 @@
           AND status = 0
     </update>
     
+    <!-- 查询两个用户之间的聊天记录（包含已删除的消息） -->
+    <select id="selectChatHistoryWithDeleted" resultType="com.gcs.entity.PrivateMessage">
+        SELECT * FROM private_message
+        WHERE (from_user_id = #{userId1} AND to_user_id = #{userId2})
+           OR (from_user_id = #{userId2} AND to_user_id = #{userId1})
+           AND
+           (
+               -- 当前用户是发送方时，不显示自己删除的消息
+               (#{currentUserId} = #{userId1} AND deleted_by_sender = false)
+               OR
+               (#{currentUserId} = #{userId2} AND deleted_by_sender = false)
+               OR
+               -- 当前用户是接收方时，不显示自己删除的消息
+               (#{currentUserId} = #{userId1} AND deleted_by_recipient = false)
+               OR
+               (#{currentUserId} = #{userId2} AND deleted_by_recipient = false)
+           )
+        ORDER BY create_time DESC
+    </select>
+
 </mapper>

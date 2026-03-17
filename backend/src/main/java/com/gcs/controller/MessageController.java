@@ -249,6 +249,34 @@ public class MessageController {
     }
     
     /**
+     * 撤回消息
+     */
+    @PutMapping("/recall/{messageId}")
+    @Operation(summary = "撤回消息", description = "发送方撤回已发送的消息")
+    @Transactional
+    public R recallMessage(
+            @Parameter(description = "消息 ID", required = true) 
+            @PathVariable("messageId") Long messageId,
+            @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("用户未登录");
+            }
+            
+            boolean result = privateMessageService.recallMessage(messageId, currentUserId);
+            if (result) {
+                return R.ok("撤回成功");
+            } else {
+                return R.error("撤回失败，只有发送方才能撤回消息");
+            }
+        } catch (Exception e) {
+            log.error("撤回消息失败", e);
+            return R.error("撤回失败");
+        }
+    }
+    
+    /**
      * 将 PrivateMessage 列表转换为 MessageVO 列表并填充用户信息
      */
     private List<MessageVO> convertToVOWithUserInfo(List<PrivateMessage> messages, Long currentUserId) {
@@ -282,6 +310,11 @@ public class MessageController {
             
             // 设置是否为自己发送的消息
             vo.setIsSelf(message.getFromUserId().equals(currentUserId));
+            
+            // 设置撤回和删除标志
+            vo.setIsRecalled(message.getIsRecalled());
+            vo.setDeletedBySender(message.getDeletedBySender());
+            vo.setDeletedByRecipient(message.getDeletedByRecipient());
             
             // 填充发送方用户信息
             User fromUser = userMap.get(message.getFromUserId());

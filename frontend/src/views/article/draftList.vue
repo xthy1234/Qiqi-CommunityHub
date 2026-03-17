@@ -91,10 +91,10 @@ import { NMessageProvider, useMessage, NButton, NInput, NSelect, NPagination, NI
 import { Icon } from '@iconify/vue'
 import { handleImageError, getFullUrl } from '@/utils/userUtils'
 import { articleAPI } from '@/api/article'
-import ArticleGridList from '@/components/ArticleGridList.vue'
-import PageContainer from '@/components/PageContainer.vue'
-import PageHeader from '@/components/PageHeader.vue'
-import DraftCard from '@/components/DraftCard.vue'
+import ArticleGridList from '@/components/article/ArticleGridList.vue'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import DraftCard from '@/components/editor/DraftCard.vue'
 
 interface DraftItem {
   id: number | string

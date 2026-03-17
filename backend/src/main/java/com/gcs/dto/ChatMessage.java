@@ -1,16 +1,17 @@
-package com.gcs.vo;
+package com.gcs.dto;
 
+import com.gcs.vo.UserSimpleVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
- * 私信消息 VO
+ * WebSocket 聊天消息传输对象
  */
 @Data
-@Schema(description = "私信消息视图对象")
-public class MessageVO {
+@Schema(description = "WebSocket 聊天消息")
+public class ChatMessage {
     
     @Schema(description = "消息 ID", example = "1")
     private Long id;
@@ -18,8 +19,14 @@ public class MessageVO {
     @Schema(description = "发送方用户 ID", example = "123")
     private Long fromUserId;
     
+    @Schema(description = "发送方用户信息")
+    private UserSimpleVO fromUser;
+    
     @Schema(description = "接收方用户 ID", example = "456")
     private Long toUserId;
+    
+    @Schema(description = "接收方用户信息")
+    private UserSimpleVO toUser;
     
     @Schema(description = "消息内容", example = "你好！")
     private String content;
@@ -30,24 +37,12 @@ public class MessageVO {
     @Schema(description = "消息状态 (0:未读，1:已读)", example = "0")
     private Integer status;
     
-    @Schema(description = "创建时间", example = "2024-01-01 12:00:00")
-    private LocalDateTime createTime;
-    
-    @Schema(description = "发送方用户信息")
-    private UserSimpleVO fromUser;
-    
-    @Schema(description = "接收方用户信息")
-    private UserSimpleVO toUser;
-    
     @Schema(description = "是否为自己发送的消息", example = "true")
     private Boolean isSelf;
     
-    @Schema(description = "是否已撤回", example = "false")
-    private Boolean isRecalled;
+    @Schema(description = "创建时间", example = "2024-01-01 12:00:00")
+    private LocalDateTime createTime;
     
-    @Schema(description = "发送方是否已删除", example = "false")
-    private Boolean deletedBySender;
-    
-    @Schema(description = "接收方是否已删除", example = "false")
-    private Boolean deletedByRecipient;
+    @Schema(description = "动作类型", example = "SEND")
+    private String action;          // SEND: 发送消息，READ: 已读回执，RECALL: 撤回消息
 }

@@ -68,7 +68,7 @@ import { NCard, NTag } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { handleImageError } from '@/utils/userUtils'
 import {useGlobalProperties} from "@/utils/globalProperties";
-import UserAvatarLink from '@/components/UserAvatarLink.vue'
+import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
 
 interface ArticleProps {
   id: number | string

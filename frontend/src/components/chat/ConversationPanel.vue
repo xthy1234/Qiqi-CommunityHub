@@ -1,7 +1,11 @@
 <template>
-  <div class="conversation-panel">
-    <div class="conversation-header">
-      <h3>消息</h3>
+  <CollapsibleAvatarList
+    title="消息"
+    :default-collapsed="false"
+    @collapse-change="handleCollapseChange"
+  >
+    <!-- 🔥 头部操作区域：未读消息提示 -->
+    <template #header-actions>
       <n-badge :value="unreadCount" :show="unreadCount > 0" :max="99">
         <n-button text size="small">
           <template #icon>
@@ -13,9 +17,10 @@
           </template>
         </n-button>
       </n-badge>
-    </div>
+    </template>
     
-    <div class="conversation-list">
+    <!-- 🔥 展开模式：完整会话列表 -->
+    <template #list-content>
       <n-spin :show="loading">
         <div v-if="conversations.length === 0" class="empty-conversations">
           <div class="empty-state">
@@ -26,8 +31,8 @@
             </n-icon>
             <div class="empty-title">暂时还没有私信会话</div>
             <div class="empty-description">
-              去 <n-button text type="primary" @click="handleGoToFollowing">关注列表</n-button>
-              或 <n-button text type="primary" @click="handleGoToSearch">搜索</n-button> 找人聊天吧
+              去 <n-button text type="primary" @click.stop="handleGoToFollowing">关注列表</n-button>
+              或 <n-button text type="primary" @click.stop="handleGoToSearch">搜索</n-button> 找人聊天吧
             </div>
           </div>
         </div>
@@ -59,16 +64,33 @@
           </n-list-item>
         </n-list>
       </n-spin>
-    </div>
-  </div>
+    </template>
+
+    <!-- 🔥 折叠模式：只显示头像 -->
+    <template #collapsed-content>
+      <n-spin :show="loading">
+        <div
+          v-for="conv in conversations"
+          :key="conv.userId"
+          class="collapsed-avatar-item"
+          :class="{ 'active': activeUserId === conv.userId }"
+          @click="handleSelectConversation(conv)"
+        >
+          <n-badge :value="conv.unreadCount" :show="conv.unreadCount > 0" :dot-style="{ background: '#18a058' }">
+            <n-avatar :src="conv.avatar" round size="large" style="cursor: pointer;" />
+          </n-badge>
+        </div>
+      </n-spin>
+    </template>
+  </CollapsibleAvatarList>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { NBadge, NButton, NIcon, NSpin, NList, NListItem, NAvatar, NEllipsis } from 'naive-ui'
 import type { ConversationVO } from '@/types/message'
 import dayjs from "dayjs";
+import CollapsibleAvatarList from './CollapsibleAvatarList.vue'
 
 interface Props {
   conversations: ConversationVO[]
@@ -87,6 +109,12 @@ const emit = defineEmits<{
 
 const router = useRouter()
 
+// 🔥 处理折叠状态变化
+const handleCollapseChange = (collapsed: boolean) => {
+  console.log('🔵 [ConversationPanel] 折叠状态变化:', collapsed ? '折叠' : '展开')
+}
+
+// 🔥 格式化时间
 const formatTime = (time: string) => {
   const now = dayjs()
   const target = dayjs(time)
@@ -103,10 +131,12 @@ const formatTime = (time: string) => {
   }
 }
 
+// 🔥 选择会话
 const handleSelectConversation = (conv: ConversationVO) => {
   emit('select-conversation', conv)
 }
 
+// 🔥 跳转到关注列表
 const handleGoToFollowing = () => {
   const userId = getCurrentUserId()
   if (userId) {
@@ -116,10 +146,12 @@ const handleGoToFollowing = () => {
   }
 }
 
+// 🔥 跳转到搜索
 const handleGoToSearch = () => {
   router.push('/index/articleList')
 }
 
+// 🔥 获取当前用户 ID
 const getCurrentUserId = () => {
   const userStr = localStorage.getItem('user')
   if (userStr) {
@@ -131,47 +163,6 @@ const getCurrentUserId = () => {
 </script>
 
 <style scoped lang="scss">
-.conversation-panel {
-  width: 360px;
-  min-width: 360px;
-  border-right: 1px solid #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-}
-
-.conversation-header {
-  padding: 20px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  
-  h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-  }
-}
-
-.conversation-list {
-  flex: 1;
-  overflow-y: auto;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #dcdfe6;
-    border-radius: 3px;
-    
-    &:hover {
-      background: #c0c4cc;
-    }
-  }
-}
-
 .empty-conversations {
   padding: 60px 20px;
   text-align: center;
@@ -243,5 +234,26 @@ const getCurrentUserId = () => {
 
 .active {
   background-color: #f0f8ff !important;
+}
+
+.collapsed-avatar-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 8px;
+  border-radius: 50%;
+
+  &:hover {
+    background-color: #f5f5f5;
+    transform: scale(1.1);
+  }
+
+  &.active {
+    .n-avatar {
+      box-shadow: 0 0 0 2px #18a058;
+    }
+  }
 }
 </style>

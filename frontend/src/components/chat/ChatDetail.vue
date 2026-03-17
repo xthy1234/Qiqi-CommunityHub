@@ -69,11 +69,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, h } from 'vue'
 import { useChatStore } from '@/stores/chat'
-import MessageBubble from '../../components/MessageBubble.vue'
-import ChatInput from '../../components/ChatInput.vue'
+import MessageBubble from './MessageBubble.vue'
+import ChatInput from './ChatInput.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import type { Message } from '@/types/message'
 import messageService from '@/api/message'
+import chatService from '@/api/chat'
 import { NIcon, NDropdown, NAvatar, NSpin, NEmpty, NText } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 
@@ -81,7 +82,21 @@ const appContext = useGlobalProperties()
 const store = useChatStore()
 const messageListRef = ref<HTMLElement | null>(null)
 
-// 🔥 简化：直接使用消息中的 isSelf 字段
+// 🔥 获取当前登录用户 ID（用于发送消息）
+const currentUserId = computed(() => {
+  const userStr = appContext?.$toolUtil?.storageGet('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      return user?.id
+    } catch (error) {
+      console.error('❌ [currentUserId] 解析用户信息失败:', error)
+    }
+  }
+  return null
+})
+
+// 🔥 判断是否是自己发送的消息（使用后端返回的 isSelf 字段）
 const isOwnMessage = (msg: Message) => {
   return msg.isSelf === true
 }
@@ -115,6 +130,9 @@ const handleSendMessage = async (content: string) => {
   if (!store.currentConversation) return
   
   try {
+    console.log('🚀 [WebSocket] 发送消息:', content)
+
+    // 🔥 通过 HTTP API 发送消息（确保消息持久化到数据库）
     const response = await messageService.sendMessage({
       toUserId: store.currentConversation.userId,
       content,
@@ -131,8 +149,15 @@ const handleSendMessage = async (content: string) => {
       createTime: response.createTime
     }
     
+    // 🔥 添加到本地消息列表
     store.addSentMessage(message)
     
+    // 🔥 如果 WebSocket 已连接，通过 WebSocket 推送给对方
+    if (chatService.isConnected()) {
+      console.log('📡 [WebSocket] 通过 WebSocket 推送消息')
+      // WebSocket 会自动推送给接收方，不需要手动发送
+    }
+
     await nextTick()
     scrollToBottom()
   } catch (error) {
@@ -173,6 +198,10 @@ onMounted(async () => {
     await nextTick()
     scrollToBottom()
   }
+})
+
+onUnmounted(() => {
+  console.log('🔴 [ChatDetail onUnmounted] 清理组件')
 })
 
 watch(() => store.messages.length, async () => {

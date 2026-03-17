@@ -1,20 +1,10 @@
 <template>
   <div class="message-wrapper" :class="{ 'own': isOwn }">
-    <!-- 🔥 对方的消息：头像在左边 -->
     <n-avatar
-      v-if="!isOwn"
       :src="avatarUrl"
       size="small"
       round
       class="message-avatar"
-    />
-    <!-- 🔥 自己的消息：头像在右边 -->
-    <n-avatar
-        v-if="isOwn"
-        :src="avatarUrl"
-        size="small"
-        round
-        class="message-avatar"
     />
 
     <div class="message-bubble" :class="{ 'own': isOwn }">
@@ -49,17 +39,13 @@
           </div>
         </template>
       </div>
-      
-      <div class="message-meta">
-        <span class="message-time">{{ formatTime(message.createTime) }}</span>
-        <span v-if="isOwn" class="message-status">
+    </div>
+    <div class="message-meta">
+      <span class="message-time">{{ formatTime(message.createTime) }}</span>
+      <span v-if="isOwn" class="message-status">
           {{ message.status === 1 ? '已读' : '已发送' }}
         </span>
-      </div>
     </div>
-    
-
-
   </div>
 </template>
 
@@ -175,7 +161,7 @@ const downloadFile = () => {
 .message-meta {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-top: 6px;
   font-size: 12px;
   

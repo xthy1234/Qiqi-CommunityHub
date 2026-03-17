@@ -49,6 +49,15 @@ export const useChatStore = defineStore('chat', {
       this.hasMore = true
     },
 
+    /** 更新消息状态 */
+    updateMessageStatus(messageId: number, status: string) {
+      const message = this.messages.find((m: Message) => m.id === messageId)
+      if (message) {
+        message.status = status as any
+        console.log('📊 [chatStore] 消息状态已更新:', messageId, status)
+      }
+    },
+
     /** 加载会话列表 */
     async loadConversations() {
       console.log('🔵 [chatStore] 开始加载会话列表')
@@ -81,10 +90,10 @@ export const useChatStore = defineStore('chat', {
     },
 
     /** 切换当前聊天对象 */
-    async switchConversation(conversation: ConversationVO) {
+    async switchConversation(conversation: ConversationVO & { userId?: number }) {
       console.log('🔵 [chatStore] 切换会话:', conversation)
       try {
-        if (!conversation || !conversation.userId) {
+        if (!conversation || !(conversation as any).userId) {
           console.error('❌ [chatStore] 无效的会话对象')
           return
         }
@@ -98,7 +107,7 @@ export const useChatStore = defineStore('chat', {
         if ((!conversation.username || conversation.username === '未知用户' || !conversation.avatar)) {
           console.log('🔵 [chatStore] 检测到会话信息不完整，尝试获取用户信息')
           try {
-            const userInfo = await userService.getUserById(conversation.userId)
+            const userInfo = await userService.getUserById((conversation as any).userId)
             if (userInfo) {
               conversation.username = userInfo.nickname || userInfo.account
               conversation.avatar = userInfo.avatar || ''
@@ -107,7 +116,7 @@ export const useChatStore = defineStore('chat', {
               this.currentConversation = { ...this.currentConversation, ...conversation }
               
               // 更新会话列表中的信息
-              const index = this.conversations.findIndex((c: ConversationVO) => c.userId === conversation.userId)
+              const index = this.conversations.findIndex((c: any) => c.userId === (conversation as any).userId)
               if (index !== -1) {
                 this.conversations[index].username = conversation.username
                 this.conversations[index].avatar = conversation.avatar
@@ -121,20 +130,20 @@ export const useChatStore = defineStore('chat', {
         }
         
         // 加载聊天记录
-        console.log('🔵 [chatStore] 开始加载聊天记录，userId:', conversation.userId)
-        await this.loadMessages(conversation.userId, true)
+        console.log('🔵 [chatStore] 开始加载聊天记录，userId:', (conversation as any).userId)
+        await this.loadMessages((conversation as any).userId, true)
         console.log('🔵 [chatStore] 聊天记录加载完成，消息数:', this.messages.length)
         
         // 标记为已读
-        if (conversation.unreadCount && conversation.unreadCount > 0) {
-          console.log('🔵 [chatStore] 标记为已读，fromUserId:', conversation.userId)
-          await messageService.markAsRead(conversation.userId)
+        if ((conversation as any).unreadCount && (conversation as any).unreadCount > 0) {
+          console.log('🔵 [chatStore] 标记为已读，fromUserId:', (conversation as any).userId)
+          await messageService.markAsRead((conversation as any).userId)
           // 更新本地未读数
-          this.unreadCount -= conversation.unreadCount
-          conversation.unreadCount = 0
+          this.unreadCount -= (conversation as any).unreadCount
+          ;(conversation as any).unreadCount = 0
           
           // 更新会话列表中的未读数
-          const index = this.conversations.findIndex((c: ConversationVO) => c.userId === conversation.userId)
+          const index = this.conversations.findIndex((c: any) => c.userId === (conversation as any).userId)
           if (index !== -1) {
             this.conversations[index].unreadCount = 0
           }

@@ -45,6 +45,14 @@
 
     <!-- 底部操作区 -->
     <div class="sidebar-footer">
+      <div class="manual-toggle-wrapper" @click.stop="handleManualToggle">
+        <div class="manual-toggle-button">
+          <Icon :icon="isExpanded ? 'ri:arrow-left-s-line' : 'ri:arrow-right-s-line'" width="20" />
+          <span v-if="isExpanded">{{ sidebarLocked ? '点击收起' : '自动' }}</span>
+<!--          <span v-else>点击展开</span>-->
+        </div>
+      </div>
+
       <!-- 固定开关 -->
       <div class="toggle-button-wrapper" @click="toggleSidebarLock">
         <div class="toggle-button">
@@ -338,12 +346,13 @@ const toggleSidebarLock = () => {
   appContext?.$toolUtil?.storageSet('sidebarLocked', sidebarLocked.value)
 
   if (sidebarLocked.value) {
-    isExpanded.value = true
-    // 锁定时也恢复之前的展开状态
-    expandedKeys.value = [...previousExpandedKeys.value]
+    // 🔒 锁定时：保存当前展开状态到 localStorage
+    appContext?.$toolUtil?.storageSet('sidebarExpanded', isExpanded.value)
   } else {
-    previousExpandedKeys.value = [...expandedKeys.value]
+    // 🔓 解锁时：清除展开状态记录，并强制收起
+    isExpanded.value = false
     expandedKeys.value = []
+    appContext?.$toolUtil?.storageRemove('sidebarExpanded')
   }
 }
 
@@ -365,13 +374,29 @@ const initializeComponent = async (): Promise<void> => {
   const token = appContext?.$toolUtil?.storageGet('Token')
   authToken.value = !!token
 
+
+  // 🔒 读取锁定状态
   const locked = appContext?.$toolUtil?.storageGet('sidebarLocked')
-  sidebarLocked.value = Boolean(locked)
-  isExpanded.value = sidebarLocked.value
+  console.log('locked', locked)
+  if(locked===null){
+    sidebarLocked.value = true
+    appContext?.$toolUtil?.storageSet('sidebarLocked', true)
+  }else{
+    sidebarLocked.value = Boolean(locked)
+  }
+
+
+  // 📦 读取展开/收起状态
+  const savedExpanded = appContext?.$toolUtil?.storageGet('sidebarExpanded')
+  console.log('savedExpanded', savedExpanded)
+  if (savedExpanded === null) {
+    isExpanded.value = true
+    appContext?.$toolUtil?.storageSet('sidebarExpanded', true)
+  } else {
+    isExpanded.value = Boolean(savedExpanded)
+  }
 
   await loadMenuData()
-
-  // 加载用户信息
   loadUserInfo()
 }
 
@@ -408,224 +433,285 @@ const emit = defineEmits<{
   (e: 'update:collapsed', collapsed: boolean): void
 }>()
 
-// 监听侧边栏展开状态变化，通知父组件
-watch(isExpanded, (newVal) => {
-  emit('update:collapsed', !newVal)
-}, { immediate: true })
+// 监听侧边栏展开状态变化，通知父组件并保存到 localStorage
+watch(isExpanded, (newVal: boolean, oldVal: boolean) => {
+  // 🔥 只有状态真正改变时才保存（避免初始化时重复保存）
+  if (newVal !== oldVal) {
+    try {
+      // 🔥 只有在锁定状态下才保存展开状态
+      if (sidebarLocked.value) {
+        appContext?.$toolUtil?.storageSet('sidebarExpanded', newVal)
+      } else {
+        // 解锁状态，不保存展开状态
+      }
+    } catch (error) {
+      // 保存展开状态失败
+    }
+
+    // 🔥 通知父组件
+    emit('update:collapsed', !newVal)
+  }
+})
+
+// 🔥 新增：监听锁定状态变化
+watch(sidebarLocked, (newLocked: boolean, oldLocked: boolean) => {
+  if (newLocked !== oldLocked) {
+    if (!newLocked) {
+      // 🔓 解锁时，强制收起并清除状态记录
+      isExpanded.value = false
+      expandedKeys.value = []
+      appContext?.$toolUtil?.storageRemove('sidebarExpanded')
+    } else {
+      // 🔒 锁定时，保存当前展开状态
+      appContext?.$toolUtil?.storageSet('sidebarExpanded', isExpanded.value)
+    }
+  }
+})
+
+const handleManualToggle = (): void => {
+  if (!sidebarLocked.value && !isExpanded.value) {
+    sidebarLocked.value = true
+    appContext?.$toolUtil?.storageSet('sidebarLocked', true)
+  }
+
+  isExpanded.value = !isExpanded.value
+}
 
 </script>
 
-<style lang="scss" scoped>
-.sidebar-container {
-  width: 64px;
-  height: 100vh;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  //overflow: visible;
-  //box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
-  border-right: 1px solid #e4e7ed;
-  flex-shrink: 0;
-  z-index: 1000;
-
-  &.sidebar-expanded {
-    width: 280px;
-  }
-
-  .sidebar-brand {
-    height: 64px;
+<style scoped lang="scss">
+  .sidebar-container {
+    width: 64px;
+    height: 100vh;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid #ebeef5;
-    background: rgba(245, 247, 250, 0.5);
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    //overflow: visible;
+    //box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
+    border-right: 1px solid #e4e7ed;
     flex-shrink: 0;
-    z-index: 10;
+    z-index: 1000;
 
-    .brand-content {
+    &.sidebar-expanded {
+      width: 280px;
+    }
+
+    .sidebar-brand {
+      height: 64px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s ease;
+      border-bottom: 1px solid #ebeef5;
+      background: rgba(245, 247, 250, 0.5);
+      flex-shrink: 0;
+      z-index: 10;
 
-      .brand-logo {
-        height: 32px;
-        width: auto;
-        object-fit: contain;
-      }
-
-      .brand-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        object-fit: cover;
-      }
-    }
-  }
-
-  .sidebar-menu-wrapper {
-    flex: 1;
-    overflow-y: hidden;
-    overflow-x: hidden;
-    min-height: 0;
-    position: relative;
-    transition: overflow-y 0.3s ease;
-
-    &.menu-scrollable:hover {
-      overflow-y: auto;
-    }
-
-    .sidebar-menu {
-      background: transparent !important;
-
-      // 一级菜单项
-      :deep(.n-menu-item) {
-        .n-menu-item-content {
-          &::before {
-            left: 8px;
-          }
-        }
-      }
-
-      // 二级菜单项 - 更深的背景色
-      :deep(.n-submenu-children) {
-        .n-menu-item-content {
-          &:hover {
-            background-color: rgba(24, 160, 88, 0.08);
-          }
-
-          &.n-menu-item-content--selected {
-            background-color: rgba(24, 160, 88, 0.1);
-          }
-        }
-      }
-
-      // 滚动条美化
-      &::-webkit-scrollbar {
-        width: 4px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: #dcdfe6;
-        border-radius: 2px;
-
-        &:hover {
-          background: #c0c4cc;
-        }
-      }
-    }
-  }
-
-  .sidebar-footer {
-    border-top: 1px solid #ebeef5;
-    background: rgba(245, 247, 250, 0.95);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    z-index: 10;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
-
-    .toggle-button-wrapper {
-      border-top: 1px solid #f0f0f0;
-
-      .toggle-button {
-        height: 56px;
+      .brand-content {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        cursor: pointer;
-        color: #303133;
-        transition: all 0.3s;
-        font-size: 13px;
+        transition: all 0.3s ease;
 
-        &:hover {
-          background: #f5f7fa;
-          color: #18a058;
+        .brand-logo {
+          height: 32px;
+          width: auto;
+          object-fit: contain;
+        }
+
+        .brand-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          object-fit: cover;
         }
       }
     }
 
-    .external-links {
-      padding: 12px 16px;
+    .sidebar-menu-wrapper {
+      flex: 1;
+      overflow-y: hidden;
+      overflow-x: hidden;
+      min-height: 0;
+      position: relative;
+      transition: overflow-y 0.3s ease;
 
-      .external-link {
+      &.menu-scrollable:hover {
+        overflow-y: auto;
+      }
+
+      .sidebar-menu {
+        background: transparent !important;
+
+        // 一级菜单项
+        :deep(.n-menu-item) {
+          .n-menu-item-content {
+            &::before {
+              left: 8px;
+            }
+          }
+        }
+
+        // 二级菜单项 - 更深的背景色
+        :deep(.n-submenu-children) {
+          .n-menu-item-content {
+            &:hover {
+              background-color: rgba(24, 160, 88, 0.08);
+            }
+
+            &.n-menu-item-content--selected {
+              background-color: rgba(24, 160, 88, 0.1);
+            }
+          }
+        }
+
+        // 滚动条美化
+        &::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: #dcdfe6;
+          border-radius: 2px;
+
+          &:hover {
+            background: #c0c4cc;
+          }
+        }
+      }
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid #ebeef5;
+      background: rgba(245, 247, 250, 0.95);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 10;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+
+      .manual-toggle-wrapper {
+        border-bottom: 1px solid #f0f0f0;
+
+        .manual-toggle-button {
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          cursor: pointer;
+          color: #303133;
+          transition: all 0.3s;
+          font-size: 13px;
+          background: rgba(24, 160, 88, 0.05);
+
+          &:hover {
+            background: rgba(24, 160, 88, 0.1);
+            color: #18a058;
+          }
+        }
+      }
+
+      .toggle-button-wrapper {
+        border-top: 1px solid #f0f0f0;
+
+        .toggle-button {
+          height: 56px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          cursor: pointer;
+          color: #303133;
+          transition: all 0.3s;
+          font-size: 13px;
+
+          &:hover {
+            background: #f5f7fa;
+            color: #18a058;
+          }
+        }
+      }
+
+      .external-links {
+        padding: 12px 16px;
+
+        .external-link {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 12px;
+          color: #303133;
+          text-decoration: none;
+          border-radius: 6px;
+          transition: all 0.3s;
+
+          &:hover {
+            background: #f5f7fa;
+            color: #18a058;
+          }
+        }
+      }
+
+      .user-avatar-section {
+        border-top: 1px solid #f0f0f0;
+        padding: 12px 16px;
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 8px 12px;
-        color: #303133;
-        text-decoration: none;
-        border-radius: 6px;
+        cursor: pointer;
         transition: all 0.3s;
 
         &:hover {
-          background: #f5f7fa;
-          color: #18a058;
-        }
-      }
-    }
-
-    .user-avatar-section {
-      border-top: 1px solid #f0f0f0;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:hover {
-        background: rgba(24, 160, 88, 0.05);
-      }
-
-      .user-avatar {
-        flex-shrink: 0;
-        border: 2px solid #fff;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-
-      .user-avatar-placeholder {
-        flex-shrink: 0;
-        background-color: #e4e7ed;
-        border: 2px solid #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .user-info {
-        flex: 1;
-        overflow: hidden;
-        min-width: 0;
-
-        .user-nickname {
-          font-size: 14px;
-          font-weight: 600;
-          color: #303133;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          margin-bottom: 2px;
+          background: rgba(24, 160, 88, 0.05);
         }
 
-        .user-account {
-          font-size: 12px;
-          color: #909399;
-          white-space: nowrap;
+        .user-avatar {
+          flex-shrink: 0;
+          border: 2px solid #fff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar-placeholder {
+          flex-shrink: 0;
+          background-color: #e4e7ed;
+          border: 2px solid #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .user-info {
+          flex: 1;
           overflow: hidden;
-          text-overflow: ellipsis;
+          min-width: 0;
+
+          .user-nickname {
+            font-size: 14px;
+            font-weight: 600;
+            color: #303133;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+          }
+
+          .user-account {
+            font-size: 12px;
+            color: #909399;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
         }
       }
     }
   }
-}
 </style>

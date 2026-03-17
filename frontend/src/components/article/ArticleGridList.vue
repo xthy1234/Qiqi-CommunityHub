@@ -57,7 +57,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NGrid, NGridItem, NCard, NSkeleton, NEmpty, NButton } from 'naive-ui'
-import ArticleCard from '@/components/ArticleCard.vue'
+import ArticleCard from '@/components/article/ArticleCard.vue'
 
 interface Article {
   id: number | string

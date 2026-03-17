@@ -88,4 +88,22 @@ public class PrivateMessage implements Serializable {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+    
+    /**
+     * 发送方是否删除
+     */
+    @Schema(description = "发送方是否删除", example = "false")
+    private Boolean deletedBySender = false;
+    
+    /**
+     * 接收方是否删除
+     */
+    @Schema(description = "接收方是否删除", example = "false")
+    private Boolean deletedByRecipient = false;
+    
+    /**
+     * 是否已撤回
+     */
+    @Schema(description = "是否已撤回", example = "false")
+    private Boolean isRecalled = false;
 }

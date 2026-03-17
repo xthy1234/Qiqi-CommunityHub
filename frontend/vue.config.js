@@ -63,6 +63,9 @@ module.exports = {
 					'^/api': ''
 				}
 			}
+		},
+		client: {
+			overlay:false
 		}
 	},
 

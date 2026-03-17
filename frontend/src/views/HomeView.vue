@@ -50,8 +50,8 @@ import { NCarousel, NCarouselItem, NButton, NSkeleton } from 'naive-ui'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { Icon } from '@iconify/vue'
 import { articleAPI } from '@/api/article'
-import ArticleGridList from '@/components/ArticleGridList.vue'
-import PageContainer from "@/components/PageContainer.vue";
+import ArticleGridList from '@/components/article/ArticleGridList.vue'
+import PageContainer from "@/components/common/PageContainer.vue";
 
 interface ArticleItem {
   id: number | string

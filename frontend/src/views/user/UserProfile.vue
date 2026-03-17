@@ -110,8 +110,8 @@ import { useRouter } from 'vue-router'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { NAvatar, NPagination } from 'naive-ui'
 import { getAvatarUrl, getGenderText, formatDateTime } from '@/utils/userUtils'
-import PageContainer from '@/components/PageContainer.vue'
-import ArticleGridList from '@/components/ArticleGridList.vue'
+import PageContainer from '@/components/common/PageContainer.vue'
+import ArticleGridList from '@/components/article/ArticleGridList.vue'
 import userService from '@/api/user'
 
 interface UserInfo {

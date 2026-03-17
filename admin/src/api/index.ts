@@ -45,7 +45,7 @@ class ApiService {
         getCaptcha: () => {
             return httpClient.get<ApiResponse<{ captchaKey: string; captchaImage: string }>>('/captcha/image')
         }
-    },
+    };
 
     /**
      * 用户相关接口

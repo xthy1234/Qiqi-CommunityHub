@@ -86,9 +86,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useMessage, useDialog, type FormRules } from 'naive-ui'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { articleAPI, type Article } from '@/api/article'
-import CoverUpload from '@/components/CoverUpload.vue'
-import RichTextEditor from '@/components/RichTextEditor.vue'
-import PageContainer from "@/components/PageContainer.vue";
+import CoverUpload from '@/components/upload/CoverUpload.vue'
+import RichTextEditor from '@/components/editor/RichTextEditor.vue'
+import PageContainer from "@/components/common/PageContainer.vue";
 
 const appContext = useGlobalProperties()
 const route = useRoute()

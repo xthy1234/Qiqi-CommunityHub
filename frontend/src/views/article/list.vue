@@ -96,10 +96,10 @@ import { NMessageProvider, useMessage, NButton, NInput, NSelect, NPagination, NC
 import { Icon } from '@iconify/vue'
 import { handleImageError, getFullUrl } from '@/utils/userUtils'
 import { articleAPI } from '@/api/article'
-import ArticleGridList from '@/components/ArticleGridList.vue'
-import PageContainer from '@/components/PageContainer.vue'
-import PageHeader from '@/components/PageHeader.vue'
-import ArticleCategorySelect from '@/components/ArticleCategorySelect.vue'
+import ArticleGridList from '@/components/article/ArticleGridList.vue'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import ArticleCategorySelect from '@/components/article/ArticleCategorySelect.vue'
 
 interface Article {
   id: number | string

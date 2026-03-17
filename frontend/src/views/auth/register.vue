@@ -157,7 +157,7 @@ import { ref, getCurrentInstance, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { FormInst } from 'naive-ui'
-import AvatarUpload from '@/components/AvatarUpload.vue'
+import AvatarUpload from '@/components/upload/AvatarUpload.vue'
 import userApi from '@/api/user'
 
 interface RegistrationForm {

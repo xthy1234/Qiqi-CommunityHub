@@ -50,4 +50,17 @@ public interface PrivateMessageDao extends BaseMapper<PrivateMessage> {
      */
     int markAsRead(@Param("currentUserId") Long currentUserId, 
                    @Param("fromUserId") Long fromUserId);
+    
+    /**
+     * 分页查询两个用户之间的聊天记录（包含已删除的消息）
+     * @param page 分页对象
+     * @param userId1 用户 ID1
+     * @param userId2 用户 ID2
+     * @param currentUserId 当前查看用户 ID
+     * @return 聊天记录列表
+     */
+    List<PrivateMessage> selectChatHistoryWithDeleted(IPage<PrivateMessage> page,
+                                                       @Param("userId1") Long userId1,
+                                                       @Param("userId2") Long userId2,
+                                                       @Param("currentUserId") Long currentUserId);
 }

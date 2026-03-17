@@ -93,6 +93,12 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
         return rows > 0;
     }
     
+    @Transactional
+    public PrivateMessage saveMessage(PrivateMessage message) {
+        this.save(message);
+        return message;
+    }
+    
     @Override
     @Transactional
     public boolean deleteMessage(Long messageId, Long userId) {
@@ -101,13 +107,53 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
             return false;
         }
         
-        // 只有发送方或接收方才能删除消息
-        if (!message.getFromUserId().equals(userId) && !message.getToUserId().equals(userId)) {
+        // 标记发送方或接收方的删除标志
+        if (message.getFromUserId().equals(userId)) {
+            message.setDeletedBySender(true);
+        } else if (message.getToUserId().equals(userId)) {
+            message.setDeletedByRecipient(true);
+        } else {
+            return false; // 无权删除
+        }
+        
+        this.updateById(message);
+        return true;
+    }
+    
+    @Override
+    @Transactional
+    public boolean recallMessage(Long messageId, Long userId) {
+        PrivateMessage message = this.getById(messageId);
+        if (message == null) {
             return false;
         }
         
-        this.removeById(messageId);
+        // 只有发送方才能撤回消息
+        if (!message.getFromUserId().equals(userId)) {
+            return false;
+        }
+        
+        // 设置撤回标志
+        message.setIsRecalled(true);
+        message.setContent("消息已撤回");
+        this.updateById(message);
+        
         return true;
+    }
+    
+    @Override
+    public PageUtils getChatHistoryWithDeleted(Long currentUserId, Long otherUserId, Map<String, Object> params) {
+        int page = Integer.parseInt(params.getOrDefault("page", "1").toString());
+        int limit = Integer.parseInt(params.getOrDefault("limit", "20").toString());
+        
+        IPage<PrivateMessage> pageObj = new Page<>(page, limit);
+        List<PrivateMessage> messages = privateMessageDao.selectChatHistoryWithDeleted(pageObj, currentUserId, otherUserId, currentUserId);
+        
+        // 将消息标记为已读（如果是接收到的消息）
+        markMessagesAsRead(currentUserId, otherUserId);
+        
+        PageUtils pageUtils = new PageUtils(messages, pageObj.getTotal(), limit, page);
+        return pageUtils;
     }
     
     /**

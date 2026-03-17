@@ -1,4 +1,6 @@
 <template>
+<!--  <PageContainer header-title="聊天" :show-back="false">-->
+
   <div class="chat-container">
     <!-- 左侧会话列表 -->
     <ConversationPanel
@@ -14,23 +16,90 @@
       <ChatDetail v-if="store.currentConversation" />
       <EmptyChat v-else />
     </div>
+
+    <!-- WebSocket 连接状态提示 -->
+    <div v-if="!isConnected" class="connection-toast">
+      <n-alert title="WebSocket 未连接" type="warning" :bordered="false" closable>
+        正在尝试重新连接...
+      </n-alert>
+    </div>
   </div>
+<!--  </PageContainer>-->
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import {computed, onMounted, onUnmounted, watch, ref} from 'vue'
 import { useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
-import ChatDetail from './ChatDetail.vue'
-import ConversationPanel from '@/components/ConversationPanel.vue'
-import EmptyChat from '@/components/EmptyChat.vue'
+import ChatDetail from '../../components/chat/ChatDetail.vue'
+import ConversationPanel from '@/components/chat/ConversationPanel.vue'
+import EmptyChat from '@/components/chat/EmptyChat.vue'
 import { useRouter } from 'vue-router'
+import PageContainer from "@/components/common/PageContainer.vue";
+import chatService from '@/api/chat'
+import type { Message } from '@/types/message'
+import { NAlert } from 'naive-ui'
 
 const store = useChatStore()
 const router = useRouter()
 const route = useRoute()
 
+const isConnected = ref(true)
+let unsubscribeMessage: (() => void) | null = null
+let unsubscribeStatus: (() => void) | null = null
+let unsubscribeConnection: (() => void) | null = null
+
 let isInitialized = false
+
+/** 设置 WebSocket 消息监听 */
+const setupWebSocketListeners = () => {
+  // 监听新消息
+  unsubscribeMessage = chatService.onNewMessage((message: Message) => {
+    console.log('📩 [WebSocket] 收到新消息:', message)
+    store.receiveMessage(message)
+  })
+
+  // 监听消息状态更新
+  unsubscribeStatus = chatService.onMessageStatusUpdate(({ messageId, status }) => {
+    console.log('📊 [WebSocket] 消息状态更新:', messageId, status)
+    store.updateMessageStatus(messageId, status)
+  })
+
+  // 监听连接状态变化
+  unsubscribeConnection = chatService.onConnectionChange((state) => {
+    console.log('🔌 [WebSocket] 连接状态变化:', state)
+    isConnected.value = state === 'connected'
+  })
+}
+
+/** 清理 WebSocket 监听 */
+const cleanupWebSocketListeners = () => {
+  unsubscribeMessage?.()
+  unsubscribeStatus?.()
+  unsubscribeConnection?.()
+}
+
+/** 初始化 WebSocket 连接 */
+const initializeWebSocket = async () => {
+  try {
+    console.log('🟢 开始连接 WebSocket...')
+    await chatService.connect()
+    console.log('✅ WebSocket 连接成功')
+    isConnected.value = true
+
+    setupWebSocketListeners()
+  } catch (error) {
+    console.error('❌ WebSocket 连接失败:', error)
+    isConnected.value = false
+  }
+}
+
+/** 断开 WebSocket 连接 */
+const disconnectWebSocket = () => {
+  cleanupWebSocketListeners()
+  chatService.disconnect()
+  isConnected.value = false
+}
 
 /** 初始化与指定用户的聊天 */
 const initializeChatWithUser = async (userId: number) => {
@@ -55,7 +124,7 @@ const initializeChatWithUser = async (userId: number) => {
     console.log('✅ 已有会话，直接切换')
     await store.switchConversation(existingConv)
   } else {
-    console.log('⚠️ 没有会话，创建临时会话（仅用于右侧聊天窗口）')
+    console.log('⚠️ 没有会话，创建临时会话（仅用于右侧聊天）')
     // 创建临时会话（仅用于首次聊天，不添加到左侧列表）
     const tempConv = {
       userId,
@@ -105,7 +174,7 @@ watch(() => route.params.userId, async (newUserId: string | undefined, oldUserId
   }
 }, { immediate: true })
 
-// 组件挂载时加载会话列表
+// 组件挂载时加载会话列表和连接 WebSocket
 onMounted(async () => {
   console.log('🟢 [onMounted] 组件已挂载')
   console.log('🟢 [onMounted] 开始加载会话列表')
@@ -116,6 +185,9 @@ onMounted(async () => {
   } catch (error) {
     console.error('❌ [onMounted] 加载会话列表失败:', error)
   }
+
+  // 🔥 连接 WebSocket
+  await initializeWebSocket()
 
   // 🔥 如果有路由参数且未被 watch 处理过，需要延迟初始化
   // （因为 watch 的 immediate 可能先于 onMounted 执行）
@@ -140,6 +212,12 @@ onMounted(async () => {
   }
 })
 
+// 组件卸载时断开 WebSocket
+onUnmounted(() => {
+  console.log('🔴 [onUnmounted] 断开 WebSocket 连接')
+  disconnectWebSocket()
+})
+
 const handleSelectConversation = async (conv: any) => {
   console.log('🔵 [handleSelectConversation] 选择会话:', conv)
   await store.switchConversation(conv)
@@ -154,6 +232,7 @@ const handleSelectConversation = async (conv: any) => {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .chat-panel {
@@ -161,5 +240,20 @@ const handleSelectConversation = async (conv: any) => {
   min-width: 0;
   background: #f5f5f5;
   position: relative;
+}
+
+.connection-toast {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: auto;
+  max-width: 400px;
+
+  :deep(.n-alert) {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
 }
 </style>

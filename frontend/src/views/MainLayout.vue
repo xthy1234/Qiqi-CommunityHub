@@ -26,8 +26,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
-import Sidebar from '@/components/Sidebar.vue'
-import UserAvatarDropdown from '@/components/UserAvatarDropdown.vue'
+import Sidebar from '@/components/common/Sidebar.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 
 const appContext = useGlobalProperties()

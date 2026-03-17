@@ -76,8 +76,8 @@ import { useMessage } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import type { FormRules } from 'naive-ui'
-import PageContainer from '@/components/PageContainer.vue'
-import PageHeader from '@/components/PageHeader.vue'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 const router = useRouter()
 const appContext = useGlobalProperties()

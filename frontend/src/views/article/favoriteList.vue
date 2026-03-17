@@ -46,9 +46,9 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { NButton, NPagination, NSelect } from 'naive-ui'
 import { Icon } from '@iconify/vue'
-import ArticleGridList from '@/components/ArticleGridList.vue'
-import PageContainer from '@/components/PageContainer.vue'
-import PageHeader from '@/components/PageHeader.vue'
+import ArticleGridList from '@/components/article/ArticleGridList.vue'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 
 interface Article {

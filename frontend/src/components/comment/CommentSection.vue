@@ -177,7 +177,7 @@ import { commentAPI, type Comment } from '@/api/comment'
 import { interactionAPI } from '@/api/interaction'
 import { getAvatarUrl, formatDate } from '@/utils/userUtils'
 import { useGlobalProperties } from '@/utils/globalProperties'
-import UserAvatarLink from '@/components/UserAvatarLink.vue'
+import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
 
 interface Props {
   articleId: number | string

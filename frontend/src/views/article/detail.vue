@@ -166,11 +166,11 @@ import { Icon } from '@iconify/vue'
 import { getAvatarUrl, formatDate, getAuditStatusText } from '@/utils/userUtils'
 import {Article, articleAPI} from '@/api/article'
 import { useGlobalProperties } from '@/utils/globalProperties'
-import ArticleInteractionBar from '@/components/ArticleInteractionBar.vue'
-import CommentSection from '@/components/CommentSection.vue'
-import UserAvatarLink from '@/components/UserAvatarLink.vue'
+import ArticleInteractionBar from '@/components/article/ArticleInteractionBar.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
+import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
 import { NSkeleton } from 'naive-ui'
-import PageHeader from '@/components/PageHeader.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 // 获取全局上下文
 const appContext = useGlobalProperties()
