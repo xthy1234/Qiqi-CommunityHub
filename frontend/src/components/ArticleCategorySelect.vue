@@ -74,7 +74,7 @@ const fetchCategories = async () => {
       categoryOptions.value = options
     }
   } catch (error) {
-    console.error('获取分类列表失败:', error)
+// console.error('获取分类列表失败:', error)
     if (props.includeAllOption) {
       categoryOptions.value = [{ label: '全部分类', value: undefined }]
     }

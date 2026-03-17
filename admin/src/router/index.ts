@@ -7,31 +7,34 @@ import {
 // 导入新的布局组件
 import MainLayout from '@/views/MainLayout.vue'
 import LoginView from '../views/auth/login.vue'
-
-// 文章相关页面
-import ArticleListView from '@/views/article/list.vue'
-import ArticleFormView from '@/views/article/edit.vue'
-import ArticleDetailView from '@/views/article/detail.vue'
-import ArticleEditorView from '@/views/article/edit.vue'
-import ArticleDraftView from '@/views/article/draftList.vue'
-import FavoriteListView from '@/views/article/favoriteList.vue'
-
-// 用户相关页面 - 已精简，只保留个人中心相关页面
 import UserRegisterView from '../views/auth/register.vue'
-import UserProfileView from '@/views/user/UserProfile.vue'
-import UserProfileEditView from '@/views/user/UserProfileEdit.vue'
-import UserPasswordChangeView from '@/views/user/UserPasswordChange.vue'
-import UserPublicProfile from '@/views/user/UserPublicProfile.vue'
-import UserFollowingList from '@/views/user/UserFollowingList.vue'
-import UserFollowersList from '@/views/user/UserFollowersList.vue'
 import HomeView from "@/views/HomeView.vue";
 
 const routes: Array<RouteRecordRaw> = [
+  // 公开路由 - 不需要登录
+  {
+    path: '/login',
+    component: LoginView,
+    meta: { title: '管理员登录' }
+  },
+  {
+    path: '/register',
+    component: UserRegisterView,
+    meta: { title: '管理员注册' }
+  },
+  
+  // 所有管理端页面 - 需要登录
   {
     path: '/',
     component: MainLayout,
+    meta: { requiresAuth: true },
     children: [
-      { path: '', name: 'Home', component: HomeView },
+      { 
+        path: '', 
+        name: 'Home', 
+        component: HomeView,
+        meta: { title: '首页' }
+      },
       // 首页
       {
         path: 'index',
@@ -44,162 +47,47 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/HomeView.vue'),
         meta: { title: '首页' }
       },
-
-      // 文章管理
+      // 用户管理
       {
-        path: 'articleList',
-        component: ArticleListView,
-        meta: { title: '文章列表' }
+        path: 'users',
+        component: () => import('@/views/user/list.vue'),
+        meta: { title: '用户管理' }
+      },
+      // 评论管理
+      {
+        path: 'comments',
+        component: () => import('@/views/comment/list.vue'),
+        meta: { title: '评论管理' }
+      },
+      // 管理员管理
+      {
+        path: 'admins',
+        component: () => import('@/views/admin/list.vue'),
+        meta: { title: '管理员管理' }
+      },
+      // 个人中心
+      {
+        path: 'profile',
+        component: () => import('@/views/profile/UserProfile.vue'),
+        meta: { title: '个人资料' }
       },
       {
-        path: 'articleDetail',
-        component: ArticleDetailView,
-        meta: { title: '文章详情' }
-      },
-      {
-        path: 'articleAdd',
-        component: ArticleFormView,
-        meta: { title: '发布文章' }
-      },
-      {
-        path: 'article/editor',
-        component: ArticleEditorView,
-        meta: { title: '创作文章' }
-      },
-      {
-        path: 'article/draftList',
-        component: ArticleDraftView,
-        meta: { title: '草稿箱' }
-      },
-
-      // 个人信息展示
-      {
-        path: 'user/profile',
-        component: UserProfileView,
-        meta: { title: '个人信息' }
-      },
-      // 修改个人信息
-      {
-        path: 'user/profile-edit',
-        component: UserProfileEditView,
-        meta: { title: '编辑资料' }
-      },
-      // 修改密码
-      {
-        path: 'user/password-change',
-        component: UserPasswordChangeView,
-        meta: { title: '修改密码' }
-      },
-
-      // 兼容带 /index 前缀的路径
-      {
-        path: 'index/articleList',
-        component: ArticleListView,
-        meta: { title: '文章列表' }
-      },
-      {
-        path: 'index/articleDetail',
-        component: ArticleDetailView,
-        meta: { title: '文章详情' }
-      },
-      {
-        path: 'index/articleAdd',
-        component: ArticleFormView,
-        meta: { title: '发布文章' }
-      },
-      {
-        path: 'index/article/editor',
-        component: ArticleEditorView,
-        meta: { title: '创作文章' }
-      },
-      {
-        path: 'index/article/draftList',
-        component: ArticleDraftView,
-        meta: { title: '草稿箱' }
-      },
-      {
-        path: 'favoriteList',
-        component: FavoriteListView,
-        meta: { title: '我的收藏' }
-      },
-      {
-        path: 'index/favoriteList',
-        component: FavoriteListView,
-        meta: { title: '我的收藏' }
-      },
-      {
-        path: 'index/user/profile',
-        component: UserProfileView,
-        meta: { title: '个人信息' }
-      },
-      {
-        path: 'index/user/profile-edit',
-        component: UserProfileEditView,
+        path: 'profile/edit',
+        component: () => import('@/views/profile/UserProfileEdit.vue'),
         meta: { title: '编辑资料' }
       },
       {
-        path: 'index/user/password-change',
-        component: UserPasswordChangeView,
+        path: 'profile/password',
+        component: () => import('@/views/profile/UserPasswordChange.vue'),
         meta: { title: '修改密码' }
-      },
-      // 用户中心
-      {
-        path: 'userCenter',
-        component: UserProfileView,
-        meta: { title: '个人中心' }
-      },
-      {
-        path: 'index/userCenter',
-        component: UserProfileView,
-        meta: { title: '个人中心' }
-      },
-      // 公开的个人主页（无需登录）
-      {
-        path: 'user/:id',
-        component: UserPublicProfile,
-        meta: { title: '个人主页' }
-      },
-      // 关注列表
-      {
-        path: 'user/:id/following',
-        component: UserFollowingList,
-        meta: { title: '关注列表' }
-      },
-      // 粉丝列表
-      {
-        path: 'user/:id/followers',
-        component: UserFollowersList,
-        meta: { title: '粉丝列表' }
-      },
+      }
     ]
   },
+  
+  // 404 页面 - 重定向到首页
   {
-    path: '/login',
-    component: LoginView,
-    meta: { title: '用户登录' }
-  },
-  {
-    path: '/userRegister',
-    component: UserRegisterView,
-    meta: { title: '用户注册' }
-  },
-  // 公开的个人主页路由（顶层路径）
-  {
-    path: '/user/:id',
-    component: UserPublicProfile,
-    meta: { title: '个人主页', requiresAuth: false }
-  },
-  // 关注列表路由（顶层路径）
-  {
-    path: '/user/:id/following',
-    component: UserFollowingList,
-    meta: { title: '关注列表', requiresAuth: false }
-  },
-  // 粉丝列表路由（顶层路径）
-  {
-    path: '/user/:id/followers',
-    component: UserFollowersList,
-    meta: { title: '粉丝列表', requiresAuth: false }
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 
@@ -212,12 +100,37 @@ const router = createRouter({
 })
 
 /**
- * 路由守卫 - 仅设置页面标题
+ * 全局路由守卫 - 页面标题设置和登录验证
  */
 router.beforeEach((to: any, from: any, next: any) => {
   // 设置页面标题
   if (to.meta?.title) {
-    document.title = `${to.meta.title} - 中文社区交流平台`
+    document.title = `${to.meta.title} - 中文社区管理平台`
+  }
+
+  // 检查是否需要登录验证
+  const requiresAuth = to.meta?.requiresAuth || (to.path !== '/login' && to.path !== '/register')
+  
+  if (requiresAuth) {
+    const token = localStorage.getItem('Token')
+    
+    if (!token) {
+      // 未登录，保存当前要访问的路径，登录后跳转
+      localStorage.setItem('redirectPath', to.fullPath)
+      
+      // 重定向到登录页
+      next('/login')
+      return
+    }
+  }
+
+  // 如果已登录且访问登录页或注册页，重定向到首页
+  if (to.path === '/login' || to.path === '/register') {
+    const token = localStorage.getItem('Token')
+    if (token) {
+      next('/')
+      return
+    }
   }
 
   next()

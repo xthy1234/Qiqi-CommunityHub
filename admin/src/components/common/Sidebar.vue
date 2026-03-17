@@ -96,7 +96,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { h } from 'vue'
 import { useRouter } from 'vue-router'
 import { NMenu, type MenuOption } from 'naive-ui'
 import { Icon } from '@iconify/vue'
@@ -125,7 +126,6 @@ const previousExpandedKeys = ref<string[]>([])
 const userAvatarUrl = ref<string>('')
 const userNickname = ref<string>('')
 const userAccount = ref<string>('')
-// const menuTheme = ref<'light' | 'dark'>('light')
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -148,6 +148,19 @@ const menuOptions = computed<MenuOption[]>(() => {
       key: 'discover',
       icon: renderIcon('ri:compass-discover-line'),
       click: () => navigateToRoute('/index/articleList')
+    },
+    {
+      label: '消息',
+      key: 'message',
+      icon: renderIcon('ri:mail-line'),
+      children: [
+        {
+          label: '私聊',
+          key: 'message-chat',
+          icon: renderIcon('ri:chat-1-line'),
+          click: () => navigateToRoute('/index/chat')
+        }
+      ]
     },
     {
       label: '发布',
@@ -296,6 +309,11 @@ const handleExpandedChange = (keys: string[]) => {
 const navigateToRoute = (path: string): void => {
   if (!path) return
   router.push(path.startsWith('/') ? path : `/index/${path}`)
+
+  // 如果是聊天页面，自动收起侧边栏
+  if (path.includes('chat')) {
+    isExpanded.value = false
+  }
 }
 
 const navigateToFavorite = (): void => {
@@ -338,7 +356,7 @@ const loadMenuData = async (): Promise<void> => {
       menuItems.value = []
     }
   } catch (error) {
-    console.error('加载菜单失败:', error)
+// console.error('加载菜单失败:', error)
     menuItems.value = []
   }
 }
@@ -385,11 +403,21 @@ const getFullUrl = (path: string, baseUrl?: string): string => {
 onMounted(() => {
   initializeComponent()
 })
+
+const emit = defineEmits<{
+  (e: 'update:collapsed', collapsed: boolean): void
+}>()
+
+// 监听侧边栏展开状态变化，通知父组件
+watch(isExpanded, (newVal) => {
+  emit('update:collapsed', !newVal)
+}, { immediate: true })
+
 </script>
 
 <style lang="scss" scoped>
 .sidebar-container {
-  width: 80px;
+  width: 64px;
   height: 100vh;
   background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -398,8 +426,8 @@ onMounted(() => {
   position: fixed;
   top: 0;
   left: 0;
-  overflow: visible;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
+  //overflow: visible;
+  //box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
   border-right: 1px solid #e4e7ed;
   flex-shrink: 0;
   z-index: 1000;

@@ -15,7 +15,8 @@
     "types": [
       "webpack-env",
       "node",
-      "vue"
+      "vue",
+      "vue-router"
     ],
     "paths": {
       "@/*": [

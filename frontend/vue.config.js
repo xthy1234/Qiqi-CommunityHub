@@ -25,7 +25,7 @@ module.exports = {
 			entry: 'src/main.ts',        // 主入口文件
 			template: 'public/index.html', // HTML 模板
 			filename: 'index.html',       // 输出文件名
-			title: '中文社区交流平台',      // 页面标题
+			title: '社区交流平台',      // 页面标题
 			chunks: ['chunk-vendors', 'chunk-common', 'index']
 		}
 	},

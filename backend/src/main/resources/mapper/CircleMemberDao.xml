@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gcs.dao.CircleMemberDao">
+
+    <resultMap id="circleMemberMap" type="com.gcs.entity.CircleMember">
+        <id column="id" property="id"/>
+        <result column="circle_id" property="circleId"/>
+        <result column="user_id" property="userId"/>
+        <result column="role" property="role"/>
+        <result column="join_time" property="joinTime"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 查询用户在圈子中的角色 -->
+    <select id="getUserRoleInCircle" resultType="java.lang.Integer">
+        SELECT role FROM circle_member 
+        WHERE circle_id = #{circleId} AND user_id = #{userId} AND status = 0
+    </select>
+
+    <!-- 查询圈子成员数量 -->
+    <select id="getMemberCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM circle_member 
+        WHERE circle_id = #{circleId} AND status = 0
+    </select>
+
+    <!-- 查询用户加入的所有圈子 ID -->
+    <select id="getJoinedCircleIds" resultType="java.lang.Long">
+        SELECT circle_id FROM circle_member 
+        WHERE user_id = #{userId} AND status = 0
+    </select>
+
+    <!-- 检查用户是否是圈子成员 -->
+    <select id="isMember" resultType="java.lang.Boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM circle_member 
+            WHERE circle_id = #{circleId} AND user_id = #{userId} AND status = 0
+        )
+    </select>
+
+    <!-- 查询圈子成员列表 -->
+    <select id="selectMemberList" resultMap="circleMemberMap">
+        SELECT * FROM circle_member 
+        WHERE circle_id = #{circleId} AND status = 0
+        <if test="role != null">
+            AND role = #{role}
+        </if>
+        ORDER BY join_time DESC
+    </select>
+
+</mapper>

@@ -1,4 +1,3 @@
-NEW_FILE_CODE
 <template>
   <div class="home-view">
     <!-- 欢迎卡片 -->

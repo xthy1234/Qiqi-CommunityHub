@@ -1,259 +1,159 @@
 <template>
   <div class="chat-container">
     <!-- 左侧会话列表 -->
-    <div class="conversation-panel">
-      <div class="conversation-header">
-        <h3>消息</h3>
-        <n-badge :value="store.unreadCount" :show="store.unreadCount > 0" :max="99">
-          <n-button text size="small">
-            <template #icon>
-              <n-icon size="18">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                </svg>
-              </n-icon>
-            </template>
-          </n-button>
-        </n-badge>
-      </div>
-      
-      <div class="conversation-list">
-        <n-spin :show="store.loading">
-          <div v-if="store.conversations.length === 0" class="empty-conversations">
-            <div class="empty-state">
-              <n-icon size="80" color="#dcdfe6">
-                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
-                </svg>
-              </n-icon>
-              <div class="empty-title">暂无会话</div>
-              <div class="empty-description">
-                还没有开始任何聊天，<br />去发现页面找找感兴趣的内容吧~
-              </div>
-              <n-button type="primary" @click="goToDiscover">
-                去发现
-              </n-button>
-            </div>
-          </div>
-          
-          <n-list v-else hoverable clickable>
-            <n-list-item
-              v-for="conv in store.conversations"
-              :key="conv.userId"
-              @click="handleSelectConversation(conv)"
-              :class="{ 'active': store.currentConversation?.userId === conv.userId }"
-            >
-              <template #prefix>
-                <n-badge :value="conv.unreadCount" :show="conv.unreadCount > 0" :dot-style="{ background: '#18a058' }">
-                  <n-avatar :src="conv.avatar" round size="large" />
-                </n-badge>
-              </template>
-              
-              <div class="conversation-item-content">
-                <div class="conversation-top">
-                  <span class="conversation-name">{{ conv.username }}</span>
-                  <span class="conversation-time">{{ formatTime(conv.lastTime) }}</span>
-                </div>
-                <div class="conversation-bottom">
-                  <n-ellipsis class="conversation-message" :tooltip="false">
-                    {{ conv.lastMessage }}
-                  </n-ellipsis>
-                </div>
-              </div>
-            </n-list-item>
-          </n-list>
-        </n-spin>
-      </div>
-    </div>
+    <ConversationPanel
+      :conversations="store.conversations"
+      :loading="store.loading"
+      :unread-count="store.unreadCount"
+      :active-user-id="store.currentConversation?.userId"
+      @select-conversation="handleSelectConversation"
+    />
 
     <!-- 右侧聊天区域 -->
     <div class="chat-panel">
       <ChatDetail v-if="store.currentConversation" />
-      <div v-else class="empty-chat">
-        <div class="empty-state">
-          <n-icon size="100" color="#dcdfe6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
-            </svg>
-          </n-icon>
-          <div class="empty-title-large">选择一个会话开始聊天</div>
-          <div class="empty-description-large">
-            左侧列表选择联系人，或等待新消息<br />
-            与好友分享生活点滴，畅聊有趣话题
-          </div>
-        </div>
-      </div>
+      <EmptyChat v-else />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import ChatDetail from './ChatDetail.vue'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/zh-cn'
-import { NBadge, NButton, NIcon, NSpin, NEmpty, NList, NListItem, NAvatar, NEllipsis } from 'naive-ui'
+import ConversationPanel from '@/components/ConversationPanel.vue'
+import EmptyChat from '@/components/EmptyChat.vue'
 import { useRouter } from 'vue-router'
-
-dayjs.extend(relativeTime)
-dayjs.locale('zh-cn')
 
 const store = useChatStore()
 const router = useRouter()
+const route = useRoute()
 
-onMounted(() => {
-  store.loadConversations()
+let isInitialized = false
+
+/** 初始化与指定用户的聊天 */
+const initializeChatWithUser = async (userId: number) => {
+  // 防止重复初始化同一个用户
+  if (isInitialized && store.currentConversation?.userId === userId) {
+    console.log('⚠️ 已经初始化过该用户，跳过')
+    return
+  }
+
+  if (!userId) {
+    console.log('❌ userId 为空，跳过初始化')
+    return
+  }
+
+  console.log('🟢 开始初始化与用户', userId, '的聊天')
+
+  // 🔥 检查是否已有该会话（从后端加载的）
+  const existingConv = store.conversations.find((c: any) => c.userId === userId)
+  console.log('🔍 是否已有会话:', !!existingConv)
+
+  if (existingConv) {
+    console.log('✅ 已有会话，直接切换')
+    await store.switchConversation(existingConv)
+  } else {
+    console.log('⚠️ 没有会话，创建临时会话（仅用于右侧聊天窗口）')
+    // 创建临时会话（仅用于首次聊天，不添加到左侧列表）
+    const tempConv = {
+      userId,
+      username: '未知用户',
+      avatar: '',
+      lastMessage: '',
+      lastTime: new Date().toISOString(),
+      unreadCount: 0
+    }
+
+    // 🔥 关键：只设置为当前会话，不添加到 conversations 列表
+    store.currentConversation = tempConv
+    store.messages = []
+
+    // 获取用户信息并加载消息
+    console.log('🔵 调用 switchConversation 来获取用户信息和加载消息')
+    await store.switchConversation(tempConv)
+
+    console.log('✅ 临时会话创建完成，用户可以在右侧聊天窗口发消息了')
+  }
+
+  isInitialized = true
+  console.log('✅ 初始化完成，isInitialized = true')
+}
+
+// 监听路由参数变化
+watch(() => route.params.userId, async (newUserId: string | undefined, oldUserId: string | undefined) => {
+  console.log('🟡 路由参数变化:', { old: oldUserId, new: newUserId })
+
+  // 如果是首次初始化（undefined -> undefined），跳过
+  if (!newUserId || newUserId === oldUserId) {
+    console.log('⚠️ userId 无变化或为空，跳过')
+    return
+  }
+
+  const userId = Number(newUserId)
+  console.log('🟡 userId 转换结果:', userId, 'isNaN:', isNaN(userId))
+
+  if (!isNaN(userId)) {
+    console.log('🟡 开始调用 initializeChatWithUser')
+    try {
+      await initializeChatWithUser(userId)
+      console.log('🟡 initializeChatWithUser 执行完成')
+    } catch (error) {
+      console.error('❌ initializeChatWithUser 执行失败:', error)
+    }
+  }
+}, { immediate: true })
+
+// 组件挂载时加载会话列表
+onMounted(async () => {
+  console.log('🟢 [onMounted] 组件已挂载')
+  console.log('🟢 [onMounted] 开始加载会话列表')
+
+  try {
+    await store.loadConversations()
+    console.log('📋 [onMounted] 会话列表加载完成，数量:', store.conversations.length)
+  } catch (error) {
+    console.error('❌ [onMounted] 加载会话列表失败:', error)
+  }
+
+  // 🔥 如果有路由参数且未被 watch 处理过，需要延迟初始化
+  // （因为 watch 的 immediate 可能先于 onMounted 执行）
+  if (route.params.userId && !isInitialized) {
+    const userId = Number(route.params.userId)
+    console.log('🟢 [onMounted] 检测到路由参数 userId:', userId)
+
+    if (!isNaN(userId)) {
+      console.log('🟢 [onMounted] 等待会话列表加载完成后初始化聊天')
+      setTimeout(async () => {
+        console.log('🟢 [setTimeout] 开始初始化聊天')
+        try {
+          await initializeChatWithUser(userId)
+          console.log('🟢 [setTimeout] 初始化聊天完成')
+        } catch (error) {
+          console.error('❌ [setTimeout] 初始化聊天失败:', error)
+        }
+      }, 100)
+    }
+  } else {
+    console.log('⚠️ [onMounted] 已经初始化过或没有路由参数，跳过')
+  }
 })
 
 const handleSelectConversation = async (conv: any) => {
+  console.log('🔵 [handleSelectConversation] 选择会话:', conv)
   await store.switchConversation(conv)
-}
-
-const goToDiscover = () => {
-  router.push('/index/articleList')
-}
-
-const formatTime = (time: string) => {
-  const now = dayjs()
-  const target = dayjs(time)
-  const diff = now.diff(target, 'day')
-  
-  if (diff === 0) {
-    return target.format('HH:mm')
-  } else if (diff === 1) {
-    return '昨天'
-  } else if (diff < 7) {
-    return target.format('dddd')
-  } else {
-    return target.format('YYYY-MM-DD')
-  }
 }
 </script>
 
 <style scoped lang="scss">
 .chat-container {
   display: flex;
-  height: calc(100vh - 120px);
+  height: calc(100vh - 10px);
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.conversation-panel {
-  width: 360px;
-  min-width: 360px;
-  border-right: 1px solid #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-}
-
-.conversation-header {
-  padding: 20px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  
-  h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-  }
-}
-
-.conversation-list {
-  flex: 1;
-  overflow-y: auto;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #dcdfe6;
-    border-radius: 3px;
-    
-    &:hover {
-      background: #c0c4cc;
-    }
-  }
-}
-
-.empty-conversations {
-  padding: 60px 20px;
-  text-align: center;
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-
-    .empty-title {
-      margin-top: 24px;
-      font-size: 16px;
-      font-weight: 600;
-      color: #606266;
-    }
-
-    .empty-description {
-      margin-top: 12px;
-      font-size: 13px;
-      color: #909399;
-      line-height: 1.8;
-      text-align: center;
-    }
-
-    .n-button {
-      margin-top: 24px;
-      padding-left: 32px;
-      padding-right: 32px;
-    }
-  }
-}
-
-.conversation-item-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.conversation-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.conversation-name {
-  font-size: 15px;
-  font-weight: 500;
-  color: #333;
-}
-
-.conversation-time {
-  font-size: 12px;
-  color: #999;
-  margin-left: 8px;
-}
-
-.conversation-bottom {
-  display: flex;
-  align-items: center;
-}
-
-.conversation-message {
-  font-size: 13px;
-  color: #999;
-  max-width: 200px;
-}
-
-.active {
-  background-color: #f0f8ff !important;
 }
 
 .chat-panel {
@@ -261,36 +161,5 @@ const formatTime = (time: string) => {
   min-width: 0;
   background: #f5f5f5;
   position: relative;
-}
-
-.empty-chat {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    text-align: center;
-
-    .empty-title-large {
-      margin-top: 24px;
-      font-size: 18px;
-      font-weight: 600;
-      color: #606266;
-    }
-
-    .empty-description-large {
-      margin-top: 16px;
-      font-size: 14px;
-      color: #909399;
-      line-height: 1.8;
-      max-width: 400px;
-    }
-  }
 }
 </style>

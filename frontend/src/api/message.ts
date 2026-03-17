@@ -32,17 +32,36 @@ class MessageService {
   }
 
   /**
+   * 获取与指定用户的会话信息（用于判断是否已有会话）
+   * @param userId 对方用户 ID
+   */
+  async getConversationWithUser(userId: number): Promise<ConversationVO | null> {
+    try {
+      const response: AxiosResponse<ApiResponse<ConversationVO>> = await httpClient.get(`${this.baseUrl}/conversation/${userId}`)
+      return response.data.data
+    } catch (error) {
+      // 如果会话不存在，后端可能返回 404，此时返回 null
+      return null
+    }
+  }
+
+  /**
    * 获取会话列表
    */
   async getConversations(): Promise<ConversationVO[]> {
-    const response: AxiosResponse<ApiResponse<ConversationVO[]>> = await httpClient.get(`${this.baseUrl}/conversations`)
+    const response: AxiosResponse<ApiResponse<{ list: ConversationVO[]; totalCount?: number }>> = await httpClient.get(`${this.baseUrl}/conversations`)
 
-    // 确保返回的是数组
+    // 🔥 处理分页响应格式
     if (response.data && response.data.data) {
-      return Array.isArray(response.data.data) ? response.data.data : []
+      const data = response.data.data
+      // 如果是分页对象，返回 list 数组
+      if (typeof data === 'object' && 'list' in data) {
+        return Array.isArray(data.list) ? data.list : []
+      }
+      // 如果直接是数组，直接返回
+      return Array.isArray(data) ? data : []
     }
     return []
-    // return response.data.data
   }
 
   /**

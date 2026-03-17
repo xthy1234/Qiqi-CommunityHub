@@ -1,6 +1,7 @@
 package com.gcs.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.gcs.enums.CommonStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -50,7 +51,7 @@ public class Follow implements Serializable {
      * 状态 (0:关注中，1:已取消关注)
      */
     @Schema(description = "状态 (0:关注中，1:已取消关注)", example = "0")
-    private Integer status;
+    private CommonStatus status;
 
     /**
      * 创建时间

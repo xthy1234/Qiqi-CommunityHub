@@ -356,7 +356,7 @@ const loadMenuData = async (): Promise<void> => {
       menuItems.value = []
     }
   } catch (error) {
-    console.error('加载菜单失败:', error)
+// console.error('加载菜单失败:', error)
     menuItems.value = []
   }
 }

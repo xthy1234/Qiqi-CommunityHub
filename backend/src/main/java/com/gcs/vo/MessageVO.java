@@ -32,4 +32,13 @@ public class MessageVO {
     
     @Schema(description = "创建时间", example = "2024-01-01 12:00:00")
     private LocalDateTime createTime;
+    
+    @Schema(description = "发送方用户信息")
+    private UserSimpleVO fromUser;
+    
+    @Schema(description = "接收方用户信息")
+    private UserSimpleVO toUser;
+    
+    @Schema(description = "是否为自己发送的消息", example = "true")
+    private Boolean isSelf;
 }

@@ -10,8 +10,8 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 @Getter
 @AllArgsConstructor
 public enum CommonStatus {
-    ENABLED(0, "启用"),
-    DISABLED(1, "禁用");
+    ENABLED(0, "启用/有效"),
+    DISABLED(1, "禁用/无效");
     
     @EnumValue
     private final Integer code;

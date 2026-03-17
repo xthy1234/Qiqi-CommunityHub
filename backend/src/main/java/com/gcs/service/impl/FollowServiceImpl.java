@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gcs.dao.FollowDao;
 import com.gcs.entity.Follow;
+import com.gcs.enums.CommonStatus;
 import com.gcs.service.FollowService;
 import com.gcs.utils.PageUtils;
 import com.gcs.vo.FollowUserVO;
@@ -48,13 +49,13 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
                 follow = new Follow();
                 follow.setFollowerId(followerId);
                 follow.setFollowingId(followingId);
-                follow.setStatus(0);  // 修改：0 表示关注中
+                follow.setStatus(CommonStatus.ENABLED);
                 follow.setCreateTime(LocalDateTime.now());
                 follow.setUpdateTime(LocalDateTime.now());
                 return this.save(follow);
-            } else if (follow.getStatus() == 1) {  // 修改：1 表示已取消关注
+            } else if (follow.getStatus() == CommonStatus.DISABLED) {
                 // 已取消关注，重新关注
-                follow.setStatus(0);  // 修改：恢复为关注中
+                follow.setStatus(CommonStatus.ENABLED);
                 follow.setUpdateTime(LocalDateTime.now());
                 return this.updateById(follow);
             } else {
@@ -63,8 +64,8 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
             }
         } else if ("unfollow".equalsIgnoreCase(action)) {
             // 取关操作
-            if (follow != null && follow.getStatus() == 0) {  // 修改：0 表示关注中
-                follow.setStatus(1);  // 修改：1 表示已取消关注
+            if (follow != null && follow.getStatus() == CommonStatus.ENABLED) {
+                follow.setStatus(CommonStatus.DISABLED);
                 follow.setUpdateTime(LocalDateTime.now());
                 return this.updateById(follow);
             }
@@ -118,9 +119,9 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
             statusMap.put(targetId, false);
         }
         
-        // 更新已关注的用户（修改：0 表示关注中）
+        // 更新已关注的用户
         for (Follow follow : follows) {
-            if (follow.getStatus() == 0) {  // 修改：判断 0 而不是 1
+            if (follow.getStatus() == CommonStatus.ENABLED) {
                 statusMap.put(follow.getFollowingId(), true);
             }
         }
@@ -148,7 +149,7 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
         QueryWrapper<Follow> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("follower_id", followerId)
                    .eq("following_id", followingId)
-                   .eq("status", 0);  // 修改：0 表示关注中
+                   .eq("status", CommonStatus.ENABLED);
         return this.count(queryWrapper) > 0;
     }
 }

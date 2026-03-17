@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gcs.dao.CircleDao">
+
+    <resultMap id="circleMap" type="com.gcs.entity.Circle">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="avatar" property="avatar"/>
+        <result column="owner_id" property="ownerId"/>
+        <result column="type" property="type"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 查询圈子列表视图 -->
+    <select id="selectListView" resultType="com.gcs.entity.view.CircleView">
+        SELECT 
+            c.id,
+            c.name,
+            c.description,
+            c.avatar,
+            c.owner_id as ownerId,
+            c.type,
+            c.status,
+            c.create_time as createTime,
+            c.update_time as updateTime,
+            u.nickname as ownerNickname,
+            u.avatar as ownerAvatar,
+            COUNT(cm.id) as memberCount
+        FROM circle c
+        LEFT JOIN users u ON c.owner_id = u.id
+        LEFT JOIN circle_member cm ON c.id = cm.circle_id AND cm.status = #{T(com.gcs.enums.CommonStatus).ENABLED.code}
+        WHERE c.status = #{T(com.gcs.enums.CommonStatus).ENABLED.code}
+        <if test="ew.sqlSegment != null and ew.sqlSegment != ''">
+            ${ew.sqlSegment}
+        </if>
+        GROUP BY c.id, u.nickname, u.avatar
+    </select>
+
+    <!-- 分页查询圈子列表视图 -->
+    <select id="selectListView" resultType="com.gcs.entity.view.CircleView">
+        SELECT 
+            c.id,
+            c.name,
+            c.description,
+            c.avatar,
+            c.owner_id as ownerId,
+            c.type,
+            c.status,
+            c.create_time as createTime,
+            c.update_time as updateTime,
+            u.nickname as ownerNickname,
+            u.avatar as ownerAvatar,
+            COUNT(cm.id) as memberCount
+        FROM circle c
+        LEFT JOIN users u ON c.owner_id = u.id
+        LEFT JOIN circle_member cm ON c.id = cm.circle_id AND cm.status = #{T(com.gcs.enums.CommonStatus).ENABLED.code}
+        WHERE c.status = #{T(com.gcs.enums.CommonStatus).ENABLED.code}
+        <if test="ew.sqlSegment != null and ew.sqlSegment != ''">
+            ${ew.sqlSegment}
+        </if>
+        GROUP BY c.id, u.nickname, u.avatar
+    </select>
+
+    <!-- 查询单个圈子视图 -->
+    <select id="selectView" resultType="com.gcs.entity.view.CircleView">
+        SELECT 
+            c.id,
+            c.name,
+            c.description,
+            c.avatar,
+            c.owner_id as ownerId,
+            c.type,
+            c.status,
+            c.create_time as createTime,
+            c.update_time as updateTime,
+            u.nickname as ownerNickname,
+            u.avatar as ownerAvatar,
+            COUNT(cm.id) as memberCount
+        FROM circle c
+        LEFT JOIN users u ON c.owner_id = u.id
+        LEFT JOIN circle_member cm ON c.id = cm.circle_id AND cm.status = #{T(com.gcs.enums.CommonStatus).ENABLED.code}
+        WHERE c.status = #{T(com.gcs.enums.CommonStatus).ENABLED.code}
+        <if test="ew.sqlSegment != null and ew.sqlSegment != ''">
+            ${ew.sqlSegment}
+        </if>
+        GROUP BY c.id, u.nickname, u.avatar
+    </select>
+
+</mapper>

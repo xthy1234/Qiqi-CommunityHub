@@ -55,7 +55,7 @@
             v-for="msg in store.messages"
             :key="msg.id"
             :message="msg"
-            :is-own="msg.fromUserId === currentUserId"
+            :is-own="isOwnMessage(msg)"
           />
         </div>
       </n-spin>
@@ -81,14 +81,10 @@ const appContext = useGlobalProperties()
 const store = useChatStore()
 const messageListRef = ref<HTMLElement | null>(null)
 
-const currentUserId = computed(() => {
-  const userStr = appContext?.$toolUtil?.storageGet('user')
-  if (userStr) {
-    const user = JSON.parse(userStr)
-    return user?.id
-  }
-  return null
-})
+// 🔥 简化：直接使用消息中的 isSelf 字段
+const isOwnMessage = (msg: Message) => {
+  return msg.isSelf === true
+}
 
 const menuOptions = [
   {
@@ -158,8 +154,22 @@ const scrollToBottom = () => {
 }
 
 onMounted(async () => {
+  console.log('🟢 [onMounted] 开始加载消息')
   if (store.currentConversation && store.currentConversation.userId) {
     await store.loadMessages(store.currentConversation.userId, true)
+    console.log('🟢 [onMounted] 消息加载完成，消息数量:', store.messages.length)
+    // 🔥 打印每条消息的方向判断
+    store.messages.forEach((msg: any, index: number) => {
+      const isOwn = isOwnMessage(msg)
+      console.log(`📝 [消息${index}]`, {
+        id: msg.id,
+        content: msg.content.substring(0, 30),
+        fromUserId: msg.fromUserId,
+        isSelf: msg.isSelf,
+        isOwn: isOwn,
+        direction: isOwn ? '➡️ 右边（我发送的）' : '⬅️ 左边（收到的）'
+      })
+    })
     await nextTick()
     scrollToBottom()
   }

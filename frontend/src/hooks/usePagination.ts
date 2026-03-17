@@ -180,7 +180,7 @@ export function usePagination<T = any>(options: PaginationOptions): UsePaginatio
       // 成功回调
       onSuccess?.(list, total)
     } catch (error: any) {
-      console.error('加载数据失败:', error)
+// console.error('加载数据失败:', error)
 
       // 错误处理
       onError?.(error)

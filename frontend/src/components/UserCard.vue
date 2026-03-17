@@ -59,7 +59,8 @@ import followApi from '@/api/follow'
 
 interface UserCardProps {
   user: {
-    id: number
+    id?: number
+    userId?: number
     username?: string
     nickname?: string
     avatar?: string
@@ -85,7 +86,16 @@ const isFriend = ref(false)
 const actionLoading = ref(false)
 
 const isCurrentUser = computed(() => {
-  return props.currentUserId === props.user.id
+// console.log('props.currentUserId:', props.currentUserId)
+// console.log('props.user.userId:', props.user.userId)
+// console.log('props.user.id:', props.user.id)
+
+  // 优先使用 userId，如果没有则使用 id
+  const actualUserId = props.user.userId || props.user.id
+// console.log('实际用户 ID:', actualUserId)
+// console.log('是否是自己:', props.currentUserId === actualUserId)
+
+  return props.currentUserId === actualUserId
 })
 
 // 是否显示关注按钮 - 仅在搜索场景或特定场景显示
@@ -110,26 +120,41 @@ const showFollowBtn = computed(() => {
 // 是否显示发消息按钮 - 在关注列表和粉丝列表中显示
 const showSendMessageBtn = computed(() => {
   // 如果是自己，不显示
-  if (isCurrentUser.value) return false
+// console.log('isCurrentUser:', isCurrentUser.value)
+  return  !isCurrentUser.value
 
   // 在关注列表或粉丝列表中显示
-  return props.sceneType === 'following' || props.sceneType === 'followers'
+  // return props.sceneType === 'following' || props.sceneType === 'followers'
 })
+
+// 获取用户真实 ID 的辅助函数
+const getUserActualId = () => {
+  return props.user.userId || props.user.id
+}
+
+const handleSendMessage = () => {
+  // 直接跳转到聊天页面，后端会在发送第一条消息时自动创建会话
+  router.push(`/chat/${getUserActualId()}`)
+}
+
+const goToUserProfile = () => {
+  router.push(`/user/${getUserActualId()}`)
+}
 
 // 初始化时查询关注状态
 onMounted(async () => {
   if (props.showFollowBtn && !isCurrentUser.value) {
     try {
       // 查询是否关注
-      const status = await followApi.getFollowStatus([props.user.id])
-      isFollowing.value = status[props.user.id] || false
+      const status = await followApi.getFollowStatus([getUserActualId()])
+      isFollowing.value = status[getUserActualId()] || false
       
       // 查询是否互关
       if (isFollowing.value) {
-        isFriend.value = await followApi.isFriend(props.user.id)
+        isFriend.value = await followApi.isFriend(getUserActualId())
       }
     } catch (error) {
-      console.error('查询关注状态失败:', error)
+// console.error('查询关注状态失败:', error)
     }
   }
 })
@@ -140,7 +165,7 @@ const handleFollowToggle = async () => {
   actionLoading.value = true
   try {
     await followApi.followOrUnfollow({
-      userId: props.user.id,
+      userId: getUserActualId(),
       action: isFollowing.value ? 'unfollow' : 'follow'
     })
     
@@ -148,7 +173,7 @@ const handleFollowToggle = async () => {
     
     // 如果刚关注，检查是否互关
     if (isFollowing.value) {
-      isFriend.value = await followApi.isFriend(props.user.id)
+      isFriend.value = await followApi.isFriend(getUserActualId())
     }
     
     appContext.value?.$toolUtil.message(
@@ -157,22 +182,13 @@ const handleFollowToggle = async () => {
     )
     
     // 触发事件通知父组件
-    emit('follow-change', { userId: props.user.id, isFollowing: isFollowing.value })
+    emit('follow-change', { userId: getUserActualId(), isFollowing: isFollowing.value })
   } catch (error: any) {
-    console.error('关注操作失败:', error)
+// console.error('关注操作失败:', error)
     appContext.value?.$toolUtil.message(error.message || '操作失败', 'error')
   } finally {
     actionLoading.value = false
   }
-}
-
-const handleSendMessage = () => {
-  // TODO: 跳转私信页面
-  appContext.value?.$toolUtil.message('私信功能开发中', 'info')
-}
-
-const goToUserProfile = () => {
-  router.push(`/user/${props.user.id}`)
 }
 
 const formatFollowTime = (time: string) => {

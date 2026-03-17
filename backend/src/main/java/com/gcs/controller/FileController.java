@@ -295,14 +295,8 @@ public class FileController {
      * 创建上传目录
      */
     private File createUploadDirectory() throws IOException {
-        File uploadDir;
-        
-        try {
-            File path = new File(ResourceUtils.getURL("classpath:static").getPath());
-            uploadDir = new File(path.getAbsolutePath(), "file");
-        } catch (Exception e) {
-            uploadDir = new File(uploadPath);
-        }
+        // 直接使用配置的上传路径
+        File uploadDir = new File(uploadPath);
         
         if (!uploadDir.exists()) {
             if (!uploadDir.mkdirs()) {

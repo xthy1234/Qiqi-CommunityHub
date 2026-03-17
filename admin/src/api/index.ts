@@ -36,13 +36,26 @@ interface PageResponse<T> {
  */
 class ApiService {
     /**
+     * 验证码相关接口
+     */
+    captcha = {
+        /**
+         * 获取图形验证码
+         */
+        getCaptcha: () => {
+            return httpClient.get<ApiResponse<{ captchaKey: string; captchaImage: string }>>('/captcha/image')
+        }
+    },
+
+    /**
      * 用户相关接口
      */
     user = {
         /**
          * 管理员登录
+         * @param data 登录信息 {account: 账号，password: 密码，captcha: 验证码}
          */
-        adminLogin: (data: { username: string; password: string }) => {
+        adminLogin: (data: { account: string; password: string; captcha?: string }) => {
             return httpClient.post<ApiResponse<{ token: string; user: any }>>('/users/admin/login', data)
         },
 

@@ -116,12 +116,9 @@ const fetchFollowingList = async () => {
       pagination.value.limit
     )
 
-    // API 直接返回数据，不需要 .data.data
-    const apiData = response || {}
-
-    // 修复：优先使用 list.length，如果 totalCount 为 0 但 list 有数据
-    userList.value = apiData.list || []
-    total.value = apiData.totalCount || (apiData.list?.length || 0)
+    // API 返回的数据类型为 PaginationData<FollowRecord>
+    userList.value = response.list || []
+    total.value = response.total || 0
   } catch (error) {
     console.error('获取关注列表失败:', error)
     appContext.value?.$toolUtil.message('获取关注列表失败', 'error')

@@ -11,9 +11,9 @@
         label-width="80px">
 
         <!-- 用户名 -->
-        <el-form-item label="账号" prop="username">
+        <el-form-item label="账号" prop="account">
           <el-input
-            v-model="loginForm.username"
+            v-model="loginForm.account"
             placeholder="请输入管理员账号"
             prefix-icon="User"
             size="large" />
@@ -28,6 +28,26 @@
             prefix-icon="Lock"
             size="large"
             @keyup.enter="handleLogin" />
+        </el-form-item>
+
+        <!-- 验证码 -->
+        <el-form-item label="验证码" prop="captcha">
+          <div class="captcha-row">
+            <el-input
+              v-model="loginForm.captcha"
+              placeholder="请输入验证码"
+              prefix-icon="Key"
+              size="large"
+              class="captcha-input"
+              @keyup.enter="handleLogin" />
+            <img
+              v-if="captchaImage"
+              :src="captchaImage"
+              alt="验证码"
+              class="captcha-image"
+              @click="refreshCaptcha"
+              title="点击刷新验证码" />
+          </div>
         </el-form-item>
 
         <!-- 记住密码 -->
@@ -59,29 +79,52 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import apiService from '@/api'
+import { useUserStore } from '@/stores/user'
 
 interface LoginForm {
-  username: string
+  account: string
   password: string
+  captcha?: string
 }
 
 const router = useRouter()
+const userStore = useUserStore()
 const loginFormRef = ref()
 const loading = ref(false)
 const rememberPassword = ref(false)
+const captchaImage = ref('')
+const captchaKey = ref('')
 
 const loginForm = reactive<LoginForm>({
-  username: '',
-  password: ''
+  account: '',
+  password: '',
+  captcha: ''
 })
 
 const loginRules = {
-  username: [
+  account: [
     { required: true, message: '请输入管理员账号', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
+  ],
+  captcha: [
+    { required: true, message: '请输入验证码', trigger: 'blur' }
   ]
+}
+
+const refreshCaptcha = async () => {
+  try {
+    const response = await apiService.captcha.getCaptcha()
+    const responseData = response.data
+
+    if (responseData.code === 0 || responseData.code === 200) {
+      captchaImage.value = responseData.data?.captchaImage || ''
+      captchaKey.value = responseData.data?.captchaKey || ''
+    }
+  } catch (error: any) {
+    console.error('获取验证码失败:', error)
+  }
 }
 
 const handleLogin = async () => {
@@ -94,40 +137,46 @@ const handleLogin = async () => {
 
     try {
       const response = await apiService.user.adminLogin({
-        username: loginForm.username,
-       password: loginForm.password
+        account: loginForm.account,
+        password: loginForm.password,
+        captcha: loginForm.captcha
       })
 
       const responseData = response.data
 
-      if (responseData.code === 200 || !responseData.code) {
+      if (responseData.code === 200 || responseData.code === 0) {
         const token = responseData.data?.token || responseData.token
         const userInfo = responseData.data?.user || responseData.data
 
-        localStorage.setItem('Token', token)
-        localStorage.setItem('userId', userInfo.id)
-        localStorage.setItem('userName', userInfo.username)
-        localStorage.setItem('userRole', userInfo.role || '管理员')
-        localStorage.setItem('adminName', loginForm.username)
+        userStore.setToken(token)
+        userStore.setUserInfo(userInfo)
+
+        localStorage.setItem('adminName', loginForm.account)
 
         if (rememberPassword.value) {
           localStorage.setItem('loginForm', JSON.stringify({
-            username: loginForm.username,
-           password: loginForm.password
+            account: loginForm.account,
+            password: loginForm.password
           }))
         } else {
           localStorage.removeItem('loginForm')
         }
 
         ElMessage.success('登录成功')
-        router.push('/')
+
+        const redirectPath = localStorage.getItem('redirectPath') || '/'
+        router.push(redirectPath)
       } else {
         ElMessage.error(responseData.msg || '登录失败')
+        refreshCaptcha()
+        loginForm.captcha = ''
       }
     } catch (error: any) {
       console.error('登录失败:', error)
       const errorMsg = error.response?.data?.msg || error.msg || '登录失败，请检查账号和密码'
       ElMessage.error(errorMsg)
+      refreshCaptcha()
+      loginForm.captcha = ''
     } finally {
       loading.value = false
     }
@@ -139,17 +188,20 @@ const loadCachedLogin = () => {
   if (cached) {
     try {
       const parsed = JSON.parse(cached)
-      loginForm.username = parsed.username
+      loginForm.account = parsed.account
       loginForm.password = parsed.password
       rememberPassword.value = true
     } catch (e) {
       localStorage.removeItem('loginForm')
     }
   }
+
+  userStore.loadUserFromStorage()
 }
 
 onMounted(() => {
   loadCachedLogin()
+  refreshCaptcha()
 })
 </script>
 
@@ -180,6 +232,29 @@ onMounted(() => {
   }
 
   .login-form {
+    .captcha-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .captcha-input {
+        flex: 1;
+      }
+
+      .captcha-image {
+        width: 120px;
+        height: 40px;
+        border: 1px solid #dcdfe6;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: opacity 0.3s;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+    }
+
     .login-btn {
       width: 100%;
       margin-top: 20px;

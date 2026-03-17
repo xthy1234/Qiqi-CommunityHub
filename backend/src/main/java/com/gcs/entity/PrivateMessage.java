@@ -1,16 +1,22 @@
 package com.gcs.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.gcs.enums.MessageStatus;
+import com.gcs.handler.MessageStatusTypeHandler;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import org.springframework.format.annotation.DateTimeFormat;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -62,6 +68,7 @@ public class PrivateMessage implements Serializable {
      * 消息状态 (0:未读，1:已读)
      */
     @Schema(description = "消息状态 (0:未读，1:已读)", example = "0")
+    @TableField(typeHandler = MessageStatusTypeHandler.class)
     private MessageStatus status = MessageStatus.UNREAD;
 
     /**

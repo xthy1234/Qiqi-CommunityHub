@@ -63,7 +63,7 @@ const uploadHeaders = computed(() => ({
 
 const imageUrl = computed(() => {
   if (!props.modelValue) return ''
-  console.log('imageUrl', props.modelValue)
+// console.log('imageUrl', props.modelValue)
   return props.modelValue.startsWith('http')
     ? props.modelValue
     : `${baseUrl.value}/${props.modelValue}`
@@ -118,7 +118,7 @@ const handleFileChange = async (event: Event) => {
       message.error(res.message || '封面上传失败')
     }
   } catch (error) {
-    console.error('上传失败:', error)
+// console.error('上传失败:', error)
     message.error('上传失败，请重试')
   } finally {
     if (target) {

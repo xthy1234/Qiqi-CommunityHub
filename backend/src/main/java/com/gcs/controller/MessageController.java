@@ -3,11 +3,15 @@ package com.gcs.controller;
 import com.gcs.dto.MessageReadDTO;
 import com.gcs.dto.MessageSendDTO;
 import com.gcs.entity.PrivateMessage;
+import com.gcs.entity.User;
 import com.gcs.service.PrivateMessageService;
+import com.gcs.service.UserService;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
+import com.gcs.vo.ConversationVO;
 import com.gcs.vo.MessageSendResponseVO;
 import com.gcs.vo.MessageVO;
+import com.gcs.vo.UserSimpleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,8 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +39,9 @@ public class MessageController {
     
     @Autowired
     private PrivateMessageService privateMessageService;
+    
+    @Autowired
+    private UserService userService;
     
     /**
      * 获取当前登录用户 ID
@@ -108,11 +114,8 @@ public class MessageController {
             
             PageUtils pageUtils = privateMessageService.getChatHistory(currentUserId, userId, params);
             
-            // 转换为 MessageVO
-            List<MessageVO> voList = ((List<PrivateMessage>) pageUtils.getList())
-                .stream()
-                .map(this::convertToVO)
-                .collect(Collectors.toList());
+            // 转换为 MessageVO 并填充用户信息
+            List<MessageVO> voList = convertToVOWithUserInfo((List<PrivateMessage>) pageUtils.getList(), currentUserId);
             pageUtils.setList(voList);
             
             return R.ok().put("data", pageUtils);
@@ -246,17 +249,81 @@ public class MessageController {
     }
     
     /**
-     * 将 PrivateMessage 转换为 MessageVO
+     * 将 PrivateMessage 列表转换为 MessageVO 列表并填充用户信息
      */
-    private MessageVO convertToVO(PrivateMessage message) {
-        MessageVO vo = new MessageVO();
-        vo.setId(message.getId());
-        vo.setFromUserId(message.getFromUserId());
-        vo.setToUserId(message.getToUserId());
-        vo.setContent(message.getContent());
-        vo.setMsgType(message.getMsgType());
-        vo.setStatus(message.getStatus().getCode());
-        vo.setCreateTime(message.getCreateTime());
+    private List<MessageVO> convertToVOWithUserInfo(List<PrivateMessage> messages, Long currentUserId) {
+        if (messages == null || messages.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 收集所有需要查询的用户 ID
+        Set<Long> userIds = new HashSet<>();
+        for (PrivateMessage message : messages) {
+            userIds.add(message.getFromUserId());
+            userIds.add(message.getToUserId());
+        }
+        
+        // 批量查询用户信息
+        List<User> users = userService.listByIds(userIds);
+        Map<Long, User> userMap = users.stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        
+        // 转换为 VO
+        List<MessageVO> voList = new ArrayList<>();
+        for (PrivateMessage message : messages) {
+            MessageVO vo = new MessageVO();
+            vo.setId(message.getId());
+            vo.setFromUserId(message.getFromUserId());
+            vo.setToUserId(message.getToUserId());
+            vo.setContent(message.getContent());
+            vo.setMsgType(message.getMsgType());
+            vo.setStatus(message.getStatus().getCode());
+            vo.setCreateTime(message.getCreateTime());
+            
+            // 设置是否为自己发送的消息
+            vo.setIsSelf(message.getFromUserId().equals(currentUserId));
+            
+            // 填充发送方用户信息
+            User fromUser = userMap.get(message.getFromUserId());
+            if (fromUser != null) {
+                vo.setFromUser(convertToUserSimpleVO(fromUser));
+            } else {
+                vo.setFromUser(createDefaultUserSimpleVO(message.getFromUserId()));
+            }
+            
+            // 填充接收方用户信息
+            User toUser = userMap.get(message.getToUserId());
+            if (toUser != null) {
+                vo.setToUser(convertToUserSimpleVO(toUser));
+            } else {
+                vo.setToUser(createDefaultUserSimpleVO(message.getToUserId()));
+            }
+            
+            voList.add(vo);
+        }
+        
+        return voList;
+    }
+    
+    /**
+     * 将 User 转换为 UserSimpleVO
+     */
+    private UserSimpleVO convertToUserSimpleVO(User user) {
+        UserSimpleVO vo = new UserSimpleVO();
+        vo.setId(user.getId());
+        vo.setNickname(user.getNickname());
+        vo.setAvatar(user.getAvatar());
+        return vo;
+    }
+    
+    /**
+     * 创建默认用户简易信息（当用户不存在时）
+     */
+    private UserSimpleVO createDefaultUserSimpleVO(Long userId) {
+        UserSimpleVO vo = new UserSimpleVO();
+        vo.setId(userId);
+        vo.setNickname("未知用户");
+        vo.setAvatar("");
         return vo;
     }
 }

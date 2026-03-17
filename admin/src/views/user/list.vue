@@ -1,4 +1,3 @@
-NEW_FILE_CODE
 <template>
   <div class="page-container">
     <NCard title="用户管理" size="large">

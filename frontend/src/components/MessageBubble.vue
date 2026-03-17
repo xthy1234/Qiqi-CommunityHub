@@ -1,13 +1,22 @@
 <template>
   <div class="message-wrapper" :class="{ 'own': isOwn }">
-    <n-avatar 
-      v-if="!isOwn" 
-      :src="message.fromUser?.avatar" 
-      size="small" 
+    <!-- 🔥 对方的消息：头像在左边 -->
+    <n-avatar
+      v-if="!isOwn"
+      :src="avatarUrl"
+      size="small"
       round
       class="message-avatar"
     />
-    
+    <!-- 🔥 自己的消息：头像在右边 -->
+    <n-avatar
+        v-if="isOwn"
+        :src="avatarUrl"
+        size="small"
+        round
+        class="message-avatar"
+    />
+
     <div class="message-bubble" :class="{ 'own': isOwn }">
       <div class="message-content">
         <!-- 文本消息 -->
@@ -49,13 +58,8 @@
       </div>
     </div>
     
-    <n-avatar 
-      v-if="isOwn" 
-      :src="message.toUser?.avatar || myAvatar"
-      size="small" 
-      round
-      class="message-avatar"
-    />
+
+
   </div>
 </template>
 
@@ -64,6 +68,7 @@ import { computed } from 'vue'
 import type { Message } from '@/types/message'
 import dayjs from 'dayjs'
 import { useGlobalProperties } from '@/utils/globalProperties'
+import { NAvatar, NImage, NIcon, NButton } from 'naive-ui'
 
 const appContext = useGlobalProperties()
 
@@ -74,7 +79,14 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const myAvatar = computed(() => {
+const avatarUrl = computed(() => {
+  console.log('props.isOwn', props.isOwn)
+  // 🔥 始终使用 fromUser 的头像（发送者的头像）
+  if (props.message.fromUser?.avatar) {
+    return props.message.fromUser.avatar
+  }
+
+  // 降级方案：从本地存储获取
   const avatar = appContext?.$toolUtil?.storageGet('avatar')
   if (avatar) {
     const baseUrl = appContext?.$config?.url || 'http://localhost:8080'
@@ -103,12 +115,13 @@ const downloadFile = () => {
   align-items: flex-start;
   gap: 12px;
   max-width: 100%;
-  
+  margin-bottom: 16px;
+
   &.own {
-    flex-direction: row-reverse;
+    flex-direction: row-reverse;  // 🔥 自己的消息：反向排列（头像在右）
     
     .message-bubble {
-      background: #18a058;
+      background: #18a058;  // 🔥 绿色背景（自己）
       color: #fff;
       
       .message-meta {
@@ -122,19 +135,16 @@ const downloadFile = () => {
 }
 
 .message-avatar {
-  flex-shrink: 0;
+  flex-shrink: 0;  // 🔥 头像不压缩
 }
 
 .message-bubble {
-  max-width: 70%;
+  max-width: 70%;  // 🔥 气泡最大宽度 70%
   padding: 12px 16px;
-  background: #f0f0f0;
+  background: #f0f0f0;  // 🔥 灰色背景（对方）
   border-radius: 12px;
   position: relative;
-  
-  &.own {
-    background: #18a058;
-  }
+  word-wrap: break-word;  // 🔥 长文本换行
 }
 
 .message-content {

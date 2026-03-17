@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import type { Message, ConversationVO } from '@/types/message'
 import messageService from '@/api/message'
+import userService from '@/api/user'
 
 interface ChatState {
   conversations: ConversationVO[]
@@ -50,42 +51,83 @@ export const useChatStore = defineStore('chat', {
 
     /** 加载会话列表 */
     async loadConversations() {
+      console.log('🔵 [chatStore] 开始加载会话列表')
       try {
         this.loading = true
         const data = await messageService.getConversations()
+        console.log('🔵 [chatStore] API 返回数据:', data)
         
-        // 确保 data 是数组类型
-        this.conversations = Array.isArray(data) ? data : []
+        // 🔥 保留已有的临时会话（通过路由参数创建的）
+        const temporaryConversations = this.conversations.filter((c: any) => c._isTemporary)
+        console.log('🔵 [chatStore] 保留的临时会话:', temporaryConversations)
+        
+        // 确保 data 是数组类型，并合并临时会话
+        const apiConversations = Array.isArray(data) ? data : []
+        this.conversations = [...apiConversations, ...temporaryConversations]
+        console.log('🔵 [chatStore] 处理后会话列表:', this.conversations)
         
         // 计算总未读数
         this.unreadCount = this.conversations.reduce((sum: number, conv: ConversationVO) => sum + (conv.unreadCount || 0), 0)
+        console.log('🔵 [chatStore] 未读消息数:', this.unreadCount)
       } catch (error) {
-        console.error('加载会话列表失败:', error)
+        console.error('❌ [chatStore] 加载会话列表失败:', error)
         this.conversations = []
         this.unreadCount = 0
         throw error
       } finally {
         this.loading = false
+        console.log('🔵 [chatStore] 加载完成，loading=false')
       }
     },
 
     /** 切换当前聊天对象 */
     async switchConversation(conversation: ConversationVO) {
+      console.log('🔵 [chatStore] 切换会话:', conversation)
       try {
         if (!conversation || !conversation.userId) {
-          console.error('无效的会话对象')
+          console.error('❌ [chatStore] 无效的会话对象')
           return
         }
         
         this.currentConversation = conversation
+        console.log('🔵 [chatStore] currentConversation 已设置:', this.currentConversation)
         this.messagePage = 1
         this.hasMore = true
         
+        // 🔥 如果当前会话没有用户名或头像，尝试从服务器获取
+        if ((!conversation.username || conversation.username === '未知用户' || !conversation.avatar)) {
+          console.log('🔵 [chatStore] 检测到会话信息不完整，尝试获取用户信息')
+          try {
+            const userInfo = await userService.getUserById(conversation.userId)
+            if (userInfo) {
+              conversation.username = userInfo.nickname || userInfo.account
+              conversation.avatar = userInfo.avatar || ''
+              
+              // 更新 currentConversation
+              this.currentConversation = { ...this.currentConversation, ...conversation }
+              
+              // 更新会话列表中的信息
+              const index = this.conversations.findIndex((c: ConversationVO) => c.userId === conversation.userId)
+              if (index !== -1) {
+                this.conversations[index].username = conversation.username
+                this.conversations[index].avatar = conversation.avatar
+              }
+              
+              console.log('🔵 [chatStore] 用户信息已更新:', conversation.username, conversation.avatar)
+            }
+          } catch (error) {
+            console.error('❌ [chatStore] 获取用户信息失败:', error)
+          }
+        }
+        
         // 加载聊天记录
+        console.log('🔵 [chatStore] 开始加载聊天记录，userId:', conversation.userId)
         await this.loadMessages(conversation.userId, true)
+        console.log('🔵 [chatStore] 聊天记录加载完成，消息数:', this.messages.length)
         
         // 标记为已读
         if (conversation.unreadCount && conversation.unreadCount > 0) {
+          console.log('🔵 [chatStore] 标记为已读，fromUserId:', conversation.userId)
           await messageService.markAsRead(conversation.userId)
           // 更新本地未读数
           this.unreadCount -= conversation.unreadCount
@@ -98,7 +140,7 @@ export const useChatStore = defineStore('chat', {
           }
         }
       } catch (error) {
-        console.error('切换会话失败:', error)
+        console.error('❌ [chatStore] 切换会话失败:', error)
         throw error
       }
     },

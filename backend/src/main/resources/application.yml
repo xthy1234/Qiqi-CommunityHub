@@ -55,6 +55,12 @@ jwt:
   secret: theSecretKeyForXTHY2025itsTooHardToGuessHAHAHAbutTooShortForHS512signatureQwQ
   expiration: 86400
 
+# 文件上传配置
+file:
+  upload:
+    path: E:/upload
+    max-size: 314572800  # 300MB，与 spring.servlet.multipart.max-file-size 保持一致
+
 # Springdoc OpenAPI 配置
 springdoc:
   api-docs:
@@ -70,3 +76,5 @@ springdoc:
     url: /v3/api-docs
 
 # 服务器配置
+mybatis:
+  type-handlers-package: com.gcs.handler

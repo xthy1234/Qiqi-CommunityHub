@@ -349,7 +349,7 @@ const handleShare = async () => {
       
       ElMessage.success('分享成功')
     } catch (error) {
-      console.log('系统分享取消或不支持')
+// console.log('系统分享取消或不支持')
     }
   } else {
     try {

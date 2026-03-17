@@ -141,9 +141,9 @@ import { useMessage } from 'naive-ui'
 import { NMessageProvider, useDialog, NButton, NInput, NForm, NFormItem, NAvatar, NSpace } from 'naive-ui'
 import { getFullUrl } from '@/utils/userUtils'
 import type { FormRules } from 'naive-ui'
-import AvatarUpload from '@/components/AvatarUpload.vue'
-import PageContainer from '@/components/PageContainer.vue'
-import PageHeader from '@/components/PageHeader.vue'
+import AvatarUpload from '@/components/common/AvatarUpload.vue'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 
 const router = useRouter()

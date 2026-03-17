@@ -55,7 +55,7 @@ class HttpClient {
         // 请求拦截器 - 自动添加认证 Token
         this.axiosInstance.interceptors.request.use(
             (requestConfig: InternalAxiosRequestConfig) => {
-                const token = toolUtil.storageGet('frontToken')
+                const token = toolUtil.storageGet('Token')
                 if (token && requestConfig.headers) {
                     requestConfig.headers['Token'] = token
                 }
@@ -77,8 +77,8 @@ class HttpClient {
                     return Promise.reject(response)
                 }
 
-                // 处理成功响应
-                if (data && data.code === 0) {
+                // 处理成功响应 (支持 code: 0 或 code: 200)
+                if (data && (data.code === 0 || data.code === 200)) {
                     return response
                 }
 

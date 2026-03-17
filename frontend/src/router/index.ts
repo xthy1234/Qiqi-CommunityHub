@@ -137,12 +137,25 @@ const routes: Array<RouteRecordRaw> = [
         component: ChatView,
         meta: { title: '消息中心' }
       },
+      // 指定聊天对象的路由
+      {
+        path: 'chat/:userId',
+        component: ChatView,
+        meta: { title: '私信聊天' }
+      },
       // 兼容带 /index 前缀的消息中心路径
       {
         path: 'index/chat',
         component: ChatView,
         meta: { title: '消息中心' }
       },
+      // 兼容带 /index 前缀的指定聊天对象路径
+      {
+        path: 'index/chat/:userId',
+        component: ChatView,
+        meta: { title: '私信聊天' }
+      },
+
       {
         path: 'index/user/profile',
         component: UserProfileView,

@@ -23,6 +23,7 @@
               :scene-type="'followers'"
               :currentUserId="currentUserId"
               @follow-change="handleFollowChange"
+              show
             />
           </div>
           
@@ -120,7 +121,8 @@ const fetchFollowerList = async () => {
     // 后端返回格式：{totalCount, pageSize, totalPage, currPage, list}
     const apiData = response || {}
     userList.value = apiData.list || []
-    total.value = apiData.totalCount || 0
+    console.log(apiData)
+    total.value = apiData.total || 0
 
   } catch (error) {
     console.error('获取粉丝列表失败:', error)

@@ -4,25 +4,16 @@ declare module '*.vue' {
   export default component
 }
 
-declare module '@vuemap/vue-amap' {
-  import { Plugin } from 'vue'
-  export const VueAMap: Plugin
-  export const initAMapApiLoader: (options: any) => void
-  export default VueAMap
-}
-
-export {}
-
 // 声明 Vue 核心模块
 declare module 'vue' {
-  import type {
-    Component,
-    ComponentPublicInstance,
+  import type { 
+    Component, 
+    ComponentPublicInstance, 
     ComponentInternalInstance,
     App,
     Plugin
   } from 'vue'
-
+  
   // 导出核心 API
   export function createApp(rootComponent: Component): App
   export function defineComponent(options: any): Component
@@ -36,7 +27,7 @@ declare module 'vue' {
   export function computed<T>(getter: () => T): { readonly value: T }
   export function watch(source: any, callback: Function, options?: any): Function
   export function nextTick(callback?: () => void): Promise<void>
-
+  
   // 类型导出
   export type {
     Component,
@@ -45,7 +36,7 @@ declare module 'vue' {
     App,
     Plugin
   }
-
+  
   // 全局属性扩展
   export interface ComponentCustomProperties {
     $config: any
@@ -80,15 +71,15 @@ declare module 'element-plus/es/locale/lang/zh-cn' {
 // 声明 vue-router 模块
 declare module 'vue-router' {
   import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
-
+  
   export interface RouteMeta {
     title?: string
     [key: string]: any
   }
-
+  
   export type RouteRecordRaw = import('vue-router').RouteRecordRaw
   export type Router = import('vue-router').Router
-
+  
   export function createRouter(options: any): Router
   export function createWebHashHistory(base?: string): any
   export function createWebHistory(base?: string): any

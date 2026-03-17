@@ -139,7 +139,7 @@ try {
     app.use(VueAMap)
   }
 } catch (mapInitError) {
-  console.warn('地图服务初始化失败:', mapInitError)
+// console.warn('地图服务初始化失败:', mapInitError)
 }
 
 // 注册自定义组件
@@ -155,6 +155,25 @@ app.config.globalProperties.$http = httpCall
 
 // 挂载 menu 到全局属性
 app.config.globalProperties.$menu = menu
+
+// 暂时注释掉 ResizeObserver 的错误忽略，用于排查问题
+// const debounce = <T extends Function>(fn: T, delay: number): T => {
+//   let timer: any = null
+//   return function (this: any, ...args: any[]) {
+//     clearTimeout(timer)
+//     timer = setTimeout(() => {
+//       fn.apply(this, args)
+//     }, delay)
+//   } as unknown as T
+// }
+
+// const _ResizeObserver = window.ResizeObserver
+// window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
+//   constructor(callback: any) {
+//     callback = debounce(callback, 20)
+//     super(callback)
+//   }
+// }
 
 // 挂载应用
 app.use(pinia)

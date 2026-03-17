@@ -1,99 +1,177 @@
 <template>
-  <div class="layout-container">
+  <div class="main_layout">
+    <!-- 主内容区（左侧边栏 + 右侧内容） -->
+    <div class="main_container" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+      <!-- 左侧边栏 -->
+      <Sidebar @update:collapsed="handleSidebarCollapsed" />
 
-    <!-- 主体内容区 -->
-    <div class="layout-main">
-      <!-- 左侧菜单 -->
-      <aside class="layout-sidebar">
-        <Sidebar />
-      </aside>
+      <!-- 右侧内容区 -->
+      <div class="content_scrollbar">
+        <div class="page_content">
+          <router-view v-if="isAuthenticated" />
+          <div v-else class="loading-container">
+            <el-result icon="warning" title="请先登录" sub-title="您尚未登录，无法访问管理页面">
+              <template #extra>
+                <el-button type="primary" @click="goToLogin">去登录</el-button>
+              </template>
+            </el-result>
+          </div>
+        </div>
 
-      <!-- 右侧内容 -->
-      <main class="layout-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </main>
+<!--        <div class="footer_section">-->
+<!--          <div class="company_info"></div>-->
+<!--          <div class="record_info"></div>-->
+<!--          <div class="contact_info"></div>-->
+<!--        </div>-->
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import Sidebar from '@/components/common/Sidebar.vue'
+import UserAvatarDropdown from '@/components/UserAvatarDropdown.vue'
+import { useGlobalProperties } from '@/utils/globalProperties'
 
+const appContext = useGlobalProperties()
+const router = useRouter()
+const route = useRoute()
+
+const authToken = ref<boolean>(false)
+const isAuthenticated = ref<boolean>(false)
+const currentDate = ref<string>('')
+const currentTime = ref<string>('')
+const isSidebarCollapsed = ref<boolean>(false)
+let timer: any = null
+
+const handleSidebarCollapsed = (collapsed: boolean) => {
+  isSidebarCollapsed.value = collapsed
+}
+
+const checkAuth = () => {
+  const token = localStorage.getItem('Token')
+  authToken.value = !!token
+  isAuthenticated.value = !!token
+  return !!token
+}
+
+const initializePage = async () => {
+  checkAuth()
+  updateDateTime()
+}
+
+const updateDateTime = () => {
+  const now = new Date()
+  currentDate.value = now.toLocaleDateString('zh-CN')
+  currentTime.value = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+const goToLogin = () => {
+  router.push('/login')
+}
+
+const handleLogin = () => {
+  goToLogin()
+}
+
+const handleLogout = () => {
+  appContext?.$toolUtil?.storageClear()
+  router.push('/login')
+}
+
+// 监听路由变化，检查登录状态
+watch(() => route.path, () => {
+  if (!checkAuth() && route.path !== '/login') {
+    router.push('/login')
+  }
+})
+
+// 每秒更新时间
+const startTimer = () => {
+  timer = setInterval(() => {
+    updateDateTime()
+  }, 1000)
+}
+
+onMounted(() => {
+  initializePage()
+  startTimer()
+
+  // 如果未登录且不在登录页，跳转到登录页
+  if (!checkAuth() && route.path !== '/login') {
+    router.push('/login')
+  }
+})
+
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer)
+  }
+})
 </script>
 
 <style lang="scss" scoped>
-.layout-container {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f5f7fa;
+.main_layout {
+  width: 100%;
+  overflow: hidden;
 }
 
-.layout-header {
-  height: 60px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  z-index: 1000;
 
-  .header-content {
-    height: 100%;
-    padding: 0 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 
-    .logo-section {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+.main_container {
+  display: flex;
+  overflow: hidden;
 
-      .logo-icon {
-        color: #18a058;
-      }
-
-      .site-title {
-        font-size: 20px;
-        font-weight: 600;
-        color: #18a058;
-        letter-spacing: 0.5px;
-      }
+  &.sidebar-collapsed {
+    .content_scrollbar {
+      padding-left: 64px;
     }
   }
 }
 
-.layout-main {
+.content_scrollbar {
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f5f5f5;
+  padding-left: 280px;
+  transition: padding-left 0.3s ease;
+}
+
+.page_content {
+  min-height: calc(100vh - 68px - 120px);
+  padding: 20px;
+}
+
+.loading-container {
   display: flex;
-  overflow: hidden;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
 }
 
-.layout-sidebar {
-  width: 220px;
-  background: #ffffff;
-  border-right: 1px solid #e4e7ed;
-  overflow-y: auto;
-}
+.footer_section {
+  border: 0;
+  padding: 20px 10% 30px;
+  flex-direction: column;
+  color: #fff;
+  background: #333;
+  display: flex;
+  width: 100%;
+  font-size: 14px;
+  min-height: 120px;
+  justify-content: center;
+  align-items: center;
 
-.layout-content {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  background: #f5f7fa;
-}
-
-// 过渡动画
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+  .footer_logo {
+    border-radius: 100%;
+    object-fit: cover;
+    display: none;
+    width: 44px;
+    height: 44px;
+  }
 }
 </style>

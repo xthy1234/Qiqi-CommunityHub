@@ -39,7 +39,7 @@ const menu = {
 			
 			return menus
 		} catch (error) {
-			console.error('获取用户菜单失败:', error)
+// console.error('获取用户菜单失败:', error)
 			throw error
 		}
 	},

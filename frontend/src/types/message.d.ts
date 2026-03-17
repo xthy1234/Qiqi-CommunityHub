@@ -11,6 +11,7 @@ export interface Message {
   status: number // 0-未读，1-已读
   createTime: string
   updateTime?: string
+  isSelf?: boolean // 🔥 新增：是否是自己发送的消息
 }
 
 /**

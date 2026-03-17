@@ -9,7 +9,7 @@ export function useGlobalProperties() {
   const instance = getCurrentInstance()
   
   if (!instance) {
-    console.warn('无法获取组件实例，请确保在 setup 或生命周期钩子中调用')
+// console.warn('无法获取组件实例，请确保在 setup 或生命周期钩子中调用')
     return createProxy()
   }
   
@@ -26,14 +26,14 @@ function createProxy(globalProperties?: any) {
   return new Proxy({} as any, {
     get(target, prop) {
       if (!globalProperties) {
-        console.warn(`尝试访问全局属性 ${String(prop)}，但无法获取 globalProperties`)
+// console.warn(`尝试访问全局属性 ${String(prop)}，但无法获取 globalProperties`)
         return undefined
       }
       
       const value = globalProperties[prop]
       
       if (value === undefined) {
-        console.warn(`全局属性 ${String(prop)} 未定义`)
+// console.warn(`全局属性 ${String(prop)} 未定义`)
       }
       
       return value
