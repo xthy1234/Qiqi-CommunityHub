@@ -84,15 +84,30 @@ const messageListRef = ref<HTMLElement | null>(null)
 
 // 🔥 获取当前登录用户 ID（用于发送消息）
 const currentUserId = computed(() => {
-  const userStr = appContext?.$toolUtil?.storageGet('user')
-  if (userStr) {
+  // 🔥 尝试从 UserInfo 读取（登录时存储的 key）
+  const userInfoStr = appContext?.$toolUtil?.storageGet('UserInfo')
+  if (userInfoStr) {
     try {
-      const user = JSON.parse(userStr)
-      return user?.id
+      const userInfo = JSON.parse(userInfoStr)
+      const userId = userInfo?.id
+      if (userId) {
+// console.log('✅ [currentUserId] 从 UserInfo 获取到用户 ID:', userId)
+        return userId
+      }
     } catch (error) {
-      console.error('❌ [currentUserId] 解析用户信息失败:', error)
+      console.error('❌ [currentUserId] 解析 UserInfo 失败:', error)
     }
   }
+
+  // 降级方案：尝试从 userid 读取
+  const userIdStr = appContext?.$toolUtil?.storageGet('userid')
+  if (userIdStr) {
+    const userId = parseInt(userIdStr)
+// console.log('✅ [currentUserId] 从 userid 获取到用户 ID:', userId)
+    return userId
+  }
+
+  console.warn('⚠️ [currentUserId] 未获取到用户 ID')
   return null
 })
 
@@ -130,38 +145,72 @@ const handleSendMessage = async (content: string) => {
   if (!store.currentConversation) return
   
   try {
-    console.log('🚀 [WebSocket] 发送消息:', content)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('🚀 [ChatDetail.sendMessage] 开始发送消息')
+    console.log('  - 内容:', content)
+    console.log('  - 接收方 ID:', store.currentConversation.userId)
+    console.log('  - 当前消息数:', store.messages.length)
 
-    // 🔥 通过 HTTP API 发送消息（确保消息持久化到数据库）
+    // 🔥 1. 乐观添加：立即显示在界面上，标记为"发送中"
+    console.log('🟢 [步骤 1] 调用 addSendingMessage...')
+    const tempMessage = store.addSendingMessage(content, store.currentConversation.userId)
+    console.log('✅ [步骤 1] 完成，临时消息 ID:', tempMessage._tempId)
+    console.log('  - 临时消息详情:', tempMessage)
+
+    await nextTick()
+    scrollToBottom()
+    console.log('✅ [UI] 滚动到底部')
+
+    // 🔥 2. 发送到后端（HTTP API 确保持久化）
+    console.log('🟢 [步骤 2] 调用 HTTP API 发送消息...')
     const response = await messageService.sendMessage({
       toUserId: store.currentConversation.userId,
       content,
       msgType: 0
     })
+    console.log('✅ [步骤 2] HTTP API 响应:', response)
+    console.log('⚠️ [注意] 跳过 HTTP 响应的消息处理，等待 WebSocket 推送')
 
-    const message: Message = {
-      id: response.messageId,
-      fromUserId: currentUserId.value,
-      toUserId: store.currentConversation.userId,
-      content,
-      msgType: 0,
-      status: 1,
-      createTime: response.createTime
-    }
-    
-    // 🔥 添加到本地消息列表
-    store.addSentMessage(message)
-    
-    // 🔥 如果 WebSocket 已连接，通过 WebSocket 推送给对方
+    // 🔥 3. 通过 WebSocket 推送给对方（同时也会推送给自己）
     if (chatService.isConnected()) {
-      console.log('📡 [WebSocket] 通过 WebSocket 推送消息')
-      // WebSocket 会自动推送给接收方，不需要手动发送
+      console.log('🟢 [步骤 3] WebSocket 已连接，准备推送...')
+      const ws = chatService.getWebSocket()
+      if (ws && store.currentConversation) {
+        console.log('  - 推送目标:', store.currentConversation.userId)
+        ws.sendPrivateMessage(
+          store.currentConversation.userId,
+          content,
+          0
+        )
+        console.log('✅ [步骤 3] WebSocket 推送成功')
+        console.log('ℹ️ [说明] WebSocket 会推送两条消息：一条给自己（确认），一条给对方（新消息）')
+      }
+    } else {
+      console.warn('⚠️ [步骤 3] WebSocket 未连接，无法推送')
+      // 🔥 如果 WebSocket 未连接，降级使用 HTTP 响应
+      console.log('⚠️ [降级处理] WebSocket 未连接，使用 HTTP 响应更新')
+      const fallbackMessage: Message = {
+        id: response.messageId || 0,
+        _tempId: tempMessage._tempId,
+        fromUserId: currentUserId.value || 0,
+        toUserId: store.currentConversation.userId,
+        content,
+        msgType: 0,
+        status: 'SENT',
+        createTime: response.createTime || new Date().toISOString(),
+        isSelf: true
+      }
+      store.confirmSentMessage(fallbackMessage)
     }
 
     await nextTick()
     scrollToBottom()
+    console.log('✅ [UI] 最终滚动到底部')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   } catch (error) {
-    console.error('发送消息失败:', error)
+    console.error('❌ [ChatDetail.sendMessage] 发送消息失败:', error)
+    console.error('  - 错误堆栈:', error)
+    // 🔥 TODO: 消息发送失败处理（显示重试按钮）
   }
 }
 
@@ -179,21 +228,21 @@ const scrollToBottom = () => {
 }
 
 onMounted(async () => {
-  console.log('🟢 [onMounted] 开始加载消息')
+// console.log('🟢 [onMounted] 开始加载消息')
   if (store.currentConversation && store.currentConversation.userId) {
     await store.loadMessages(store.currentConversation.userId, true)
-    console.log('🟢 [onMounted] 消息加载完成，消息数量:', store.messages.length)
+// console.log('🟢 [onMounted] 消息加载完成，消息数量:', store.messages.length)
     // 🔥 打印每条消息的方向判断
     store.messages.forEach((msg: any, index: number) => {
       const isOwn = isOwnMessage(msg)
-      console.log(`📝 [消息${index}]`, {
-        id: msg.id,
-        content: msg.content.substring(0, 30),
-        fromUserId: msg.fromUserId,
-        isSelf: msg.isSelf,
-        isOwn: isOwn,
-        direction: isOwn ? '➡️ 右边（我发送的）' : '⬅️ 左边（收到的）'
-      })
+// console.log(`📝 [消息${index}]`, {
+//         id: msg.id,
+//         content: msg.content.substring(0, 30),
+//         fromUserId: msg.fromUserId,
+//         isSelf: msg.isSelf,
+//         isOwn: isOwn,
+//         direction: isOwn ? '➡️ 右边（我发送的）' : '⬅️ 左边（收到的）'
+//       })
     })
     await nextTick()
     scrollToBottom()
@@ -201,7 +250,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  console.log('🔴 [ChatDetail onUnmounted] 清理组件')
+// console.log('🔴 [ChatDetail onUnmounted] 清理组件')
 })
 
 watch(() => store.messages.length, async () => {

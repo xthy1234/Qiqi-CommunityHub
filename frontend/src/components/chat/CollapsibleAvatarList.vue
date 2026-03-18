@@ -75,9 +75,9 @@ onMounted(() => {
     const savedState = localStorage.getItem(props.storageKey!)
     if (savedState !== null) {
       isCollapsed.value = savedState === 'true'
-      console.log('🔵 [CollapsibleAvatarList] 从 localStorage 恢复状态:', isCollapsed.value ? '折叠' : '展开')
+// console.log('🔵 [CollapsibleAvatarList] 从 localStorage 恢复状态:', isCollapsed.value ? '折叠' : '展开')
     } else {
-      console.log('🔵 [CollapsibleAvatarList] localStorage 无保存状态，使用默认值:', isCollapsed.value ? '折叠' : '展开')
+// console.log('🔵 [CollapsibleAvatarList] localStorage 无保存状态，使用默认值:', isCollapsed.value ? '折叠' : '展开')
     }
   } catch (error) {
     console.warn('⚠️ [CollapsibleAvatarList] 读取 localStorage 失败:', error)
@@ -87,7 +87,7 @@ onMounted(() => {
 })
 
 // 🔥 监听状态变化并保存到 localStorage
-watch(isCollapsed, (newVal, oldVal) => {
+watch(isCollapsed, (newVal:Boolean, oldVal: Boolean) => {
   // 🔥 只有在初始化完成后才保存（避免初始状态被覆盖）
   if (!isInitialized.value) {
     return
@@ -97,7 +97,7 @@ watch(isCollapsed, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     try {
       localStorage.setItem(props.storageKey!, newVal.toString())
-      console.log('💾 [CollapsibleAvatarList] 状态已保存至 localStorage:', newVal ? '折叠' : '展开')
+// console.log('💾 [CollapsibleAvatarList] 状态已保存至 localStorage:', newVal ? '折叠' : '展开')
       emit('collapse-change', newVal)
     } catch (error) {
       console.error('❌ [CollapsibleAvatarList] 保存至 localStorage 失败:', error)

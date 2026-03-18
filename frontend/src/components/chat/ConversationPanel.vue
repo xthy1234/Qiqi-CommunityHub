@@ -111,7 +111,7 @@ const router = useRouter()
 
 // 🔥 处理折叠状态变化
 const handleCollapseChange = (collapsed: boolean) => {
-  console.log('🔵 [ConversationPanel] 折叠状态变化:', collapsed ? '折叠' : '展开')
+// console.log('🔵 [ConversationPanel] 折叠状态变化:', collapsed ? '折叠' : '展开')
 }
 
 // 🔥 格式化时间

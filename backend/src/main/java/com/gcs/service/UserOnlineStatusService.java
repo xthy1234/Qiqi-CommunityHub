@@ -1,5 +1,6 @@
 package com.gcs.service;
 
+import com.gcs.entity.UserSessionInfo;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;

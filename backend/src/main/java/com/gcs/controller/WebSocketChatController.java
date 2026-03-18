@@ -34,12 +34,20 @@ public class WebSocketChatController {
 
     @Autowired
     private UserService userService;
+    
+    // 添加构造函数日志
+    public WebSocketChatController() {
+        log.info("=== WebSocketChatController 已初始化 ===");
+    }
 
     /**
      * 处理私聊消息发送
      */
     @MessageMapping("/private-message")
     public void sendPrivateMessage(@Payload ChatMessage chatMessage) {
+        log.info("🚀 [断点测试] 收到 WebSocket 消息：from={} to={}", 
+                 chatMessage.getFromUserId(), chatMessage.getToUserId());
+        
         try {
             log.info("收到 WebSocket 消息：from={} to={}", chatMessage.getFromUserId(), chatMessage.getToUserId());
 
@@ -53,14 +61,17 @@ public class WebSocketChatController {
             message.setCreateTime(LocalDateTime.now());
 
             privateMessageService.save(message);
+            log.info("✅ 消息已保存到数据库，messageId={}", message.getId());
 
             // 2. 查询发送方用户信息
             User fromUser = userService.getById(chatMessage.getFromUserId());
             UserSimpleVO fromUserVO = convertToUserSimpleVO(fromUser);
+            log.debug("发送方用户信息：{}", fromUserVO);
 
             // 3. 查询接收方用户信息（可选）
             User toUser = userService.getById(chatMessage.getToUserId());
             UserSimpleVO toUserVO = convertToUserSimpleVO(toUser);
+            log.debug("接收方用户信息：{}", toUserVO);
 
             // 4. 组装完整的消息 VO
             ChatMessage messageVO = new ChatMessage();
@@ -75,24 +86,35 @@ public class WebSocketChatController {
             messageVO.setCreateTime(message.getCreateTime());
             messageVO.setAction("SEND");
 
-            // 5. 推送给接收方
-            messagingTemplate.convertAndSendToUser(
-                    chatMessage.getToUserId().toString(),
-                    "/queue/private-messages",
-                    messageVO
-            );
+            log.info("📦 准备推送消息");
+            
+            // 👇 明确指定完整路径
+            String receiverPath = "/user/" + chatMessage.getToUserId() + "/queue/private-messages";
+            String senderPath = "/user/" + chatMessage.getFromUserId() + "/queue/private-messages";
 
-            // 6. 也推送给发送方自己（用于更新界面）
-            messagingTemplate.convertAndSendToUser(
-                    chatMessage.getFromUserId().toString(),
-                    "/queue/private-messages",
-                    messageVO
-            );
+            log.info("推送到接收方：{}", receiverPath);
 
-            log.info("消息已推送给用户：{}", chatMessage.getToUserId());
+            log.info("推送到发送方：{}", senderPath);
+            
+            // 直接发送到完整路径
+            messageVO.setIsSelf(false);
+            messagingTemplate.convertAndSend(receiverPath, messageVO);
+            messageVO.setIsSelf(true);
+            messagingTemplate.convertAndSend(senderPath, messageVO);
+            
+            log.info("✅ 推送完成");
+
+            log.info("🎉 消息推送完成，接收方：{}", chatMessage.getToUserId());
 
         } catch (Exception e) {
-            log.error("发送 WebSocket 消息失败", e);
+            log.error("❌ 发送 WebSocket 消息失败", e);
+            log.error("   错误类型：{}", e.getClass().getName());
+            log.error("   错误消息：{}", e.getMessage());
+            if (e.getCause() != null) {
+                log.error("   根本原因：{}", e.getCause().getClass().getName());
+                log.error("   根本消息：{}", e.getCause().getMessage());
+            }
+            throw e; // 重新抛出异常，让前端也能看到错误
         }
     }
 

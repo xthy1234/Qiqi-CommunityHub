@@ -43,8 +43,23 @@
     <div class="message-meta">
       <span class="message-time">{{ formatTime(message.createTime) }}</span>
       <span v-if="isOwn" class="message-status">
-          {{ message.status === 1 ? '已读' : '已发送' }}
-        </span>
+        <!-- 🔥 显示发送中状态 -->
+        <template v-if="message._sending || message.status === 'SENDING'">
+          <n-spin size="small" :stroke-width="3" />
+        </template>
+        <template v-else-if="message.status === 1 || message.status === 'READ'">
+          已读
+        </template>
+        <template v-else-if="message.status === 'SENT' || message.status === 'DELIVERED'">
+          已发送
+        </template>
+        <template v-else-if="message.status === 'FAILED'">
+          失败
+        </template>
+        <template v-else>
+          已发送
+        </template>
+      </span>
     </div>
   </div>
 </template>
@@ -66,7 +81,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const avatarUrl = computed(() => {
-  console.log('props.isOwn', props.isOwn)
+// console.log('props.isOwn', props.isOwn)
   // 🔥 始终使用 fromUser 的头像（发送者的头像）
   if (props.message.fromUser?.avatar) {
     return props.message.fromUser.avatar

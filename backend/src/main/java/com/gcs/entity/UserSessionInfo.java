@@ -1,4 +1,4 @@
-package com.gcs.service;
+package com.gcs.entity;
 
 import lombok.Data;
 

@@ -3,14 +3,24 @@
  */
 export interface Message {
   id: number
-  conversationId: number
+  conversationId?: number
   fromUserId: number
   toUserId: number
   content: string
-  contentType: 'TEXT' | 'IMAGE' | 'FILE'
-  status: 'SENT' | 'DELIVERED' | 'READ' | 'FAILED'
-  createdAt: string
-  updatedAt: string
+  // 🔥 兼容两种类型：新的 contentType 和旧的 msgType
+  contentType?: 'TEXT' | 'IMAGE' | 'FILE'
+  msgType?: number // 0-文本，1-图片，2-文件
+  // 🔥 兼容两种状态类型：新的字符串枚举和旧的数字
+  status?: 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'SENDING' | number
+  createTime: string
+  updateTime?: string
+  createdAt?: string
+  updatedAt?: string
+  isSelf?: boolean // 是否是自己发送的消息
+  // 🔥 新增：临时 ID（用于乐观更新）
+  _tempId?: string
+  // 🔥 新增：发送中状态
+  _sending?: boolean
 }
 
 /**
@@ -20,27 +30,39 @@ export interface MessageSendDTO {
   toUserId: number
   content: string
   contentType?: 'TEXT' | 'IMAGE' | 'FILE'
+  msgType?: number
+}
+
+/**
+ * 标记已读请求 DTO
+ */
+export interface MessageReadDTO {
+  fromUserId: number
 }
 
 /**
  * 发送消息响应 VO
  */
 export interface MessageSendResponseVO {
-  message: Message
-  shouldCreateConversation: boolean
+  message?: Message
+  messageId?: number
+  createTime?: string
+  shouldCreateConversation?: boolean
   conversation?: ConversationVO
 }
 
 /**
- * 会话 VO
+ * 会话 VO - 兼容两种定义
  */
 export interface ConversationVO {
-  id: number
-  participantIds: number[]
-  lastMessage: Message
-  unreadCount: number
-  updatedAt: string
-  // 扩展字段：用于前端展示
+  // 新版本的字段（完整的会话信息）
+  id?: number
+  participantIds?: number[]
+  lastMessage?: Message | string // 🔥 兼容字符串和完整消息对象
+  unreadCount?: number
+  updatedAt?: string
+  
+  // 旧版本的字段（简化的会话信息）
   userId?: number
   username?: string
   avatar?: string
@@ -112,4 +134,21 @@ export enum WsConnectionState {
   CONNECTED = 'connected',
   DISCONNECTED = 'disconnected',
   RECONNECTING = 'reconnecting'
+}
+
+/**
+ * 消息中的用户信息
+ */
+export interface MessageUser {
+  id: number
+  username: string
+  avatar: string
+}
+
+/**
+ * 扩展消息类型，包含用户信息
+ */
+export interface MessageWithUser extends Message {
+  fromUser?: MessageUser
+  toUser?: MessageUser
 }

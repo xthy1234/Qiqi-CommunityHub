@@ -11,8 +11,7 @@ import type {
 import { WsConnectionState } from '@/types/message'
 import WebSocketManager, {
   initWebSocket,
-  getWebSocket,
-  closeWebSocket
+  getWebSocket
 } from '@/utils/websocket'
 
 /**
@@ -38,7 +37,7 @@ class ChatService {
    */
   disconnect(): void {
     if (this.wsManager) {
-      closeWebSocket()
+      this.wsManager.close()
       this.wsManager = null
     }
   }

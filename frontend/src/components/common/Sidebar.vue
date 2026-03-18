@@ -377,7 +377,7 @@ const initializeComponent = async (): Promise<void> => {
 
   // 🔒 读取锁定状态
   const locked = appContext?.$toolUtil?.storageGet('sidebarLocked')
-  console.log('locked', locked)
+// console.log('locked', locked)
   if(locked===null){
     sidebarLocked.value = true
     appContext?.$toolUtil?.storageSet('sidebarLocked', true)
@@ -388,7 +388,7 @@ const initializeComponent = async (): Promise<void> => {
 
   // 📦 读取展开/收起状态
   const savedExpanded = appContext?.$toolUtil?.storageGet('sidebarExpanded')
-  console.log('savedExpanded', savedExpanded)
+// console.log('savedExpanded', savedExpanded)
   if (savedExpanded === null) {
     isExpanded.value = true
     appContext?.$toolUtil?.storageSet('sidebarExpanded', true)

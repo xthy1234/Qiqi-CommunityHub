@@ -76,7 +76,7 @@ export function useWebSocketChat() {
       conversations.value = list
       
       // 计算总未读数
-      unreadCount.value = list.reduce((sum, conv) => sum + conv.unreadCount, 0)
+      unreadCount.value = list.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)
     } catch (error) {
       console.error('Failed to load conversations:', error)
     }

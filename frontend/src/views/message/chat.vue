@@ -55,19 +55,39 @@ let isInitialized = false
 const setupWebSocketListeners = () => {
   // 监听新消息
   unsubscribeMessage = chatService.onNewMessage((message: Message) => {
-    console.log('📩 [WebSocket] 收到新消息:', message)
-    store.receiveMessage(message)
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('📩 [WebSocket.onNewMessage] 收到新消息:')
+    console.log('  - 消息 ID:', message.id)
+    console.log('  - 内容:', message.content)
+    console.log('  - fromUserId:', message.fromUserId)
+    console.log('  - toUserId:', message.toUserId)
+    console.log('  - isSelf:', message.isSelf)
+    console.log('  - 完整消息对象:', message)
+
+    // 🔥 关键：使用 isSelf 字段判断
+    if (message.isSelf) {
+      console.log('🔵 [判断结果] 这是自己发送的消息确认')
+      console.log('  - 调用 confirmSentMessage 更新状态')
+      store.confirmSentMessage(message)
+      console.log('✅ [处理完成] confirmSentMessage 执行完毕')
+    } else {
+      console.log('🔵 [判断结果] 这是对方发来的新消息')
+      console.log('  - 调用 receiveMessage 添加消息')
+      store.receiveMessage(message)
+      console.log('✅ [处理完成] receiveMessage 执行完毕')
+    }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   })
 
   // 监听消息状态更新
   unsubscribeStatus = chatService.onMessageStatusUpdate(({ messageId, status }) => {
-    console.log('📊 [WebSocket] 消息状态更新:', messageId, status)
+    console.log('📊 [WebSocket.onMessageStatusUpdate] 消息状态更新:', { messageId, status })
     store.updateMessageStatus(messageId, status)
   })
 
   // 监听连接状态变化
   unsubscribeConnection = chatService.onConnectionChange((state) => {
-    console.log('🔌 [WebSocket] 连接状态变化:', state)
+    console.log('🔌 [WebSocket.onConnectionChange] 连接状态变化:', state)
     isConnected.value = state === 'connected'
   })
 }
@@ -82,9 +102,9 @@ const cleanupWebSocketListeners = () => {
 /** 初始化 WebSocket 连接 */
 const initializeWebSocket = async () => {
   try {
-    console.log('🟢 开始连接 WebSocket...')
+// console.log('🟢 开始连接 WebSocket...')
     await chatService.connect()
-    console.log('✅ WebSocket 连接成功')
+// console.log('✅ WebSocket 连接成功')
     isConnected.value = true
 
     setupWebSocketListeners()
@@ -105,26 +125,25 @@ const disconnectWebSocket = () => {
 const initializeChatWithUser = async (userId: number) => {
   // 防止重复初始化同一个用户
   if (isInitialized && store.currentConversation?.userId === userId) {
-    console.log('⚠️ 已经初始化过该用户，跳过')
+// console.log('⚠️ 已经初始化过该用户，跳过')
     return
   }
 
   if (!userId) {
-    console.log('❌ userId 为空，跳过初始化')
+// console.log('❌ userId 为空，跳过初始化')
     return
   }
-
-  console.log('🟢 开始初始化与用户', userId, '的聊天')
+// console.log('🟢 开始初始化与用户', userId, '的聊天')
 
   // 🔥 检查是否已有该会话（从后端加载的）
   const existingConv = store.conversations.find((c: any) => c.userId === userId)
-  console.log('🔍 是否已有会话:', !!existingConv)
+// console.log('🔍 是否已有会话:', !!existingConv)
 
   if (existingConv) {
-    console.log('✅ 已有会话，直接切换')
+// console.log('✅ 已有会话，直接切换')
     await store.switchConversation(existingConv)
   } else {
-    console.log('⚠️ 没有会话，创建临时会话（仅用于右侧聊天）')
+// console.log('⚠️ 没有会话，创建临时会话（仅用于右侧聊天）')
     // 创建临时会话（仅用于首次聊天，不添加到左侧列表）
     const tempConv = {
       userId,
@@ -140,34 +159,33 @@ const initializeChatWithUser = async (userId: number) => {
     store.messages = []
 
     // 获取用户信息并加载消息
-    console.log('🔵 调用 switchConversation 来获取用户信息和加载消息')
+// console.log('🔵 调用 switchConversation 来获取用户信息和加载消息')
     await store.switchConversation(tempConv)
-
-    console.log('✅ 临时会话创建完成，用户可以在右侧聊天窗口发消息了')
+// console.log('✅ 临时会话创建完成，用户可以在右侧聊天窗口发消息了')
   }
 
   isInitialized = true
-  console.log('✅ 初始化完成，isInitialized = true')
+// console.log('✅ 初始化完成，isInitialized = true')
 }
 
 // 监听路由参数变化
 watch(() => route.params.userId, async (newUserId: string | undefined, oldUserId: string | undefined) => {
-  console.log('🟡 路由参数变化:', { old: oldUserId, new: newUserId })
+// console.log('🟡 路由参数变化:', { old: oldUserId, new: newUserId })
 
   // 如果是首次初始化（undefined -> undefined），跳过
   if (!newUserId || newUserId === oldUserId) {
-    console.log('⚠️ userId 无变化或为空，跳过')
+// console.log('⚠️ userId 无变化或为空，跳过')
     return
   }
 
   const userId = Number(newUserId)
-  console.log('🟡 userId 转换结果:', userId, 'isNaN:', isNaN(userId))
+// console.log('🟡 userId 转换结果:', userId, 'isNaN:', isNaN(userId))
 
   if (!isNaN(userId)) {
-    console.log('🟡 开始调用 initializeChatWithUser')
+// console.log('🟡 开始调用 initializeChatWithUser')
     try {
       await initializeChatWithUser(userId)
-      console.log('🟡 initializeChatWithUser 执行完成')
+// console.log('🟡 initializeChatWithUser 执行完成')
     } catch (error) {
       console.error('❌ initializeChatWithUser 执行失败:', error)
     }
@@ -176,12 +194,12 @@ watch(() => route.params.userId, async (newUserId: string | undefined, oldUserId
 
 // 组件挂载时加载会话列表和连接 WebSocket
 onMounted(async () => {
-  console.log('🟢 [onMounted] 组件已挂载')
-  console.log('🟢 [onMounted] 开始加载会话列表')
+// console.log('🟢 [onMounted] 组件已挂载')
+// console.log('🟢 [onMounted] 开始加载会话列表')
 
   try {
     await store.loadConversations()
-    console.log('📋 [onMounted] 会话列表加载完成，数量:', store.conversations.length)
+// console.log('📋 [onMounted] 会话列表加载完成，数量:', store.conversations.length)
   } catch (error) {
     console.error('❌ [onMounted] 加载会话列表失败:', error)
   }
@@ -193,33 +211,33 @@ onMounted(async () => {
   // （因为 watch 的 immediate 可能先于 onMounted 执行）
   if (route.params.userId && !isInitialized) {
     const userId = Number(route.params.userId)
-    console.log('🟢 [onMounted] 检测到路由参数 userId:', userId)
+// console.log('🟢 [onMounted] 检测到路由参数 userId:', userId)
 
     if (!isNaN(userId)) {
-      console.log('🟢 [onMounted] 等待会话列表加载完成后初始化聊天')
+// console.log('🟢 [onMounted] 等待会话列表加载完成后初始化聊天')
       setTimeout(async () => {
-        console.log('🟢 [setTimeout] 开始初始化聊天')
+// console.log('🟢 [setTimeout] 开始初始化聊天')
         try {
           await initializeChatWithUser(userId)
-          console.log('🟢 [setTimeout] 初始化聊天完成')
+// console.log('🟢 [setTimeout] 初始化聊天完成')
         } catch (error) {
           console.error('❌ [setTimeout] 初始化聊天失败:', error)
         }
       }, 100)
     }
   } else {
-    console.log('⚠️ [onMounted] 已经初始化过或没有路由参数，跳过')
+// console.log('⚠️ [onMounted] 已经初始化过或没有路由参数，跳过')
   }
 })
 
 // 组件卸载时断开 WebSocket
 onUnmounted(() => {
-  console.log('🔴 [onUnmounted] 断开 WebSocket 连接')
+// console.log('🔴 [onUnmounted] 断开 WebSocket 连接')
   disconnectWebSocket()
 })
 
 const handleSelectConversation = async (conv: any) => {
-  console.log('🔵 [handleSelectConversation] 选择会话:', conv)
+// console.log('🔵 [handleSelectConversation] 选择会话:', conv)
   await store.switchConversation(conv)
 }
 </script>
