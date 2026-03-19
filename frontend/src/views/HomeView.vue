@@ -116,9 +116,9 @@ const fetchHotArticles = async (): Promise<void> => {
     hotArticles.value = apiData.list || (Array.isArray(apiData) ? apiData : [])
 
     // 调试：打印文章数据
-// console.log('文章列表:', hotArticles.value)
+
     if (hotArticles.value.length > 0) {
-// console.log('第一篇文章的 coverUrl:', hotArticles.value[0].coverUrl)
+
     }
   } catch (error) {
     console.error('加载文章失败:', error)
@@ -138,19 +138,19 @@ const isHttpUrl = (url: string): boolean => {
 
 const getCoverImageUrl = (coverUrl: string): string => {
   if (!coverUrl || coverUrl === 'null') {
-// console.log('无封面，使用占位图')
+
     return '/placeholder.svg'
   }
 
   // 如果已经是完整 URL，直接返回
   if (isHttpUrl(coverUrl)) {
-// console.log('封面 URL（完整）:', coverUrl)
+
     return coverUrl
   }
 
   // 如果是相对路径，拼接 baseUrl
   const fullUrl = baseUrl + '/' + coverUrl
-// console.log('封面 URL（拼接）:', fullUrl)
+
   return fullUrl
 }
 

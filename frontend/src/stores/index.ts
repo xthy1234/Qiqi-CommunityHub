@@ -54,7 +54,7 @@ export const useAudioStore = defineStore('audio', {
     
     /** 设置当前音频索引 */
     setCurrentAudioIndex(index: number): void {
-// console.log('Setting current audio index:', index)
+
       this.audioIndex = index
     },
 

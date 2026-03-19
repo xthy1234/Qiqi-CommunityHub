@@ -51,7 +51,7 @@ class MessageService {
   async getConversations(): Promise<ConversationVO[]> {
     const response: AxiosResponse<ApiResponse<{ list: ConversationVO[]; totalCount?: number }>> = await httpClient.get(`${this.baseUrl}/conversations`)
 
-    // 🔥 处理分页响应格式
+    //  处理分页响应格式
     if (response.data && response.data.data) {
       const data = response.data.data
       // 如果是分页对象，返回 list 数组

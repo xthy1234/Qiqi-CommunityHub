@@ -51,12 +51,26 @@
         </div>
         
         <div v-else class="messages-wrapper">
-          <MessageBubble
-            v-for="msg in store.messages"
-            :key="msg.id"
-            :message="msg"
-            :is-own="isOwnMessage(msg)"
-          />
+          <template v-for="msg in store.messages" :key="msg.id">
+            <!-- 系统提示消息 -->
+            <SystemMessageTip
+              v-if="msg._isSystemTip"
+              :type="msg._tipType"
+              :username="msg._tipUsername"
+              :is-own="msg.isSelf"
+              :timestamp="msg.createTime"
+            />
+
+            <!-- 普通消息气泡 -->
+            <MessageBubble
+              v-else
+              :message="msg"
+              :is-own="isOwnMessage(msg)"
+              @recall="handleRecallMessage"
+              @delete="handleDeleteMessage"
+              @copy="handleCopyMessage"
+            />
+          </template>
         </div>
       </n-spin>
     </div>
@@ -71,27 +85,33 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch, h } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import MessageBubble from './MessageBubble.vue'
 import ChatInput from './ChatInput.vue'
+import SystemMessageTip from './SystemMessageTip.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import type { Message } from '@/types/message'
+import type { ConversationVO } from '@/types/message'
 import messageService from '@/api/message'
 import chatService from '@/api/chat'
 import { NIcon, NDropdown, NAvatar, NSpin, NEmpty, NText } from 'naive-ui'
 import { Icon } from '@iconify/vue'
+import { getWebSocket } from '@/utils/websocket'
+import { ElMessage } from 'element-plus'
 
 const appContext = useGlobalProperties()
 const store = useChatStore()
 const messageListRef = ref<HTMLElement | null>(null)
+const wsUnsubscribeFunctions = ref<(() => void)[]>([])
+const isProcessingRecall = ref(false) //  防止重复处理的标志位
 
-// 🔥 获取当前登录用户 ID（用于发送消息）
+//  获取当前登录用户 ID（用于发送消息）
 const currentUserId = computed(() => {
-  // 🔥 尝试从 UserInfo 读取（登录时存储的 key）
+  //  尝试从 UserInfo 读取（登录时存储的 key）
   const userInfoStr = appContext?.$toolUtil?.storageGet('UserInfo')
   if (userInfoStr) {
     try {
       const userInfo = JSON.parse(userInfoStr)
       const userId = userInfo?.id
       if (userId) {
-// console.log('✅ [currentUserId] 从 UserInfo 获取到用户 ID:', userId)
+
         return userId
       }
     } catch (error) {
@@ -103,7 +123,7 @@ const currentUserId = computed(() => {
   const userIdStr = appContext?.$toolUtil?.storageGet('userid')
   if (userIdStr) {
     const userId = parseInt(userIdStr)
-// console.log('✅ [currentUserId] 从 userid 获取到用户 ID:', userId)
+
     return userId
   }
 
@@ -111,7 +131,7 @@ const currentUserId = computed(() => {
   return null
 })
 
-// 🔥 判断是否是自己发送的消息（使用后端返回的 isSelf 字段）
+//  判断是否是自己发送的消息（使用后端返回的 isSelf 字段）
 const isOwnMessage = (msg: Message) => {
   return msg.isSelf === true
 }
@@ -141,76 +161,83 @@ const handleMenuClick = async (key: string) => {
   }
 }
 
+//  监听当前会话变化，自动保存
+watch(() => store.currentConversation, (newConv: ConversationVO | null) => {
+  if (newConv && newConv.userId) {
+
+    store.saveCurrentSessionToStorage()
+  }
+}, { deep: true })
+
 const handleSendMessage = async (content: string) => {
   if (!store.currentConversation) return
   
-  try {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    console.log('🚀 [ChatDetail.sendMessage] 开始发送消息')
-    console.log('  - 内容:', content)
-    console.log('  - 接收方 ID:', store.currentConversation.userId)
-    console.log('  - 当前消息数:', store.messages.length)
+  try {    //  1. 乐观添加：立即显示在界面上，标记为"发送中"
 
-    // 🔥 1. 乐观添加：立即显示在界面上，标记为"发送中"
-    console.log('🟢 [步骤 1] 调用 addSendingMessage...')
     const tempMessage = store.addSendingMessage(content, store.currentConversation.userId)
-    console.log('✅ [步骤 1] 完成，临时消息 ID:', tempMessage._tempId)
-    console.log('  - 临时消息详情:', tempMessage)
-
     await nextTick()
     scrollToBottom()
-    console.log('✅ [UI] 滚动到底部')
 
-    // 🔥 2. 发送到后端（HTTP API 确保持久化）
-    console.log('🟢 [步骤 2] 调用 HTTP API 发送消息...')
-    const response = await messageService.sendMessage({
-      toUserId: store.currentConversation.userId,
-      content,
-      msgType: 0
-    })
-    console.log('✅ [步骤 2] HTTP API 响应:', response)
-    console.log('⚠️ [注意] 跳过 HTTP 响应的消息处理，等待 WebSocket 推送')
 
-    // 🔥 3. 通过 WebSocket 推送给对方（同时也会推送给自己）
+    //  2. 发送到后端（HTTP API 确保持久化）
+
+    //实际上，不需要再通过旧的接口向数据库中插入数据了。。。吧
+    // const response = await messageService.sendMessage({
+    //   toUserId: store.currentConversation.userId,
+    //   content,
+    //   msgType: 0
+    // })    //  3. 通过 WebSocket 推送给对方（同时也会推送给自己）
     if (chatService.isConnected()) {
-      console.log('🟢 [步骤 3] WebSocket 已连接，准备推送...')
+
       const ws = chatService.getWebSocket()
       if (ws && store.currentConversation) {
-        console.log('  - 推送目标:', store.currentConversation.userId)
+
         ws.sendPrivateMessage(
           store.currentConversation.userId,
           content,
           0
         )
-        console.log('✅ [步骤 3] WebSocket 推送成功')
-        console.log('ℹ️ [说明] WebSocket 会推送两条消息：一条给自己（确认），一条给对方（新消息）')
+
+
       }
     } else {
       console.warn('⚠️ [步骤 3] WebSocket 未连接，无法推送')
-      // 🔥 如果 WebSocket 未连接，降级使用 HTTP 响应
-      console.log('⚠️ [降级处理] WebSocket 未连接，使用 HTTP 响应更新')
-      const fallbackMessage: Message = {
-        id: response.messageId || 0,
-        _tempId: tempMessage._tempId,
-        fromUserId: currentUserId.value || 0,
-        toUserId: store.currentConversation.userId,
-        content,
-        msgType: 0,
-        status: 'SENT',
-        createTime: response.createTime || new Date().toISOString(),
-        isSelf: true
+      //  如果 WebSocket 未连接，降级使用 HTTP 响应
+
+
+      try {
+        const response = await messageService.sendMessage({
+          toUserId: store.currentConversation.userId,
+          content,
+          msgType: 0
+        })
+
+        const fallbackMessage: Message = {
+          id: response.messageId || 0,
+          _tempId: tempMessage._tempId,
+          fromUserId: currentUserId.value || 0,
+          toUserId: store.currentConversation.userId,
+          content,
+          msgType: 0,
+          status: 'SENT',
+          createTime: response.createTime || new Date().toISOString(),
+          isSelf: true
+        }
+        store.confirmSentMessage(fallbackMessage)
+      } catch (httpError) {
+        console.error('❌ [降级处理] HTTP 发送消息失败:', httpError)
+        ElMessage.error('消息发送失败，请检查网络连接')
       }
-      store.confirmSentMessage(fallbackMessage)
     }
 
     await nextTick()
     scrollToBottom()
-    console.log('✅ [UI] 最终滚动到底部')
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+
   } catch (error) {
     console.error('❌ [ChatDetail.sendMessage] 发送消息失败:', error)
     console.error('  - 错误堆栈:', error)
-    // 🔥 TODO: 消息发送失败处理（显示重试按钮）
+    //  TODO: 消息发送失败处理（显示重试按钮）
   }
 }
 
@@ -228,35 +255,333 @@ const scrollToBottom = () => {
 }
 
 onMounted(async () => {
-// console.log('🟢 [onMounted] 开始加载消息')
-  if (store.currentConversation && store.currentConversation.userId) {
-    await store.loadMessages(store.currentConversation.userId, true)
-// console.log('🟢 [onMounted] 消息加载完成，消息数量:', store.messages.length)
-    // 🔥 打印每条消息的方向判断
-    store.messages.forEach((msg: any, index: number) => {
-      const isOwn = isOwnMessage(msg)
-// console.log(`📝 [消息${index}]`, {
-//         id: msg.id,
-//         content: msg.content.substring(0, 30),
-//         fromUserId: msg.fromUserId,
-//         isSelf: msg.isSelf,
-//         isOwn: isOwn,
-//         direction: isOwn ? '➡️ 右边（我发送的）' : '⬅️ 左边（收到的）'
-//       })
-    })
-    await nextTick()
-    scrollToBottom()
+
+
+  //  如果是通过路由参数打开的会话，不需要恢复
+  const routeUserId = store.currentConversation?.userId
+
+//       hasRouteUserId: !!routeUserId,
+//       hasCurrentConversation: !!store.currentConversation,
+//       routeUserId
+//     })
+
+  if (routeUserId || !store.currentConversation) {
+    // 已经有当前会话对象，直接加载消息
+    if (routeUserId) {
+      await store.loadMessages(routeUserId, true)
+
+
+      //  等待 DOM tick 确保响应式系统完全更新
+      await nextTick()
+      await nextTick()
+
+      //  处理撤回消息：将 isRecalled=true 的消息转换为系统提示
+      processRecalledMessages()
+
+      //  再次等待，确保转换后的消息也触发视图更新
+      await nextTick()
+
+      //  打印每条消息的方向判断
+      store.messages.forEach((msg: any, index: number) => {
+        const isOwn = isOwnMessage(msg)
+
+        //   id: msg.id,
+        //   content: msg.content.substring(0, 30),
+        //   fromUserId: msg.fromUserId,
+        //   isSelf: msg.isSelf,
+        //   isOwn: isOwn,
+        //   direction: isOwn ? '➡️ 右边（我发送的）' : '⬅️ 左边（收到的）'
+        // })
+      })
+      await nextTick()
+      scrollToBottom()
+
+      //  发送已读回执（延迟发送，等待页面渲染完成）
+      setTimeout(() => {
+        sendReadReceiptIfNeed(routeUserId)
+      }, 500)
+    }
+  } else {
+    //  没有当前会话，尝试从 sessionStorage 恢复
+
+    const savedSession = store.restoreSessionFromStorage()
+
+    if (savedSession) {
+
+
+      // 构造会话对象
+      const conversation = {
+        userId: savedSession.userId,
+        username: savedSession.username,
+        avatar: savedSession.avatar,
+        lastMessage: '',
+        lastTime: new Date().toISOString(),
+        unreadCount: 0
+      }
+
+      // 切换到该会话
+      await store.switchConversation(conversation as any)
+
+
+      ElMessage.success(`已恢复到与 ${savedSession.username} 的聊天`)
+
+      //  发送已读回执
+      setTimeout(() => {
+        sendReadReceiptIfNeed(savedSession.userId)
+      }, 500)
+    } else {
+
+    }
   }
+
+  //  注册 WebSocket 消息处理器
+  registerWebSocketHandlers()
 })
 
 onUnmounted(() => {
-// console.log('🔴 [ChatDetail onUnmounted] 清理组件')
+
+  //  清理 WebSocket 处理器
+  cleanupWebSocketHandlers()
 })
 
-watch(() => store.messages.length, async () => {
-  await nextTick()
-  scrollToBottom()
+//  只保留一个 watch：监听消息列表长度变化
+watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
+  //  只在消息数量增加时才处理（新消息到达）
+  if (newLen !== oldLen) {
+    await nextTick()
+    scrollToBottom()
+
+    //  检查新消息中是否有撤回消息
+    processRecalledMessages()
+  }
 }, { immediate: true })
+
+//  处理消息撤回
+const handleRecallMessage = (messageId: number) => {  //  1. 乐观更新：立即在界面上显示撤回状态
+
+  store.recallMessageOptimistic(messageId)
+
+
+  //  2. 通过 WebSocket 发送撤回请求到后端
+  const ws = getWebSocket()
+  if (ws && ws.isConnected()) {
+
+    ws.recallMessage(messageId)
+
+  } else {
+    console.error('❌ [步骤 2] WebSocket 未连接，无法发送撤回请求')
+    ElMessage.error('网络连接异常，撤回失败')
+  }
+
+}
+
+//  处理消息删除（乐观更新版本）
+const handleDeleteMessage = (messageId: number) => {  //  1. 乐观删除：立即从界面移除（仅对自己可见）
+
+  const deletedMsg = store.deleteMessageOptimistic(messageId)
+
+  if (deletedMsg) {
+
+  } else {
+    console.warn('⚠️ [步骤 1] 未找到要删除的消息')
+
+    return
+  }
+
+  //  2. 通过 WebSocket 发送删除请求到后端
+  const ws = getWebSocket()
+  if (ws && ws.isConnected()) {
+
+    ws.deleteMessage(messageId)
+
+  } else {
+    console.error('❌ [步骤 2] WebSocket 未连接，无法发送删除请求')
+    ElMessage.error('网络连接异常，删除失败')
+
+    //  如果 WebSocket 未连接，可以选择回滚或删除失败提示
+    // 这里选择回滚（重新添加消息）
+    if (deletedMsg) {
+
+      store.messages.push(deletedMsg)
+    }
+  }
+
+}
+
+//  处理复制消息
+const handleCopyMessage = (content: string) => {
+
+  // TODO: 可以显示一个提示消息
+}
+
+//  注册 WebSocket 消息处理器
+const registerWebSocketHandlers = () => {
+  const ws = getWebSocket()
+  if (!ws) {
+    console.warn('⚠️ [ChatDetail] WebSocket 未初始化，无法注册处理器')
+    return
+  }
+
+
+  //  注册撤回消息处理器 - 使用 store 的方法
+  const unsubscribeRecall = ws.on('MESSAGE_RECALL', (data: any) => {
+
+    if (data.messageId) {
+      //  直接调用 store 的方法处理
+      store.receiveRecallNotification(data)
+
+    }
+  })
+  wsUnsubscribeFunctions.value.push(unsubscribeRecall)
+
+
+  //  注册删除消息处理器 - 使用 store 的方法
+  const unsubscribeDelete = ws.on('MESSAGE_DELETE', (data: any) => {
+
+    if (data.messageId) {
+      //  直接调用 store 的方法处理（确认删除）
+      store.receiveDeleteNotification(data)
+
+    }
+  })
+  wsUnsubscribeFunctions.value.push(unsubscribeDelete)
+
+
+}
+
+//  清理 WebSocket 处理器
+const cleanupWebSocketHandlers = () => {
+
+  wsUnsubscribeFunctions.value.forEach(unsubscribe => {
+    try {
+      unsubscribe()
+    } catch (error) {
+      console.error('❌ [ChatDetail] 清理处理器失败:', error)
+    }
+  })
+  wsUnsubscribeFunctions.value = []
+
+}
+
+//  处理加载的消息中的撤回消息
+const processRecalledMessages = () => {
+  //  防止重复处理
+  if (isProcessingRecall.value) {
+
+    return
+  }
+
+
+  let processedCount = 0
+
+  store.messages.forEach((msg: any, index: number) => {
+    if (msg.isRecalled === true && !msg._isSystemTip) {
+
+
+      //  关键：创建新对象并替换，确保触发响应式更新
+      const newMsg = {
+        ...msg,
+        content: 'recall',
+        _isSystemTip: true,
+        _tipType: 'recall',
+        _tipUsername: msg.fromUser?.username || msg.fromUser?.nickname || ''
+      }
+
+      //  使用 splice 替换元素，确保触发响应式
+      store.messages.splice(index, 1, newMsg as any)
+
+      processedCount++
+    }
+  })
+
+  if (processedCount > 0) {
+
+
+    //  强制触发下一次 tick 的更新
+    nextTick(() => {
+
+      isProcessingRecall.value = false //  重置标志位
+    })
+
+    isProcessingRecall.value = true //  立即设置标志位，防止 watch 再次触发
+  } else {
+    isProcessingRecall.value = false //  没有处理也重置
+  }
+}
+
+//  发送已读回执（如果需要）
+const sendReadReceiptIfNeed = (userId: number) => {//     targetUserId: userId,
+//     currentUserId: currentUserId.value,
+//     totalMessages: store.messages.length
+//   })
+
+  //  详细打印每条消息的状态
+
+  store.messages.forEach((msg: Message, index: number) => {
+    //  检查是否匹配条件
+    const isToMe = msg.toUserId === currentUserId.value
+    const isFromOtherUser = msg.fromUserId !== currentUserId.value
+    //  只检测对方发来的、未读的消息（排除自己发的）
+    //  修复：删除 'UNREAD'，因为 Message 类型中没有这个值
+    const isUnread = (msg.status === 0 || msg.status === 'SENT' || msg.status === 'DELIVERED') && !msg.isSelf
+    const shouldMarkAsRead = isToMe && isFromOtherUser && isUnread  })
+
+
+  // 检查是否有未读消息
+  const hasUnread = store.messages.some((msg: Message) =>
+    msg.toUserId === currentUserId.value &&
+    msg.fromUserId !== currentUserId.value &&
+    (msg.status === 0 || msg.status === 'SENT' || msg.status === 'DELIVERED') &&
+    !msg.isSelf
+  )
+
+//     hasUnread,
+//     userId,
+//     currentUserId: currentUserId.value,
+//     totalMessages: store.messages.length,
+//     conditions: {
+//       'toUserId 匹配': `msg.toUserId === ${currentUserId.value}`,
+//       'fromUserId 不匹配': `msg.fromUserId !== ${currentUserId.value}`,
+//       'status 是未读': '0 (数据库), SENT, 或 DELIVERED',
+//       '不是自己的消息': '!msg.isSelf'
+//     }
+//   })
+
+  if (hasUnread) {
+
+
+    const ws = getWebSocket()
+    if (ws && ws.isConnected()) {
+      ws.sendReadReceipt(userId)
+
+
+      // 本地更新消息状态
+      updateLocalMessageStatus(userId, 'READ')
+    } else {
+      console.warn('⚠️ [sendReadReceiptIfNeed] WebSocket 未连接，无法发送已读回执')
+    }
+  } else {    //  额外诊断：检查是否有对方发来的消息
+    const messagesFromOther = store.messages.filter((msg: Message)=>
+      msg.fromUserId !== currentUserId.value && msg.toUserId === currentUserId.value
+    )
+
+
+  }
+
+}
+
+//  本地更新消息状态
+const updateLocalMessageStatus = (userId: number, status: 'READ' | 'UNREAD') => {
+
+
+  store.messages.forEach((msg: any) => {
+    if (msg.toUserId === currentUserId.value && msg.fromUserId === userId) {
+      msg.status = status === 'READ' ? 'READ' : 'UNREAD'
+    }
+  })
+
+}
+
 </script>
 
 <style scoped lang="scss">

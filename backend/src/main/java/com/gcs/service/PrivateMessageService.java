@@ -50,6 +50,14 @@ public interface PrivateMessageService extends IService<PrivateMessage> {
     boolean markAsRead(Long currentUserId, Long fromUserId);
     
     /**
+     * 统计未读消息数
+     * @param currentUserId 当前用户 ID
+     * @param fromUserId 发送方用户 ID
+     * @return 未读消息数量
+     */
+    Integer countUnreadMessages(Long currentUserId, Long fromUserId);
+    
+    /**
      * 保存消息（供 WebSocket 使用）
      * @param message 消息实体
      * @return 保存后的消息

@@ -63,7 +63,7 @@ const uploadHeaders = computed(() => ({
 
 const imageUrl = computed(() => {
   if (!props.modelValue) return ''
-// console.log('imageUrl', props.modelValue)
+
   return props.modelValue.startsWith('http')
     ? props.modelValue
     : `${baseUrl.value}/${props.modelValue}`

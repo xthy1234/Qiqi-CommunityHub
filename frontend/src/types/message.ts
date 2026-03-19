@@ -7,20 +7,31 @@ export interface Message {
   fromUserId: number
   toUserId: number
   content: string
-  // 🔥 兼容两种类型：新的 contentType 和旧的 msgType
+  //  兼容两种类型：新的 contentType 和旧的 msgType
   contentType?: 'TEXT' | 'IMAGE' | 'FILE'
   msgType?: number // 0-文本，1-图片，2-文件
-  // 🔥 兼容两种状态类型：新的字符串枚举和旧的数字
+  //  兼容两种状态类型：新的字符串枚举和旧的数字
   status?: 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'SENDING' | number
   createTime: string
   updateTime?: string
   createdAt?: string
   updatedAt?: string
   isSelf?: boolean // 是否是自己发送的消息
-  // 🔥 新增：临时 ID（用于乐观更新）
+  //  新增：临时 ID（用于乐观更新）
   _tempId?: string
-  // 🔥 新增：发送中状态
+  //  新增：发送中状态
   _sending?: boolean
+  //  新增：后端返回的撤回状态
+  isRecalled?: boolean
+  deletedBySender?: boolean
+  deletedByRecipient?: boolean
+  //  新增：系统提示相关字段（前端扩展）
+  _isSystemTip?: boolean
+  _tipType?: 'recall' | 'delete' | 'session-start' | 'custom'
+  _tipUsername?: string
+  //  扩展用户信息
+  fromUser?: MessageUser
+  toUser?: MessageUser
 }
 
 /**
@@ -58,7 +69,7 @@ export interface ConversationVO {
   // 新版本的字段（完整的会话信息）
   id?: number
   participantIds?: number[]
-  lastMessage?: Message | string // 🔥 兼容字符串和完整消息对象
+  lastMessage?: Message | string //  兼容字符串和完整消息对象
   unreadCount?: number
   updatedAt?: string
   

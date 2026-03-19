@@ -85,16 +85,8 @@ const isFollowing = ref(false)
 const isFriend = ref(false)
 const actionLoading = ref(false)
 
-const isCurrentUser = computed(() => {
-// console.log('props.currentUserId:', props.currentUserId)
-// console.log('props.user.userId:', props.user.userId)
-// console.log('props.user.id:', props.user.id)
-
-  // 优先使用 userId，如果没有则使用 id
+const isCurrentUser = computed(() => {  // 优先使用 userId，如果没有则使用 id
   const actualUserId = props.user.userId || props.user.id
-// console.log('实际用户 ID:', actualUserId)
-// console.log('是否是自己:', props.currentUserId === actualUserId)
-
   return props.currentUserId === actualUserId
 })
 
@@ -120,7 +112,7 @@ const showFollowBtn = computed(() => {
 // 是否显示发消息按钮 - 在关注列表和粉丝列表中显示
 const showSendMessageBtn = computed(() => {
   // 如果是自己，不显示
-// console.log('isCurrentUser:', isCurrentUser.value)
+
   return  !isCurrentUser.value
 
   // 在关注列表或粉丝列表中显示

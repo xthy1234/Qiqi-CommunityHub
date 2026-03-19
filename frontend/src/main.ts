@@ -47,11 +47,7 @@ import ElementPlus from 'element-plus'
 
 // 地图组件初始化
 import VueAMap, { initAMapApiLoader } from "@vuemap/vue-amap"
-import "@vuemap/vue-amap/dist/style.css"
-
-
-
-// 注册自定义组件
+import "@vuemap/vue-amap/dist/style.css"// 注册自定义组件
 // import Editor from "@/components/CoverUpload.vue"
 // import Upload from "@/components/upload.vue"
 // import Upload from "@/components/upload.vue"

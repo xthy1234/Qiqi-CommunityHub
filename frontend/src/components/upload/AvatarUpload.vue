@@ -56,8 +56,8 @@ watch(() => props.modelValue, (newVal) => {
 
 const uploadUrl = computed(() => {
   const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
-// console.log(111)
-// console.log(baseUrl+"/"+props.uploadAction)
+
+
   return `${baseUrl}/${props.uploadAction}`
 })
 
@@ -75,7 +75,7 @@ const handleAvatarSuccess = ({ event }: { event: Event }) => {
   const uploadedFilePath = "files/" + response.fileName
   const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
   imageUrl.value = `${baseUrl}/${uploadedFilePath}`
-// console.log(imageUrl.value)
+
 
   emit('update:modelValue', uploadedFilePath)
   emit('change', imageUrl.value)

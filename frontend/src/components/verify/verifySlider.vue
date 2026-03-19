@@ -87,7 +87,7 @@ const initializeMaxWidth = (): void => {
  * 鼠标按下事件处理
  */
 const handleMouseDown = (event: MouseEvent): void => {
-// console.log('鼠标按下事件触发')
+
 
   if (isVerificationSuccessful.value) return
 
@@ -101,11 +101,7 @@ const handleMouseDown = (event: MouseEvent): void => {
  * 鼠标移动事件处理
  */
 const handleMouseMove = (event: MouseEvent): void => {
-  if (!isMousePressed.value) return
-
-// console.log('鼠标移动事件触发')
-
-  const movedDistance = event.clientX - beginClientX.value
+  if (!isMousePressed.value) return  const movedDistance = event.clientX - beginClientX.value
 
   if (movedDistance > 0 && movedDistance <= maxWidth.value) {
     if (sliderHandle.value && progressBar.value) {
@@ -121,7 +117,7 @@ const handleMouseMove = (event: MouseEvent): void => {
  * 鼠标释放事件处理
  */
 const handleMouseUp = (event: MouseEvent): void => {
-// console.log('鼠标释放事件触发')
+
 
   isMousePressed.value = false
   const movedDistance = event.clientX - beginClientX.value

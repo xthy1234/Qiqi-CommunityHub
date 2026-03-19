@@ -52,14 +52,14 @@ interface Props {
   title?: string
   showHeader?: boolean
   defaultCollapsed?: boolean
-  storageKey?: string // 🔥 添加存储键名
+  storageKey?: string //  添加存储键名
 }
 
 const props = withDefaults(defineProps<Props>(), {
   title: '',
   showHeader: true,
   defaultCollapsed: false,
-  storageKey: 'collapsible_avatar_list_collapsed' // 🔥 默认存储键
+  storageKey: 'collapsible_avatar_list_collapsed' //  默认存储键
 })
 
 const emit = defineEmits<{
@@ -67,37 +67,37 @@ const emit = defineEmits<{
 }>()
 
 const isCollapsed = ref(props.defaultCollapsed)
-const isInitialized = ref(false) // 🔥 标记是否已初始化
+const isInitialized = ref(false) //  标记是否已初始化
 
-// 🔥 组件挂载时从 localStorage 读取状态
+//  组件挂载时从 localStorage 读取状态
 onMounted(() => {
   try {
     const savedState = localStorage.getItem(props.storageKey!)
     if (savedState !== null) {
       isCollapsed.value = savedState === 'true'
-// console.log('🔵 [CollapsibleAvatarList] 从 localStorage 恢复状态:', isCollapsed.value ? '折叠' : '展开')
+
     } else {
-// console.log('🔵 [CollapsibleAvatarList] localStorage 无保存状态，使用默认值:', isCollapsed.value ? '折叠' : '展开')
+
     }
   } catch (error) {
     console.warn('⚠️ [CollapsibleAvatarList] 读取 localStorage 失败:', error)
   } finally {
-    isInitialized.value = true // 🔥 标记初始化完成
+    isInitialized.value = true //  标记初始化完成
   }
 })
 
-// 🔥 监听状态变化并保存到 localStorage
+//  监听状态变化并保存到 localStorage
 watch(isCollapsed, (newVal:Boolean, oldVal: Boolean) => {
-  // 🔥 只有在初始化完成后才保存（避免初始状态被覆盖）
+  //  只有在初始化完成后才保存（避免初始状态被覆盖）
   if (!isInitialized.value) {
     return
   }
 
-  // 🔥 只有状态真正改变时才保存和触发事件
+  //  只有状态真正改变时才保存和触发事件
   if (newVal !== oldVal) {
     try {
       localStorage.setItem(props.storageKey!, newVal.toString())
-// console.log('💾 [CollapsibleAvatarList] 状态已保存至 localStorage:', newVal ? '折叠' : '展开')
+
       emit('collapse-change', newVal)
     } catch (error) {
       console.error('❌ [CollapsibleAvatarList] 保存至 localStorage 失败:', error)

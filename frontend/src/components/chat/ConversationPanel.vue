@@ -4,7 +4,7 @@
     :default-collapsed="false"
     @collapse-change="handleCollapseChange"
   >
-    <!-- 🔥 头部操作区域：未读消息提示 -->
+    <!--  头部操作区域：未读消息提示 -->
     <template #header-actions>
       <n-badge :value="unreadCount" :show="unreadCount > 0" :max="99">
         <n-button text size="small">
@@ -19,7 +19,7 @@
       </n-badge>
     </template>
     
-    <!-- 🔥 展开模式：完整会话列表 -->
+    <!--  展开模式：完整会话列表 -->
     <template #list-content>
       <n-spin :show="loading">
         <div v-if="conversations.length === 0" class="empty-conversations">
@@ -66,7 +66,7 @@
       </n-spin>
     </template>
 
-    <!-- 🔥 折叠模式：只显示头像 -->
+    <!--  折叠模式：只显示头像 -->
     <template #collapsed-content>
       <n-spin :show="loading">
         <div
@@ -109,12 +109,12 @@ const emit = defineEmits<{
 
 const router = useRouter()
 
-// 🔥 处理折叠状态变化
+//  处理折叠状态变化
 const handleCollapseChange = (collapsed: boolean) => {
-// console.log('🔵 [ConversationPanel] 折叠状态变化:', collapsed ? '折叠' : '展开')
+
 }
 
-// 🔥 格式化时间
+//  格式化时间
 const formatTime = (time: string) => {
   const now = dayjs()
   const target = dayjs(time)
@@ -131,12 +131,12 @@ const formatTime = (time: string) => {
   }
 }
 
-// 🔥 选择会话
+//  选择会话
 const handleSelectConversation = (conv: ConversationVO) => {
   emit('select-conversation', conv)
 }
 
-// 🔥 跳转到关注列表
+//  跳转到关注列表
 const handleGoToFollowing = () => {
   const userId = getCurrentUserId()
   if (userId) {
@@ -146,12 +146,12 @@ const handleGoToFollowing = () => {
   }
 }
 
-// 🔥 跳转到搜索
+//  跳转到搜索
 const handleGoToSearch = () => {
   router.push('/index/articleList')
 }
 
-// 🔥 获取当前用户 ID
+//  获取当前用户 ID
 const getCurrentUserId = () => {
   const userStr = localStorage.getItem('user')
   if (userStr) {

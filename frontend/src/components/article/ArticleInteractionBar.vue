@@ -76,7 +76,7 @@ const isFavorited = ref<boolean>(false)
 const checkInteractions = async () => {
   try {
     const likeResponse = await interactionAPI.check(props.articleId, 2)
-    // console.log('likeResponse:'+likeResponse.data.data?.hasAction)
+
     isLiked.value = likeResponse.data.data?.hasAction || false
 
     const dislikeResponse = await interactionAPI.check(props.articleId, 3)
@@ -92,21 +92,16 @@ const checkInteractions = async () => {
 }
 
 // 点赞
-const handleLike = async () => {
-  // console.log('=== 开始点赞 ===')
-  // console.log('文章 ID:', props.articleId)
-  // console.log('当前点赞状态:', isLiked.value)
-
-  try {
+const handleLike = async () => {  try {
     if (isLiked.value) {
       // 取消点赞
-      // console.log('执行取消点赞操作')
+
       const params = {
         contentId: props.articleId,
-        actionType: 2,
+        actionType: 2 as 2,
         tableName: 'article'
       }
-      // console.log('取消点赞参数:', params)
+
 
       await interactionAPI.cancelLike(params)
       isLiked.value = false
@@ -117,17 +112,17 @@ const handleLike = async () => {
         isFavorited: isFavorited.value,
         likeCount: (props.likeCount || 0) - 1
       })
-      // console.log('取消点赞成功')
+
       ElMessage.success('已取消点赞')
     } else {
       // 执行点赞
-      // console.log('执行点赞操作')
+
       const params = {
         contentId: props.articleId,
-        actionType: 2,
+        actionType: 2 as 2,
         tableName: 'article'
       }
-      // console.log('点赞参数:', params)
+
 
       await interactionAPI.like(params)
 
@@ -144,13 +139,13 @@ const handleLike = async () => {
         // 取消点踩的 API 调用
         const cancelParams = {
           contentId: props.articleId,
-          actionType: 3,
+          actionType: 3 as 3,
           tableName: 'article'
         }
         await interactionAPI.cancelLike(cancelParams)
       }
 
-      // console.log('点赞成功')
+
       ElMessage.success('点赞成功')
 
       emit('update', {
@@ -166,7 +161,6 @@ const handleLike = async () => {
     // console.error('错误对象:', error)
     // console.error('错误名称:', error.constructor.name)
 
-    // 如果是 AxiosError，展开详细信息
     if (error.isAxiosError) {
       // console.error('这是 Axios 错误')
       // console.error('错误响应:', error.response)
@@ -190,21 +184,16 @@ const handleLike = async () => {
 }
 
 // 点踩
-const handleDislike = async () => {
-  // console.log('=== 开始点踩 ===')
-  // console.log('文章 ID:', props.articleId)
-  // console.log('当前点踩状态:', isDisliked.value)
-
-  try {
+const handleDislike = async () => {  try {
     if (isDisliked.value) {
       // 取消点踩
-      // console.log('执行取消点踩操作')
+
       const params = {
         contentId: props.articleId,
-        actionType: 3,
+        actionType: 3 as 3,
         tableName: 'article'
       }
-      // console.log('取消点踩参数:', params)
+
 
       await interactionAPI.cancelLike(params)
       isDisliked.value = false
@@ -215,17 +204,17 @@ const handleDislike = async () => {
         isFavorited: isFavorited.value,
         dislikeCount: (props.dislikeCount || 0) - 1
       })
-      // console.log('取消点踩成功')
+
       ElMessage.success('已取消点踩')
     } else {
       // 执行点踩
-      // console.log('执行点踩操作')
+
       const params = {
         contentId: props.articleId,
-        actionType: 3,
+        actionType: 3 as 3,
         tableName: 'article'
       }
-      // console.log('点踩参数:', params)
+
 
       await interactionAPI.like(params)
 
@@ -242,13 +231,13 @@ const handleDislike = async () => {
         // 取消点赞的 API 调用
         const cancelParams = {
           contentId: props.articleId,
-          actionType: 2,
+          actionType: 2 as 2,
           tableName: 'article'
         }
         await interactionAPI.cancelLike(cancelParams)
       }
 
-      // console.log('点踩成功')
+
       ElMessage.success('点踩成功')
 
       emit('update', {
@@ -349,7 +338,7 @@ const handleShare = async () => {
       
       ElMessage.success('分享成功')
     } catch (error) {
-// console.log('系统分享取消或不支持')
+
     }
   } else {
     try {

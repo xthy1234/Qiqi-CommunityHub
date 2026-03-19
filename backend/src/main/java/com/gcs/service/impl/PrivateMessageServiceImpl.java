@@ -11,6 +11,7 @@ import com.gcs.service.PrivateMessageService;
 import com.gcs.utils.PageUtils;
 import com.gcs.vo.ConversationVO;
 import com.gcs.vo.MessageSendResponseVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ import java.util.Map;
  * @author 
  * @date 2026-03-16
  */
+@Slf4j
 @Service
 public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, PrivateMessage> 
         implements PrivateMessageService {
@@ -90,7 +92,14 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
     @Transactional
     public boolean markAsRead(Long currentUserId, Long fromUserId) {
         int rows = privateMessageDao.markAsRead(currentUserId, fromUserId);
+        log.info("标记已读：currentUserId={}, fromUserId={}, 更新行数={}", 
+                currentUserId, fromUserId, rows);
         return rows > 0;
+    }
+    
+    @Override
+    public Integer countUnreadMessages(Long currentUserId, Long fromUserId) {
+        return privateMessageDao.countUnreadMessages(currentUserId, fromUserId);
     }
     
     @Transactional
@@ -104,19 +113,24 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
     public boolean deleteMessage(Long messageId, Long userId) {
         PrivateMessage message = this.getById(messageId);
         if (message == null) {
+            log.warn("消息不存在：messageId={}", messageId);
             return false;
         }
         
         // 标记发送方或接收方的删除标志
         if (message.getFromUserId().equals(userId)) {
             message.setDeletedBySender(true);
+            log.info("发送方 {} 删除了消息 {}", userId, messageId);
         } else if (message.getToUserId().equals(userId)) {
             message.setDeletedByRecipient(true);
+            log.info("接收方 {} 删除了消息 {}", userId, messageId);
         } else {
+            log.warn("无权删除消息：userId={}, messageId={}", userId, messageId);
             return false; // 无权删除
         }
         
         this.updateById(message);
+        
         return true;
     }
     
@@ -135,7 +149,7 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
         
         // 设置撤回标志
         message.setIsRecalled(true);
-        message.setContent("消息已撤回");
+//        message.setContent("消息已撤回");
         this.updateById(message);
         
         return true;

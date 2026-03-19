@@ -274,7 +274,7 @@ export default function canvasBg() {
             g.addColorStop(0, 'hsla(255, 255%, 255%, 1)');
             g.addColorStop(.6, 'hsla(' + (i + 2) + ',85%, 40%,1)');
             g.addColorStop(1, 'hsla(' + (i) + ',85%, 40%,.5)');
-            // console.log(this.varr[i].transOut.x, this.varr[i].transOut.y, this.varr[i].transOut.p * 2, 0, Math.PI * 2, false)
+
             this.$.fillStyle = g;
             this.$.beginPath();
             this.$.arc(this.varr[i].transOut.x, this.varr[i].transOut.y, this.varr[i].transOut.p * 2, 0, Math

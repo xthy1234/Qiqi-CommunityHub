@@ -1,8 +1,10 @@
 
-import { defineStore } from 'pinia'
-import type { Message, ConversationVO } from '@/types/message'
+import { ElMessage } from 'element-plus'
+import type {ConversationVO, Message} from '@/types/message'
 import messageService from '@/api/message'
 import userService from '@/api/user'
+import { getWebSocket } from '@/utils/websocket'
+import {defineStore} from "pinia";
 
 interface ChatState {
   conversations: ConversationVO[]
@@ -49,14 +51,27 @@ export const useChatStore = defineStore('chat', {
       this.hasMore = true
     },
 
-    /** 更新消息状态 */
-    updateMessageStatus(messageId: number, status: string) {
-      const message = this.messages.find((m: Message) => m.id === messageId || m._tempId === messageId.toString())
-      if (message) {
-        message.status = status as any
-        message._sending = false
-// console.log('📊 [chatStore] 消息状态已更新:', messageId, status)
-      }
+    /** 
+     *  更新消息状态（用于已读回执）
+     * @param data 已读回执数据 { fromUserId, toUserId }
+     */
+    updateMessageStatus(data: { fromUserId: number, toUserId: number }) {
+      //  根据 fromUserId 和 toUserId 找到对应的消息
+      const messagesToUpdate = this.messages.filter((m: Message) => 
+        m.fromUserId === data.fromUserId && 
+        m.toUserId === data.toUserId &&
+        (m.status === 0 || m.status === 'SENT' || m.status === 'DELIVERED')
+      )
+
+      
+      
+      
+      messagesToUpdate.forEach((message: Message) => {
+        message.status = 'READ'
+        
+      })
+      
+      
     },
 
     /** 
@@ -64,18 +79,11 @@ export const useChatStore = defineStore('chat', {
      * @returns 临时消息对象，包含_tempId
      */
     addSendingMessage(content: string, toUserId: number): Message {
-      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).  substr(2, 9)}`
       
-      // 🔥 从 localStorage 获取当前用户 ID
+      //  从 localStorage 获取当前用户 ID
       const useridStr = localStorage.getItem('userid')
       const currentUserId = Number(useridStr || '0')
-      
-      console.log('🟢 [Store.addSendingMessage] 开始添加发送中消息:', {
-        tempId,
-        content,
-        toUserId,
-        currentUserId
-      })
       
       const tempMessage: Message = {
         id: 0, // 临时 ID 为 0
@@ -91,14 +99,12 @@ export const useChatStore = defineStore('chat', {
       }
       
       this.messages.push(tempMessage)
-      console.log('✅ [Store.addSendingMessage] 消息已添加到 messages 数组，当前消息数:', this.messages.length)
-      console.log('📋 [Store.addSendingMessage] 临时消息详情:', tempMessage)
-      
+     
       // 更新会话列表
       const index = this.conversations.findIndex((c: ConversationVO) => c.userId === toUserId)
       if (index !== -1) {
         this.conversations.splice(index, 1)
-        console.log('🔄 [Store.addSendingMessage] 从原位置移除会话，索引:', index)
+
       }
       
       // 添加到最前面，确保有用户名和头像
@@ -112,7 +118,7 @@ export const useChatStore = defineStore('chat', {
       }
       
       this.conversations.unshift(conversationData)
-      console.log('✅ [Store.addSendingMessage] 会话列表已更新，当前会话数:', this.conversations.length)
+
       
       return tempMessage
     },
@@ -122,66 +128,50 @@ export const useChatStore = defineStore('chat', {
      * 找到本地临时消息并更新为真实数据
      */
     confirmSentMessage(realMessage: Message): void {
-      console.log('🔵 [Store.confirmSentMessage] 开始确认消息:', {
-        realMessageId: realMessage.id,
-        content: realMessage.content,
-        toUserId: realMessage.toUserId,
-        isSelf: realMessage.isSelf,
-        createTime: realMessage.createTime
-      })
+
+//         realMessageId: realMessage.id,
+//         content: realMessage.content,
+//         toUserId: realMessage.toUserId,
+//         isSelf: realMessage.isSelf,
+//         createTime: realMessage.createTime
+//       })
       
-      // 🔥 关键：通过 _sending 状态 + isSelf 匹配（不需要_tempId）
-      const tempIndex = this.messages.findIndex(m => 
+      //  关键：通过 _sending 状态 + isSelf 匹配（不需要_tempId）
+      const tempIndex = this.messages.findIndex((m: Message) =>
         m._sending === true && 
         m.isSelf === true &&
         m.content === realMessage.content &&
         m.toUserId === realMessage.toUserId &&
         Math.abs(new Date(m.createTime).getTime() - new Date(realMessage.createTime).getTime()) < 5000 // 5 秒误差内
       )
-      
-      console.log('🔍 [Store.confirmSentMessage] 查找临时消息，匹配条件:', {
-        _sending: true,
-        isSelf: true,
-        content: realMessage.content,
-        toUserId: realMessage.toUserId,
-        foundIndex: tempIndex
-      })
+
+
       
       if (tempIndex !== -1) {
         const oldTempMessage = this.messages[tempIndex]
-        console.log('✅ [Store.confirmSentMessage] 找到临时消息:', oldTempMessage)
         
-        // 🔥 替换临时消息为真实消息
+        //  关键修改：保留完整的消息结构，包括 fromUser 和 toUser
         this.messages[tempIndex] = {
-          ...this.messages[tempIndex],
-          id: realMessage.id,
+          ...realMessage,  //  使用真实消息的完整数据
           _tempId: undefined,
           _sending: false,
-          status: realMessage.status,
-          createTime: realMessage.createTime,
           isSelf: true
         }
-        
-        console.log('✅ [Store.confirmSentMessage] 临时消息已替换为真实消息:', this.messages[tempIndex])
-        console.log('📊 [Store.confirmSentMessage] 当前消息总数:', this.messages.length)
+
+
       } else {
         // 没有找到临时消息，可能是网络延迟或页面刷新后
         // 但这条消息确实是自己发的，直接添加（去重）
-        const exists = this.messages.some(m => m.id === realMessage.id)
-        console.log('⚠️ [Store.confirmSentMessage] 未找到临时消息，检查是否已存在:', {
-          exists,
-          realMessageId: realMessage.id
-        })
-        
+        const exists = this.messages.some((m: Message) => m.id === realMessage.id)
         if (!exists) {
           this.messages.push({
             ...realMessage,
             _sending: false,
             isSelf: true
           })
-          console.log('✅ [Store.confirmSentMessage] 直接添加消息，当前消息总数:', this.messages.length)
+
         } else {
-          console.log('⚠️ [Store.confirmSentMessage] 消息已存在，跳过添加:', realMessage.id)
+
         }
       }
       
@@ -190,30 +180,30 @@ export const useChatStore = defineStore('chat', {
       if (convIndex !== -1) {
         this.conversations[convIndex].lastMessage = realMessage.content
         this.conversations[convIndex].lastTime = realMessage.createTime
-        console.log('✅ [Store.confirmSentMessage] 会话列表已更新')
+
       }
     },
 
     /** 加载会话列表 */
     async loadConversations() {
-// console.log('🔵 [chatStore] 开始加载会话列表')
+
       try {
         this.loading = true
         const data = await messageService.getConversations()
-// console.log('🔵 [chatStore] API 返回数据:', data)
+
         
-        // 🔥 保留已有的临时会话（通过路由参数创建的）
+        //  保留已有的临时会话（通过路由参数创建的）
         const temporaryConversations = this.conversations.filter((c: any) => c._isTemporary)
-// console.log('🔵 [chatStore] 保留的临时会话:', temporaryConversations)
+
         
         // 确保 data 是数组类型，并合并临时会话
         const apiConversations = Array.isArray(data) ? data : []
         this.conversations = [...apiConversations, ...temporaryConversations]
-// console.log('🔵 [chatStore] 处理后会话列表:', this.conversations)
+
         
         // 计算总未读数
         this.unreadCount = this.conversations.reduce((sum: number, conv: ConversationVO) => sum + (conv.unreadCount || 0), 0)
-// console.log('🔵 [chatStore] 未读消息数:', this.unreadCount)
+
       } catch (error) {
         console.error('❌ [chatStore] 加载会话列表失败:', error)
         this.conversations = []
@@ -221,13 +211,13 @@ export const useChatStore = defineStore('chat', {
         throw error
       } finally {
         this.loading = false
-// console.log('🔵 [chatStore] 加载完成，loading=false')
+
       }
     },
 
     /** 切换当前聊天对象 */
     async switchConversation(conversation: ConversationVO & { userId?: number }) {
-// console.log('🔵 [chatStore] 切换会话:', conversation)
+
       try {
         if (!conversation || !(conversation as any).userId) {
           console.error('❌ [chatStore] 无效的会话对象')
@@ -235,13 +225,13 @@ export const useChatStore = defineStore('chat', {
         }
         
         this.currentConversation = conversation
-// console.log('🔵 [chatStore] currentConversation 已设置:', this.currentConversation)
+
         this.messagePage = 1
         this.hasMore = true
         
-        // 🔥 如果当前会话没有用户名或头像，尝试从服务器获取
+        //  如果当前会话没有用户名或头像，尝试从服务器获取
         if ((!conversation.username || conversation.username === '未知用户' || !conversation.avatar)) {
-// console.log('🔵 [chatStore] 检测到会话信息不完整，尝试获取用户信息')
+
           try {
             const userInfo = await userService.getUserById((conversation as any).userId)
             if (userInfo) {
@@ -257,7 +247,7 @@ export const useChatStore = defineStore('chat', {
                 this.conversations[index].username = conversation.username
                 this.conversations[index].avatar = conversation.avatar
               }
-// console.log('🔵 [chatStore] 用户信息已更新:', conversation.username, conversation.avatar)
+
             }
           } catch (error) {
             console.error('❌ [chatStore] 获取用户信息失败:', error)
@@ -265,14 +255,23 @@ export const useChatStore = defineStore('chat', {
         }
         
         // 加载聊天记录
-// console.log('🔵 [chatStore] 开始加载聊天记录，userId:', (conversation as any).userId)
+
         await this.loadMessages((conversation as any).userId, true)
-// console.log('🔵 [chatStore] 聊天记录加载完成，消息数:', this.messages.length)
+
         
-        // 标记为已读
+        //  标记为已读（使用 WebSocket 发送已读回执）
         if ((conversation as any).unreadCount && (conversation as any).unreadCount > 0) {
-// console.log('🔵 [chatStore] 标记为已读，fromUserId:', (conversation as any).userId)
-          await messageService.markAsRead((conversation as any).userId)
+
+          
+          //  使用 WebSocket 发送已读回执（代替 HTTP 接口）
+          const ws = getWebSocket()
+          if (ws && ws.isConnected()) {
+
+            ws.sendReadReceipt((conversation as any).userId)
+          } else {
+            console.warn('⚠️ [chatStore] WebSocket 未连接，无法发送已读回执')
+          }
+          
           // 更新本地未读数
           this.unreadCount -= (conversation as any).unreadCount
           ;(conversation as any).unreadCount = 0
@@ -324,7 +323,7 @@ export const useChatStore = defineStore('chat', {
 
     /** 添加发送的消息（旧方法，保留兼容性） */
     addSentMessage(message: Message) {
-      // 🔥 如果消息带有_tempId，说明是乐观更新的确认
+      //  如果消息带有_tempId，说明是乐观更新的确认
       if (message._tempId) {
         this.confirmSentMessage(message)
         return
@@ -354,18 +353,18 @@ export const useChatStore = defineStore('chat', {
 
     /** 接收新消息（WebSocket） */
     receiveMessage(message: Message) {
-      console.log('🔵 [Store.receiveMessage] 收到新消息:', {
-        messageId: message.id,
-        content: message.content,
-        fromUserId: message.fromUserId,
-        toUserId: message.toUserId,
-        isSelf: message.isSelf
-      })
+
+//         messageId: message.id,
+//         content: message.content,
+//         fromUserId: message.fromUserId,
+//         toUserId: message.toUserId,
+//         isSelf: message.isSelf
+//       })
       
-      // 🔥 如果是自己发送的消息（isSelf=true），跳过，避免重复处理
+      //  如果是自己发送的消息（isSelf=true），跳过，避免重复处理
       // （因为自己发送的消息已经在 HTTP 响应时添加到 store 了）
       if (message.isSelf) {
-        console.log('⚠️ [Store.receiveMessage] 检测到 isSelf=true，跳过避免重复添加')
+
         return
       }
       
@@ -373,9 +372,9 @@ export const useChatStore = defineStore('chat', {
       if (this.currentConversation && 
           (message.fromUserId === this.currentConversation.userId || 
            message.toUserId === this.currentConversation.userId)) {
-        console.log('✅ [Store.receiveMessage] 当前正在与该用户聊天，添加到消息列表')
+
         this.messages.push(message)
-        console.log('📊 [Store.receiveMessage] 添加后消息总数:', this.messages.length)
+
         
         // 更新会话列表
         const index = this.conversations.findIndex((c: ConversationVO) => c.userId === message.fromUserId)
@@ -386,20 +385,20 @@ export const useChatStore = defineStore('chat', {
           // 如果当前窗口打开，标记为已读
           if (this.currentConversation.userId === message.fromUserId) {
             this.conversations[index].unreadCount = 0
-            console.log('✅ [Store.receiveMessage] 当前窗口打开，标记为已读')
+
           } else {
             this.conversations[index].unreadCount++
             this.unreadCount++
-            console.log('✅ [Store.receiveMessage] 增加未读数:', this.unreadCount)
+
           }
           
           // 移动到最前面
           const conv = this.conversations.splice(index, 1)[0]
           this.conversations.unshift(conv)
-          console.log('✅ [Store.receiveMessage] 会话已移动到顶部')
+
         }
       } else {
-        console.log('⚠️ [Store.receiveMessage] 当前未与该用户聊天，只更新会话列表')
+
         // 否则只更新会话列表和未读数
         const index = this.conversations.findIndex((c: ConversationVO) => c.userId === message.fromUserId)
         if (index !== -1) {
@@ -411,9 +410,9 @@ export const useChatStore = defineStore('chat', {
           // 移动到最前面
           const conv = this.conversations.splice(index, 1)[0]
           this.conversations.unshift(conv)
-          console.log('✅ [Store.receiveMessage] 会话已更新并移动到顶部')
+
         } else {
-          console.log('⚠️ [Store.receiveMessage] 未找到对应会话')
+
         }
       }
     },
@@ -434,6 +433,171 @@ export const useChatStore = defineStore('chat', {
         console.error('清空聊天记录失败:', error)
         throw error
       }
+    },
+
+    /** 
+     *  乐观更新：撤回消息
+     * 立即将消息标记为已撤回状态
+     */
+    recallMessageOptimistic(messageId: number): void {
+
+      
+      const msgIndex = this.messages.findIndex((m: Message) => m.id === messageId)
+      if (msgIndex !== -1) {
+        const msg = this.messages[msgIndex]
+
+        
+        //  直接修改原对象，触发响应式更新
+        this.messages[msgIndex] = {
+          ...msg,
+          content: 'recall',
+          isRecalled: true,
+          _isSystemTip: true,
+          _tipType: 'recall',
+          _tipUsername: msg.fromUser?.username || msg.fromUser?.nickname || ''
+        } as any
+
+      } else {
+        console.warn('⚠️ [Store.recallMessageOptimistic] 未找到消息:', messageId)
+      }
+    },
+
+    /** 
+     *  乐观删除：立即从消息列表中移除（仅对自己可见）
+     * @param messageId 要删除的消息 ID
+     * @returns 被删除的消息对象（用于可能的回滚），如果未找到则返回 null
+     */
+    deleteMessageOptimistic(messageId: number): Message | null {
+
+      
+      const msgIndex = this.messages.findIndex((m: Message) => m.id === messageId)
+      if (msgIndex !== -1) {
+        const deletedMsg = this.messages[msgIndex]
+
+        
+        //  从数组中移除（使用 splice 确保响应式更新）
+        this.messages.splice(msgIndex, 1)
+
+        
+        //  返回被删除的消息（用于可能的回滚）
+        return deletedMsg
+      } else {
+        console.warn('⚠️ [Store.deleteMessageOptimistic] 未找到消息:', messageId)
+        return null
+      }
+    },
+
+    /** 
+     *  接收撤回通知（WebSocket 推送）
+     * 处理后端推送的撤回消息
+     */
+    receiveRecallNotification(data: { messageId: number, userId: number, reason?: string }): void {
+
+      
+      const msgIndex = this.messages.findIndex((m: Message) => m.id === data.messageId)
+      if (msgIndex !== -1) {
+        const msg = this.messages[msgIndex]
+
+        
+        //  转换为系统提示消息
+        this.messages[msgIndex] = {
+          ...msg,
+          content: 'recall',
+          isRecalled: true,
+          _isSystemTip: true,
+          _tipType: 'recall',
+          _tipUsername: msg.fromUser?.username || msg.fromUser?.nickname || ''
+        } as any
+
+      } else {
+        console.warn('⚠️ [Store.receiveRecallNotification] 未找到消息:', data.messageId)
+      }
+    },
+
+    /** 
+     *  接收删除通知（WebSocket 推送）
+     * 处理后端推送的删除消息（确认删除）
+     * 
+     * 注意：由于是单向删除，对方不会收到删除通知
+     * 这个方法主要用于：
+     * 1. 确认自己的删除操作成功
+     * 2. 处理异常情况（如乐观删除失败）
+     */
+    receiveDeleteNotification(data: { messageId: number, userId: number, bothDeleted?: boolean }): void {
+
+      
+      //  检查消息是否已经被乐观删除
+      const msgIndex = this.messages.findIndex((m: Message) => m.id === data.messageId)
+      
+      if (msgIndex !== -1) {
+        // 消息还在列表中，说明乐观删除可能失败了，现在执行删除
+
+        this.messages.splice(msgIndex, 1)
+
+      } else {
+        // 消息已经不在了，说明乐观删除成功了
+
+      }
+    },
+
+    /**
+     *  保存当前会话到 sessionStorage（用于页面刷新后恢复）
+     */
+    saveCurrentSessionToStorage(): void {
+      if (this.currentConversation) {
+        const sessionData = {
+          userId: this.currentConversation.userId,
+          username: this.currentConversation.username,
+          avatar: this.currentConversation.avatar,
+          timestamp: Date.now()
+        }
+        sessionStorage.setItem('lastChatSession', JSON.stringify(sessionData))
+
+      }
+    },
+
+    /**
+     *  从 sessionStorage 恢复会话信息
+     * @returns 会话信息，如果没有则返回 null
+     */
+    restoreSessionFromStorage(): { userId: number, username: string, avatar: string } | null {
+      const sessionStr = sessionStorage.getItem('lastChatSession')
+      if (!sessionStr) {
+
+        return null
+      }
+      
+      try {
+        const sessionData = JSON.parse(sessionStr)
+        
+        // 检查是否过期（24 小时内有效）
+        const now = Date.now()
+        const expiryTime = 24 * 60 * 60 * 1000 // 24 小时
+        if (now - sessionData.timestamp > expiryTime) {
+
+          sessionStorage.removeItem('lastChatSession')
+          return null
+        }
+
+        return {
+          userId: Number(sessionData.userId),
+          username: sessionData.username,
+          avatar: sessionData.avatar
+        }
+      } catch (error) {
+        console.error('❌ [Store] 解析会话信息失败:', error)
+        sessionStorage.removeItem('lastChatSession')
+        return null
+      }
+    },
+
+    /**
+     *  清除保存的会话信息
+     */
+    clearSavedSession(): void {
+      sessionStorage.removeItem('lastChatSession')
+
     }
+
   }
 })

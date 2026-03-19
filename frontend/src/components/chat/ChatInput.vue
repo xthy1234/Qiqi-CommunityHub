@@ -99,14 +99,14 @@ const handleFileChange = (e: Event) => {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
-// console.log('选择文件:', file)
+
     // TODO: 实现文件上传逻辑
   }
   target.value = ''
 }
 
 const insertEmoji = () => {
-// console.log('插入表情')
+
   // TODO: 实现表情选择器
 }
 </script>

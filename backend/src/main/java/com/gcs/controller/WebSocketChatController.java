@@ -1,6 +1,7 @@
 package com.gcs.controller;
 
 import com.gcs.dto.ChatMessage;
+import com.gcs.dto.DeleteMessageRequest;
 import com.gcs.dto.ReadReceipt;
 import com.gcs.dto.RecallMessageRequest;
 import com.gcs.entity.PrivateMessage;
@@ -126,8 +127,34 @@ public class WebSocketChatController {
         try {
             log.info("收到已读回执：from={} to={}", receipt.getFromUserId(), receipt.getToUserId());
 
+            // ✅ 添加详细日志，帮助调试
+            //由于fromid是标记了toId发送的信息，所以这里fromid是消息的接收方，toid是消息的发送方
+            log.info("📖 [已读回执] 用户 {} 标记了来自用户 {} 的消息为已读", 
+                    receipt.getFromUserId(), receipt.getToUserId());
+
             // 1. 更新数据库中该对话的消息状态为已读
-            boolean success = privateMessageService.markAsRead(receipt.getFromUserId(), receipt.getToUserId());
+            boolean success = privateMessageService.markAsRead(
+                    receipt.getToUserId(),
+                    receipt.getFromUserId()
+            );
+
+            // ✅ 添加成功/失败的详细日志
+            if (success) {
+                log.info("✅ [已读回执] 更新成功：用户 {} -> 用户 {}", 
+                        receipt.getFromUserId(), receipt.getToUserId());
+            } else {
+                log.warn("⚠️ [已读回执] 更新失败或无需更新：用户 {} -> 用户 {}，可能原因：", 
+                        receipt.getFromUserId(), receipt.getToUserId());
+                log.warn("   1. 没有未读消息");
+                log.warn("   2. 参数可能传反了（fromUserId 应该是阅读者，toUserId 应该是消息发送者）");
+                
+                // ✅ 查询一下实际有多少未读消息
+                Integer unreadCount = privateMessageService.countUnreadMessages(
+                    receipt.getFromUserId(), 
+                    receipt.getToUserId()
+                );
+                log.warn("   📊 当前未读消息数：{}", unreadCount);
+            }
 
             // 2. 将已读回执推送给消息发送方，让他知道对方已读
             messagingTemplate.convertAndSendToUser(
@@ -195,6 +222,53 @@ public class WebSocketChatController {
         }
     }
 
+    /**
+     * 处理删除消息
+     */
+    @MessageMapping("/delete-message")
+    public void deleteMessage(@Payload DeleteMessageRequest deleteRequest) {
+        try {
+            log.info("收到删除请求：messageId={}, userId={}", 
+                     deleteRequest.getMessageId(), deleteRequest.getUserId());
+
+            // 1. 执行删除操作
+            boolean success = privateMessageService.deleteMessage(
+                deleteRequest.getMessageId(), 
+                deleteRequest.getUserId()
+            );
+
+            if (!success) {
+                log.warn("删除失败：messageId={}, userId={}", 
+                        deleteRequest.getMessageId(), deleteRequest.getUserId());
+                return;
+            }
+
+            // 2. 查询消息信息
+            PrivateMessage message = privateMessageService.getById(deleteRequest.getMessageId());
+            if (message == null) {
+                return;
+            }
+
+            // 3. 组装删除通知（推送给自己，用于同步删除状态）
+            DeleteMessageRequest notification = new DeleteMessageRequest();
+            notification.setMessageId(message.getId());
+            notification.setBothDeleted(false);  // 单向删除，永远为 false
+
+            // 4. 推送给删除者自己（确认删除成功，前端可以移除该消息）
+            messagingTemplate.convertAndSendToUser(
+                    deleteRequest.getUserId().toString(),
+                    "/queue/message-delete",
+                    notification
+            );
+
+            log.info("消息删除确认已推送：messageId={}, 目标用户：{}", 
+                    deleteRequest.getMessageId(), deleteRequest.getUserId());
+
+        } catch (Exception e) {
+            log.error("处理删除消息失败", e);
+        }
+    }
+    
     /**
      * 将 User 转换为 UserSimpleVO
      */

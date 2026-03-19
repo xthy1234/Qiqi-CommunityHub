@@ -91,7 +91,7 @@ const fetchCategoryList = async (): Promise<void> => {
   try {
     const response = await appContext?.$http.get('/categories')
     const apiData = response.data
-// console.log('分类接口原始数据:', apiData)
+
 
     // 根据实际返回格式解析数据
     let categories: any[] = []
@@ -106,7 +106,7 @@ const fetchCategoryList = async (): Promise<void> => {
       // 直接数组：[...]
       categories = apiData
     }
-// console.log('解析后的分类数据:', categories)
+
 
     categoryOptions.value = [
       { label: '全部分类', value: undefined },
@@ -115,7 +115,7 @@ const fetchCategoryList = async (): Promise<void> => {
         value: cat.id
       }))
     ]
-// console.log('分类选项:', categoryOptions.value)
+
   } catch (error) {
     console.error('获取分类列表失败:', error)
     categoryOptions.value = [{ label: '全部分类', value: undefined }]
@@ -154,7 +154,7 @@ const fetchFavoriteList = async (): Promise<void> => {
     const apiData = response.data.data
     articleList.value = apiData.list || []
     totalCount.value = apiData.totalCount || 0
-// console.log('收藏列表:', articleList.value)
+
   } catch (error) {
     console.error('获取收藏列表失败:', error)
     articleList.value = []
@@ -200,9 +200,6 @@ const handleSortChange = (value: string, option: any) => {
   pagination.value.page = 1
   fetchFavoriteList()
 }
-
-
-
 onMounted(() => {
   fetchCategoryList()
   fetchFavoriteList()

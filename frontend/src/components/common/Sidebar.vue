@@ -377,7 +377,7 @@ const initializeComponent = async (): Promise<void> => {
 
   // 🔒 读取锁定状态
   const locked = appContext?.$toolUtil?.storageGet('sidebarLocked')
-// console.log('locked', locked)
+
   if(locked===null){
     sidebarLocked.value = true
     appContext?.$toolUtil?.storageSet('sidebarLocked', true)
@@ -388,7 +388,7 @@ const initializeComponent = async (): Promise<void> => {
 
   // 📦 读取展开/收起状态
   const savedExpanded = appContext?.$toolUtil?.storageGet('sidebarExpanded')
-// console.log('savedExpanded', savedExpanded)
+
   if (savedExpanded === null) {
     isExpanded.value = true
     appContext?.$toolUtil?.storageSet('sidebarExpanded', true)
@@ -435,10 +435,10 @@ const emit = defineEmits<{
 
 // 监听侧边栏展开状态变化，通知父组件并保存到 localStorage
 watch(isExpanded, (newVal: boolean, oldVal: boolean) => {
-  // 🔥 只有状态真正改变时才保存（避免初始化时重复保存）
+  //  只有状态真正改变时才保存（避免初始化时重复保存）
   if (newVal !== oldVal) {
     try {
-      // 🔥 只有在锁定状态下才保存展开状态
+      //  只有在锁定状态下才保存展开状态
       if (sidebarLocked.value) {
         appContext?.$toolUtil?.storageSet('sidebarExpanded', newVal)
       } else {
@@ -448,12 +448,12 @@ watch(isExpanded, (newVal: boolean, oldVal: boolean) => {
       // 保存展开状态失败
     }
 
-    // 🔥 通知父组件
+    //  通知父组件
     emit('update:collapsed', !newVal)
   }
 })
 
-// 🔥 新增：监听锁定状态变化
+//  新增：监听锁定状态变化
 watch(sidebarLocked, (newLocked: boolean, oldLocked: boolean) => {
   if (newLocked !== oldLocked) {
     if (!newLocked) {

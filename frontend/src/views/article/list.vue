@@ -12,11 +12,7 @@
 
     <!-- 搜索和筛选区域 -->
     <n-card :bordered="false" class="filter-section">
-      <n-space align="center" :size="12">
-
-
-
-        <!-- 分类选择器 -->
+      <n-space align="center" :size="12">        <!-- 分类选择器 -->
         <ArticleCategorySelect
           v-model="selectedCategoryId"
           placeholder="选择分类"

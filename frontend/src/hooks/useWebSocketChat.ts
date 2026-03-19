@@ -1,7 +1,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import chatService from '@/api/chat'
-import type { Message, ConversationVO } from '@/types/message'
-import { WsConnectionState } from '@/types/message'
+import { getWebSocket } from '@/utils/websocket'
+import { WsConnectionState } from "@/types/message"
+import type { ConversationVO, Message } from "@/types/message"
 
 /**
  * WebSocket 聊天功能的 Vue Composable
@@ -128,7 +129,16 @@ export function useWebSocketChat() {
    */
   const markAsRead = async (fromUserId: number) => {
     try {
-      await chatService.markAsRead(fromUserId)
+      //  使用 WebSocket 发送已读回执（代替 HTTP 接口）
+      const ws = getWebSocket()
+      if (ws && ws.isConnected()) {
+
+        ws.sendReadReceipt(fromUserId)
+
+      } else {
+        console.warn('⚠️ [useWebSocketChat] WebSocket 未连接，无法发送已读回执')
+      }
+      
       loadConversations()
     } catch (error) {
       console.error('Failed to mark as read:', error)
@@ -161,7 +171,7 @@ export function useWebSocketChat() {
     })
 
     // 监听连接状态
-    unsubscribeConnection = chatService.onConnectionChange((state) => {
+    unsubscribeConnection = chatService.onConnectionChange((state: WsConnectionState) => {
       connectionState.value = state
       isConnected.value = state === WsConnectionState.CONNECTED
     })

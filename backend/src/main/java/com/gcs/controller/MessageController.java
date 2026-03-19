@@ -164,6 +164,7 @@ public class MessageController {
             @Parameter(description = "标记请求") 
             @RequestBody MessageReadDTO readDTO,
             @Parameter(hidden = true) HttpServletRequest request) {
+        log.info("此方法也许被弃用了");
         try {
             Long currentUserId = getCurrentUserId(request);
             if (currentUserId == null) {
@@ -303,7 +304,14 @@ public class MessageController {
             vo.setId(message.getId());
             vo.setFromUserId(message.getFromUserId());
             vo.setToUserId(message.getToUserId());
-            vo.setContent(message.getContent());
+            
+
+            if (Boolean.TRUE.equals(message.getIsRecalled())) {
+                vo.setContent("消息已被撤回！");
+            } else {
+                vo.setContent(message.getContent());
+            }
+            
             vo.setMsgType(message.getMsgType());
             vo.setStatus(message.getStatus().getCode());
             vo.setCreateTime(message.getCreateTime());

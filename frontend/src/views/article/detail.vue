@@ -225,11 +225,11 @@ const loadArticleDetail = async () => {
 
     const response = await articleAPI.getById(id)
     article.value = response.data.data
-// console.log('文章数据:', response.data.data)
+
 
     // 检查是否为当前用户
     const userId = appContext?.$toolUtil?.storageGet('userid')
-    isCurrentUser.value = String(article.value.authorId) === String(userId)
+    isCurrentUser.value = article.value ? String(article.value.authorId) === String(userId) : false
 
   } catch (error) {
     console.error('加载文章失败:', error)
@@ -251,7 +251,7 @@ const handleInteractionUpdate = (data: {
   dislikeCount?: number
   favoriteCount?: number
 }) => {
-// console.log('互动状态更新:', data)
+
 
   // 更新文章的点赞数和收藏数
   if (article.value) {
@@ -271,7 +271,7 @@ const handleInteractionUpdate = (data: {
  * 处理评论数量更新
  */
 const handleCommentUpdate = (data: { count: number }) => {
-// console.log('评论数量更新:', data.count)
+
 }
 
 /**
@@ -313,11 +313,6 @@ const getCurrentUserAvatar = () => {
   const avatar = appContext?.$toolUtil?.storageGet('avatar')
   const userId = appContext?.$toolUtil?.storageGet('userid')
   const userRole = appContext?.$toolUtil?.storageGet('role')
-
-// console.log('当前用户 ID:', userId)
-// console.log('当前用户头像:', avatar)
-// console.log('当前用户角色:', userRole)
-
   currentUserAvatar.value = avatar ? getAvatarUrl(avatar) : '/default-avatar.png'
   currentUserId.value = userId || ''
   // 假设角色为 1 的是管理员，根据实际情况调整

@@ -207,15 +207,10 @@ const loadComments = async () => {
 
   commentsLoading.value = true
   try {
-    const response = await commentAPI.getTree(props.articleId)
-// console.log('=== 评论树响应 ===')
-// console.log('完整响应:', response)
-// console.log('评论数据:', response.data.data)
-
-    // 直接使用后端返回的数据，不要修改 isLiked 和 isDisliked
+    const response = await commentAPI.getTree(props.articleId)    // 直接使用后端返回的数据，不要修改 isLiked 和 isDisliked
     if (response.data.data && Array.isArray(response.data.data)) {
       commentList.value = response.data.data
-// console.log('评论列表:', commentList.value)
+
     } else {
       commentList.value = []
     }

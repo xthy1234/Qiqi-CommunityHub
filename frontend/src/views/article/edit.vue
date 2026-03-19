@@ -162,11 +162,7 @@ onUnmounted(() => {
   appContext?.$toolUtil?.storageRemove('currentDraftId')
 })
 
-const handleSaveDraft = async () => {
-// console.log('验证前的 categoryId:', formData.categoryId, '类型:', typeof formData.categoryId)
-// console.log('验证前的 formData:', formData)
-
-  try {
+const handleSaveDraft = async () => {  try {
     await formRef.value?.validate()
   } catch (errors) {
     console.error('验证失败:', errors)
@@ -177,13 +173,13 @@ const handleSaveDraft = async () => {
     message.warning('请填写标题、内容和分类')
     return
   }
-// console.log(1111)
+
   try {
     savingDraft.value = true
     let response
-// console.log(1111)
+
     if (draftId.value) {
-// console.log("draftId.value"+draftId.value)
+
       response = await articleAPI.updateDraft(draftId.value, {
         title: formData.title,
         content: formData.content,
@@ -191,9 +187,9 @@ const handleSaveDraft = async () => {
         coverUrl: formData.coverUrl || undefined,
         attachment: null
       })
-// console.log(1111)
+
       if (response.data.code === 0 || response.data.success) {
-// console.log(response)
+
         message.success('草稿已更新')
       } else {
         message.error(response.data.message || '更新草稿失败')
@@ -206,10 +202,10 @@ const handleSaveDraft = async () => {
         coverUrl: formData.coverUrl || undefined,
         attachment: null
       })
-// console.log(1111)
+
       if (response.data.code === 0 || response.data.success) {
         const newDraftId = response.data.data?.id || response.data.id
-// console.log(1111)
+
         if (newDraftId) {
           draftId.value = String(newDraftId)
           isDraftMode.value = true

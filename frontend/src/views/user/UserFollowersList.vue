@@ -121,7 +121,7 @@ const fetchFollowerList = async () => {
     // 后端返回格式：{totalCount, pageSize, totalPage, currPage, list}
     const apiData = response || {}
     userList.value = apiData.list || []
-// console.log(apiData)
+
     total.value = apiData.total || 0
 
   } catch (error) {
