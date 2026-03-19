@@ -1,19 +1,18 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import chatService from '@/api/chat'
+import type { Message, ConversationVO } from '@/types/message'
+import { WsConnectionState } from '@/types/message'
 import { getWebSocket } from '@/utils/websocket'
-import { WsConnectionState } from "@/types/message"
-import type { ConversationVO, Message } from "@/types/message"
+import { MessageStatus, isUnreadMessage } from '@/types/message'
+import { debounce } from '@/utils/function'
 
-/**
- * WebSocket 聊天功能的 Vue Composable
- * 提供响应式的 WebSocket 状态和消息处理
- */
 export function useWebSocketChat() {
   const isConnected = ref(false)
   const connectionState = ref<WsConnectionState>(WsConnectionState.DISCONNECTED)
   const messages = ref<Message[]>([])
   const conversations = ref<ConversationVO[]>([])
   const unreadCount = ref(0)
+  const currentChatUserId = ref<number | null>(null)
 
   let unsubscribeMessage: (() => void) | null = null
   let unsubscribeStatus: (() => void) | null = null
@@ -21,9 +20,6 @@ export function useWebSocketChat() {
   let unsubscribeUnread: (() => void) | null = null
   let unsubscribeConnection: (() => void) | null = null
 
-  /**
-   * 连接 WebSocket
-   */
   const connect = async (wsUrl?: string) => {
     try {
       connectionState.value = WsConnectionState.CONNECTING
@@ -35,57 +31,37 @@ export function useWebSocketChat() {
     }
   }
 
-  /**
-   * 断开连接
-   */
   const disconnect = () => {
     chatService.disconnect()
     connectionState.value = WsConnectionState.DISCONNECTED
     isConnected.value = false
   }
 
-  /**
-   * 添加消息到列表
-   */
   const addMessage = (message: Message) => {
-    messages.value = [...messages.value, message]
+    messages.value.push(message)
   }
 
-  /**
-   * 更新消息状态
-   */
   const updateMessageStatus = (messageId: number, status: string) => {
-    messages.value = messages.value.map(msg => 
-      msg.id === messageId ? { ...msg, status: status as Message['status'] } : msg
-    )
+    const msg = messages.value.find(m => m.id === messageId)
+    if (msg) {
+      msg.status = status as any
+    }
   }
 
-  /**
-   * 更新会话列表
-   */
   const updateConversation = (conversationId: number) => {
-    // 重新加载会话列表
     loadConversations()
   }
 
-  /**
-   * 加载会话列表
-   */
   const loadConversations = async () => {
     try {
-      const list = await chatService.getConversations()
-      conversations.value = list
-      
-      // 计算总未读数
-      unreadCount.value = list.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)
+      const data = await chatService.getConversations()
+      conversations.value = Array.isArray(data) ? data : []
+      unreadCount.value = conversations.value.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)
     } catch (error) {
       console.error('Failed to load conversations:', error)
     }
   }
 
-  /**
-   * 加载聊天记录
-   */
   const loadChatHistory = async (userId: number, page = 1, limit = 20) => {
     try {
       const result = await chatService.getChatHistory(userId, page, limit)
@@ -101,9 +77,6 @@ export function useWebSocketChat() {
     }
   }
 
-  /**
-   * 发送消息
-   */
   const sendMessage = async (toUserId: number, content: string, contentType: 'TEXT' | 'IMAGE' | 'FILE' = 'TEXT') => {
     try {
       const response = await chatService.sendMessage({
@@ -112,7 +85,6 @@ export function useWebSocketChat() {
         contentType
       })
       
-      // 如果是新会话，刷新会话列表
       if (response.shouldCreateConversation) {
         loadConversations()
       }
@@ -124,17 +96,14 @@ export function useWebSocketChat() {
     }
   }
 
-  /**
-   * 标记为已读
-   */
-  const markAsRead = async (fromUserId: number) => {
+  const debouncedMarkAsRead = debounce(async (fromUserId: number, reason: string = '手动触发') => {
     try {
-      //  使用 WebSocket 发送已读回执（代替 HTTP 接口）
       const ws = getWebSocket()
       if (ws && ws.isConnected()) {
-
         ws.sendReadReceipt(fromUserId)
-
+        console.log('✅ [useWebSocketChat] 已读回执已发送:', 
+            '- 目标用户:', fromUserId, 
+            '- 原因:', reason)
       } else {
         console.warn('⚠️ [useWebSocketChat] WebSocket 未连接，无法发送已读回执')
       }
@@ -143,43 +112,53 @@ export function useWebSocketChat() {
     } catch (error) {
       console.error('Failed to mark as read:', error)
     }
+  }, 300)
+
+  const markAsRead = async (fromUserId: number, reason: string = '手动触发') => {
+    debouncedMarkAsRead(fromUserId, reason)
   }
 
-  /**
-   * 设置消息监听器
-   */
+  const setCurrentChatUser = (userId: number | null) => {
+    currentChatUserId.value = userId
+  }
+
   const setupListeners = () => {
-    // 监听新消息
     unsubscribeMessage = chatService.onNewMessage((message) => {
       addMessage(message)
       loadConversations()
+      
+      //  关键修改：移除自动发送已读回执的逻辑
+      // 改为由 ChatDetail 组件根据实际页面状态决定是否发送
+      console.log('📨 [useWebSocketChat] 收到新消息:', 
+          '- 发送者:', message.fromUserId,
+          '- 内容:', message.content.substring(0, 30),
+          '- 当前聚焦用户:', currentChatUserId.value)
     })
 
-    // 监听消息状态更新
     unsubscribeStatus = chatService.onMessageStatusUpdate(({ messageId, status }) => {
       updateMessageStatus(messageId, status)
     })
 
-    // 监听新会话
     unsubscribeConversation = chatService.onNewConversation(({ conversationId }) => {
       updateConversation(conversationId)
     })
 
-    // 监听未读数更新
     unsubscribeUnread = chatService.onUnreadCountUpdate(({ conversationId, unreadCount: count }) => {
       loadConversations()
     })
 
-    // 监听连接状态
     unsubscribeConnection = chatService.onConnectionChange((state: WsConnectionState) => {
       connectionState.value = state
       isConnected.value = state === WsConnectionState.CONNECTED
+      
+      if (state === WsConnectionState.CONNECTED && currentChatUserId.value) {
+        setTimeout(() => {
+          markAsRead(currentChatUserId.value!, 'WebSocket 重连成功')
+        }, 500)
+      }
     })
   }
 
-  /**
-   * 清理监听器
-   */
   const cleanupListeners = () => {
     unsubscribeMessage?.()
     unsubscribeStatus?.()
@@ -188,37 +167,27 @@ export function useWebSocketChat() {
     unsubscribeConnection?.()
   }
 
-  /**
-   * 生命周期挂载
-   */
   onMounted(() => {
     setupListeners()
-    loadConversations()
   })
 
-  /**
-   * 生命周期卸载
-   */
   onUnmounted(() => {
     cleanupListeners()
-    disconnect()
   })
 
   return {
-    // 状态
     isConnected,
     connectionState,
     messages,
     conversations,
     unreadCount,
-    
-    // 方法
     connect,
     disconnect,
+    markAsRead,
+    setCurrentChatUser,
     loadConversations,
     loadChatHistory,
-    sendMessage,
-    markAsRead
+    sendMessage
   }
 }
 

@@ -95,12 +95,16 @@ import { NIcon, NDropdown, NAvatar, NSpin, NEmpty, NText } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { getWebSocket } from '@/utils/websocket'
 import { ElMessage } from 'element-plus'
+import { MessageStatus, isUnreadMessage } from '@/types/message'
+import { debounce } from '@/utils/function'
 
 const appContext = useGlobalProperties()
 const store = useChatStore()
 const messageListRef = ref<HTMLElement | null>(null)
 const wsUnsubscribeFunctions = ref<(() => void)[]>([])
-const isProcessingRecall = ref(false) //  防止重复处理的标志位
+const isProcessingRecall = ref(false)
+const lastReadTimestamp = ref<Map<number, number>>(new Map())
+const pendingReadReceipts = ref<Set<number>>(new Set())
 
 //  获取当前登录用户 ID（用于发送消息）
 const currentUserId = computed(() => {
@@ -172,7 +176,8 @@ watch(() => store.currentConversation, (newConv: ConversationVO | null) => {
 const handleSendMessage = async (content: string) => {
   if (!store.currentConversation) return
   
-  try {    //  1. 乐观添加：立即显示在界面上，标记为"发送中"
+  try {
+    //  1. 乐观添加：立即显示在界面上，标记为"发送中"
 
     const tempMessage = store.addSendingMessage(content, store.currentConversation.userId)
     await nextTick()
@@ -254,88 +259,133 @@ const scrollToBottom = () => {
   }
 }
 
+const debouncedSendReadReceipt = debounce((userId: number, reason: string = '用户操作') => {
+    const ws = getWebSocket()
+    if (ws && ws.isConnected()) {
+        ws.sendReadReceipt(userId)
+
+        const userInfo = appContext?.$toolUtil?.storageGet('UserInfo')
+        const currentUserId = userInfo ? JSON.parse(userInfo).id : null
+
+        const messagesFromUser = store.messages.filter((msg: Message) =>
+            msg.fromUserId === userId &&
+            msg.toUserId === currentUserId &&
+            isUnreadMessage(msg.status) &&
+            !msg.isSelf
+        )
+
+        if (messagesFromUser.length > 0) {
+            const lastMessage = messagesFromUser[messagesFromUser.length - 1]
+            lastReadTimestamp.value.set(userId, Date.now())
+
+            console.log('✅ [已读回执] 已发送给用户:', userId,
+                '- 原因:', reason,
+                '- 消息数:', messagesFromUser.length,
+                '- 最后消息 ID:', lastMessage.id)
+        }
+    } else {
+        pendingReadReceipts.value.add(userId)
+        console.warn('⚠️ [sendReadReceipt] WebSocket 未连接，已加入待发送队列:', userId)
+    }
+}, 300)
+
+const sendReadReceiptIfNeed = (userId: number, reason: string = '检查未读消息') => {
+    if (!userId) {
+        return
+    }
+
+    const userInfo = appContext?.$toolUtil?.storageGet('UserInfo')
+    const currentUserId = userInfo ? JSON.parse(userInfo).id : null
+
+    if (!currentUserId) {
+        console.warn('⚠️ [sendReadReceiptIfNeed] 未获取到当前用户 ID')
+        return
+    }
+
+    const hasUnread = store.messages.some((msg: Message) =>
+        msg.toUserId === currentUserId &&
+        msg.fromUserId !== currentUserId &&
+        isUnreadMessage(msg.status) &&
+        !msg.isSelf
+    )
+
+    if (hasUnread) {
+        debouncedSendReadReceipt(userId, reason)
+    } else {
+        console.log('ℹ️ [sendReadReceiptIfNeed] 无未读消息，跳过:', userId, '- 原因:', reason)
+    }
+}
+
+const retryPendingReadReceipts = () => {
+    const ws = getWebSocket()
+    if (!ws || !ws.isConnected()) {
+        return
+    }
+
+    pendingReadReceipts.value.forEach(userId => {
+        console.log('🔄 [重试] 补发已读回执给用户:', userId)
+        debouncedSendReadReceipt(userId, 'WebSocket 重连后补发')
+    })
+
+    pendingReadReceipts.value.clear()
+}
+
 onMounted(async () => {
-
-
   //  如果是通过路由参数打开的会话，不需要恢复
   const routeUserId = store.currentConversation?.userId
-
-//       hasRouteUserId: !!routeUserId,
-//       hasCurrentConversation: !!store.currentConversation,
-//       routeUserId
-//     })
-
   if (routeUserId || !store.currentConversation) {
-    // 已经有当前会话对象，直接加载消息
     if (routeUserId) {
       await store.loadMessages(routeUserId, true)
-
-
-      //  等待 DOM tick 确保响应式系统完全更新
       await nextTick()
       await nextTick()
-
-      //  处理撤回消息：将 isRecalled=true 的消息转换为系统提示
       processRecalledMessages()
-
-      //  再次等待，确保转换后的消息也触发视图更新
       await nextTick()
-
-      //  打印每条消息的方向判断
       store.messages.forEach((msg: any, index: number) => {
         const isOwn = isOwnMessage(msg)
-
-        //   id: msg.id,
-        //   content: msg.content.substring(0, 30),
-        //   fromUserId: msg.fromUserId,
-        //   isSelf: msg.isSelf,
-        //   isOwn: isOwn,
-        //   direction: isOwn ? '➡️ 右边（我发送的）' : '⬅️ 左边（收到的）'
-        // })
       })
       await nextTick()
       scrollToBottom()
 
-      //  发送已读回执（延迟发送，等待页面渲染完成）
       setTimeout(() => {
-        sendReadReceiptIfNeed(routeUserId)
-      }, 500)
+        sendReadReceiptIfNeed(routeUserId, '页面加载完成')
+      }, 300)
     }
   } else {
-    //  没有当前会话，尝试从 sessionStorage 恢复
-
     const savedSession = store.restoreSessionFromStorage()
 
     if (savedSession) {
+        const conversation = {
+            userId: savedSession.userId,
+            username: savedSession.username,
+            avatar: savedSession.avatar,
+            lastMessage: '',
+            lastTime: new Date().toISOString(),
+            unreadCount: 0
+        }
 
+        await store.switchConversation(conversation as any)
 
-      // 构造会话对象
-      const conversation = {
-        userId: savedSession.userId,
-        username: savedSession.username,
-        avatar: savedSession.avatar,
-        lastMessage: '',
-        lastTime: new Date().toISOString(),
-        unreadCount: 0
-      }
+        ElMessage.success(`已恢复到与 ${savedSession.username} 的聊天`)
 
-      // 切换到该会话
-      await store.switchConversation(conversation as any)
-
-
-      ElMessage.success(`已恢复到与 ${savedSession.username} 的聊天`)
-
-      //  发送已读回执
-      setTimeout(() => {
-        sendReadReceiptIfNeed(savedSession.userId)
-      }, 500)
-    } else {
-
+        setTimeout(() => {
+            sendReadReceiptIfNeed(savedSession.userId, '会话恢复')
+        }, 300)
     }
   }
 
-  //  注册 WebSocket 消息处理器
   registerWebSocketHandlers()
+
+  const ws = getWebSocket()
+  if (ws) {
+      const unsubscribeConnection = ws.onStateChange((state) => {
+          if (state === 1) {
+              setTimeout(() => {
+                  retryPendingReadReceipts()
+              }, 500)
+          }
+      })
+      wsUnsubscribeFunctions.value.push(unsubscribeConnection)
+  }
 })
 
 onUnmounted(() => {
@@ -346,14 +396,26 @@ onUnmounted(() => {
 
 //  只保留一个 watch：监听消息列表长度变化
 watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
-  //  只在消息数量增加时才处理（新消息到达）
-  if (newLen !== oldLen) {
-    await nextTick()
-    scrollToBottom()
+    if (newLen !== oldLen && newLen > oldLen) {
+        await nextTick()
+        scrollToBottom()
+        processRecalledMessages()
 
-    //  检查新消息中是否有撤回消息
-    processRecalledMessages()
-  }
+        const ws = getWebSocket()
+        if (ws && ws.isConnected() && store.currentConversation?.userId) {
+            const newMessages = store.messages.slice(oldLen)
+            const hasUnreadFromCurrentConv = newMessages.some(msg =>
+                msg.fromUserId === store.currentConversation?.userId &&
+                isUnreadMessage(msg.status) &&
+                !msg.isSelf
+            )
+
+            if (hasUnreadFromCurrentConv) {
+                console.log('📨 [Watch] 收到当前会话的新消息，触发已读回执')
+                debouncedSendReadReceipt(store.currentConversation.userId, '收到新消息')
+            }
+        }
+    }
 }, { immediate: true })
 
 //  处理消息撤回
@@ -507,79 +569,6 @@ const processRecalledMessages = () => {
   } else {
     isProcessingRecall.value = false //  没有处理也重置
   }
-}
-
-//  发送已读回执（如果需要）
-const sendReadReceiptIfNeed = (userId: number) => {//     targetUserId: userId,
-//     currentUserId: currentUserId.value,
-//     totalMessages: store.messages.length
-//   })
-
-  //  详细打印每条消息的状态
-
-  store.messages.forEach((msg: Message, index: number) => {
-    //  检查是否匹配条件
-    const isToMe = msg.toUserId === currentUserId.value
-    const isFromOtherUser = msg.fromUserId !== currentUserId.value
-    //  只检测对方发来的、未读的消息（排除自己发的）
-    //  修复：删除 'UNREAD'，因为 Message 类型中没有这个值
-    const isUnread = (msg.status === 0 || msg.status === 'SENT' || msg.status === 'DELIVERED') && !msg.isSelf
-    const shouldMarkAsRead = isToMe && isFromOtherUser && isUnread  })
-
-
-  // 检查是否有未读消息
-  const hasUnread = store.messages.some((msg: Message) =>
-    msg.toUserId === currentUserId.value &&
-    msg.fromUserId !== currentUserId.value &&
-    (msg.status === 0 || msg.status === 'SENT' || msg.status === 'DELIVERED') &&
-    !msg.isSelf
-  )
-
-//     hasUnread,
-//     userId,
-//     currentUserId: currentUserId.value,
-//     totalMessages: store.messages.length,
-//     conditions: {
-//       'toUserId 匹配': `msg.toUserId === ${currentUserId.value}`,
-//       'fromUserId 不匹配': `msg.fromUserId !== ${currentUserId.value}`,
-//       'status 是未读': '0 (数据库), SENT, 或 DELIVERED',
-//       '不是自己的消息': '!msg.isSelf'
-//     }
-//   })
-
-  if (hasUnread) {
-
-
-    const ws = getWebSocket()
-    if (ws && ws.isConnected()) {
-      ws.sendReadReceipt(userId)
-
-
-      // 本地更新消息状态
-      updateLocalMessageStatus(userId, 'READ')
-    } else {
-      console.warn('⚠️ [sendReadReceiptIfNeed] WebSocket 未连接，无法发送已读回执')
-    }
-  } else {    //  额外诊断：检查是否有对方发来的消息
-    const messagesFromOther = store.messages.filter((msg: Message)=>
-      msg.fromUserId !== currentUserId.value && msg.toUserId === currentUserId.value
-    )
-
-
-  }
-
-}
-
-//  本地更新消息状态
-const updateLocalMessageStatus = (userId: number, status: 'READ' | 'UNREAD') => {
-
-
-  store.messages.forEach((msg: any) => {
-    if (msg.toUserId === currentUserId.value && msg.fromUserId === userId) {
-      msg.status = status === 'READ' ? 'READ' : 'UNREAD'
-    }
-  })
-
 }
 
 </script>

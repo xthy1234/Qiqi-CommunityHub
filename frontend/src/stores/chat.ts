@@ -5,6 +5,7 @@ import messageService from '@/api/message'
 import userService from '@/api/user'
 import { getWebSocket } from '@/utils/websocket'
 import {defineStore} from "pinia";
+import { MessageStatus, isUnreadMessage, isReadMessage } from '@/types/message'
 
 interface ChatState {
   conversations: ConversationVO[]
@@ -53,25 +54,63 @@ export const useChatStore = defineStore('chat', {
 
     /** 
      *  更新消息状态（用于已读回执）
-     * @param data 已读回执数据 { fromUserId, toUserId }
+     * @param data 已读回执数据 { fromUserId: 阅读者，toUserId: 消息发送者 }
      */
     updateMessageStatus(data: { fromUserId: number, toUserId: number }) {
-      //  根据 fromUserId 和 toUserId 找到对应的消息
-      const messagesToUpdate = this.messages.filter((m: Message) => 
-        m.fromUserId === data.fromUserId && 
-        m.toUserId === data.toUserId &&
-        (m.status === 0 || m.status === 'SENT' || m.status === 'DELIVERED')
-      )
-
-      
-      
-      
-      messagesToUpdate.forEach((message: Message) => {
-        message.status = 'READ'
+        const readerUserId = data.fromUserId
+        const senderUserId = data.toUserId
         
-      })
-      
-      
+        console.log('🔄 [Store.updateMessageStatus] 开始更新:', 
+            '- 阅读者:', readerUserId,
+            '- 发送者:', senderUserId,
+            '- 消息总数:', this.messages.length)
+        
+        const messagesToUpdate = this.messages.filter((m: Message) => {
+            const isSentToReader = m.toUserId === readerUserId
+            const isFromSender = m.fromUserId === senderUserId
+            const isUnread = m.status !== undefined && isUnreadMessage(m.status)
+            
+            const shouldUpdate = isSentToReader && isFromSender && isUnread
+            
+            if (isSentToReader && isFromSender) {
+                console.log('  📝 [匹配]', 
+                    '- ID:', m.id,
+                    '- 当前状态:', m.status,
+                    '- 是否未读:', isUnread,
+                    '- 是否更新:', shouldUpdate)
+            }
+            
+            return shouldUpdate
+        })
+        
+        console.log('📋 [Store.updateMessageStatus] 待更新数量:', messagesToUpdate.length)
+        
+        if (messagesToUpdate.length === 0) {
+            //  添加：检查是否有已经是已读的消息
+            const alreadyReadMessages = this.messages.filter((m: Message) => 
+                m.toUserId === readerUserId && 
+                m.fromUserId === senderUserId &&
+                isReadMessage(m.status)
+            )
+            
+            if (alreadyReadMessages.length > 0) {
+                console.log('ℹ️ [Store.updateMessageStatus] 这些消息已经是已读状态，跳过更新:', 
+                    alreadyReadMessages.map((m: Message) => m.id))
+            } else {
+                console.warn('⚠️ [Store.updateMessageStatus] 没有找到匹配的消息')
+            }
+            return
+        }
+
+        messagesToUpdate.forEach((message: Message) => {
+            const oldStatus = message.status
+            message.status = MessageStatus.READ
+            
+            console.log('✅ [Store.updateMessageStatus] 已更新:', 
+                '- 消息 ID:', message.id,
+                '- 旧状态:', oldStatus,
+                '- 新状态:', message.status)
+        })
     },
 
     /** 
@@ -129,14 +168,6 @@ export const useChatStore = defineStore('chat', {
      */
     confirmSentMessage(realMessage: Message): void {
 
-//         realMessageId: realMessage.id,
-//         content: realMessage.content,
-//         toUserId: realMessage.toUserId,
-//         isSelf: realMessage.isSelf,
-//         createTime: realMessage.createTime
-//       })
-      
-      //  关键：通过 _sending 状态 + isSelf 匹配（不需要_tempId）
       const tempIndex = this.messages.findIndex((m: Message) =>
         m._sending === true && 
         m.isSelf === true &&
@@ -261,26 +292,20 @@ export const useChatStore = defineStore('chat', {
         
         //  标记为已读（使用 WebSocket 发送已读回执）
         if ((conversation as any).unreadCount && (conversation as any).unreadCount > 0) {
-
-          
-          //  使用 WebSocket 发送已读回执（代替 HTTP 接口）
-          const ws = getWebSocket()
-          if (ws && ws.isConnected()) {
-
-            ws.sendReadReceipt((conversation as any).userId)
-          } else {
-            console.warn('⚠️ [chatStore] WebSocket 未连接，无法发送已读回执')
-          }
-          
-          // 更新本地未读数
-          this.unreadCount -= (conversation as any).unreadCount
-          ;(conversation as any).unreadCount = 0
-          
-          // 更新会话列表中的未读数
-          const index = this.conversations.findIndex((c: any) => c.userId === (conversation as any).userId)
-          if (index !== -1) {
-            this.conversations[index].unreadCount = 0
-          }
+            const ws = getWebSocket()
+            if (ws && ws.isConnected()) {
+                ws.sendReadReceipt((conversation as any).userId)
+            } else {
+                console.warn('⚠️ [chatStore] WebSocket 未连接，无法发送已读回执')
+            }
+            
+            this.unreadCount -= (conversation as any).unreadCount
+            ;(conversation as any).unreadCount = 0
+            
+            const index = this.conversations.findIndex((c: any) => c.userId === (conversation as any).userId)
+            if (index !== -1) {
+                this.conversations[index].unreadCount = 0
+            }
         }
       } catch (error) {
         console.error('❌ [chatStore] 切换会话失败:', error)
@@ -353,68 +378,48 @@ export const useChatStore = defineStore('chat', {
 
     /** 接收新消息（WebSocket） */
     receiveMessage(message: Message) {
-
-//         messageId: message.id,
-//         content: message.content,
-//         fromUserId: message.fromUserId,
-//         toUserId: message.toUserId,
-//         isSelf: message.isSelf
-//       })
-      
-      //  如果是自己发送的消息（isSelf=true），跳过，避免重复处理
-      // （因为自己发送的消息已经在 HTTP 响应时添加到 store 了）
-      if (message.isSelf) {
-
-        return
-      }
-      
-      // 如果当前正在和该用户聊天，直接添加到消息列表
-      if (this.currentConversation && 
-          (message.fromUserId === this.currentConversation.userId || 
-           message.toUserId === this.currentConversation.userId)) {
-
-        this.messages.push(message)
-
+        if (message.isSelf) {
+            return
+        }
         
-        // 更新会话列表
-        const index = this.conversations.findIndex((c: ConversationVO) => c.userId === message.fromUserId)
-        if (index !== -1) {
-          this.conversations[index].lastMessage = message.content
-          this.conversations[index].lastTime = message.createTime
-          
-          // 如果当前窗口打开，标记为已读
-          if (this.currentConversation.userId === message.fromUserId) {
-            this.conversations[index].unreadCount = 0
-
-          } else {
-            this.conversations[index].unreadCount++
-            this.unreadCount++
-
-          }
-          
-          // 移动到最前面
-          const conv = this.conversations.splice(index, 1)[0]
-          this.conversations.unshift(conv)
-
-        }
-      } else {
-
-        // 否则只更新会话列表和未读数
-        const index = this.conversations.findIndex((c: ConversationVO) => c.userId === message.fromUserId)
-        if (index !== -1) {
-          this.conversations[index].lastMessage = message.content
-          this.conversations[index].lastTime = message.createTime
-          this.conversations[index].unreadCount++
-          this.unreadCount++
-          
-          // 移动到最前面
-          const conv = this.conversations.splice(index, 1)[0]
-          this.conversations.unshift(conv)
-
+        if (this.currentConversation && 
+            (message.fromUserId === this.currentConversation.userId || 
+             message.toUserId === this.currentConversation.userId)) {
+            
+            this.messages.push(message)
+            
+            const index = this.conversations.findIndex((c: ConversationVO) => c.userId === message.fromUserId)
+            if (index !== -1) {
+                this.conversations[index].lastMessage = message.content
+                this.conversations[index].lastTime = message.createTime
+                
+                if (this.currentConversation.userId === message.fromUserId) {
+                    //  关键修改：只更新未读数，不发送已读回执
+                    // 已读回执由 ChatDetail 组件统一处理
+                    this.conversations[index].unreadCount = 0
+                    
+                    console.log('📨 [Store] 收到当前会话的新消息，已清零未读数:', 
+                        message.fromUserId, '-', message.content.substring(0, 30))
+                } else {
+                    this.conversations[index].unreadCount++
+                    this.unreadCount++
+                }
+                
+                const conv = this.conversations.splice(index, 1)[0]
+                this.conversations.unshift(conv)
+            }
         } else {
-
+            const index = this.conversations.findIndex((c: ConversationVO) => c.userId === message.fromUserId)
+            if (index !== -1) {
+                this.conversations[index].lastMessage = message.content
+                this.conversations[index].lastTime = message.createTime
+                this.conversations[index].unreadCount++
+                this.unreadCount++
+                
+                const conv = this.conversations.splice(index, 1)[0]
+                this.conversations.unshift(conv)
+            }
         }
-      }
     },
 
     /** 加载更多历史消息 */

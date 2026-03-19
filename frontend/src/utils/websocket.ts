@@ -127,7 +127,7 @@ class WebSocketManager {
         
         // 如果已有连接，先关闭
         if (this.client) {
-          console.warn('⚠️ [WebSocket] 关闭已有连接')
+          console.warn('⚠️ [WebSocket] 关闭已有连接111111111111')
           this.close()
         }
 
@@ -265,8 +265,11 @@ class WebSocketManager {
       try {
         const data = JSON.parse(message.body)
 
-        const handlers = this.messageHandlers.get('MESSAGE_STATUS')
+        console.log('📨 [WebSocket] 收到已读回执推送:', 
+            '- 订阅路径:', receiptDestination,
+            '- 数据:', data)
 
+        const handlers = this.messageHandlers.get('MESSAGE_STATUS')
 
         
         if (handlers && handlers.size > 0) {
@@ -283,9 +286,14 @@ class WebSocketManager {
             }
             index++
           })
+          
+          console.log('✅ [WebSocket] MESSAGE_STATUS 处理器执行完成:', 
+              '- 成功数量:', successCount,
+              '- 总数量:', handlers.size)
 
         } else {
-          console.warn('⚠️ [WebSocket] 未找到 MESSAGE_STATUS 处理器！')
+          console.warn('⚠️ [WebSocket] 未找到 MESSAGE_STATUS 处理器！', 
+              '- 当前所有处理器类型:', Array.from(this.messageHandlers.keys()))
 
         }
       } catch (error) {
@@ -297,6 +305,8 @@ class WebSocketManager {
 
     }, {})
     
+    console.log('✅ [WebSocket] 已订阅已读回执队列:', receiptDestination)
+
     // 订阅撤回通知（同样使用明确路径）
     const recallDestination = `/user/${currentUserId}/queue/message-recall`
 

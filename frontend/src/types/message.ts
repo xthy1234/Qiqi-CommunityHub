@@ -163,3 +163,74 @@ export interface MessageWithUser extends Message {
   fromUser?: MessageUser
   toUser?: MessageUser
 }
+
+/**
+ * 消息状态常量（字符串枚举）
+ */
+export const MessageStatus = {
+    /** 已发送（对方未读）*/
+    SENT: 'SENT' as const,
+    /** 已读 */
+    READ: 'READ' as const,
+    /** 已送达 */
+    DELIVERED: 'DELIVERED' as const,
+    /** 发送失败 */
+    FAILED: 'FAILED' as const,
+    /** 发送中 */
+    SENDING: 'SENDING' as const
+} as const
+
+export type MessageStatusType = typeof MessageStatus[keyof typeof MessageStatus]
+
+/**
+ * 判断消息是否为未读状态
+ * 
+ * 业务规则：
+ * - SENT (0): 消息已发送，对方未读
+ * - DELIVERED (2): 消息已送达对方设备，但可能还未读
+ * 
+ * @param status 消息状态值（字符串或数字）
+ * @returns 是否为未读状态
+ */
+export function isUnreadMessage(status?: string | number): boolean {
+    //  关键修复：同时检查数字和字符串类型
+    return status === MessageStatus.SENT ||        // 'SENT' 字符串
+           status === MessageStatus.DELIVERED ||   // 'DELIVERED' 字符串
+           status === 0 ||                         // 数字 0 (SENT)
+           status === 2                            // 数字 2 (DELIVERED)
+}
+
+/**
+ * 判断消息是否为已读状态
+ * 
+ * 业务规则：
+ * - READ (1): 消息已被对方阅读
+ * 
+ * @param status 消息状态值（字符串或数字）
+ * @returns 是否为已读状态
+ */
+export function isReadMessage(status?: string | number): boolean {
+    //  关键修复：同时检查数字和字符串类型
+    return status === MessageStatus.READ ||    // 'READ' 字符串
+           status === 1                        // 数字 1 (READ)
+}
+
+/**
+ * 判断消息是否正在发送
+ * 
+ * @param status 消息状态值（字符串或数字）
+ * @returns 是否正在发送
+ */
+export function isSendingMessage(status?: string | number): boolean {
+    return status === MessageStatus.SENDING || status === 'SENDING'
+}
+
+/**
+ * 判断消息是否发送失败
+ * 
+ * @param status 消息状态值（字符串或数字）
+ * @returns 是否发送失败
+ */
+export function isFailedMessage(status?: string | number): boolean {
+    return status === MessageStatus.FAILED || status === 'FAILED' || status === 3
+}

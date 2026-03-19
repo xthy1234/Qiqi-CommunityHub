@@ -129,13 +129,13 @@ public class WebSocketChatController {
 
             // ✅ 添加详细日志，帮助调试
             //由于fromid是标记了toId发送的信息，所以这里fromid是消息的接收方，toid是消息的发送方
-            log.info("📖 [已读回执] 用户 {} 标记了来自用户 {} 的消息为已读", 
-                    receipt.getFromUserId(), receipt.getToUserId());
+            log.info("📖 [已读回执] 用户 {} 标记了来自用户 {} 的消息为已读",
+                    receipt.getFromUserId()  , receipt.getToUserId());
 
             // 1. 更新数据库中该对话的消息状态为已读
             boolean success = privateMessageService.markAsRead(
-                    receipt.getToUserId(),
-                    receipt.getFromUserId()
+                    receipt.getFromUserId(),
+                    receipt.getToUserId()
             );
 
             // ✅ 添加成功/失败的详细日志
