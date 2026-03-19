@@ -105,6 +105,9 @@ const wsUnsubscribeFunctions = ref<(() => void)[]>([])
 const isProcessingRecall = ref(false)
 const lastReadTimestamp = ref<Map<number, number>>(new Map())
 const pendingReadReceipts = ref<Set<number>>(new Set())
+const isUserScrolling = ref(false)
+const isAtBottom = ref(true)
+const lastMessageLength = ref(0)
 
 //  获取当前登录用户 ID（用于发送消息）
 const currentUserId = computed(() => {
@@ -246,13 +249,6 @@ const handleSendMessage = async (content: string) => {
   }
 }
 
-const handleScroll = (e: Event) => {
-  const target = e.target as HTMLElement
-  if (target.scrollTop === 0 && !store.loading && store.hasMore) {
-    store.loadMoreMessages()
-  }
-}
-
 const scrollToBottom = () => {
   if (messageListRef.value) {
     messageListRef.value.scrollTop = messageListRef.value.scrollHeight
@@ -278,10 +274,10 @@ const debouncedSendReadReceipt = debounce((userId: number, reason: string = '用
             const lastMessage = messagesFromUser[messagesFromUser.length - 1]
             lastReadTimestamp.value.set(userId, Date.now())
 
-            console.log('✅ [已读回执] 已发送给用户:', userId,
-                '- 原因:', reason,
-                '- 消息数:', messagesFromUser.length,
-                '- 最后消息 ID:', lastMessage.id)
+            // console.log('✅ [已读回执] 已发送给用户:', userId,
+            //     '- 原因:', reason,
+            //     '- 消息数:', messagesFromUser.length,
+            //     '- 最后消息 ID:', lastMessage.id)
         }
     } else {
         pendingReadReceipts.value.add(userId)
@@ -311,9 +307,10 @@ const sendReadReceiptIfNeed = (userId: number, reason: string = '检查未读消
 
     if (hasUnread) {
         debouncedSendReadReceipt(userId, reason)
-    } else {
-        console.log('ℹ️ [sendReadReceiptIfNeed] 无未读消息，跳过:', userId, '- 原因:', reason)
     }
+    // else {
+    //     console.log('ℹ️ [sendReadReceiptIfNeed] 无未读消息，跳过:', userId, '- 原因:', reason)
+    // }
 }
 
 const retryPendingReadReceipts = () => {
@@ -323,7 +320,7 @@ const retryPendingReadReceipts = () => {
     }
 
     pendingReadReceipts.value.forEach(userId => {
-        console.log('🔄 [重试] 补发已读回执给用户:', userId)
+        // console.log('🔄 [重试] 补发已读回执给用户:', userId)
         debouncedSendReadReceipt(userId, 'WebSocket 重连后补发')
     })
 
@@ -394,29 +391,171 @@ onUnmounted(() => {
   cleanupWebSocketHandlers()
 })
 
-//  只保留一个 watch：监听消息列表长度变化
+
+//  检测用户是否在底部
+const checkIsAtBottom = () => {
+    const messageListEl = messageListRef.value
+    if (!messageListEl) {
+        // console.log('⚠️ [checkIsAtBottom] messageListEl 为 null')
+        return false
+    }
+
+    // 距离底部 50px 以内都算在底部
+    const threshold = 50
+    const scrollTop = messageListEl.scrollTop
+    const scrollHeight = messageListEl.scrollHeight
+    const clientHeight = messageListEl.clientHeight
+
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight
+
+    // console.log('📍 [checkIsAtBottom]',
+    //     '- scrollTop:', scrollTop,
+    //     '- scrollHeight:', scrollHeight,
+    //     '- clientHeight:', clientHeight,
+    //     '- 距离底部:', distanceToBottom,
+    //     '- 阈值:', threshold,
+    //     '- 结果:', distanceToBottom <= threshold)
+
+    return distanceToBottom <= threshold
+}
+
+//  监听用户滚动行为
+const handleScroll = (e: Event) => {
+  const target = e.target as HTMLElement
+
+  // 更新是否在底部的状态
+  const wasAtBottom = isAtBottom.value
+  isAtBottom.value = checkIsAtBottom()
+
+  // 检测用户是否正在往上翻
+  if (!isAtBottom.value) {
+    isUserScrolling.value = true
+  } else {
+    isUserScrolling.value = false
+  }
+
+  // console.log('📜 [handleScroll]',
+  //     '- 之前在底部:', wasAtBottom,
+  //     '- 现在在底部:', isAtBottom.value,
+  //     '- 是否滚动中:', isUserScrolling.value)
+
+  // 加载更多历史消息
+  if (target.scrollTop === 0 && !store.loading && store.hasMore) {
+    store.loadMoreMessages()
+  }
+}
+
 watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
-    if (newLen !== oldLen && newLen > oldLen) {
-        await nextTick()
-        scrollToBottom()
+    const addedCount = newLen - oldLen
+
+    // console.log('👀 [Watch] 消息长度变化:',
+    //     '- 旧值:', oldLen,
+    //     '- 新值:', newLen,
+    //     '- 增加:', addedCount,
+    //     '- isAtBottom:', isAtBottom.value,
+    //     '- isUserScrolling:', isUserScrolling.value)
+
+    //  如果是加载历史消息（一次性添加≥15 条）
+    if (addedCount >= 15) {
+        console.log('📜 [Watch] 检测到加载历史消息，保持滚动位置')
+
+        // 关键修复：保存当前滚动位置和高度
+        const messageListEl = messageListRef.value
+        if (messageListEl) {
+            // 临时禁用平滑滚动
+            messageListEl.style.scrollBehavior = 'auto'
+
+            const currentScrollTop = messageListEl.scrollTop
+            const currentScrollHeight = messageListEl.scrollHeight
+
+            await nextTick()
+
+            // 计算新增消息导致的高度变化
+            const newScrollHeight = messageListEl.scrollHeight
+            const heightDiff = newScrollHeight - currentScrollHeight
+
+            // 调整滚动条，补偿新增的高度，保持用户视野不变
+            messageListEl.scrollTop = currentScrollTop + heightDiff
+
+            // console.log('📏 [Watch] 已保持滚动位置:',
+            //     '- 原 scrollTop:', currentScrollTop,
+            //     '- 原 scrollHeight:', currentScrollHeight,
+            //     '- 新 scrollHeight:', newScrollHeight,
+            //     '- 高度差:', heightDiff,
+            //     '- 新 scrollTop:', messageListEl.scrollTop)
+
+            // 恢复平滑滚动
+            setTimeout(() => {
+                messageListEl.style.scrollBehavior = 'smooth'
+            }, 50)
+        }
+
+        lastMessageLength.value = newLen
+        return
+    }
+
+    //  如果是收到新消息（添加 1-2 条）
+    if (addedCount > 0 && addedCount < 15) {
+        const messageListEl = messageListRef.value
+        if (messageListEl) {
+            // 临时禁用平滑滚动
+            messageListEl.style.scrollBehavior = 'auto'
+
+            // 关键修复：保存当前滚动位置和可视区域
+            const currentScrollTop = messageListEl.scrollTop
+            const currentScrollHeight = messageListEl.scrollHeight
+
+            await nextTick()
+
+            // 等待 DOM 更新后，计算新增消息导致的高度变化
+            const newScrollHeight = messageListEl.scrollHeight
+            const heightDiff = newScrollHeight - currentScrollHeight
+
+            // 调整滚动条，补偿新增的高度
+            messageListEl.scrollTop = currentScrollTop + heightDiff
+
+            // console.log('📏 [Watch] 调整滚动条以保持视野:',
+            //     '- 原 scrollTop:', currentScrollTop,
+            //     '- 原 scrollHeight:', currentScrollHeight,
+            //     '- 新 scrollHeight:', newScrollHeight,
+            //     '- 高度差:', heightDiff,
+            //     '- 新 scrollTop:', messageListEl.scrollTop)
+
+            // 恢复平滑滚动
+            setTimeout(() => {
+                messageListEl.style.scrollBehavior = 'smooth'
+            }, 50)
+        } else {
+            await nextTick()
+        }
+
         processRecalledMessages()
+
+        // 只有在底部时才滚动到最新
+        if (isAtBottom.value && !isUserScrolling.value) {
+            scrollToBottom()
+        }
 
         const ws = getWebSocket()
         if (ws && ws.isConnected() && store.currentConversation?.userId) {
             const newMessages = store.messages.slice(oldLen)
-            const hasUnreadFromCurrentConv = newMessages.some(msg =>
+            const hasUnreadFromCurrentConv = newMessages.some((msg: Message) =>
                 msg.fromUserId === store.currentConversation?.userId &&
                 isUnreadMessage(msg.status) &&
                 !msg.isSelf
             )
 
             if (hasUnreadFromCurrentConv) {
-                console.log('📨 [Watch] 收到当前会话的新消息，触发已读回执')
+                // console.log('📨 [Watch] 收到当前会话的新消息，触发已读回执')
                 debouncedSendReadReceipt(store.currentConversation.userId, '收到新消息')
             }
         }
     }
+
+    lastMessageLength.value = newLen
+    isUserScrolling.value = false
 }, { immediate: true })
+
 
 //  处理消息撤回
 const handleRecallMessage = (messageId: number) => {  //  1. 乐观更新：立即在界面上显示撤回状态
