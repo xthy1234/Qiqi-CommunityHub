@@ -274,7 +274,7 @@ const handleSelectConversation = async (conv: any) => {
 <style scoped lang="scss">
 .chat-container {
   display: flex;
-  height: calc(100vh - 10px);
+  height: calc(100vh - 30px);
   background: #fff;
   border-radius: 8px;
   overflow: hidden;

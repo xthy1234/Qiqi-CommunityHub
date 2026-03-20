@@ -106,6 +106,44 @@ class ChatService {
   }
 
   /**
+   * 监听用户在线状态更新
+   */
+  onUserOnlineStatus(handler: (data: { userId: number; online: boolean; timestamp?: number; lastSeenAt?: string }) => void): () => void {
+    return this.registerHandler('USER_ONLINE_STATUS', handler)
+  }
+
+  /**
+   * 监听在线用户列表更新
+   */
+  onUserListUpdate(handler: (data: { users: Array<{ userId: number; online: boolean; lastSeenAt?: string }>; timestamp: number }) => void): () => void {
+    return this.registerHandler('USER_LIST_UPDATE', handler)
+  }
+
+  /**
+   * 查询用户在线状态
+   */
+  queryUserOnlineStatus(userIds: number[]): void {
+    const ws = getWebSocket()
+    if (ws?.isConnected()) {
+      ws.queryUserOnlineStatus(userIds)
+    } else {
+      console.warn('WebSocket 未连接，无法查询用户在线状态')
+    }
+  }
+
+  /**
+   * 订阅好友在线状态
+   */
+  subscribeFriendsOnlineStatus(): void {
+    const ws = getWebSocket()
+    if (ws?.isConnected()) {
+      ws.subscribeFriendsOnlineStatus()
+    } else {
+      console.warn('WebSocket 未连接，无法订阅好友在线状态')
+    }
+  }
+
+  /**
    * 注册消息处理器
    */
   private registerHandler(messageType: string, handler: (data: any) => void): () => void {
@@ -115,7 +153,7 @@ class ChatService {
       return () => {}
     }
 
-    return ws.on(messageType, handler)
+    return ws.on(messageType as any, handler)
   }
 
   /**

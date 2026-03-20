@@ -18,9 +18,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * 用户实体类
  * 数据库通用操作实体类（普通增删改查）
- * @author 
- * @email 
- * @date 2026-04-16 11:22:10
  */
 @Data
 @NoArgsConstructor

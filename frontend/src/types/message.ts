@@ -124,6 +124,50 @@ export interface WsUnreadCountUpdate {
 }
 
 /**
+ * 用户在线状态信息
+ */
+export interface UserOnlineStatus {
+  userId: number
+  online: boolean
+  lastSeenAt?: string // 最后在线时间
+}
+
+/**
+ * WebSocket 用户在线状态更新消息
+ */
+export interface WsUserOnlineStatus {
+  type: 'USER_ONLINE_STATUS'
+  data: {
+    userId: number
+    online?: boolean
+    isOnline?: boolean  // 兼容后端的字段名
+    timestamp: number
+    lastSeenAt?: string
+  } | Array<{
+    userId: number
+    online?: boolean
+    isOnline?: boolean
+    timestamp: number
+    lastSeenAt?: string
+  }>
+}
+
+/**
+ * WebSocket 用户列表（批量推送）
+ */
+export interface WsUserListUpdate {
+  type: 'USER_LIST_UPDATE'
+  data: {
+    users: Array<{
+      userId: number
+      online: boolean
+      lastSeenAt?: string
+    }>
+    timestamp: number
+  }
+}
+
+/**
  * 所有 WebSocket 消息类型的联合类型
  */
 export type WsChatMessageType = 
@@ -131,6 +175,8 @@ export type WsChatMessageType =
   | WsMessageStatusUpdate
   | WsNewConversation
   | WsUnreadCountUpdate
+  | WsUserOnlineStatus
+  | WsUserListUpdate
 
 /**
  * 消息处理器类型

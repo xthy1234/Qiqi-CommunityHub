@@ -27,4 +27,11 @@ public class UserSessionInfo {
      * 最后心跳时间
      */
     private Long lastHeartbeat;
+    
+    /**
+     * 更新心跳时间
+     */
+    public void updateHeartbeat() {
+        this.lastHeartbeat = System.currentTimeMillis();
+    }
 }

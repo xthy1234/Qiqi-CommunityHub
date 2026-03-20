@@ -6,7 +6,9 @@
         <n-avatar :src="store.currentConversation?.avatar" round size="medium" />
         <div class="chat-info">
           <div class="chat-name">{{ store.currentConversation?.username }}</div>
-          <div class="chat-status">在线</div>
+          <div :class="['chat-status', { online: isOtherUserOnline }]">
+            {{ isOtherUserOnline ? '在线' : lastSeenAtText }}
+          </div>
         </div>
       </div>
       
@@ -97,6 +99,7 @@ import { getWebSocket } from '@/utils/websocket'
 import { ElMessage } from 'element-plus'
 import { MessageStatus, isUnreadMessage } from '@/types/message'
 import { debounce } from '@/utils/function'
+import type { WsUserOnlineStatus } from '@/types/message'
 
 const appContext = useGlobalProperties()
 const store = useChatStore()
@@ -108,6 +111,11 @@ const pendingReadReceipts = ref<Set<number>>(new Set())
 const isUserScrolling = ref(false)
 const isAtBottom = ref(true)
 const lastMessageLength = ref(0)
+
+// 在线状态相关
+const isOtherUserOnline = ref(false)
+const lastSeenAt = ref<string | undefined>(undefined)
+let unsubscribeOnlineStatus: (() => void) | null = null
 
 //  获取当前登录用户 ID（用于发送消息）
 const currentUserId = computed(() => {
@@ -383,12 +391,16 @@ onMounted(async () => {
       })
       wsUnsubscribeFunctions.value.push(unsubscribeConnection)
   }
+
+  setupOnlineStatusListener()
 })
 
 onUnmounted(() => {
 
   //  清理 WebSocket 处理器
   cleanupWebSocketHandlers()
+
+  unsubscribeOnlineStatus?.()
 })
 
 
@@ -709,6 +721,113 @@ const processRecalledMessages = () => {
     isProcessingRecall.value = false //  没有处理也重置
   }
 }
+
+// 监听在线状态更新
+const setupOnlineStatusListener = () => {
+  const ws = getWebSocket()
+  if (!ws || !ws.isConnected()) {
+    console.warn('⚠️ [OnlineStatus] WebSocket 未连接')
+    return
+  }
+
+  const otherUserId = store.currentConversation?.userId
+  console.log('🔵 [OnlineStatus] 开始订阅，当前聊天对象 ID:', otherUserId)
+
+  // 订阅用户在线状态
+  const handler = (data: any) => {
+    console.log('📥 [OnlineStatus] 收到原始数据:', data)
+
+    // 兼容处理：后端可能返回数组或单个对象
+    let statusData
+    if (Array.isArray(data)) {
+      // 如果是数组，取第一个元素
+      statusData = data[0]
+      console.log('📥 [OnlineStatus] 检测到数组格式，提取第一个元素:', statusData)
+    } else {
+      statusData = data
+    }
+
+    if (!otherUserId) {
+      console.warn('⚠️ [OnlineStatus] 当前聊天对象 ID 为空')
+      return
+    }
+
+    // 兼容字段名：isOnline 或 online
+    const userId = statusData.userId
+    const isOnline = statusData.isOnline ?? statusData.online
+    const lastSeenAtValue = statusData.lastSeenAt
+
+    console.log('🔍 [OnlineStatus] 解析后的数据:',
+      '- userId:', userId,
+      '- isOnline:', isOnline,
+      '- lastSeenAt:', lastSeenAtValue)
+
+    if (userId === otherUserId) {
+      isOtherUserOnline.value = isOnline
+      lastSeenAt.value = lastSeenAtValue
+
+      console.log('🟢 [OnlineStatus] 状态更新成功:',
+        '- 用户 ID:', otherUserId,
+        '- 在线:', isOnline,
+        '- 最后时间:', lastSeenAtValue)
+    } else {
+      console.log('⚠️ [OnlineStatus] 用户 ID 不匹配，跳过:',
+        '- 期望:', otherUserId,
+        '- 实际:', userId)
+    }
+  }
+
+  unsubscribeOnlineStatus = ws.on('USER_ONLINE_STATUS', handler)
+
+  console.log('✅ [OnlineStatus] 已注册处理器，等待后端推送...')
+
+  // 主动查询当前聊天对象的在线状态
+  if (store.currentConversation?.userId) {
+    console.log('🔍 [OnlineStatus] 主动查询用户在线状态:', store.currentConversation.userId)
+    ws.queryUserOnlineStatus([store.currentConversation.userId])
+  } else {
+    console.warn('⚠️ [OnlineStatus] 当前会话为空，无法查询')
+  }
+}
+
+// 计算最后在线时间文本
+const lastSeenAtText = computed(() => {
+  if (!lastSeenAt.value) return '离线'
+
+  const now = Date.now()
+  const lastSeen = new Date(lastSeenAt.value).getTime()
+  const diff = now - lastSeen
+
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+
+  if (diff < minute) {
+    return '刚刚离线'
+  } else if (diff < hour) {
+    return `${Math.floor(diff / minute)}分钟前`
+  } else if (diff < day) {
+    return `${Math.floor(diff / hour)}小时前`
+  } else {
+    return `${Math.floor(diff / day)}天前`
+  }
+})
+
+// 监听当前会话变化，重新订阅在线状态
+watch(() => store.currentConversation?.userId, async (newUserId, oldUserId) => {
+  if (newUserId && newUserId !== oldUserId) {
+    // 取消旧的订阅
+    unsubscribeOnlineStatus?.()
+
+    // 重置状态
+    isOtherUserOnline.value = false
+    lastSeenAt.value = undefined
+
+    // 等待一下确保 WebSocket 已就绪
+    await nextTick()
+    setupOnlineStatusListener()
+  }
+}, { immediate: true })
 
 </script>
 

@@ -203,98 +203,78 @@ class WebSocketManager {
   }
 
   /**
-   * 订阅消息队列
+   * 连接成功后订阅各类消息队列
    */
   private subscribeToMessages(): void {
     if (!this.client) return
 
-
-    
     const currentUserId = this.getCurrentUserId()
 
+    console.log('✅ [WebSocket] 开始订阅消息队列，当前用户 ID:', currentUserId)
     
-    //  关键修改：明确指定带 userId 的完整路径
-    // Spring Security 不会自动转换 /user/queue/* 到 /user/{userId}/queue/*
-    // 必须显式订阅 /user/{userId}/queue/*
+    // 订阅私聊消息（使用明确路径）
     const privateMsgDestination = `/user/${currentUserId}/queue/private-messages`
 
-
-    
-    const subscription = this.client.subscribe(privateMsgDestination, (message: IMessage) => {
-
+    this.client.subscribe(privateMsgDestination, (message: IMessage) => {
       try {
         const data = JSON.parse(message.body)
-
-        // 触发 CHAT_MESSAGE 处理器
         const handlers = this.messageHandlers.get('CHAT_MESSAGE')
 
-        if (handlers) {
-
+        if (handlers && handlers.size > 0) {
           let successCount = 0
           handlers.forEach(handler => {
             try {
               handler(data)
               successCount++
-
             } catch (error) {
               console.error(`❌ [WebSocket] 单个处理器执行出错:`, error)
             }
           })
 
+          console.log('✅ [WebSocket] CHAT_MESSAGE 处理器执行完成:', 
+              '- 成功数量:', successCount,
+              '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 CHAT_MESSAGE 处理器！')
-
         }
       } catch (error) {
         console.error('❌ [WebSocket] 消息解析失败:', error)
         console.error('  - 错误类型:', error instanceof Error ? error.name : 'Unknown')
         console.error('  - 错误信息:', error instanceof Error ? error.message : error)
-        console.error('  - 错误堆栈:', error instanceof Error ? error.stack : 'N/A')
         console.error('  - 原始数据:', message.body)
       }
-
     }, {})
-
     
-    // 订阅已读回执（同样使用明确路径）
+    console.log('✅ [WebSocket] 已订阅私聊消息队列:', privateMsgDestination)
+
+    // 订阅已读回执队列
     const receiptDestination = `/user/${currentUserId}/queue/read-receipts`
 
-    
     this.client.subscribe(receiptDestination, (message: IMessage) => {
-
       try {
         const data = JSON.parse(message.body)
-
-        console.log('📨 [WebSocket] 收到已读回执推送:', 
-            '- 订阅路径:', receiptDestination,
-            '- 数据:', data)
-
         const handlers = this.messageHandlers.get('MESSAGE_STATUS')
 
-        
         if (handlers && handlers.size > 0) {
           let successCount = 0
           let index = 0
           handlers.forEach((handler: (data: any) => void) => {
             try {
-
               handler(data)
               successCount++
-
             } catch (error) {
-              console.error(`❌ [WebSocket] 第 ${index + 1} 个 MESSAGE_STATUS 处理器执行出错:`, error)
+              console.error(`❌ [WebSocket] 单个处理器执行出错:`, error)
+            } finally {
+              index++
             }
-            index++
           })
           
           console.log('✅ [WebSocket] MESSAGE_STATUS 处理器执行完成:', 
               '- 成功数量:', successCount,
               '- 总数量:', handlers.size)
-
         } else {
           console.warn('⚠️ [WebSocket] 未找到 MESSAGE_STATUS 处理器！', 
               '- 当前所有处理器类型:', Array.from(this.messageHandlers.keys()))
-
         }
       } catch (error) {
         console.error('❌ [WebSocket] 已读回执解析失败:', error)
@@ -302,90 +282,222 @@ class WebSocketManager {
         console.error('  - 错误信息:', error instanceof Error ? error.message : error)
         console.error('  - 原始数据:', message.body)
       }
-
     }, {})
     
     console.log('✅ [WebSocket] 已订阅已读回执队列:', receiptDestination)
 
-    // 订阅撤回通知（同样使用明确路径）
+    // 订阅撤回通知
     const recallDestination = `/user/${currentUserId}/queue/message-recall`
 
-    
     this.client.subscribe(recallDestination, (message: IMessage) => {
       try {
         const data = JSON.parse(message.body)
         const handlers = this.messageHandlers.get('MESSAGE_RECALL')
 
-
-        
         if (handlers && handlers.size > 0) {
           let successCount = 0
           let index = 0
           handlers.forEach((handler: (data: any) => void) => {
             try {
-
               handler(data)
               successCount++
-
             } catch (error) {
-              console.error(`❌ [WebSocket] 第 ${index + 1} 个处理器执行出错:`, error)
+              console.error(`❌ [WebSocket] 单个处理器执行出错:`, error)
+            } finally {
+              index++
             }
-            index++
           })
 
+          console.log('✅ [WebSocket] MESSAGE_RECALL 处理器执行完成:', 
+              '- 成功数量:', successCount,
+              '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 MESSAGE_RECALL 处理器！')
-
         }
       } catch (error) {
-        console.error('❌ [WebSocket] 撤回通知解析失败:', error)
+        console.error('❌ [WebSocket] 消息撤回通知解析失败:', error)
         console.error('  - 错误类型:', error instanceof Error ? error.name : 'Unknown')
         console.error('  - 错误信息:', error instanceof Error ? error.message : error)
         console.error('  - 原始数据:', message.body)
       }
-
     }, {})
     
-    //  订阅删除通知
+    console.log('✅ [WebSocket] 已订阅消息撤回队列:', recallDestination)
+
+    // 订阅消息删除通知
     const deleteDestination = `/user/${currentUserId}/queue/message-delete`
 
-    
     this.client.subscribe(deleteDestination, (message: IMessage) => {
       try {
         const data = JSON.parse(message.body)
         const handlers = this.messageHandlers.get('MESSAGE_DELETE')
 
-
-        
         if (handlers && handlers.size > 0) {
           let successCount = 0
-          let index = 0
-          handlers.forEach((handler: (data: any) => void) => {
+          handlers.forEach(handler => {
             try {
-
               handler(data)
               successCount++
-
             } catch (error) {
-              console.error(`❌ [WebSocket] 第 ${index + 1} 个处理器执行出错:`, error)
+              console.error(`❌ [WebSocket] 单个处理器执行出错:`, error)
             }
-            index++
           })
 
+          console.log('✅ [WebSocket] MESSAGE_DELETE 处理器执行完成:', 
+              '- 成功数量:', successCount,
+              '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 MESSAGE_DELETE 处理器！')
-
         }
       } catch (error) {
-        console.error('❌ [WebSocket] 删除通知解析失败:', error)
+        console.error('❌ [WebSocket] 消息删除通知解析失败:', error)
         console.error('  - 错误类型:', error instanceof Error ? error.name : 'Unknown')
         console.error('  - 错误信息:', error instanceof Error ? error.message : error)
         console.error('  - 原始数据:', message.body)
       }
-
     }, {})
+    
+    console.log('✅ [WebSocket] 已订阅消息删除队列:', deleteDestination)
 
+    // ====== 新增：订阅用户在线状态 ======
+    this.subscribeUserOnlineStatus()
+  }
 
+  /**
+   * 订阅用户在线状态队列
+   */
+  private subscribeUserOnlineStatus(): void {
+    if (!this.client) return
+
+    const currentUserId = this.getCurrentUserId()
+    
+    console.log('🔵 [OnlineStatus] 订阅在线状态，当前用户 ID:', currentUserId)
+    
+    // 订阅用户在线状态更新（后端主动推送）
+    const onlineStatusDestination = `/user/${currentUserId}/queue/user-online-status`
+    
+    this.client.subscribe(onlineStatusDestination, (message: IMessage) => {
+      console.log('📨 [OnlineStatus] 收到原始消息:', message)
+      console.log('📨 [OnlineStatus] 消息 body:', message.body)
+      
+      try {
+        const data = JSON.parse(message.body)
+        console.log('✅ [WebSocket] 收到用户在线状态更新:', data)
+        console.log('✅ [WebSocket] 解析后的数据结构:', JSON.stringify(data, null, 2))
+        
+        // 触发 USER_ONLINE_STATUS 处理器
+        const handlers = this.messageHandlers.get('USER_ONLINE_STATUS')
+        
+        console.log('🔍 [WebSocket] 查找处理器:', 
+          '- 类型：USER_ONLINE_STATUS',
+          '- 是否存在：', !!handlers,
+          '- 数量：', handlers?.size)
+        
+        if (handlers && handlers.size > 0) {
+          let successCount = 0
+          handlers.forEach(handler => {
+            try {
+              console.log('📤 [WebSocket] 执行处理器，传入数据:', data)
+              handler(data)
+              successCount++
+            } catch (error) {
+              console.error(`❌ [WebSocket] 在线状态处理器执行出错:`, error)
+            }
+          })
+
+          console.log('✅ [WebSocket] USER_ONLINE_STATUS 处理器执行完成:', 
+              '- 成功数量:', successCount,
+              '- 总数量:', handlers.size)
+        } else {
+          console.warn('⚠️ [WebSocket] 未找到 USER_ONLINE_STATUS 处理器！')
+          console.warn('⚠️ [WebSocket] 当前所有注册的处理器:', Array.from(this.messageHandlers.keys()))
+        }
+      } catch (error) {
+        console.error('❌ [WebSocket] 在线状态消息解析失败:', error)
+        console.error('  - 错误类型:', error instanceof Error ? error.name : 'Unknown')
+        console.error('  - 错误信息:', error instanceof Error ? error.message : error)
+        console.error('  - 原始数据:', message.body)
+      }
+    }, {})
+    
+    console.log('✅ [WebSocket] 已订阅用户在线状态队列:', onlineStatusDestination)
+
+    // 可选：订阅用户列表（批量推送）
+    const userListDestination = `/topic/online-users`
+    
+    this.client.subscribe(userListDestination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body)
+        console.log('✅ [WebSocket] 收到在线用户列表更新:', data)
+        
+        // 触发 USER_LIST_UPDATE 处理器
+        const handlers = this.messageHandlers.get('USER_LIST_UPDATE')
+        
+        if (handlers && handlers.size > 0) {
+          let successCount = 0
+          handlers.forEach(handler => {
+            try {
+              handler(data)
+              successCount++
+            } catch (error) {
+              console.error(`❌ [WebSocket] 用户列表处理器执行出错:`, error)
+            }
+          })
+
+          console.log('✅ [WebSocket] USER_LIST_UPDATE 处理器执行完成:', 
+              '- 成功数量:', successCount,
+              '- 总数量:', handlers.size)
+        } else {
+          console.warn('⚠️ [WebSocket] 未找到 USER_LIST_UPDATE 处理器！')
+        }
+      } catch (error) {
+        console.error('❌ [WebSocket] 在线用户列表解析失败:', error)
+        console.error('  - 错误类型:', error instanceof Error ? error.name : 'Unknown')
+        console.error('  - 错误信息:', error instanceof Error ? error.message : error)
+        console.error('  - 原始数据:', message.body)
+      }
+    }, {})
+    
+    console.log('✅ [WebSocket] 已订阅在线用户列表广播:', userListDestination)
+  }
+
+  /**
+   * 请求获取指定用户的在线状态（主动查询）
+   * @param userIds 用户 ID 数组
+   */
+  public queryUserOnlineStatus(userIds: number[]): void {
+    if (!this.client || !this.client.connected) {
+      console.warn('⚠️ [WebSocket] 未连接，无法查询用户在线状态')
+      return
+    }
+
+    const request = {
+      userIds: userIds,
+    }
+
+    console.log('🔍 [WebSocket] 查询用户在线状态:', request)
+    
+    this.client.publish({
+      destination: '/app/query-user-online-status',
+      body: JSON.stringify(request)
+    })
+  }
+
+  /**
+   * 订阅所有好友的在线状态
+   */
+  public subscribeFriendsOnlineStatus(): void {
+    if (!this.client || !this.client.connected) {
+      console.warn('⚠️ [WebSocket] 未连接，无法订阅好友在线状态')
+      return
+    }
+
+    console.log('📢 [WebSocket] 订阅好友在线状态')
+    
+    this.client.publish({
+      destination: '/app/subscribe-friends-online-status',
+      body: JSON.stringify({})
+    })
   }
 
   /**
@@ -562,35 +674,32 @@ class WebSocketManager {
   }
 
   /**
-   * 注册消息处理器
-   * @param messageType 消息类型
+   * 注册消息处理器（兼容旧接口）
+   * @param type 消息类型：CHAT_MESSAGE | MESSAGE_STATUS | MESSAGE_RECALL | MESSAGE_DELETE | USER_ONLINE_STATUS | USER_LIST_UPDATE
    * @param handler 处理函数
    */
-  on(messageType: string, handler: (data: any) => void): () => void {
-
-    if (!this.messageHandlers.has(messageType)) {
-      this.messageHandlers.set(messageType, new Set())
-
+  on(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE', handler: (data: any) => void): () => void {
+    if (!this.messageHandlers.has(type)) {
+      this.messageHandlers.set(type, new Set())
     }
-    this.messageHandlers.get(messageType)!.add(handler)
-
-
+    
+    this.messageHandlers.get(type)!.add(handler)
+    console.log(`✅ [WebSocket] 已注册 ${type} 处理器`)
+    
     // 返回取消订阅函数
     return () => {
-      this.off(messageType, handler)
+      this.offMessage(type, handler)
     }
   }
 
   /**
    * 移除消息处理器
    */
-  off(messageType: string, handler: (data: any) => void): void {
-    const handlers = this.messageHandlers.get(messageType)
+  offMessage(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE', handler: (data: any) => void): void {
+    const handlers = this.messageHandlers.get(type)
     if (handlers) {
       handlers.delete(handler)
-      if (handlers.size === 0) {
-        this.messageHandlers.delete(messageType)
-      }
+      console.log(`❌ [WebSocket] 已移除 ${type} 处理器`)
     }
   }
 

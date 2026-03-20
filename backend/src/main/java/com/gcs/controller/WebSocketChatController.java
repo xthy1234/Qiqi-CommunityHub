@@ -2,6 +2,7 @@ package com.gcs.controller;
 
 import com.gcs.dto.ChatMessage;
 import com.gcs.dto.DeleteMessageRequest;
+import com.gcs.dto.QueryUserOnlineRequest;
 import com.gcs.dto.ReadReceipt;
 import com.gcs.dto.RecallMessageRequest;
 import com.gcs.entity.PrivateMessage;
@@ -9,15 +10,20 @@ import com.gcs.entity.User;
 import com.gcs.enums.MessageStatus;
 import com.gcs.service.PrivateMessageService;
 import com.gcs.service.UserService;
+import com.gcs.service.UserOnlineStatusService;
+import com.gcs.vo.OnlineStatusVO;
 import com.gcs.vo.UserSimpleVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * WebSocket 聊天控制器
@@ -35,6 +41,9 @@ public class WebSocketChatController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private UserOnlineStatusService onlineStatusService;
     
     // 添加构造函数日志
     public WebSocketChatController() {
@@ -266,6 +275,55 @@ public class WebSocketChatController {
 
         } catch (Exception e) {
             log.error("处理删除消息失败", e);
+        }
+    }
+    
+    /**
+     * 处理在线状态查询
+     */
+    @MessageMapping("/query-user-online-status")
+    public void queryUserOnlineStatus(@Payload QueryUserOnlineRequest request, StompHeaderAccessor accessor) {
+        try {
+            // 🎯 从 Session 中获取当前登录用户 ID
+            Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
+            
+            log.info("📊 [在线状态] 收到查询请求，request.userIds={}, currentUserId={}", 
+                    request.getUserIds(), currentUserId);
+            
+            if (request.getUserIds() == null || request.getUserIds().isEmpty()) {
+                log.warn("⚠️ [在线状态] 查询的用户 ID 列表为空");
+                return;
+            }
+            
+            // 批量查询用户在线状态
+            List<OnlineStatusVO> statusList = new ArrayList<>();
+            for (Long userId : request.getUserIds()) {
+                boolean isOnline = onlineStatusService.isOnline(userId);
+                
+                OnlineStatusVO vo = new OnlineStatusVO();
+                vo.setUserId(userId);
+                vo.setIsOnline(isOnline);
+                vo.setTimestamp(System.currentTimeMillis());
+                
+                statusList.add(vo);
+                
+                log.info("📊 [在线状态] 用户 {} 在线状态：{}", userId, isOnline ? "在线" : "离线");
+            }
+            
+            // 📤 将结果推送回发起查询的客户端
+            if (currentUserId != null) {
+                String replyDestination = "/user/" + currentUserId + "/queue/user-online-status";
+                log.info("📤 [在线状态] 推送查询结果到：{}, 结果数：{}", replyDestination, statusList.size());
+                
+                messagingTemplate.convertAndSend(replyDestination, statusList);
+                log.info("✅ [在线状态] 已推送查询结果");
+            } else {
+                log.error("❌ [在线状态] 无法推送结果：未找到当前用户 Session，accessor.sessionId={}", 
+                        accessor.getSessionId());
+            }
+            
+        } catch (Exception e) {
+            log.error("❌ [在线状态] 查询失败", e);
         }
     }
     

@@ -6,6 +6,7 @@ import userService from '@/api/user'
 import { getWebSocket } from '@/utils/websocket'
 import {defineStore} from "pinia";
 import { MessageStatus, isUnreadMessage, isReadMessage } from '@/types/message'
+import type { WsUserOnlineStatus } from '@/types/message'
 
 interface ChatState {
   conversations: ConversationVO[]
@@ -14,7 +15,9 @@ interface ChatState {
   unreadCount: number
   loading: boolean
   messagePage: number
-  hasMore: boolean
+  hasMore: true
+  // 在线状态管理
+  onlineUsers: Map<number, { online: boolean; lastSeenAt?: string }>
 }
 
 export const useChatStore = defineStore('chat', {
@@ -25,7 +28,8 @@ export const useChatStore = defineStore('chat', {
     unreadCount: 0,
     loading: false,
     messagePage: 1,
-    hasMore: true
+    hasMore: true,
+    onlineUsers: new Map()
   }),
 
   getters: {
@@ -37,6 +41,13 @@ export const useChatStore = defineStore('chat', {
     /** 检查是否有未读消息 */
     hasUnreadMessages: (state): boolean => {
       return state.unreadCount > 0
+    },
+
+    /** 获取指定用户的在线状态 */
+    getUserOnlineStatus: (state) => {
+      return (userId: number) => {
+        return state.onlineUsers.get(userId) || { online: false }
+      }
     }
   },
 
@@ -602,6 +613,56 @@ export const useChatStore = defineStore('chat', {
     clearSavedSession(): void {
       sessionStorage.removeItem('lastChatSession')
 
+    },
+
+    /** 初始化在线状态监听 */
+    initializeOnlineStatus() {
+      const ws = getWebSocket()
+      if (!ws || !ws.isConnected()) {
+        console.warn('⚠️ [ChatStore] WebSocket 未连接，无法初始化在线状态')
+        return
+      }
+
+      // 订阅用户在线状态更新
+      ws.on('USER_ONLINE_STATUS', (data: WsUserOnlineStatus['data']) => {
+        console.log('🟢 [ChatStore] 收到在线状态更新:', data)
+        
+        const current = this.onlineUsers.get(data.userId)
+        this.onlineUsers.set(data.userId, {
+          online: data.online,
+          lastSeenAt: data.lastSeenAt
+        })
+
+        // 如果是在线状态，可选：订阅好友列表
+        if (data.online && !current?.online) {
+          console.log('✨ 用户上线:', data.userId)
+        }
+      })
+
+      // 订阅在线用户列表（批量更新）
+      ws.on('USER_LIST_UPDATE', (data: any) => {
+        console.log('📋 [ChatStore] 收到在线用户列表:', data)
+        
+        data.users.forEach((user: any) => {
+          this.onlineUsers.set(user.userId, {
+            online: user.online,
+            lastSeenAt: user.lastSeenAt
+          })
+        })
+      })
+
+      // 订阅所有好友的在线状态
+      ws.subscribeFriendsOnlineStatus()
+    },
+
+    /** 更新用户在线状态 */
+    updateUserOnlineStatus(userId: number, status: { online: boolean; lastSeenAt?: string }) {
+      this.onlineUsers.set(userId, status)
+    },
+
+    /** 检查用户是否在线 */
+    isUserOnline(userId: number): boolean {
+      return this.onlineUsers.get(userId)?.online ?? false
     }
 
   }

@@ -2,6 +2,7 @@ package com.gcs.interceptor;
 
 import com.gcs.entity.Token;
 import com.gcs.service.TokenService;
+import com.gcs.service.UserOnlineStatusService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
@@ -21,6 +22,9 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
 
     @Autowired
     private TokenService tokenService;
+    
+    @Autowired
+    private UserOnlineStatusService userOnlineStatusService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -31,7 +35,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
         log.info("🔵 [拦截器] 消息目的地：{}", accessor.getDestination());
         log.info("🔵 [拦截器] Session Attributes: {}", accessor.getSessionAttributes());
 
-        // 在 CONNECT 时验证用户
+        // 在 CONNECT 时验证用户并标记上线
         if (StompCommand.CONNECT.equals(command)) {
             String userIdStr = accessor.getFirstNativeHeader("userId");
             String token = accessor.getFirstNativeHeader("token");
@@ -75,6 +79,11 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                 // 设置用户上下文（用于后续消息处理）
                 accessor.setUser(() -> userIdStr);
                 
+                // ✅ 标记用户上线
+                String sessionId = accessor.getSessionId();
+                userOnlineStatusService.userOnline(userId, sessionId);
+                log.info("✅ 用户上线：userId={}, sessionId={}", userId, sessionId);
+                
                 log.debug("CONNECT 消息验证成功：userId={}", userId);
 
             } catch (NumberFormatException e) {
@@ -83,9 +92,28 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             }
         }
 
+        // ✅ 监听 DISCONNECT 事件，标记用户下线
+        if (StompCommand.DISCONNECT.equals(command)) {
+            Long userId = (Long) accessor.getSessionAttributes().get("userId");
+            if (userId != null) {
+                userOnlineStatusService.userOffline(userId);
+                log.info("🔴 用户断开连接：userId={}", userId);
+            } else {
+                log.warn("⚠️ DISCONNECT 事件但未找到 userId");
+            }
+        }
+        
+        // ✅ 在任何客户端消息时更新心跳时间
+        if (StompCommand.CONNECT.equals(command) || StompCommand.SEND.equals(command) || 
+            StompCommand.SUBSCRIBE.equals(command)) {
+            Long userId = (Long) accessor.getSessionAttributes().get("userId");
+            if (userId != null) {
+                userOnlineStatusService.updateHeartbeat(userId);
+            }
+        }
+
         // 在其他命令时也进行验证（SUBSCRIBE、SEND 等）
         if (StompCommand.SUBSCRIBE.equals(command) || StompCommand.SEND.equals(command)) {
-            // 👇 修改：从 Session Attributes 获取 userId
             Object userIdObj = accessor.getSessionAttributes().get("userId");
             String userId = userIdObj != null ? userIdObj.toString() : null;
             

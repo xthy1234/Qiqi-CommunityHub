@@ -1,12 +1,15 @@
 <template>
   <div class="user-card">
     <div class="user-info">
-      <n-avatar
-        :src="getAvatarUrl(user.avatar)"
-        :size="60"
-        round
-        class="avatar"
-      />
+      <div class="avatar-wrapper">
+        <n-avatar
+          :src="getAvatarUrl(user.avatar)"
+          :size="60"
+          round
+          class="avatar"
+        />
+        <span v-if="isOnline" class="online-dot"></span>
+      </div>
       
       <div class="user-details">
         <div class="user-header">
@@ -50,12 +53,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { NAvatar, NButton, NTag } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { getAvatarUrl } from '@/utils/userUtils'
 import followApi from '@/api/follow'
+import { getWebSocket } from '@/utils/websocket'
+import type { WsUserOnlineStatus } from '@/types/message'
 
 interface UserCardProps {
   user: {
@@ -84,6 +89,8 @@ const $http = appContext.value?.$http
 const isFollowing = ref(false)
 const isFriend = ref(false)
 const actionLoading = ref(false)
+const isOnline = ref(false)
+let unsubscribeOnlineStatus: (() => void) | null = null
 
 const isCurrentUser = computed(() => {  // 优先使用 userId，如果没有则使用 id
   const actualUserId = props.user.userId || props.user.id
@@ -120,8 +127,8 @@ const showSendMessageBtn = computed(() => {
 })
 
 // 获取用户真实 ID 的辅助函数
-const getUserActualId = () => {
-  return props.user.userId || props.user.id
+const getUserActualId = (): number => {
+  return props.user.userId || props.user.id || 0
 }
 
 const handleSendMessage = () => {
@@ -137,19 +144,50 @@ const goToUserProfile = () => {
 onMounted(async () => {
   if (props.showFollowBtn && !isCurrentUser.value) {
     try {
-      // 查询是否关注
       const status = await followApi.getFollowStatus([getUserActualId()])
       isFollowing.value = status[getUserActualId()] || false
       
-      // 查询是否互关
       if (isFollowing.value) {
         isFriend.value = await followApi.isFriend(getUserActualId())
       }
     } catch (error) {
-// console.error('查询关注状态失败:', error)
+      console.error('查询关注状态失败:', error)
     }
   }
+
+  // 订阅在线状态
+  setupOnlineStatusListener()
 })
+
+onUnmounted(() => {
+  unsubscribeOnlineStatus?.()
+})
+
+// 订阅用户在线状态
+const setupOnlineStatusListener = () => {
+  const userId = getUserActualId()
+  if (!userId) return
+
+  const ws = getWebSocket()
+  if (!ws || !ws.isConnected()) {
+    console.warn('⚠️ [UserCard] WebSocket 未连接')
+    return
+  }
+
+  const handler = (data: WsUserOnlineStatus['data']) => {
+    if (data.userId === userId) {
+      isOnline.value = data.online
+      console.log('🟢 [UserCard] 在线状态更新:',
+        '- 用户:', userId,
+        '- 在线:', data.online)
+    }
+  }
+
+  unsubscribeOnlineStatus = ws.on('USER_ONLINE_STATUS', handler)
+
+  // 主动查询
+  ws.queryUserOnlineStatus([userId])
+}
 
 const handleFollowToggle = async () => {
   if (actionLoading.value) return
@@ -176,7 +214,7 @@ const handleFollowToggle = async () => {
     // 触发事件通知父组件
     emit('follow-change', { userId: getUserActualId(), isFollowing: isFollowing.value })
   } catch (error: any) {
-// console.error('关注操作失败:', error)
+    console.error('关注操作失败:', error)
     appContext.value?.$toolUtil.message(error.message || '操作失败', 'error')
   } finally {
     actionLoading.value = false
@@ -209,6 +247,23 @@ const emit = defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.online-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #52c41a;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(82, 196, 26, 0.3);
+}
+
 .user-card {
   display: flex;
   justify-content: space-between;
