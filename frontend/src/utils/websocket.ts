@@ -404,10 +404,6 @@ class WebSocketManager {
               console.error(`❌ [WebSocket] 在线状态处理器执行出错:`, error)
             }
           })
-
-          console.log('✅ [WebSocket] USER_ONLINE_STATUS 处理器执行完成:', 
-              '- 成功数量:', successCount,
-              '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 USER_ONLINE_STATUS 处理器！')
           console.warn('⚠️ [WebSocket] 当前所有注册的处理器:', Array.from(this.messageHandlers.keys()))

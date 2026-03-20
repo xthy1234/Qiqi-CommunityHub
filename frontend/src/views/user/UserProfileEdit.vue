@@ -13,12 +13,6 @@
         <!-- 头像上传 -->
         <n-form-item label="头像">
           <div class="avatar-upload-content">
-<!--          <n-avatar-->
-<!--            :src="avatarUrl || getDefaultAvatar()"-->
-<!--            :size="120"-->
-<!--            round-->
-<!--            class="avatar-preview"-->
-<!--          />-->
             <AvatarUpload
               v-model="avatarUrl"
               upload-action="files"

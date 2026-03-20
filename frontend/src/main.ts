@@ -33,7 +33,9 @@ import {
   NAvatar,
   NDivider,
   NDialogProvider,
-  NDropdown
+  NDropdown,
+  NRadio,
+  NRadioGroup
 } from "naive-ui";
 
 // Element Plus 样式和图标配置
@@ -47,11 +49,10 @@ import ElementPlus from 'element-plus'
 
 // 地图组件初始化
 import VueAMap, { initAMapApiLoader } from "@vuemap/vue-amap"
-import "@vuemap/vue-amap/dist/style.css"// 注册自定义组件
-// import Editor from "@/components/CoverUpload.vue"
-// import Upload from "@/components/upload.vue"
-// import Upload from "@/components/upload.vue"
+import "@vuemap/vue-amap/dist/style.css"
 
+// WebSocket 初始化
+import { initWebSocket } from '@/utils/websocket'
 
 // vue3-tiptap-editor 编辑器
 
@@ -62,7 +63,7 @@ import utilityTools from './utils/toolUtil'
 import menu from './utils/menu'
 import httpCall from "./utils/http";
 
-// 创建 Vue 应用实例
+// 创建自定义组件
 const app = createApp(App)
 
 // 创建 Pinia 实例
@@ -108,6 +109,8 @@ app.component('NAvatar', NAvatar)
 app.component('NDivider', NDivider)
 app.component('NDialogProvider', NDialogProvider)
 app.component('NDropdown', NDropdown)
+app.component('NRadio', NRadio)
+app.component('NRadioGroup', NRadioGroup)
 
 // 初始化地图服务 - 使用环境变量或默认值
 try {
@@ -152,24 +155,16 @@ app.config.globalProperties.$http = httpCall
 // 挂载 menu 到全局属性
 app.config.globalProperties.$menu = menu
 
-// 暂时注释掉 ResizeObserver 的错误忽略，用于排查问题
-// const debounce = <T extends Function>(fn: T, delay: number): T => {
-//   let timer: any = null
-//   return function (this: any, ...args: any[]) {
-//     clearTimeout(timer)
-//     timer = setTimeout(() => {
-//       fn.apply(this, args)
-//     }, delay)
-//   } as unknown as T
-// }
-
-// const _ResizeObserver = window.ResizeObserver
-// window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
-//   constructor(callback: any) {
-//     callback = debounce(callback, 20)
-//     super(callback)
-//   }
-// }
+// 初始化 WebSocket（在应用挂载之前）
+console.log('🔵 [WebSocket] 开始初始化...')
+try {
+  const wsUrl = `ws://${window.location.hostname}:8080/ws`
+  console.log('🔵 [WebSocket] 准备连接:', wsUrl)
+  initWebSocket(wsUrl)
+  console.log('✅ [WebSocket] 初始化成功')
+} catch (error) {
+  console.error('❌ [WebSocket] 初始化失败:', error)
+}
 
 // 挂载应用
 app.use(pinia)

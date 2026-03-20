@@ -9,18 +9,12 @@ import httpClient from './utils/http'
 import toolUtil from './utils/toolUtil'
 import AppConfig from './utils/config'
 import axios from 'axios'
+import naive from 'naive-ui'
 
 const app = createApp(App)
 const pinia = createPinia()
 
 // 地图配置
-import VueAMap, { initAMapApiLoader } from "@vuemap/vue-amap"
-import "@vuemap/vue-amap/dist/style.css"
-
-initAMapApiLoader({
-  key: "your-key",
-  // ... 其他配置
-})
 
 // 注册所有图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
@@ -28,7 +22,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 
 app.use(ElementPlus)
-app.use(VueAMap)
+app.use(naive)
 app.use(pinia)
 app.use(router)
 

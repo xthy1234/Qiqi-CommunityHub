@@ -17,6 +17,14 @@
   ],
   "tags": [
     {
+      "name": "圈子聊天管理",
+      "description": "圈子聊天相关的 RESTful API 接口"
+    },
+    {
+      "name": "圈子管理",
+      "description": "圈子相关的 RESTful API 接口"
+    },
+    {
       "name": "系统配置管理",
       "description": "系统配置相关的 RESTful API 接口"
     },
@@ -25,8 +33,16 @@
       "description": "帖子相关的 RESTful API 接口"
     },
     {
+      "name": "圈子成员管理",
+      "description": "圈子成员相关的 RESTful API 接口"
+    },
+    {
       "name": "菜单管理",
       "description": "菜单相关的 RESTful API 接口"
+    },
+    {
+      "name": "关注管理",
+      "description": "关注相关的 RESTful API 接口"
     },
     {
       "name": "评论管理",
@@ -37,8 +53,16 @@
       "description": "用户相关的 RESTful API 接口"
     },
     {
+      "name": "在线状态管理",
+      "description": "用户在线状态相关的 RESTful API"
+    },
+    {
       "name": "文件管理",
       "description": "文件上传、下载相关的 RESTful API 接口"
+    },
+    {
+      "name": "私信管理",
+      "description": "私信相关的 RESTful API 接口"
     },
     {
       "name": "角色菜单权限管理",
@@ -75,18 +99,28 @@
         "tags": [
           "用户管理"
         ],
-        "summary": "获取用户详情",
-        "description": "根据用户 ID 获取详细信息",
-        "operationId": "getUserInfo",
+        "summary": "获取用户详情或公开主页",
+        "description": "访问别人主页返回公开信息，访问自己主页可通过 detail 参数选择返回公开信息或详细信息",
+        "operationId": "getUserProfile",
         "parameters": [
           {
             "name": "id",
             "in": "path",
-            "description": "用户 ID",
+            "description": "用户ID",
             "required": true,
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "detail",
+            "in": "query",
+            "description": "是否获取详细信息（仅自己访问时有效，默认 false）",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -1003,6 +1037,72 @@
           },
           "200": {
             "description": "更新成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/recall/{messageId}": {
+      "put": {
+        "tags": [
+          "私信管理"
+        ],
+        "summary": "撤回消息",
+        "description": "发送方撤回已发送的消息",
+        "operationId": "recallMessage",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "消息 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/read": {
+      "put": {
+        "tags": [
+          "私信管理"
+        ],
+        "summary": "标记消息为已读",
+        "description": "将当前用户与某人的所有未读消息标记为已读",
+        "operationId": "markAsRead",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageReadDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
@@ -1978,6 +2078,321 @@
         }
       }
     },
+    "/circles/{id}": {
+      "get": {
+        "tags": [
+          "圈子管理"
+        ],
+        "summary": "获取圈子详情",
+        "description": "根据圈子 ID 获取详细信息",
+        "operationId": "getCircleDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权查看",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "圈子管理"
+        ],
+        "summary": "更新圈子信息",
+        "description": "更新圈子信息（仅圈主或管理员）",
+        "operationId": "updateCircle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircleUpdateDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "圈子管理"
+        ],
+        "summary": "解散圈子",
+        "description": "解散圈子（仅圈主）",
+        "operationId": "dissolveCircle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "解散成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/members/{userId}/role": {
+      "put": {
+        "tags": [
+          "圈子成员管理"
+        ],
+        "summary": "更新成员角色",
+        "description": "圈主任命或撤销管理员",
+        "operationId": "updateMemberRole",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "用户 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircleMemberRoleUpdateDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "更新失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/chat/messages/{messageId}/recall": {
+      "put": {
+        "tags": [
+          "圈子聊天管理"
+        ],
+        "summary": "撤回圈子消息",
+        "description": "撤回自己发送的消息",
+        "operationId": "recallMessage_1",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "消息 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "description": "撤回原因（可选）",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "无权撤回",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "消息不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "撤回成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/categories/{id}": {
       "get": {
         "tags": [
@@ -2307,8 +2722,8 @@
         "tags": [
           "帖子管理"
         ],
-        "summary": "删除文章（通用）",
-        "description": "根据文章 ID 删除文章（逻辑删除，自动判断权限）",
+        "summary": "删除文章",
+        "description": "根据文章 ID 删除文章（逻辑删除，自动判断状态和权限）",
         "operationId": "deleteArticle",
         "parameters": [
           {
@@ -2465,67 +2880,6 @@
         "responses": {
           "200": {
             "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/R"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "帖子管理"
-        ],
-        "summary": "删除草稿",
-        "description": "根据草稿 ID 删除草稿（仅作者本人可操作，逻辑删除）",
-        "operationId": "deleteDraft",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "404": {
-            "description": "草稿不存在",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/R"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "无权限删除",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/R"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "删除成功",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/R"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "服务器错误",
             "content": {
               "*/*": {
                 "schema": {
@@ -3678,6 +4032,75 @@
         }
       }
     },
+    "/messages": {
+      "post": {
+        "tags": [
+          "私信管理"
+        ],
+        "summary": "发送私信",
+        "description": "当前登录用户向另一个用户发送一条私信",
+        "operationId": "sendMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageSendDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/batch-delete": {
+      "post": {
+        "tags": [
+          "私信管理"
+        ],
+        "summary": "批量删除消息",
+        "description": "批量删除多个消息",
+        "operationId": "batchDeleteMessages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "description": "消息 ID 数组",
+                "items": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/menus": {
       "get": {
         "tags": [
@@ -4071,6 +4494,48 @@
           },
           "500": {
             "description": "删除失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/follow": {
+      "post": {
+        "tags": [
+          "关注管理"
+        ],
+        "summary": "关注/取关用户",
+        "description": "当前登录用户关注或取消关注指定用户",
+        "operationId": "followOrUnfollow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FollowCreateDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "操作失败",
             "content": {
               "*/*": {
                 "schema": {
@@ -4777,6 +5242,367 @@
         }
       }
     },
+    "/circles": {
+      "post": {
+        "tags": [
+          "圈子管理"
+        ],
+        "summary": "创建圈子",
+        "description": "创建新的圈子",
+        "operationId": "createCircle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircleCreateDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "创建失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "用户未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{id}/leave": {
+      "post": {
+        "tags": [
+          "圈子管理"
+        ],
+        "summary": "退出圈子",
+        "description": "用户退出所在圈子",
+        "operationId": "leaveCircle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "圈主不能退出",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "退出成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/members": {
+      "get": {
+        "tags": [
+          "圈子成员管理"
+        ],
+        "summary": "获取成员列表",
+        "description": "获取圈子的所有成员（需为成员）",
+        "operationId": "getMemberList",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "params",
+            "in": "query",
+            "description": "查询参数（page、limit、role）",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权查看",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "圈子成员管理"
+        ],
+        "summary": "加入圈子",
+        "description": "申请加入公开圈子",
+        "operationId": "joinCircle",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircleJoinDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "私密圈子需邀请",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "加入失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "加入成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/invite": {
+      "post": {
+        "tags": [
+          "圈子成员管理"
+        ],
+        "summary": "邀请成员",
+        "description": "管理员或圈主邀请用户加入",
+        "operationId": "inviteMember",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircleInviteDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "邀请成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "邀请失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/chat/messages": {
+      "post": {
+        "tags": [
+          "圈子聊天管理"
+        ],
+        "summary": "发送圈子消息",
+        "description": "通过 HTTP 接口发送圈子消息（建议使用 WebSocket）",
+        "operationId": "sendMessage_1",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircleChatMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权发送",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "发送成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/categories": {
       "get": {
         "tags": [
@@ -4786,18 +5612,6 @@
         "description": "分页查询分类列表，支持条件筛选",
         "operationId": "getPage_9",
         "parameters": [
-          {
-            "name": "params",
-            "in": "query",
-            "description": "查询参数",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "object"
-              }
-            }
-          },
           {
             "name": "category",
             "in": "query",
@@ -5013,7 +5827,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "查询类型 (all/draft/published/my)",
+            "description": "查询类型 (all/draft/published/my/favorite/pending)",
             "required": false,
             "schema": {
               "type": "string",
@@ -5064,40 +5878,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ArticleCreateDTO"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/R"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/articles/published/batch-delete": {
-      "post": {
-        "tags": [
-          "帖子管理"
-        ],
-        "operationId": "batchDeletePublishedArticles",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "format": "int64"
-                }
               }
             }
           },
@@ -5182,12 +5962,12 @@
         }
       }
     },
-    "/articles/draft/batch-delete": {
+    "/articles/batch-delete": {
       "post": {
         "tags": [
           "帖子管理"
         ],
-        "operationId": "batchDeleteDrafts",
+        "operationId": "batchDeleteArticles",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6278,6 +7058,190 @@
         }
       }
     },
+    "/online-status/list": {
+      "get": {
+        "tags": [
+          "在线状态管理"
+        ],
+        "summary": "获取在线用户列表",
+        "description": "获取当前所有在线用户的 ID 列表",
+        "operationId": "getOnlineUsers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/online-status/count": {
+      "get": {
+        "tags": [
+          "在线状态管理"
+        ],
+        "summary": "获取在线用户数",
+        "description": "获取当前在线用户总数",
+        "operationId": "getOnlineCount",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/online-status/check/{userId}": {
+      "get": {
+        "tags": [
+          "在线状态管理"
+        ],
+        "summary": "检查用户在线状态",
+        "description": "检查指定用户是否在线",
+        "operationId": "checkUserOnline",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "用户 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/with/{userId}": {
+      "get": {
+        "tags": [
+          "私信管理"
+        ],
+        "summary": "获取聊天记录",
+        "description": "获取当前用户与指定用户之间的私信历史",
+        "operationId": "getChatHistory",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "对方用户 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            },
+            "example": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/conversations": {
+      "get": {
+        "tags": [
+          "私信管理"
+        ],
+        "summary": "获取会话列表",
+        "description": "获取当前用户的所有私信会话列表",
+        "operationId": "getConversations",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            },
+            "example": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/menus/{parentId}/children": {
       "get": {
         "tags": [
@@ -6641,6 +7605,16 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "tableName",
+            "in": "query",
+            "description": "内容类型 (article:文章，comment:评论)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "article"
+            }
           }
         ],
         "responses": {
@@ -6656,6 +7630,313 @@
           },
           "500": {
             "description": "检查失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/follow/status": {
+      "get": {
+        "tags": [
+          "关注管理"
+        ],
+        "summary": "查询关注状态",
+        "description": "查询当前用户对多个目标用户的关注状态",
+        "operationId": "getFollowStatus",
+        "parameters": [
+          {
+            "name": "targetIds",
+            "in": "query",
+            "description": "目标用户ID，多个用逗号分隔",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/follow/is-friend/{userId}": {
+      "get": {
+        "tags": [
+          "关注管理"
+        ],
+        "summary": "获取互关状态",
+        "description": "判断当前用户与指定用户是否为好友",
+        "operationId": "isFriend",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "目标用户ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/follow/following": {
+      "get": {
+        "tags": [
+          "关注管理"
+        ],
+        "summary": "获取用户的关注列表",
+        "description": "查询指定用户关注的人列表",
+        "operationId": "getFollowingList",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "用户ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/follow/followers": {
+      "get": {
+        "tags": [
+          "关注管理"
+        ],
+        "summary": "获取用户的粉丝列表",
+        "description": "查询指定用户的粉丝列表",
+        "operationId": "getFollowerList",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "用户ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/follow/count/following": {
+      "get": {
+        "tags": [
+          "关注管理"
+        ],
+        "summary": "统计关注数量",
+        "description": "统计指定用户的关注数量",
+        "operationId": "countFollowing",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "用户ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "统计成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "统计失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/follow/count/followers": {
+      "get": {
+        "tags": [
+          "关注管理"
+        ],
+        "summary": "统计粉丝数量",
+        "description": "统计指定用户的粉丝数量",
+        "operationId": "countFollowers",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "用户ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "统计成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "统计失败",
             "content": {
               "*/*": {
                 "schema": {
@@ -7091,6 +8372,72 @@
         }
       }
     },
+    "/comments/tree/{contentId}/page": {
+      "get": {
+        "tags": [
+          "评论管理"
+        ],
+        "summary": "获取评论树结构（分页）",
+        "description": "根据内容 ID 分页获取评论的树形层级结构",
+        "operationId": "getCommentTreePage",
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "description": "内容 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/comments/count/{contentId}": {
       "get": {
         "tags": [
@@ -7168,6 +8515,354 @@
           },
           "500": {
             "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments/content/{contentId}/page": {
+      "get": {
+        "tags": [
+          "评论管理"
+        ],
+        "summary": "根据内容 ID 获取评论列表（分页）",
+        "description": "根据内容 ID 分页获取该内容的全部评论列表",
+        "operationId": "getCommentsByContentIdPage",
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "description": "内容 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/chat/unread-count": {
+      "get": {
+        "tags": [
+          "圈子聊天管理"
+        ],
+        "summary": "统计未读消息数",
+        "description": "统计某个圈子的未读消息数量",
+        "operationId": "countUnreadMessages",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权查看",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/chat/latest": {
+      "get": {
+        "tags": [
+          "圈子聊天管理"
+        ],
+        "summary": "获取圈子最新消息",
+        "description": "获取圈子的最后一条消息",
+        "operationId": "getLatestMessage",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "圈子不存在或无消息",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/chat/history": {
+      "get": {
+        "tags": [
+          "圈子聊天管理"
+        ],
+        "summary": "获取圈子聊天记录",
+        "description": "分页获取圈子的历史聊天记录",
+        "operationId": "getChatHistory_1",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "params",
+            "in": "query",
+            "description": "查询参数（page, limit）",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权查看",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/public": {
+      "get": {
+        "tags": [
+          "圈子管理"
+        ],
+        "summary": "发现公开圈子",
+        "description": "浏览和搜索公开圈子",
+        "operationId": "getPublicCircles",
+        "parameters": [
+          {
+            "name": "params",
+            "in": "query",
+            "description": "查询参数",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/mine": {
+      "get": {
+        "tags": [
+          "圈子管理"
+        ],
+        "summary": "获取用户加入的圈子列表",
+        "description": "获取当前用户加入的所有圈子",
+        "operationId": "getMyCircles",
+        "parameters": [
+          {
+            "name": "params",
+            "in": "query",
+            "description": "查询参数",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "用户未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/chat/conversations": {
+      "get": {
+        "tags": [
+          "圈子聊天管理"
+        ],
+        "summary": "获取会话列表",
+        "description": "获取当前用户加入的所有圈子的聊天会话列表",
+        "operationId": "getConversations_1",
+        "parameters": [
+          {
+            "name": "params",
+            "in": "query",
+            "description": "查询参数（page, limit）",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "用户未登录",
             "content": {
               "*/*": {
                 "schema": {
@@ -7587,6 +9282,40 @@
         }
       }
     },
+    "/messages/{messageId}": {
+      "delete": {
+        "tags": [
+          "私信管理"
+        ],
+        "summary": "删除消息",
+        "description": "用户删除自己发送或接收的某条消息",
+        "operationId": "deleteMessage",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "消息 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/interactions/action": {
       "delete": {
         "tags": [
@@ -7629,18 +9358,29 @@
         }
       }
     },
-    "/articles/published/{id}": {
+    "/circles/{circleId}/members/{userId}": {
       "delete": {
         "tags": [
-          "帖子管理"
+          "圈子成员管理"
         ],
-        "summary": "删除已发布文章",
-        "description": "根据文章 ID 删除已发布的文章（管理员或作者本人可操作，逻辑删除）",
-        "operationId": "deletePublishedArticle",
+        "summary": "移除成员",
+        "description": "管理员或圈主移除成员",
+        "operationId": "removeMember",
         "parameters": [
           {
-            "name": "id",
+            "name": "circleId",
             "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "用户 ID",
             "required": true,
             "schema": {
               "type": "integer",
@@ -7649,8 +9389,8 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "无权限删除",
+          "200": {
+            "description": "移除成功",
             "content": {
               "*/*": {
                 "schema": {
@@ -7659,8 +9399,8 @@
               }
             }
           },
-          "200": {
-            "description": "删除成功",
+          "403": {
+            "description": "无权限",
             "content": {
               "*/*": {
                 "schema": {
@@ -7670,7 +9410,41 @@
             }
           },
           "404": {
-            "description": "文章不存在",
+            "description": "圈子或用户不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/circles/{circleId}/members/self": {
+      "delete": {
+        "tags": [
+          "圈子成员管理"
+        ],
+        "summary": "退出圈子",
+        "description": "成员自行退出圈子",
+        "operationId": "leaveCircle_1",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "圈子不存在",
             "content": {
               "*/*": {
                 "schema": {
@@ -7679,8 +9453,18 @@
               }
             }
           },
-          "500": {
-            "description": "服务器错误",
+          "400": {
+            "description": "圈主不能退出",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "退出成功",
             "content": {
               "*/*": {
                 "schema": {
@@ -7995,6 +9779,18 @@
         },
         "description": "举报信息"
       },
+      "MessageReadDTO": {
+        "type": "object",
+        "properties": {
+          "fromUserId": {
+            "type": "integer",
+            "description": "消息发送方用户 ID",
+            "format": "int64",
+            "example": 456
+          }
+        },
+        "description": "标记请求"
+      },
       "Menu": {
         "required": [
           "name"
@@ -8229,6 +10025,48 @@
           }
         },
         "description": "评论信息"
+      },
+      "CircleUpdateDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "圈子名称",
+            "example": "游戏战队"
+          },
+          "description": {
+            "type": "string",
+            "description": "圈子描述",
+            "example": "欢迎加入我们的游戏战队"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "圈子头像 URL",
+            "example": "http://example.com/avatar.jpg"
+          },
+          "type": {
+            "type": "integer",
+            "description": "圈子类型 (0:私密，1:公开)",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "圈子信息"
+      },
+      "CircleMemberRoleUpdateDTO": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "integer",
+            "description": "角色 (0:成员，1:管理员)",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "角色信息"
       },
       "CategoryUpdateDTO": {
         "required": [
@@ -8628,6 +10466,34 @@
         },
         "description": "批量审核请求"
       },
+      "MessageSendDTO": {
+        "required": [
+          "content",
+          "msgType",
+          "toUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "toUserId": {
+            "type": "integer",
+            "description": "接收方用户 ID",
+            "format": "int64",
+            "example": 456
+          },
+          "content": {
+            "type": "string",
+            "description": "消息内容",
+            "example": "你好！"
+          },
+          "msgType": {
+            "type": "integer",
+            "description": "消息类型 (0-文本，1-图片，2-文件)",
+            "format": "int32",
+            "example": 0
+          }
+        },
+        "description": "发送请求"
+      },
       "InteractionCreateDTO": {
         "required": [
           "actionType",
@@ -8711,6 +10577,27 @@
         },
         "description": "点赞/点踩请求"
       },
+      "FollowCreateDTO": {
+        "required": [
+          "action",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "被关注/取关的用户ID",
+            "format": "int64",
+            "example": 123
+          },
+          "action": {
+            "type": "string",
+            "description": "操作类型：follow-关注，unfollow-取关",
+            "example": "follow"
+          }
+        },
+        "description": "关注信息"
+      },
       "FeedbackCreateDTO": {
         "required": [
           "content"
@@ -8779,6 +10666,144 @@
           }
         },
         "description": "回复信息"
+      },
+      "CircleCreateDTO": {
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "圈子名称",
+            "example": "游戏战队"
+          },
+          "description": {
+            "type": "string",
+            "description": "圈子描述",
+            "example": "欢迎加入我们的游戏战队"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "圈子头像 URL",
+            "example": "http://example.com/avatar.jpg"
+          },
+          "type": {
+            "type": "integer",
+            "description": "圈子类型 (0:私密，1:公开)",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "圈子信息"
+      },
+      "CircleJoinDTO": {
+        "type": "object",
+        "properties": {
+          "inviteCode": {
+            "type": "string",
+            "description": "邀请码（可选，私密圈子需要）",
+            "example": "INVITE123"
+          }
+        },
+        "description": "加入信息"
+      },
+      "CircleInviteDTO": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "被邀请用户 ID",
+            "format": "int64",
+            "example": 123
+          }
+        },
+        "description": "邀请信息"
+      },
+      "CircleChatMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "消息 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "circleId": {
+            "type": "integer",
+            "description": "圈子 ID",
+            "format": "int64",
+            "example": 123
+          },
+          "senderId": {
+            "type": "integer",
+            "description": "发送方用户 ID",
+            "format": "int64",
+            "example": 456
+          },
+          "sender": {
+            "$ref": "#/components/schemas/UserSimpleVO"
+          },
+          "content": {
+            "type": "string",
+            "description": "消息内容",
+            "example": "大家好！"
+          },
+          "msgType": {
+            "type": "integer",
+            "description": "消息类型 (0:文本，1:图片，2:文件)",
+            "format": "int32",
+            "example": 0
+          },
+          "status": {
+            "type": "integer",
+            "description": "消息状态 (0:未读，1:已读)",
+            "format": "int32",
+            "example": 0
+          },
+          "isSelf": {
+            "type": "boolean",
+            "description": "是否为自己发送的消息",
+            "example": true
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "action": {
+            "type": "string",
+            "description": "动作类型",
+            "example": "SEND"
+          }
+        },
+        "description": "消息内容"
+      },
+      "UserSimpleVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户 ID",
+            "format": "int64",
+            "example": 123
+          },
+          "nickname": {
+            "type": "string",
+            "description": "用户昵称",
+            "example": "张三"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像 URL",
+            "example": "http://example.com/avatar.jpg"
+          }
+        },
+        "description": "用户简易信息"
       },
       "CategoryCreateDTO": {
         "required": [
@@ -8905,6 +10930,12 @@
             "description": "点踩数",
             "format": "int32",
             "example": 5
+          },
+          "shareCount": {
+            "type": "integer",
+            "description": "分享次数",
+            "format": "int32",
+            "example": 15
           },
           "auditStatus": {
             "type": "string",

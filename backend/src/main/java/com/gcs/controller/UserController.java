@@ -664,6 +664,32 @@ public class UserController {
         }
     }
 
+    /**
+     * 获取用户公开列表（用户端使用）
+     */
+    @GetMapping("/public/list")
+    @IgnoreAuth
+    @Operation(summary = "获取用户公开列表", description = "分页查询用户公开信息列表，用于前端展示")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "500", description = "获取失败")
+    })
+    public R getUserPublicList(
+        @Parameter(description = "查询参数（page, limit, keyword）") 
+        @RequestParam Map<String, Object> params,
+        @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            // 尝试获取当前登录用户 ID（可选）
+            Long currentUserId = getCurrentUserId(request);
+            
+            PageUtils page = userService.getUserPublicList(params, currentUserId);
+            return R.ok().put("data", page);
+        } catch (Exception e) {
+            log.error("获取用户公开列表失败", e);
+            return R.error("获取数据失败");
+        }
+    }
+
     // ==================== 私有转换方法 ====================
     
     /**

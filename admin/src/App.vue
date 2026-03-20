@@ -1,8 +1,15 @@
 <template>
-	<router-view />
+  <n-config-provider :theme="null">
+    <n-message-provider>
+      <n-dialog-provider>
+        <router-view />
+      </n-dialog-provider>
+    </n-message-provider>
+  </n-config-provider>
 </template>
 
 <script setup lang="ts">
+import { NConfigProvider, NMessageProvider, NDialogProvider } from 'naive-ui'
 import type * as ECharts from 'echarts'
 import { provide, defineComponent } from 'vue'
 

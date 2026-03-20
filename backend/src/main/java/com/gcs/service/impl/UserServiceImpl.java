@@ -1,6 +1,7 @@
 package com.gcs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.List;
@@ -22,6 +23,8 @@ import com.gcs.service.FollowService;
 import com.gcs.service.ArticleService;
 import com.gcs.entity.view.UserView;
 import com.gcs.vo.UserPublicProfileVO;
+import java.util.stream.Collectors;
+
 import com.gcs.enums.AuditStatus;
 
 import org.springframework.util.StringUtils;
@@ -546,5 +549,78 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         }
 
         return profileVO;
+    }
+
+    @Override
+    public PageUtils getUserPublicList(Map<String, Object> params, Long currentUserId) {
+        try {
+            int page = Integer.parseInt(params.getOrDefault("page", "1").toString());
+            int limit = Integer.parseInt(params.getOrDefault("limit", "20").toString());
+            String keyword = (String) params.get("keyword");
+            
+            // 构建查询条件
+            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("status", CommonStatus.ENABLED.getCode()); // 只查询正常状态的用户
+            
+            // 关键词搜索（昵称或签名）
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                queryWrapper.and(wrapper -> 
+                    wrapper.like("nickname", keyword)
+                           .or()
+                           .like("signature", keyword)
+                );
+            }
+            
+            // 排除自己（可选）
+            if (currentUserId != null) {
+                queryWrapper.ne("id", currentUserId);
+            }
+            
+            // 按活跃度排序（可以改为最后登录时间）
+            queryWrapper.orderByDesc("last_login_time");
+            
+            // 分页查询
+            IPage<User> userPage = new Page<>(page, limit);
+            IPage<User> resultPage = this.page(userPage, queryWrapper);
+            
+            // 转换为公开信息 VO
+            List<UserPublicProfileVO> voList = resultPage.getRecords().stream()
+                .map(this::convertToPublicProfileVO)
+                .collect(Collectors.toList());
+            
+            PageUtils pageUtils = new PageUtils(voList, resultPage.getTotal(), limit, page);
+            log.info("获取用户公开列表成功，keyword={}, total={}", keyword, resultPage.getTotal());
+            
+            return pageUtils;
+        } catch (Exception e) {
+            log.error("获取用户公开列表失败", e);
+            throw new RuntimeException("获取用户列表失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 将 User 转换为 UserPublicProfileVO
+     */
+    private UserPublicProfileVO convertToPublicProfileVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        
+        UserPublicProfileVO vo = new UserPublicProfileVO();
+        vo.setId(user.getId());
+        vo.setNickname(user.getNickname());
+        vo.setAvatar(user.getAvatar());
+        vo.setGender(user.getGender());
+        vo.setSignature(user.getSignature());
+        vo.setBirthday(user.getBirthday());
+        
+        // 不返回敏感信息
+        // vo.setAccount(null);
+        // vo.setPhone(null);
+        // vo.setEmail(null);
+        // vo.setRoleId(null);
+        // vo.setStatus(null);
+        
+        return vo;
     }
 }

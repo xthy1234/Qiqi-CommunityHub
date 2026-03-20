@@ -163,7 +163,15 @@ public interface UserService extends IService<User> {
      */
     boolean isAccountUnique(String account, Long excludeUserId);
 
-
+    /**
+     * 获取用户公开列表（用户端使用）
+     * 仅返回用户的公开信息，用于前端展示
+     * 
+     * @param params 查询参数（page, limit, keyword 等）
+     * @param currentUserId 当前登录用户 ID（可选，用于判断关注状态）
+     * @return 用户公开信息分页列表
+     */
+    PageUtils getUserPublicList(Map<String, Object> params, Long currentUserId);
 
     /**
      * 检查手机号唯一性

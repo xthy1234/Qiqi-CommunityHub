@@ -624,18 +624,33 @@ export const useChatStore = defineStore('chat', {
       }
 
       // 订阅用户在线状态更新
-      ws.on('USER_ONLINE_STATUS', (data: WsUserOnlineStatus['data']) => {
+      ws.on('USER_ONLINE_STATUS', (data: any) => {
         console.log('🟢 [ChatStore] 收到在线状态更新:', data)
         
-        const current = this.onlineUsers.get(data.userId)
-        this.onlineUsers.set(data.userId, {
-          online: data.online,
-          lastSeenAt: data.lastSeenAt
+        // 兼容处理：后端可能返回数组或单个对象
+        let statusData
+        if (Array.isArray(data)) {
+          // 如果是数组，遍历处理所有用户
+          data.forEach((item: any) => {
+            this.updateUserOnlineStatus(item.userId, {
+              online: item.isOnline ?? item.online,
+              lastSeenAt: item.lastSeenAt
+            })
+          })
+          return
+        } else {
+          statusData = data
+        }
+
+        const current = this.onlineUsers.get(statusData.userId)
+        this.onlineUsers.set(statusData.userId, {
+          online: statusData.isOnline ?? statusData.online,
+          lastSeenAt: statusData.lastSeenAt
         })
 
         // 如果是在线状态，可选：订阅好友列表
-        if (data.online && !current?.online) {
-          console.log('✨ 用户上线:', data.userId)
+        if ((statusData.isOnline ?? statusData.online) && !current?.online) {
+          console.log('✨ 用户上线:', statusData.userId)
         }
       })
 

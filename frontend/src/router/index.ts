@@ -9,7 +9,7 @@ import MainLayout from '@/views/MainLayout.vue'
 import LoginView from '../views/auth/login.vue'
 
 // 文章相关页面
-import ArticleListView from '@/views/article/list.vue'
+
 import ArticleFormView from '@/views/article/edit.vue'
 import ArticleDetailView from '@/views/article/detail.vue'
 import ArticleEditorView from '@/views/article/edit.vue'
@@ -26,8 +26,16 @@ import UserFollowingList from '@/views/user/UserFollowingList.vue'
 import UserFollowersList from '@/views/user/UserFollowersList.vue'
 import HomeView from "@/views/HomeView.vue";
 
+// 发现相关页面
+import RecommendUsersView from '@/views/discover/RecommendUsers.vue'
+import RecommendCirclesView from '@/views/discover/RecommendCircles.vue'
+import ArticleListView from '@/views/discover/RecommendArticles.vue'
 // 消息相关页面
 import ChatView from '@/views/message/chat.vue'
+
+// 圈子聊天相关页面
+import CircleChatView from '@/views/circle-chat/circle-chat.vue'
+import CircleEditorView from '@/views/circle/CircleEditor.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -100,6 +108,28 @@ const routes: Array<RouteRecordRaw> = [
         component: ArticleListView,
         meta: { title: '文章列表' }
       },
+      // 推荐用户
+      {
+        path: 'recommend-users',
+        component: RecommendUsersView,
+        meta: { title: '推荐用户' }
+      },
+      {
+        path: 'index/recommend-users',
+        component: RecommendUsersView,
+        meta: { title: '推荐用户' }
+      },
+      // 推荐圈子
+      {
+        path: 'recommend-circles',
+        component: RecommendCirclesView,
+        meta: { title: '推荐圈子' }
+      },
+      {
+        path: 'index/recommend-circles',
+        component: RecommendCirclesView,
+        meta: { title: '推荐圈子' }
+      },
       {
         path: 'index/articleDetail',
         component: ArticleDetailView,
@@ -154,6 +184,30 @@ const routes: Array<RouteRecordRaw> = [
         path: 'index/chat/:userId',
         component: ChatView,
         meta: { title: '私信聊天' }
+      },
+
+      // 圈子聊天
+      {
+        path: 'circle-chat',
+        component: CircleChatView,
+        meta: { title: '圈子聊天' }
+      },
+      // 兼容带 /index 前缀的圈子聊天路径
+      {
+        path: 'index/circle-chat',
+        component: CircleChatView,
+        meta: { title: '圈子聊天' }
+      },
+      // 创建/编辑圈子
+      {
+        path: 'circle/editor',
+        component: CircleEditorView,
+        meta: { title: '创建圈子' }
+      },
+      {
+        path: 'index/circle/editor',
+        component: CircleEditorView,
+        meta: { title: '创建圈子' }
       },
 
       {
@@ -246,7 +300,7 @@ const router = createRouter({
 router.beforeEach((to: any, from: any, next: any) => {
   // 设置页面标题
   if (to.meta?.title) {
-    document.title = `${to.meta.title} - 中文社区交流平台`
+    document.title = `${to.meta.title} - 游戏社区交流平台`
   }
   
   next()

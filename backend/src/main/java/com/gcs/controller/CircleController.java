@@ -2,7 +2,8 @@ package com.gcs.controller;
 
 import com.gcs.dto.CircleCreateDTO;
 import com.gcs.dto.CircleUpdateDTO;
-import com.gcs.dto.CircleDetailVO;
+import com.gcs.vo.CircleDetailVO;
+import com.gcs.vo.CircleCreateResponseVO;
 import com.gcs.entity.Circle;
 import com.gcs.service.CircleService;
 import com.gcs.utils.PageUtils;
@@ -67,7 +68,22 @@ public class CircleController {
         try {
             Long userId = getCurrentUserId(request);
             Circle circle = circleService.createCircle(createDTO, userId);
-            return R.ok("创建成功").put("data", circle);
+            
+            // 转换为响应 VO
+            CircleCreateResponseVO responseVO = new CircleCreateResponseVO();
+            responseVO.setId(circle.getId());
+            responseVO.setName(circle.getName());
+            responseVO.setDescription(circle.getDescription());
+            responseVO.setAvatar(circle.getAvatar());
+            responseVO.setOwnerId(circle.getOwnerId());
+            responseVO.setType(circle.getType());
+            responseVO.setStatus(circle.getStatus());
+            
+            if (circle.getCreateTime() != null) {
+                responseVO.setCreateTime(circle.getCreateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+            
+            return R.ok("创建成功").put("data", responseVO);
         } catch (Exception e) {
             log.error("创建圈子失败", e);
             return R.error(e.getMessage());

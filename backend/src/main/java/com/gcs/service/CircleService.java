@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.gcs.entity.Circle;
 import com.gcs.dto.*;
 import com.gcs.utils.PageUtils;
+import com.gcs.vo.CircleDetailVO;
 
 import java.util.Map;
 

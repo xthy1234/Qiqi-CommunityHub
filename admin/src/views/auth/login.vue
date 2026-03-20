@@ -1,75 +1,71 @@
 <template>
   <div class="login-container">
-    <div class="login-box">
-      <h2 class="login-title">中文社区交流平台 - 管理员登录</h2>
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-wrapper">
+          <Icon icon="ri:admin-line" :size="48" color="#18a058" />
+        </div>
+        <h1 class="title">中文社区管理平台</h1>
+        <p class="subtitle">管理员登录</p>
+      </div>
 
-      <el-form
+      <NForm
+        ref="loginFormRef"
         :model="loginForm"
         :rules="loginRules"
-        ref="loginFormRef"
-        class="login-form"
-        label-width="80px">
-
-        <!-- 用户名 -->
-        <el-form-item label="账号" prop="account">
-          <el-input
-            v-model="loginForm.account"
+        label-placement="left"
+        label-width="70px"
+        size="large"
+      >
+        <NFormItem label="账号" path="account">
+          <NInput
+            v-model:value="loginForm.account"
             placeholder="请输入管理员账号"
-            prefix-icon="User"
-            size="large" />
-        </el-form-item>
+            clearable
+          >
+            <template #prefix>
+              <Icon icon="ri:user-line" />
+            </template>
+          </NInput>
+        </NFormItem>
 
-        <!-- 密码 -->
-        <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="loginForm.password"
+        <NFormItem label="密码" path="password">
+          <NInput
+            v-model:value="loginForm.password"
             type="password"
             placeholder="请输入密码"
-            prefix-icon="Lock"
-            size="large"
-            @keyup.enter="handleLogin" />
-        </el-form-item>
+            show-password-on="click"
+            @keyup.enter="handleLogin"
+          >
+            <template #prefix>
+              <Icon icon="ri:lock-line" />
+            </template>
+          </NInput>
+        </NFormItem>
 
-        <!-- 验证码 -->
-        <el-form-item label="验证码" prop="captcha">
-          <div class="captcha-row">
-            <el-input
-              v-model="loginForm.captcha"
-              placeholder="请输入验证码"
-              prefix-icon="Key"
-              size="large"
-              class="captcha-input"
-              @keyup.enter="handleLogin" />
-            <img
-              v-if="captchaImage"
-              :src="captchaImage"
-              alt="验证码"
-              class="captcha-image"
-              @click="refreshCaptcha"
-              title="点击刷新验证码" />
-          </div>
-        </el-form-item>
+        <NFormItem>
+          <NCheckbox v-model:checked="rememberPassword">
+            记住密码
+          </NCheckbox>
+        </NFormItem>
 
-        <!-- 记住密码 -->
-        <el-form-item>
-          <el-checkbox
-            v-model="rememberPassword"
-            label="记住密码"
-            size="large" />
-        </el-form-item>
+        <NButton
+          type="primary"
+          size="large"
+          :loading="loading"
+          block
+          @click="handleLogin"
+        >
+          {{ loading ? '登录中...' : '登录' }}
+        </NButton>
 
-        <!-- 登录按钮 -->
-        <el-form-item>
-          <el-button
-            type="primary"
-            size="large"
-            :loading="loading"
-            class="login-btn"
-            @click="handleLogin">
-            {{ loading ? '登录中...' : '登录' }}
-          </el-button>
-        </el-form-item>
-      </el-form>
+        <div class="register-link">
+          <span>还没有账号？</span>
+          <NButton text type="primary" @click="goToRegister">
+            立即注册
+          </NButton>
+        </div>
+      </NForm>
     </div>
   </div>
 </template>
@@ -77,39 +73,35 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { useMessage } from 'naive-ui'
+import type { FormRules, FormInst } from 'naive-ui'
+import { Icon } from '@iconify/vue'
 import apiService from '@/api'
 import { useUserStore } from '@/stores/user'
 
 interface LoginForm {
   account: string
   password: string
-  captcha?: string
 }
 
 const router = useRouter()
+const message = useMessage()
 const userStore = useUserStore()
-const loginFormRef = ref()
+const loginFormRef = ref<FormInst | null>(null)
 const loading = ref(false)
 const rememberPassword = ref(false)
-const captchaImage = ref('')
-const captchaKey = ref('')
 
 const loginForm = reactive<LoginForm>({
   account: '',
-  password: '',
-  captcha: ''
+  password: ''
 })
 
-const loginRules = {
+const loginRules: FormRules = {
   account: [
     { required: true, message: '请输入管理员账号', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-  ],
-  captcha: [
-    { required: true, message: '请输入验证码', trigger: 'blur' }
   ]
 }
 
@@ -124,13 +116,14 @@ const refreshCaptcha = async () => {
     }
   } catch (error: any) {
     console.error('获取验证码失败:', error)
+    message.error('获取验证码失败')
   }
 }
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
 
-  await loginFormRef.value.validate(async (valid: boolean) => {
+  await loginFormRef.value.validate(async (valid) => {
     if (!valid) return
 
     loading.value = true
@@ -138,8 +131,7 @@ const handleLogin = async () => {
     try {
       const response = await apiService.user.adminLogin({
         account: loginForm.account,
-        password: loginForm.password,
-        captcha: loginForm.captcha
+        password: loginForm.password
       })
 
       const responseData = response.data
@@ -162,25 +154,25 @@ const handleLogin = async () => {
           localStorage.removeItem('loginForm')
         }
 
-        ElMessage.success('登录成功')
+        message.success('登录成功')
 
         const redirectPath = localStorage.getItem('redirectPath') || '/'
         router.push(redirectPath)
       } else {
-        ElMessage.error(responseData.msg || '登录失败')
-        refreshCaptcha()
-        loginForm.captcha = ''
+        message.error(responseData.msg || '登录失败')
       }
     } catch (error: any) {
       console.error('登录失败:', error)
       const errorMsg = error.response?.data?.msg || error.msg || '登录失败，请检查账号和密码'
-      ElMessage.error(errorMsg)
-      refreshCaptcha()
-      loginForm.captcha = ''
+      message.error(errorMsg)
     } finally {
       loading.value = false
     }
   })
+}
+
+const goToRegister = () => {
+  router.push('/register')
 }
 
 const loadCachedLogin = () => {
@@ -201,7 +193,6 @@ const loadCachedLogin = () => {
 
 onMounted(() => {
   loadCachedLogin()
-  refreshCaptcha()
 })
 </script>
 
@@ -214,50 +205,91 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background-size: cover;
   background-position: center;
+  padding: 20px;
 }
 
-.login-box {
+.login-card {
   background: white;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  width: 450px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 480px;
+  padding: 48px 40px;
 
-  .login-title {
+  .login-header {
     text-align: center;
-    color: #333;
-    font-size: 24px;
-    margin-bottom: 30px;
-    font-weight: 600;
-  }
+    margin-bottom: 40px;
 
-  .login-form {
-    .captcha-row {
-      display: flex;
+    .logo-wrapper {
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-
-      .captcha-input {
-        flex: 1;
-      }
-
-      .captcha-image {
-        width: 120px;
-        height: 40px;
-        border: 1px solid #dcdfe6;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: opacity 0.3s;
-
-        &:hover {
-          opacity: 0.8;
-        }
-      }
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #18a058 0%, #18a058 100%);
+      border-radius: 50%;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(24, 160, 88, 0.3);
     }
 
-    .login-btn {
-      width: 100%;
-      margin-top: 20px;
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0 0 8px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #999;
+      margin: 0;
+    }
+  }
+
+  .captcha-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+
+    .captcha-input {
+      flex: 1;
+    }
+
+    .captcha-image {
+      width: 120px;
+      height: 44px;
+      border: 2px solid #e4e7ed;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      overflow: hidden;
+      flex-shrink: 0;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      &:hover {
+        border-color: #18a058;
+        transform: scale(1.05);
+      }
+    }
+  }
+
+  .register-link {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+
+    span {
+      margin-right: 8px;
     }
   }
 }

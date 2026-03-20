@@ -40,8 +40,16 @@ export interface RegisterParams extends Partial<User> {
 }
 
 /**
- * 用户 API 服务类
+ * 分页列表返回类型
  */
+export interface UserListResponse {
+  list: User[]
+  total: number
+  currPage: number
+  pageSize: number
+  totalPage: number
+}
+
 class UserService {
   private baseUrl = '/users'
 
@@ -194,6 +202,27 @@ class UserService {
    */
   async getUserList(params: { page: number; limit: number; [key: string]: any }): Promise<{ list: User[]; total: number }> {
     const response: AxiosResponse<ApiResponse<{ list: User[]; total: number }>> = await httpClient.get(`${this.baseUrl}`, { params })
+    return response.data.data
+  }
+
+  /**
+   * 获取推荐用户列表
+   * @param params 查询参数
+   */
+  async getRecommendedUsers(params: { 
+    page?: number
+    limit?: number
+    keyword?: string 
+  }): Promise<UserListResponse> {
+    const queryParams: any = {
+      page: params.page || 1,
+      limit: params.limit || 20
+    }
+    if (params.keyword) {
+      queryParams.keyword = params.keyword
+    }
+    
+    const response: AxiosResponse<ApiResponse<UserListResponse>> = await httpClient.get(`${this.baseUrl}/public/list`, { params: queryParams })
     return response.data.data
   }
 }

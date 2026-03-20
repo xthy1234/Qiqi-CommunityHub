@@ -155,7 +155,26 @@ const menuOptions = computed<MenuOption[]>(() => {
       label: '发现',
       key: 'discover',
       icon: renderIcon('ri:compass-discover-line'),
-      click: () => navigateToRoute('/index/articleList')
+      children: [
+        {
+          label: '文章',
+          key: 'discover-article',
+          icon: renderIcon('ri:article-line'),
+          click: () => navigateToRoute('/index/articleList')
+        },
+        {
+          label: '用户',
+          key: 'discover-user',
+          icon: renderIcon('ri:user-follow-line'),
+          click: () => navigateToRoute('/index/recommend-users')
+        },
+        {
+          label: '圈子',
+          key: 'discover-circle',
+          icon: renderIcon('ri:group-2-line'),
+          click: () => navigateToRoute('/index/recommend-circles')
+        }
+      ]
     },
     {
       label: '消息',
@@ -167,6 +186,12 @@ const menuOptions = computed<MenuOption[]>(() => {
           key: 'message-chat',
           icon: renderIcon('ri:chat-1-line'),
           click: () => navigateToRoute('/index/chat')
+        },
+        {
+          label: '圈子',
+          key: 'message-circle',
+          icon: renderIcon('ri:user-group-line'),
+          click: () => navigateToRoute('/index/circle-chat')
         }
       ]
     },

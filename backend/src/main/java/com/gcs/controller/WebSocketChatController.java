@@ -1,6 +1,6 @@
 package com.gcs.controller;
 
-import com.gcs.dto.ChatMessage;
+import com.gcs.vo.ChatMessage;
 import com.gcs.dto.DeleteMessageRequest;
 import com.gcs.dto.QueryUserOnlineRequest;
 import com.gcs.dto.ReadReceipt;

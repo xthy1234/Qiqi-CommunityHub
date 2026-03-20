@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 
 /**
  * 用户公开个人信息视图对象 - 用于公开主页展示
@@ -41,4 +42,7 @@ public class UserPublicProfileVO implements Serializable {
     
     @Schema(description = "当前用户是否已关注", example = "true")
     private Boolean isFollowed;
+
+    @Schema(description = "用户生日", example = "")
+    private LocalDate birthday;
 }

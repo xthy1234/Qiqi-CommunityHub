@@ -51,6 +51,12 @@ const handleSidebarCollapsed = (collapsed: boolean) => {
   isSidebarCollapsed.value = collapsed
 }
 
+const startTimer = () => {
+  timer = setInterval(() => {
+    updateDateTime()
+  }, 1000)
+}
+
 const checkAuth = () => {
   const token = localStorage.getItem('Token')
   authToken.value = !!token
@@ -89,21 +95,9 @@ watch(() => route.path, () => {
   }
 })
 
-// 每秒更新时间
-const startTimer = () => {
-  timer = setInterval(() => {
-    updateDateTime()
-  }, 1000)
-}
-
 onMounted(() => {
   initializePage()
   startTimer()
-
-  // 如果未登录且不在登录页，跳转到登录页
-  if (!checkAuth() && route.path !== '/login') {
-    router.push('/login')
-  }
 })
 
 onUnmounted(() => {

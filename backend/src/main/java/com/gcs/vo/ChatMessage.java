@@ -1,6 +1,5 @@
-package com.gcs.dto;
+package com.gcs.vo;
 
-import com.gcs.vo.UserSimpleVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 

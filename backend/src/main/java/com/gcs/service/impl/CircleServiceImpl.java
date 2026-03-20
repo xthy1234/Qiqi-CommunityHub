@@ -18,6 +18,9 @@ import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.enums.CircleMemberRole;
 
+import com.gcs.vo.CircleDetailVO;
+import com.gcs.vo.CircleListVO;
+import com.gcs.vo.CircleCreateResponseVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,6 +81,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             member.setUserId(userId);
             member.setRole(CircleMemberRole.OWNER.getCode());
             member.setJoinTime(LocalDateTime.now());
+            member.setStatus(CommonStatus.ENABLED);
             circleMemberService.save(member);
 
             log.info("用户{}创建圈子{}", userId, circle.getName());
@@ -254,7 +258,13 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
                     .eq("status", CommonStatus.ENABLED.getCode());
 
             IPage<Circle> resultPage = this.page(circlePage, queryWrapper);
-            return new PageUtils(resultPage);
+            
+            // 转换为 CircleListVO
+            List<CircleListVO> voList = resultPage.getRecords().stream()
+                .map(circle -> convertToCircleListVO(circle, currentUserId))
+                .toList();
+            
+            return new PageUtils(voList, resultPage.getTotal(), circlePage.getSize(), circlePage.getCurrent());
         } catch (Exception e) {
             log.error("获取用户圈子列表失败，userId: {}", currentUserId, e);
             throw new RuntimeException("获取圈子列表失败：" + e.getMessage());
@@ -280,11 +290,70 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             }
 
             IPage<Circle> resultPage = this.page(circlePage, queryWrapper);
-            return new PageUtils(resultPage);
+            
+            // 转换为 CircleListVO
+            List<CircleListVO> voList = resultPage.getRecords().stream()
+                .map(circle -> convertToCircleListVO(circle, currentUserId))
+                .toList();
+            
+            return new PageUtils(voList, resultPage.getTotal(), circlePage.getSize(), circlePage.getCurrent());
         } catch (Exception e) {
             log.error("获取公开圈子列表失败", e);
             throw new RuntimeException("获取公开圈子列表失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * 将 Circle 转换为 CircleListVO
+     */
+    private CircleListVO convertToCircleListVO(Circle circle, Long currentUserId) {
+        CircleListVO vo = new CircleListVO();
+        vo.setId(circle.getId());
+        vo.setName(circle.getName());
+        vo.setDescription(circle.getDescription());
+        vo.setAvatar(circle.getAvatar());
+        vo.setOwnerId(circle.getOwnerId());
+        vo.setType(circle.getType());
+        vo.setStatus(circle.getStatus());
+        
+        // 获取圈主信息
+        User owner = userDao.selectById(circle.getOwnerId());
+        if (owner != null) {
+            vo.setOwnerNickname(owner.getNickname());
+            vo.setOwnerAvatar(owner.getAvatar());
+        }
+        
+        // 获取成员数量
+        try {
+            Integer memberCount = circleMemberDao.getMemberCount(circle.getId());
+            vo.setMemberCount(memberCount != null ? memberCount : 0);
+            log.debug("圈子{}的成员数量：{}", circle.getId(), memberCount);
+        } catch (Exception e) {
+            log.error("获取圈子{}的成员数量失败", circle.getId(), e);
+            vo.setMemberCount(0);
+        }
+        
+        // 判断是否已加入
+        if (currentUserId != null) {
+            try {
+                Boolean isMember = circleMemberDao.isMember(circle.getId(), currentUserId);
+                vo.setIsJoined(isMember != null && isMember);
+            } catch (Exception e) {
+                log.error("检查用户{}是否在圈子{}中失败", currentUserId, circle.getId(), e);
+                vo.setIsJoined(false);
+            }
+        } else {
+            vo.setIsJoined(false);
+        }
+        
+        // 设置未读消息数（暂时设为 0，后续可从消息服务获取）
+        vo.setUnreadCount(0);
+        
+        if (circle.getCreateTime() != null) {
+            vo.setCreateTime(circle.getCreateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        }
+        
+        return vo;
     }
 
     @Override

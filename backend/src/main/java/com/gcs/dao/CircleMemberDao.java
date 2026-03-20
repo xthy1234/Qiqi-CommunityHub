@@ -50,4 +50,12 @@ public interface CircleMemberDao extends BaseMapper<CircleMember> {
      */
     List<CircleMember> selectMemberList(@Param("circleId") Long circleId,
                                         @Param("role") Integer role);
+
+    /**
+     * 更新用户的最后阅读时间
+     * @param userId 用户 ID
+     * @param circleId 圈子 ID
+     * @return 影响行数
+     */
+    int updateLastReadTime(@Param("userId") Long userId, @Param("circleId") Long circleId);
 }

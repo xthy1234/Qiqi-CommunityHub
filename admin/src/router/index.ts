@@ -27,7 +27,6 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     component: MainLayout,
-    meta: { requiresAuth: true },
     children: [
       { 
         path: '', 
@@ -59,12 +58,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/comment/list.vue'),
         meta: { title: '评论管理' }
       },
-      // 管理员管理
-      {
-        path: 'admins',
-        component: () => import('@/views/admin/list.vue'),
-        meta: { title: '管理员管理' }
-      },
       // 个人中心
       {
         path: 'profile',
@@ -84,10 +77,10 @@ const routes: Array<RouteRecordRaw> = [
     ]
   },
   
-  // 404 页面 - 重定向到首页
+  // 404 页面 - 重定向到登录页（因为所有页面都需要登录）
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/'
+    redirect: '/login'
   }
 ]
 
@@ -108,31 +101,37 @@ router.beforeEach((to: any, from: any, next: any) => {
     document.title = `${to.meta.title} - 中文社区管理平台`
   }
 
-  // 检查是否需要登录验证
-  const requiresAuth = to.meta?.requiresAuth || (to.path !== '/login' && to.path !== '/register')
+  // 🔍 调试日志：路由守卫触发
+  console.log('🔒 [路由守卫] 从:', from.path, '-> 到:', to.path)
   
-  if (requiresAuth) {
-    const token = localStorage.getItem('Token')
-    
+  // 白名单路由（不需要登录）
+  const whiteList = ['/login', '/register']
+  
+  // 🔍 调试日志：当前 token 状态
+  const token = localStorage.getItem('Token')
+  console.log('🔑 [路由守卫] Token 存在:', !!token, '값:', token ? token.substring(0, 20) + '...' : 'null')
+  
+  if (!whiteList.includes(to.path)) {
+    // 除登录/注册外的所有页面都需要登录
     if (!token) {
+      // 🔍 调试日志：未登录，需要重定向
+      console.log('⚠️ [路由守卫] 未登录，访问需要认证的页面，重定向到登录页')
+      
       // 未登录，保存当前要访问的路径，登录后跳转
       localStorage.setItem('redirectPath', to.fullPath)
+      console.log('💾 [路由守卫] 已保存 redirectPath:', to.fullPath)
       
       // 重定向到登录页
       next('/login')
       return
+    } else {
+      console.log('✅ [路由守卫] 已登录，允许访问')
     }
+  } else {
+    console.log('ℹ️ [路由守卫] 访问白名单页面:', to.path)
   }
 
-  // 如果已登录且访问登录页或注册页，重定向到首页
-  if (to.path === '/login' || to.path === '/register') {
-    const token = localStorage.getItem('Token')
-    if (token) {
-      next('/')
-      return
-    }
-  }
-
+  console.log('➡️ [路由守卫] 继续执行')
   next()
 })
 
