@@ -203,6 +203,15 @@ const handleRegister = async () => {
 
     loading.value = true
 
+    // 🔍 添加调试日志
+    console.log('📤 [注册请求] 开始提交注册数据')
+    console.log('📝 [注册请求] 表单数据:', {
+      account: registerForm.account,
+      phone: registerForm.phone,
+      nickname: registerForm.nickname,
+      email: registerForm.email
+    })
+
     try {
       const registerData = {
         account: registerForm.account,
@@ -212,8 +221,13 @@ const handleRegister = async () => {
         email: registerForm.email
       }
 
+      console.log('🌐 [注册请求] API 调用:', apiService.user.adminRegister)
+      console.log('📡 [注册请求] 发送 POST 到 /users/admin/register')
+
       const response = await apiService.user.adminRegister(registerData)
       const responseData = response.data
+
+      console.log('✅ [注册请求] 响应数据:', responseData)
 
       if (responseData.code === 200 || responseData.code === 0) {
         message.success('注册成功，请登录')
@@ -224,7 +238,13 @@ const handleRegister = async () => {
         message.error(responseData.msg || '注册失败')
       }
     } catch (error: any) {
-      console.error('注册失败:', error)
+      console.error('❌ [注册请求] 注册失败:', error)
+      console.error('❌ [注册请求] 错误详情:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config
+      })
       const errorMsg = error.response?.data?.msg || '注册失败，请稍后重试'
       message.error(errorMsg)
     } finally {

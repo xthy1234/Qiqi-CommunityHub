@@ -21,11 +21,8 @@ public class CircleChatMessageVO {
     @Schema(description = "发送方用户 ID", example = "456")
     private Long senderId;
 
-    @Schema(description = "发送方用户昵称", example = "张三")
-    private String senderNickname;
-
-    @Schema(description = "发送方用户头像", example = "http://example.com/avatar.jpg")
-    private String senderAvatar;
+    @Schema(description = "发送方用户信息")
+    private com.gcs.vo.UserSimpleVO sender;
 
     @Schema(description = "消息内容", example = "大家好！")
     private String content;
@@ -35,6 +32,15 @@ public class CircleChatMessageVO {
 
     @Schema(description = "是否已撤回", example = "false")
     private Boolean isRecalled;
+
+    @Schema(description = "是否被管理员删除", example = "false")
+    private Boolean deletedByAdmin;
+
+    @Schema(description = "删除者信息")
+    private com.gcs.vo.UserSimpleVO deleter;
+
+    @Schema(description = "删除时间", example = "2024-01-01 12:00:00")
+    private LocalDateTime deletedTime;
 
     @Schema(description = "创建时间", example = "2024-01-01 12:00:00")
     private LocalDateTime createTime;

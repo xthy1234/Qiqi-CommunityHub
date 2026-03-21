@@ -34,6 +34,15 @@ public interface CircleChatService extends IService<CircleChat> {
     PageUtils getChatHistory(Long circleId, Long currentUserId, Map<String, Object> params);
 
     /**
+     * 获取圈子聊天记录（包含用户信息）
+     * @param circleId 圈子 ID
+     * @param currentUserId 当前用户 ID
+     * @param params 查询参数
+     * @return 聊天记录分页列表（VO 格式）
+     */
+    PageUtils getChatHistoryWithUserInfo(Long circleId, Long currentUserId, Map<String, Object> params);
+
+    /**
      * 保存消息（供 WebSocket 使用）
      * @param chat 消息实体
      * @return 保存后的消息
@@ -49,9 +58,9 @@ public interface CircleChatService extends IService<CircleChat> {
     boolean recallMessage(Long messageId, Long userId);
 
     /**
-     * 删除消息（后续实现）
+     * 删除消息（管理员/圈主权限）
      * @param messageId 消息 ID
-     * @param userId 用户 ID
+     * @param userId 操作用户 ID
      * @return 操作结果
      */
     boolean deleteMessage(Long messageId, Long userId);

@@ -2,6 +2,7 @@ package com.gcs.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 /**
  * 用户简易信息 VO（用于消息列表）
@@ -18,4 +19,7 @@ public class UserSimpleVO {
     
     @Schema(description = "头像 URL", example = "http://example.com/avatar.jpg")
     private String avatar;
+    
+    @Schema(description = "最后在线时间", example = "2026-03-20 19:30:00")
+    private LocalDateTime lastOnlineTime;
 }

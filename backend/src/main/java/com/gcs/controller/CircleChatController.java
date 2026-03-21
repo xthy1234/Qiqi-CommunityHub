@@ -83,7 +83,10 @@ public class CircleChatController {
             @Parameter(hidden = true) HttpServletRequest request) {
         try {
             Long currentUserId = getCurrentUserId(request);
-            PageUtils page = circleChatService.getChatHistory(circleId, currentUserId, params);
+            
+            // 调用 Service 获取聊天记录（返回 Entity 列表）
+            PageUtils page = circleChatService.getChatHistoryWithUserInfo(circleId, currentUserId, params);
+            
             return R.ok().put("data", page);
         } catch (Exception e) {
             log.error("获取聊天记录失败，circleId: {}, userId: {}", circleId, getCurrentUserId(request), e);
@@ -270,9 +273,9 @@ public class CircleChatController {
         vo.setCircleId(message.getCircleId());
         vo.setSenderId(message.getSenderId());
 
+        // 直接使用已有的 sender 信息
         if (message.getSender() != null) {
-            vo.setSenderNickname(message.getSender().getNickname());
-            vo.setSenderAvatar(message.getSender().getAvatar());
+            vo.setSender(message.getSender());
         }
 
         vo.setContent(message.getContent());

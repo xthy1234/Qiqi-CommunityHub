@@ -62,10 +62,18 @@ export interface CircleMessage {
   createTime: string
   isSelf?: boolean
   isRecalled?: boolean
-  action?: 'SEND' | 'RECALL'
+  deletedByAdmin?: boolean  // 修改：是否被管理员删除
+  deleter?: {
+    id: number
+    nickname: string
+    avatar: string
+  }
+  deletedTime?: string
+  action?: 'SEND' | 'RECALL' | 'DELETE'  // 新增 DELETE 动作
   _isSystemTip?: boolean
-  _tipType?: 'join' | 'quit' | 'kick' | 'recall'
+  _tipType?: 'join' | 'quit' | 'kick' | 'recall' | 'delete'  // 新增 delete 类型
   _tipUsername?: string
+  _deleteDetail?: string  // 新增：删除详情描述
   _sending?: boolean
   _tempId?: string
 }

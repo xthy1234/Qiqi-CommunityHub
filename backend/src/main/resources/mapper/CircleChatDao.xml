@@ -12,6 +12,9 @@
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="is_recalled" property="isRecalled"/>
+        <result column="deleted_by_admin" property="deletedByAdmin"/>
+        <result column="deleted_by" property="deletedBy"/>
+        <result column="deleted_time" property="deletedTime"/>
     </resultMap>
 
     <resultMap id="circleChatSessionMap" type="com.gcs.vo.CircleChatSessionVO">
@@ -27,8 +30,8 @@
         <result column="member_count" property="memberCount"/>
     </resultMap>
 
-    <!-- 分页查询圈子聊天记录 -->
-    <select id="selectChatHistory" resultMap="circleChatMap">
+    <!-- 分页查询圈子聊天记录（包含已删除的消息） -->
+    <select id="selectChatHistoryIncludeDeleted" resultMap="circleChatMap">
         SELECT
             id,
             circle_id,
@@ -38,7 +41,10 @@
             status,
             create_time,
             update_time,
-            is_recalled
+            is_recalled,
+            deleted_by_admin,
+            deleted_by,
+            deleted_time
         FROM circle_chat
         WHERE circle_id = #{circleId}
         ORDER BY create_time DESC
@@ -55,7 +61,10 @@
             status,
             create_time,
             update_time,
-            is_recalled
+            is_recalled,
+            deleted_by_admin,
+            deleted_by,
+            deleted_time
         FROM circle_chat
         WHERE circle_id = #{circleId}
         ORDER BY create_time DESC
@@ -73,7 +82,10 @@
             status,
             create_time,
             update_time,
-            is_recalled
+            is_recalled,
+            deleted_by_admin,
+            deleted_by,
+            deleted_time
         FROM circle_chat
         WHERE id = #{messageId}
     </select>
@@ -87,6 +99,7 @@
             c.member_count,
             cc.id as last_message_id,
             CASE
+                WHEN cc.deleted_by_admin = true THEN ''
                 WHEN cc.is_recalled = true THEN ''
                 ELSE cc.content
                 END as last_message_content,
@@ -97,14 +110,17 @@
         FROM circle c
                  INNER JOIN circle_member cm ON c.id = cm.circle_id AND cm.user_id = #{userId} AND cm.status = 0
                  LEFT JOIN (
-            -- 获取每个圈子的最后一条消息
+            -- 获取每个圈子的最后一条消息（不排除已删除）
             SELECT DISTINCT ON (circle_id)
                 id,
                 circle_id,
                 sender_id,
                 content,
                 create_time,
-                is_recalled
+                is_recalled,
+                deleted_by_admin,
+                deleted_by,
+                deleted_time
             FROM circle_chat
             ORDER BY circle_id, create_time DESC
         ) cc ON c.id = cc.circle_id
@@ -135,6 +151,7 @@
             AND cm.status = 0
         WHERE cc.circle_id = #{circleId}
           AND cc.status = 0
+          AND cc.deleted_by_admin = false
           AND cc.create_time > cm.last_read_time
     </select>
 

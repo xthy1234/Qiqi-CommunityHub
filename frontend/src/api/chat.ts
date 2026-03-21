@@ -113,10 +113,17 @@ class ChatService {
   }
 
   /**
-   * 监听在线用户列表更新
+   * 监听用户列表更新
    */
   onUserListUpdate(handler: (data: { users: Array<{ userId: number; online: boolean; lastSeenAt?: string }>; timestamp: number }) => void): () => void {
     return this.registerHandler('USER_LIST_UPDATE', handler)
+  }
+
+  /**
+   * 监听圈子消息（群聊）
+   */
+  onCircleChatMessage(handler: (message: any) => void): () => void {
+    return this.registerHandler('CIRCLE_CHAT_MESSAGE', handler)
   }
 
   /**

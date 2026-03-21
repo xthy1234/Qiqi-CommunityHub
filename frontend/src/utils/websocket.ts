@@ -127,7 +127,7 @@ class WebSocketManager {
         
         // 如果已有连接，先关闭
         if (this.client) {
-          console.warn('⚠️ [WebSocket] 关闭已有连接111111111111')
+          console.warn('⚠️ [WebSocket] 关闭已有连接')
           this.close()
         }
 
@@ -210,7 +210,7 @@ class WebSocketManager {
 
     const currentUserId = this.getCurrentUserId()
 
-    console.log('✅ [WebSocket] 开始订阅消息队列，当前用户 ID:', currentUserId)
+    // console.log('✅ [WebSocket] 开始订阅消息队列，当前用户 ID:', currentUserId)
     
     // 订阅私聊消息（使用明确路径）
     const privateMsgDestination = `/user/${currentUserId}/queue/private-messages`
@@ -245,7 +245,7 @@ class WebSocketManager {
       }
     }, {})
     
-    console.log('✅ [WebSocket] 已订阅私聊消息队列:', privateMsgDestination)
+    // console.log('✅ [WebSocket] 已订阅私聊消息队列:', privateMsgDestination)
 
     // 订阅已读回执队列
     const receiptDestination = `/user/${currentUserId}/queue/read-receipts`
@@ -269,9 +269,9 @@ class WebSocketManager {
             }
           })
           
-          console.log('✅ [WebSocket] MESSAGE_STATUS 处理器执行完成:', 
-              '- 成功数量:', successCount,
-              '- 总数量:', handlers.size)
+          // console.log('✅ [WebSocket] MESSAGE_STATUS 处理器执行完成:',
+          //     '- 成功数量:', successCount,
+          //     '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 MESSAGE_STATUS 处理器！', 
               '- 当前所有处理器类型:', Array.from(this.messageHandlers.keys()))
@@ -284,7 +284,7 @@ class WebSocketManager {
       }
     }, {})
     
-    console.log('✅ [WebSocket] 已订阅已读回执队列:', receiptDestination)
+    // console.log('✅ [WebSocket] 已订阅已读回执队列:', receiptDestination)
 
     // 订阅撤回通知
     const recallDestination = `/user/${currentUserId}/queue/message-recall`
@@ -307,10 +307,9 @@ class WebSocketManager {
               index++
             }
           })
-
-          console.log('✅ [WebSocket] MESSAGE_RECALL 处理器执行完成:', 
-              '- 成功数量:', successCount,
-              '- 总数量:', handlers.size)
+          // console.log('✅ [WebSocket] MESSAGE_RECALL 处理器执行完成:',
+          //     '- 成功数量:', successCount,
+          //     '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 MESSAGE_RECALL 处理器！')
         }
@@ -322,7 +321,7 @@ class WebSocketManager {
       }
     }, {})
     
-    console.log('✅ [WebSocket] 已订阅消息撤回队列:', recallDestination)
+    // console.log('✅ [WebSocket] 已订阅消息撤回队列:', recallDestination)
 
     // 订阅消息删除通知
     const deleteDestination = `/user/${currentUserId}/queue/message-delete`
@@ -343,9 +342,9 @@ class WebSocketManager {
             }
           })
 
-          console.log('✅ [WebSocket] MESSAGE_DELETE 处理器执行完成:', 
-              '- 成功数量:', successCount,
-              '- 总数量:', handlers.size)
+          // console.log('✅ [WebSocket] MESSAGE_DELETE 处理器执行完成:',
+          //     '- 成功数量:', successCount,
+          //     '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 MESSAGE_DELETE 处理器！')
         }
@@ -357,10 +356,72 @@ class WebSocketManager {
       }
     }, {})
     
-    console.log('✅ [WebSocket] 已订阅消息删除队列:', deleteDestination)
+    // ====== 圈子消息删除通知已在 CIRCLE_CHAT_MESSAGE 中统一处理，无需单独订阅 ======
 
-    // ====== 新增：订阅用户在线状态 ======
     this.subscribeUserOnlineStatus()
+    
+    // ====== 新增：订阅圈子消息（群聊） ======
+    this.subscribeCircleMessagesInternal()
+  }
+
+  /**
+   * 订阅圈子消息（群聊）- 内部方法
+   */
+  private subscribeCircleMessagesInternal(): void {
+    if (!this.client) return
+
+    const currentUserId = this.getCurrentUserId()
+    
+    console.log('🔵 [CircleChat] 开始订阅圈子消息，当前用户 ID:', currentUserId)
+    
+    // 订阅所有圈子的消息（使用通配符）
+    const circleDestination = `/topic/circles/*/messages`
+    
+    this.client.subscribe(circleDestination, (message: IMessage) => {
+      console.log('📨 [CircleChat] 收到圈子消息推送')
+      console.log('📨 [CircleChat] 消息 body:', message.body)
+      
+      try {
+        const data = JSON.parse(message.body)
+        console.log('✅ [CircleChat] 解析后的消息对象:', data)
+        console.log('✅ [CircleChat] 消息结构:', JSON.stringify(data, null, 2))
+        
+        // 触发 CIRCLE_CHAT_MESSAGE 处理器
+        const handlers = this.messageHandlers.get('CIRCLE_CHAT_MESSAGE')
+        
+        console.log('🔍 [CircleChat] 查找处理器:', 
+          '- 类型：CIRCLE_CHAT_MESSAGE',
+          '- 是否存在：', !!handlers,
+          '- 数量：', handlers?.size)
+        
+        if (handlers && handlers.size > 0) {
+          let successCount = 0
+          handlers.forEach(handler => {
+            try {
+              console.log('📤 [CircleChat] 执行处理器，传入数据:', data)
+              handler(data)
+              successCount++
+            } catch (error) {
+              console.error(`❌ [CircleChat] 圈子消息处理器执行出错:`, error)
+            }
+          })
+          
+          console.log('✅ [CircleChat] CIRCLE_CHAT_MESSAGE 处理器执行完成:', 
+              '- 成功数量:', successCount,
+              '- 总数量:', handlers.size)
+        } else {
+          console.warn('⚠️ [CircleChat] 未找到 CIRCLE_CHAT_MESSAGE 处理器！')
+          console.warn('⚠️ [CircleChat] 当前所有注册的处理器:', Array.from(this.messageHandlers.keys()))
+        }
+      } catch (error) {
+        console.error('❌ [CircleChat] 圈子消息解析失败:', error)
+        console.error('  - 错误类型:', error instanceof Error ? error.name : 'Unknown')
+        console.error('  - 错误信息:', error instanceof Error ? error.message : error)
+        console.error('  - 原始数据:', message.body)
+      }
+    }, {})
+    
+    console.log('✅ [CircleChat] 已订阅圈子消息广播:', circleDestination)
   }
 
   /**
@@ -671,10 +732,9 @@ class WebSocketManager {
 
   /**
    * 注册消息处理器（兼容旧接口）
-   * @param type 消息类型：CHAT_MESSAGE | MESSAGE_STATUS | MESSAGE_RECALL | MESSAGE_DELETE | USER_ONLINE_STATUS | USER_LIST_UPDATE
-   * @param handler 处理函数
+   * @param type 消息类型：CHAT_MESSAGE | MESSAGE_STATUS | MESSAGE_RECALL | MESSAGE_DELETE | USER_ONLINE_STATUS | USER_LIST_UPDATE | CIRCLE_CHAT_MESSAGE | CIRCLE_CHAT_MESSAGE_DELETE
    */
-  on(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE', handler: (data: any) => void): () => void {
+  on(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE', handler: (data: any) => void): () => void {
     if (!this.messageHandlers.has(type)) {
       this.messageHandlers.set(type, new Set())
     }
@@ -691,7 +751,7 @@ class WebSocketManager {
   /**
    * 移除消息处理器
    */
-  offMessage(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE', handler: (data: any) => void): void {
+  offMessage(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE', handler: (data: any) => void): void {
     const handlers = this.messageHandlers.get(type)
     if (handlers) {
       handlers.delete(handler)
@@ -782,7 +842,7 @@ let wsManager: WebSocketManager | null = null
  */
 export function initWebSocket(url?: string): WebSocketManager {
   if (wsManager) {
-
+    console.log('✅ [WebSocket] 使用已有实例')
     return wsManager
   }
 
@@ -796,6 +856,7 @@ export function initWebSocket(url?: string): WebSocketManager {
     autoReconnect: true
   })
 
+  console.log('🔵 [WebSocket] 实例已创建（尚未连接）')
   return wsManager
 }
 

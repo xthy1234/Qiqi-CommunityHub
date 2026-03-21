@@ -90,17 +90,17 @@ const cleanupWebSocketListeners = () => {
   unsubscribeConnection?.()
 }
 
-/** 初始化 WebSocket 连接 */
+/** 初始化 WebSocket连接 */
 const initializeWebSocket = async () => {
   try {
 
-    await chatService.connect()
-
+    // await chatService.connect()
+    console.log('✅ [私聊] WebSocket 已在登录后建立，使用全局连接')
     isConnected.value = true
 
     setupWebSocketListeners()
   } catch (error) {
-    console.error('❌ WebSocket 连接失败:', error)
+    console.error('❌ WebSocket连接失败:', error)
     isConnected.value = false
   }
 }

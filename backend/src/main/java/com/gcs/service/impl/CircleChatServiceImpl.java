@@ -15,6 +15,7 @@ import com.gcs.service.CircleChatService;
 import com.gcs.service.CircleService;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
+import com.gcs.vo.CircleChatMessageVO;
 import com.gcs.vo.CircleChatSessionVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,7 +78,11 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             log.info("✅ 圈子消息已保存，messageId={}, circleId={}, senderId={}",
                     chat.getId(), circleId, senderId);
 
-            // 5. 转换为 WebSocket 消息对象
+            // 🔥 5. 更新发送者的 last_read_time（避免自己发送的消息显示为未读）
+            circleMemberDao.updateLastReadTime(senderId, circleId);
+            log.debug("✅ 已更新发送者的最后阅读时间：userId={}, circleId={}", senderId, circleId);
+
+            // 6. 转换为 WebSocket 消息对象
             return convertToWebSocketMessage(chat, senderId);
         } catch (Exception e) {
             log.error("发送圈子消息失败，circleId: {}, senderId: {}", circleId, senderId, e);
@@ -103,6 +108,54 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             IPage<CircleChat> resultPage = this.page(chatPage, queryWrapper);
 
             return new PageUtils(resultPage);
+        } catch (Exception e) {
+            log.error("获取聊天记录失败，circleId: {}, userId: {}", circleId, currentUserId, e);
+            throw new RuntimeException("获取聊天记录失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public PageUtils getChatHistoryWithUserInfo(Long circleId, Long currentUserId, Map<String, Object> params) {
+        try {
+            // 1. 验证权限：必须是圈子成员
+            Boolean isMember = circleMemberDao.isMember(circleId, currentUserId);
+            if (isMember == null || !isMember) {
+                throw new RuntimeException("无权查看聊天记录，非圈子成员");
+            }
+
+            // 2. 🔥 使用 DAO 的自定义查询（包含已删除的消息）
+            int page = Integer.parseInt(params.getOrDefault("page", "1").toString());
+            int limit = Integer.parseInt(params.getOrDefault("limit", "20").toString());
+            
+            // 直接查询所有消息（包括已删除的）
+            List<CircleChat> allChats = circleChatDao.selectChatHistoryIncludeDeleted(circleId);
+            
+            // 3. 转换为 VO 并填充用户信息
+            List<CircleChatMessageVO> voList = new java.util.ArrayList<>();
+            for (CircleChat chat : allChats) {
+                CircleChatMessageVO vo = convertToRestfulVO(chat, currentUserId);
+                voList.add(vo);
+            }
+            
+            // 4. 手动分页
+            int total = voList.size();
+            int fromIndex = (page - 1) * limit;
+            int toIndex = Math.min(fromIndex + limit, total);
+            
+            List<CircleChatMessageVO> pagedList;
+            if (fromIndex >= total) {
+                pagedList = List.of();
+            } else {
+                pagedList = voList.subList(fromIndex, toIndex);
+            }
+
+            // 5. 设置回 PageUtils
+            PageUtils pageUtils = new PageUtils(pagedList, total, limit, page);
+            
+            log.info("获取圈子聊天记录成功，circleId: {}, userId: {}, total: {}", 
+                     circleId, currentUserId, total);
+            
+            return pageUtils;
         } catch (Exception e) {
             log.error("获取聊天记录失败，circleId: {}, userId: {}", circleId, currentUserId, e);
             throw new RuntimeException("获取聊天记录失败：" + e.getMessage());
@@ -153,10 +206,50 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
     }
 
     @Override
+    @Transactional
     public boolean deleteMessage(Long messageId, Long userId) {
-        // TODO: 后续实现删除功能
-        log.info("删除功能待实现：messageId={}, userId={}", messageId, userId);
-        return false;
+        try {
+            // 1. 查询消息
+            CircleChat message = this.getById(messageId);
+            if (message == null) {
+                log.warn("删除消息不存在：messageId={}", messageId);
+                return false;
+            }
+
+            // 2. 查询用户在圈子中的角色
+            var member = circleMemberDao.selectOne(
+                new LambdaQueryWrapper<com.gcs.entity.CircleMember>()
+                    .eq(com.gcs.entity.CircleMember::getCircleId, message.getCircleId())
+                    .eq(com.gcs.entity.CircleMember::getUserId, userId)
+            );
+
+            if (member == null) {
+                log.warn("删除失败：用户不是圈子成员，userId={}, circleId={}", 
+                        userId, message.getCircleId());
+                return false;
+            }
+
+            // 3. 验证权限：只有圈主 (2) 或管理员 (1) 可以删除
+            Integer role = member.getRole();
+            if (role == null || role < 1) {
+                log.warn("删除失败：用户无权限，userId={}, role={}", userId, role);
+                return false;
+            }
+
+            // 4. 执行删除操作（标记 deleted_by_admin=true）
+            message.setDeletedByAdmin(true);
+            message.setDeletedBy(userId);  // 🔥 记录删除者 ID
+            message.setDeletedTime(LocalDateTime.now());  // 🔥 记录删除时间
+            message.setUpdateTime(LocalDateTime.now());
+            this.updateById(message);
+
+            log.info("✅ 圈子消息已删除（管理员操作）：messageId={}, circleId={}, operatorId={}, role={}", 
+                    messageId, message.getCircleId(), userId, role);
+            return true;
+        } catch (Exception e) {
+            log.error("删除圈子消息失败，messageId: {}, userId: {}", messageId, userId, e);
+            return false;
+        }
     }
 
     @Override
@@ -234,6 +327,49 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
     }
 
     /**
+     * 转换为 RESTful VO（用于历史记录）
+     */
+    private CircleChatMessageVO convertToRestfulVO(CircleChat chat, Long currentUserId) {
+        CircleChatMessageVO vo = new CircleChatMessageVO();
+        vo.setId(chat.getId());
+        vo.setCircleId(chat.getCircleId());
+        vo.setSenderId(chat.getSenderId());
+        
+        // 获取发送者信息
+        User sender = userDao.selectById(chat.getSenderId());
+        if (sender != null) {
+            vo.setSender(convertToUserSimpleVO(sender));
+        }
+        
+        // 🔥 处理撤回和删除的消息内容
+        if (chat.getDeletedByAdmin()) {
+            vo.setContent("");  // 删除后内容为空
+        } else if (chat.getIsRecalled()) {
+            vo.setContent("");  // 撤回后内容为空
+        } else {
+            vo.setContent(chat.getContent());
+        }
+        
+        vo.setMsgType(chat.getMsgType());
+        vo.setIsRecalled(chat.getIsRecalled());
+        vo.setDeletedByAdmin(chat.getDeletedByAdmin());
+        
+        // 🔥 添加删除者信息（如果是删除状态）
+        if (chat.getDeletedByAdmin() && chat.getDeletedBy() != null) {
+            User deleter = userDao.selectById(chat.getDeletedBy());
+            if (deleter != null) {
+                vo.setDeleter(convertToUserSimpleVO(deleter));
+            }
+        }
+        
+        vo.setDeletedTime(chat.getDeletedTime());
+        vo.setCreateTime(chat.getCreateTime());
+        vo.setIsSelf(chat.getSenderId().equals(currentUserId));
+        
+        return vo;
+    }
+
+    /**
      * 转换为 WebSocket 消息对象
      */
     private CircleChatMessage convertToWebSocketMessage(CircleChat chat, Long currentUserId) {
@@ -241,11 +377,32 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
         messageVO.setId(chat.getId());
         messageVO.setCircleId(chat.getCircleId());
         messageVO.setSenderId(chat.getSenderId());
-        messageVO.setContent(chat.getIsRecalled() ? "" : chat.getContent());
+        
+        // 🔥 处理撤回和删除的消息内容
+        if (chat.getDeletedByAdmin()) {
+            messageVO.setContent("");  // 删除后内容为空
+        } else if (chat.getIsRecalled()) {
+            messageVO.setContent("");  // 撤回后内容为空
+        } else {
+            messageVO.setContent(chat.getContent());
+        }
+        
         messageVO.setMsgType(chat.getMsgType());
         messageVO.setStatus(chat.getStatus());
         messageVO.setCreateTime(chat.getCreateTime());
         messageVO.setIsSelf(chat.getSenderId().equals(currentUserId));
+        messageVO.setIsRecalled(chat.getIsRecalled());
+        messageVO.setDeletedByAdmin(chat.getDeletedByAdmin());
+        
+        // 🔥 添加删除者信息（如果是删除状态）
+        if (chat.getDeletedByAdmin() && chat.getDeletedBy() != null) {
+            User deleter = userDao.selectById(chat.getDeletedBy());
+            if (deleter != null) {
+                messageVO.setDeleter(convertToUserSimpleVO(deleter));
+            }
+        }
+        
+        messageVO.setDeletedTime(chat.getDeletedTime());
         messageVO.setAction("SEND");
 
         // 获取发送者信息

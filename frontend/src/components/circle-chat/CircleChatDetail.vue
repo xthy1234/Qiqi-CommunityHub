@@ -91,17 +91,28 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, h } from 'vue'
 import { useCircleChatStore } from '@/stores/circleChat'
-import type { CircleMessage, Message } from '@/types/message'
+import type { Message } from '@/types/message'
+import type { CircleMessage } from '@/types/circleChat'
 import MessageBubble from '../chat/MessageBubble.vue'
 import ChatInput from '../chat/ChatInput.vue'
 import SystemMessageTip from '../chat/SystemMessageTip.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { NIcon, NDropdown, NAvatar, NSpin, NText } from 'naive-ui'
 import { Icon } from '@iconify/vue'
+import { getWebSocket } from '@/utils/websocket'
+import chatService from '@/api/chat'
+import { ElMessage } from 'element-plus'
+import { circleWebSocket } from '@/api/circle'
 
 const appContext = useGlobalProperties()
 const store = useCircleChatStore()
 const messageListRef = ref<HTMLElement | null>(null)
+const isUserScrolling = ref(false)
+const isAtBottom = ref(true)
+
+// WebSocket 订阅取消函数
+let unsubscribeCircleMessage: (() => void) | null = null
+let unsubscribeCircleDelete: (() => void) | null = null
 
 // 在线人数统计
 const onlineCount = computed(() => {
@@ -117,7 +128,7 @@ const currentUserId = computed(() => {
   return null
 })
 
-// 判断是否是自己发送的消息
+// 判断是否是自己发送的消息（前端判断）
 const isOwnMessage = (msg: CircleMessage) => {
   return msg.isSelf === true || msg.senderId === currentUserId.value
 }
@@ -156,6 +167,9 @@ const handleMenuClick = async (key: string) => {
 
 // 类型转换：CircleMessage -> Message (适配 MessageBubble 组件)
 const convertToMessage = (circleMsg: CircleMessage): Message => {
+  // 关键修改：前端计算 isSelf 字段
+  const isSelf = circleMsg.senderId === currentUserId.value
+
   return {
     id: circleMsg.id,
     fromUserId: circleMsg.senderId,
@@ -164,7 +178,7 @@ const convertToMessage = (circleMsg: CircleMessage): Message => {
     msgType: circleMsg.msgType,
     status: circleMsg.status,
     createTime: circleMsg.createTime,
-    isSelf: circleMsg.isSelf,
+    isSelf: isSelf,  // 前端计算，不依赖后端
     isRecalled: circleMsg.isRecalled,
     fromUser: circleMsg.sender,
     _isSystemTip: circleMsg._isSystemTip,
@@ -183,16 +197,46 @@ const scrollToBottom = () => {
   }
 }
 
+// 检测用户是否在底部
+const checkIsAtBottom = () => {
+  const messageListEl = messageListRef.value
+  if (!messageListEl) {
+    return false
+  }
+
+  const threshold = 50
+  const scrollTop = messageListEl.scrollTop
+  const scrollHeight = messageListEl.scrollHeight
+  const clientHeight = messageListEl.clientHeight
+  const distanceToBottom = scrollHeight - scrollTop - clientHeight
+
+  return distanceToBottom <= threshold
+}
+
 // 处理滚动事件
 const handleScroll = (e: Event) => {
   const target = e.target as HTMLElement
+
+  // 更新是否在底部的状态
+  const wasAtBottom = isAtBottom.value
+  isAtBottom.value = checkIsAtBottom()
+
+  // 检测用户是否正在往上翻
+  if (!isAtBottom.value) {
+    isUserScrolling.value = true
+  } else {
+    isUserScrolling.value = false
+  }
+
   if (target.scrollTop === 0 && store.hasMore) {
     // TODO: 加载更多历史消息
     console.log('加载更多消息')
   }
 }
 
-// 发送消息
+/**
+ * 发送消息（完整实现）
+ */
 const handleSendMessage = async (content: string) => {
   if (!store.currentCircle) return
   
@@ -202,36 +246,69 @@ const handleSendMessage = async (content: string) => {
     await nextTick()
     scrollToBottom()
 
-    // 2. 通过 WebSocket 发送
-    // TODO: 实现 WebSocket 发送逻辑
-    console.log('📤 发送消息:', content, 'to circle:', store.currentCircle.id)
-    
-    // 模拟发送成功（实际应该等 WebSocket 确认）
-    setTimeout(() => {
-      store.confirmSentMessage({
-        ...tempMessage,
-        id: Date.now(),
-        _sending: false,
-        createTime: new Date().toISOString()
-      } as CircleMessage)
-    }, 300)
+    // 2. 通过 WebSocket 发送到后端
+    console.log('📤 [圈子聊天] 准备发送消息:', content)
+
+    // 使用 circleWebSocket 发送消息到 /app/circle-message
+    circleWebSocket.sendCircleMessage(store.currentCircle.id, content, 0)
+    console.log('✅ [圈子聊天] 消息已通过 WebSocket 发送')
+
+    // 3. 等待后端推送确认（监听 CIRCLE_CHAT_MESSAGE 事件）
+    // 不需要 setTimeout 模拟，后端会通过 WebSocket 推送完整的消息对象
+    // store.confirmSentMessage() 会在收到推送时自动调用
 
   } catch (error: any) {
     console.error('发送消息失败:', error)
+    ElMessage.error('消息发送失败')
   }
 }
 
 // 撤回消息
 const handleRecallMessage = (messageId: number) => {
-  // TODO: 调用撤回接口
-  console.log('撤回消息:', messageId)
+  if (!store.currentCircle) return
+
+  console.log('↩️ [圈子聊天] 撤回消息:', messageId)
+
+  // 乐观更新 UI
   store.recallMessageOptimistic(messageId)
+
+  // 调用 WebSocket 撤回接口
+  circleWebSocket.recallMessage(messageId, '用户主动撤回')
 }
 
 // 删除消息
-const handleDeleteMessage = (messageId: number) => {
-  // TODO: 调用删除接口
-  console.log('删除消息:', messageId)
+const handleDeleteMessage = async (messageId: number) => {
+  if (!store.currentCircle) return
+
+  console.log('🗑️ [圈子聊天] 删除消息:', messageId)
+
+  try {
+    // TODO: 调用 HTTP 删除接口
+    // 等后端接口完成后实现
+    // await circleChatApi.deleteMessage(store.currentCircle.id, messageId)
+
+    // 临时方案：通过 WebSocket 发送删除请求
+    const ws = getWebSocket()
+    if (ws && ws.isConnected()) {
+      const client = (ws as any).client
+      if (client && client.connected) {
+        const deleteRequest = {
+          messageId: messageId,
+          circleId: store.currentCircle.id
+        }
+
+        client.publish({
+          destination: '/app/circle-delete-message',
+          body: JSON.stringify(deleteRequest)
+        })
+
+        console.log('✅ [圈子聊天] 已发送删除请求:', messageId)
+      }
+    }
+  } catch (error: any) {
+    console.error('删除消息失败:', error)
+    ElMessage.error('删除消息失败')
+  }
 }
 
 // 复制消息
@@ -241,15 +318,114 @@ const handleCopyMessage = (content: string) => {
   }
 }
 
+// 监听消息长度变化，自动滚动
+watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
+  const addedCount = newLen - oldLen
+
+  if (addedCount > 0) {
+    await nextTick()
+
+    // 只有在底部时才滚动到最新
+    if (isAtBottom.value && !isUserScrolling.value) {
+      scrollToBottom()
+    }
+  }
+}, { immediate: true })
+
 // 监听当前圈子变化
-watch(() => store.currentCircle, (newCircle) => {
+watch(() => store.currentCircle, async (newCircle) => {
   if (newCircle) {
     store.saveCurrentCircleToStorage()
+
     nextTick(() => {
       scrollToBottom()
+
+      // 关键修改：先标记为已读，再发送已读回执
+      if (newCircle.id) {
+        // 1. 调用后端 API 标记为已读（更新 last_read_time）
+        store.markAsReadByAPI(newCircle.id)
+
+        // 2. 发送 WebSocket 已读回执（通知其他成员）
+        store.markCircleAsRead(newCircle.id)
+      }
     })
   }
-}, { deep: true })
+}, { deep: true, immediate: true })
+
+// 清理 WebSocket 处理器
+const cleanupWebSocketHandlers = () => {
+  if (unsubscribeCircleMessage) {
+    unsubscribeCircleMessage()
+    unsubscribeCircleMessage = null
+  }
+}
+
+// 注册 WebSocket 消息处理器
+const registerWebSocketHandlers = () => {
+  const ws = getWebSocket()
+  if (!ws) {
+    console.warn('⚠️ [圈子聊天] WebSocket 未初始化，无法注册处理器')
+    return
+  }
+
+  // 注册圈子消息处理器（统一处理 SEND、RECALL、DELETE）
+  unsubscribeCircleMessage = ws.on('CIRCLE_CHAT_MESSAGE', (data: any) => {
+    console.log('📨 [圈子聊天] 收到圈子消息:', data)
+
+    // 1. 删除消息处理
+    if (data.action === 'DELETE' || data.deletedByAdmin === true) {
+      console.log('🗑️ [圈子聊天] 收到删除消息通知:', data)
+
+      const deleterNickname = data.deleter?.nickname || '管理员'
+      store.handleDeleteMessageNotification(
+        data.id,
+        data.deleter?.id,
+        deleterNickname
+      )
+      return
+    }
+
+    // 2. 撤回消息处理
+    if (data.action === 'RECALL') {
+      // 撤回消息
+      store.recallMessageOptimistic(data.id, data.reason)
+      return
+    }
+
+    // 3. 普通消息处理 - 前端判断是否是自己发送的
+    const isSelf = data.senderId === currentUserId.value
+
+    if (isSelf) {
+      // 自己发送的消息，后端推送回来确认
+      // 确保消息对象包含正确的 isSelf 字段
+      const messageWithSelfFlag = {
+        ...data,
+        isSelf: true
+      }
+      store.confirmSentMessage(messageWithSelfFlag)
+      console.log('✅ [圈子聊天] 收到自己发送的消息确认:', messageWithSelfFlag)
+    } else {
+      // 其他成员发送的消息
+      const messageWithSelfFlag = {
+        ...data,
+        isSelf: false
+      }
+      store.receiveMessage(messageWithSelfFlag)
+      console.log('✅ [圈子聊天] 收到其他成员的消息:', messageWithSelfFlag)
+
+      // 关键修复：如果是在当前圈子收到的消息，立即标记为已读
+      if (store.currentCircle && data.circleId === store.currentCircle.id) {
+        // 延迟一下，确保消息已经添加到列表
+        setTimeout(() => {
+          store.markAsReadByAPI(data.circleId)
+          store.markCircleAsRead(data.circleId)
+        }, 100)
+      }
+    }
+  })
+
+  console.log('✅ [圈子聊天] 已注册 WebSocket 消息处理器')
+}
 
 onMounted(() => {
   // 恢复上次浏览的圈子
@@ -257,10 +433,14 @@ onMounted(() => {
   if (saved) {
     console.log('恢复上次的圈子:', saved)
   }
+
+  // 注册 WebSocket 监听器
+  registerWebSocketHandlers()
 })
 
 onUnmounted(() => {
   store.clearSavedCircle()
+  cleanupWebSocketHandlers()
 })
 </script>
 

@@ -59,9 +59,21 @@ class HttpClient {
                 if (token && requestConfig.headers) {
                     requestConfig.headers['Token'] = token
                 }
+                
+                // 🔍 添加请求日志
+                console.log('📡 [HTTP 请求]', {
+                    方法：requestConfig.method?.toUpperCase(),
+                    路径：requestConfig.url,
+                    基础 URL: requestConfig.baseURL,
+                    完整 URL: requestConfig.baseURL + requestConfig.url,
+                    请求头：requestConfig.headers,
+                    请求数据：requestConfig.data
+                })
+                
                 return requestConfig
             },
             (error) => {
+                console.error('❌ [HTTP 请求拦截器错误]:', error)
                 return Promise.reject(error)
             }
         )
@@ -70,6 +82,13 @@ class HttpClient {
         this.axiosInstance.interceptors.response.use(
             (response: AxiosResponse<ApiResponse>) => {
                 const { data } = response
+
+                // 🔍 添加响应日志
+                console.log('📥 [HTTP 响应]', {
+                    状态码：response.status,
+                    请求路径：response.config.url,
+                    响应数据：data
+                })
 
                 // 处理未授权访问 (401)
                 if (data && data.code === 401) {
@@ -87,6 +106,14 @@ class HttpClient {
                 return Promise.reject(response)
             },
             (error) => {
+                console.error('❌ [HTTP 响应拦截器错误]:', {
+                    错误对象：error,
+                    错误名称：error.constructor.name,
+                    是否是 Axios 错误：error.isAxiosError,
+                    响应状态码：error.response?.status,
+                    响应数据：error.response?.data,
+                    请求配置：error.config
+                })
                 return Promise.reject(error)
             }
         )

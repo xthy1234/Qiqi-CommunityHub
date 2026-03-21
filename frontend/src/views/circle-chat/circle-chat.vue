@@ -91,6 +91,8 @@ import CircleMemberList from '@/components/circle-chat/CircleMemberList.vue'
 import { useCircleChatStore } from '@/stores/circleChat'
 import { circleApi, circleMemberApi, circleChatApi, circleWebSocket } from '@/api/circle'
 import type { CircleConversation, CircleMessage, CircleMember } from '@/types/circleChat'
+import {getWebSocket} from "@/utils/websocket"
+import chatService from '@/api/chat'
 
 const store = useCircleChatStore()
 const message = useMessage()
@@ -115,8 +117,8 @@ const createRules = {
   ]
 }
 
-// WebSocket 订阅取消函数
-let unsubscribeMessage: (() => void) | null = null
+// WebSocket 订阅取消函数 - 不再需要，因为使用全局订阅
+// let unsubscribeMessage: (() => void) | null = null
 
 /**
  * 加载会话列表
@@ -126,6 +128,11 @@ const loadConversations = async () => {
     store.loading = true
     const result = await circleChatApi.getConversations({ page: 1, limit: 20 })
     store.setConversations(result.list)
+
+    // 可选：如果需要更精确的未读数，可以为每个圈子单独获取
+    // 但通常 getConversations 返回的未读数已经足够准确
+    console.log('✅ [圈子聊天] 会话列表加载完成，总未读数:', store.totalUnreadCount)
+
   } catch (error: any) {
     console.error('加载会话列表失败:', error)
     message.error(error.message || '加载失败')
@@ -161,9 +168,8 @@ const handleSelectCircle = async (conv: CircleConversation) => {
     await loadMembers(circle.id)
     console.log('✅ [圈子聊天] 成员列表加载完成，成员数:', store.members.length)
 
-    // 5. 订阅 WebSocket 消息
-    console.log('📡 [圈子聊天] 准备订阅 WebSocket 消息')
-    subscribeCircleMessages(circle.id)
+    // 5. 不再在这里单独订阅，因为 WebSocketManager 已经全局订阅了
+    console.log('ℹ️ [圈子聊天] 使用全局 WebSocket 订阅，无需单独订阅')
     
   } catch (error: any) {
     console.error('❌ [圈子聊天] 切换圈子失败:', error)
@@ -178,6 +184,13 @@ const loadChatHistory = async (circleId: number) => {
   try {
     const result = await circleChatApi.getChatHistory(circleId, { page: 1, limit: 20 })
     store.setMessages(result.list.reverse(), true)  // reverse 让最新的在下面
+
+    // 处理撤回消息（转换为系统提示）
+    store.processRecalledMessages(store.messages)
+
+    // 处理删除消息（转换为系统提示）
+    store.processDeletedMessages(store.messages)
+
   } catch (error: any) {
     console.error('加载聊天记录失败:', error)
   }
@@ -193,27 +206,6 @@ const loadMembers = async (circleId: number) => {
   } catch (error: any) {
     console.error('加载成员列表失败:', error)
   }
-}
-
-/**
- * 订阅圈子 WebSocket 消息
- */
-const subscribeCircleMessages = (circleId: number) => {
-  // 先取消之前的订阅
-  unsubscribeMessage?.()
-  
-  // 重新订阅当前圈子
-  unsubscribeMessage = circleWebSocket.subscribeCircleMessages(circleId, (msg: CircleMessage) => {
-    console.log('📨 收到新消息:', msg)
-    
-    if (msg.action === 'RECALL') {
-      // 撤回消息
-      store.recallMessageOptimistic(msg.id, msg.content)
-    } else {
-      // 普通消息
-      store.receiveMessage(msg)
-    }
-  })
 }
 
 /**
@@ -263,14 +255,24 @@ const handleCreateCircle = async () => {
 }
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
   console.log('🚀 [圈子聊天] 页面挂载，开始加载会话列表')
+
+  // 不再在这里连接 WebSocket，因为登录后已经全局连接了
+  // 只需要检查连接状态即可
+  const ws = getWebSocket()
+  if (ws) {
+    console.log('✅ [圈子聊天] WebSocket 状态:', ws.isConnected() ? '已连接' : '未连接')
+  } else {
+    console.warn('⚠️ [圈子聊天] WebSocket 实例不存在')
+  }
+
   loadConversations()
 })
 
 onUnmounted(() => {
-  // 清理 WebSocket 订阅
-  unsubscribeMessage?.()
+  // 不再需要清理，因为使用全局订阅
+  // unsubscribeMessage?.()
 })
 </script>
 

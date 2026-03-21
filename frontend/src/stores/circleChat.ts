@@ -172,6 +172,8 @@ export const useCircleChatStore = defineStore('circleChat', {
           _sending: false,
           isSelf: true
         }
+        
+        console.log('✅ [CircleChat] 确认发送的消息:', realMessage.id)
       } else {
         const exists = this.messages.some((m: CircleMessage) => m.id === realMessage.id)
         if (!exists) {
@@ -180,6 +182,7 @@ export const useCircleChatStore = defineStore('circleChat', {
             _sending: false,
             isSelf: true
           })
+          console.log('✅ [CircleChat] 添加新消息（无临时消息）:', realMessage.id)
         }
       }
 
@@ -188,24 +191,30 @@ export const useCircleChatStore = defineStore('circleChat', {
       if (convIndex !== -1) {
         this.conversations[convIndex].lastMessageContent = realMessage.content
         this.conversations[convIndex].lastMessageTime = realMessage.createTime
+        
+        // 移到最前面
+        const conv = this.conversations.splice(convIndex, 1)[0]
+        this.conversations.unshift(conv)
       }
     },
 
     /** 接收新消息（WebSocket） */
     receiveMessage(message: CircleMessage) {
-      if (message.isSelf) {
-        return
-      }
-
+      // 关键修改：不再检查 message.isSelf，由组件层处理
+      
       if (this.currentCircle && message.circleId === this.currentCircle.id) {
-        // 当前正在查看这个圈子，直接添加消息
+        // 当前正在查看这个圈子，直接添加消息，不增加未读数
         this.messages.push(message)
         
-        // 清零未读数
+        // 清零未读数（本地）
         const convIndex = this.conversations.findIndex((c: CircleConversation) => c.circleId === message.circleId)
         if (convIndex !== -1) {
           this.conversations[convIndex].unreadCount = 0
         }
+        
+        // 关键修复：立即调用后端 API 标记为已读（更新数据库的 last_read_time）
+        // 使用防抖，避免频繁调用
+        this.debounceMarkAsRead(message.circleId)
       } else {
         // 不在当前圈子，增加未读数
         const convIndex = this.conversations.findIndex((c: CircleConversation) => c.circleId === message.circleId)
@@ -215,6 +224,19 @@ export const useCircleChatStore = defineStore('circleChat', {
           this.conversations[convIndex].unreadCount++
           const conv = this.conversations.splice(convIndex, 1)[0]
           this.conversations.unshift(conv)
+        } else {
+          // 如果会话列表中还没有这个圈子，创建新的会话项
+          const newConv: CircleConversation = {
+            circleId: message.circleId,
+            circleName: '未知圈子',
+            lastMessageContent: message.content,
+            lastMessageSenderId: message.senderId,
+            lastMessageSenderNickname: message.sender?.nickname,
+            lastMessageTime: message.createTime,
+            unreadCount: 1,
+            memberCount: 0
+          }
+          this.conversations.unshift(newConv)
         }
       }
     },
@@ -232,6 +254,53 @@ export const useCircleChatStore = defineStore('circleChat', {
           _tipType: 'recall',
           _tipUsername: msg.sender?.nickname || ''
         }
+      }
+    },
+
+    /** 删除消息（乐观更新，仅管理员） */
+    deleteMessageOptimistic(messageId: number, deletedByUserId: number, deletedByUsername?: string): void {
+      const msgIndex = this.messages.findIndex((m: CircleMessage) => m.id === messageId)
+      if (msgIndex !== -1) {
+        const msg = this.messages[msgIndex]
+        
+        // 1. 将原消息标记为已删除
+        this.messages[msgIndex] = {
+          ...msg,
+          isDeleted: true,
+          content: '',
+          _isSystemTip: true,
+          _tipType: 'delete',
+          _tipUsername: deletedByUsername || '管理员'
+        }
+        
+        console.log('✅ [CircleChat] 已删除消息:', messageId, '- 操作人:', deletedByUsername)
+      } else {
+        console.warn('⚠️ [CircleChat] 未找到要删除的消息:', messageId)
+      }
+    },
+
+    /** 处理收到的消息删除通知（WebSocket 推送） */
+    handleDeleteMessageNotification(messageId: number, deleterId: number, deleterNickname?: string): void {
+      const msgIndex = this.messages.findIndex((m: CircleMessage) => m.id === messageId)
+      if (msgIndex !== -1) {
+        const msg = this.messages[msgIndex]
+        const senderNickname = msg.sender?.nickname || '未知用户'
+        
+        // 创建系统提示消息：某人的消息被管理员某某删除了
+        this.messages.splice(msgIndex, 1, {
+          ...msg,
+          id: messageId,
+          content: '',
+          deletedByAdmin: true,
+          _isSystemTip: true,
+          _tipType: 'delete',
+          _tipUsername: deleterNickname || '管理员',
+          _deleteDetail: `${senderNickname}的消息被${deleterNickname || '管理员'}删除`
+        })
+        
+        console.log('✅ [CircleChat] 已处理删除消息通知:', messageId, '- 删除者:', deleterNickname)
+      } else {
+        console.warn('⚠️ [CircleChat] 未找到要处理删除通知的消息:', messageId)
       }
     },
 
@@ -304,6 +373,124 @@ export const useCircleChatStore = defineStore('circleChat', {
     /** 清除保存的会话 */
     clearSavedCircle(): void {
       sessionStorage.removeItem('lastCircleSession')
+    },
+
+    /** 防抖：标记圈子为已读（延迟 500ms，避免频繁调用） */
+    debounceMarkAsReadTimeouts: new Map<number, NodeJS.Timeout>(),
+    
+    /** 标记圈子消息为已读（发送已读回执） */
+    markCircleAsRead(circleId: number): void {
+      const ws = require('@/utils/websocket').getWebSocket()
+      if (ws && ws.isConnected()) {
+        const client = (ws as any).client
+        if (client && client.connected) {
+          const readReceipt = {
+            circleId: circleId,
+            timestamp: Date.now()
+          }
+          
+          client.publish({
+            destination: '/app/circle-read-receipt',
+            body: JSON.stringify(readReceipt)
+          })
+          
+          console.log('✅ [CircleChat] 已发送已读回执，circleId:', circleId)
+        }
+      } else {
+        console.warn('⚠️ [CircleChat] WebSocket 未连接，无法发送已读回执')
+      }
+    },
+
+    /** 从后端获取并更新未读消息数 */
+    async updateUnreadCountFromServer(circleId: number): Promise<void> {
+      try {
+        const { circleChatApi } = await import('@/api/circle')
+        const count = await circleChatApi.getUnreadCount(circleId)
+        
+        const convIndex = this.conversations.findIndex((c: CircleConversation) => c.circleId === circleId)
+        if (convIndex !== -1) {
+          this.conversations[convIndex].unreadCount = count
+          console.log(`✅ [CircleChat] 已更新圈子 ${circleId} 的未读数：`, count)
+        }
+      } catch (error) {
+        console.error('❌ [CircleChat] 获取未读数失败:', error)
+      }
+    },
+
+    /** 标记圈子为已读（调用后端接口） */
+    async markAsReadByAPI(circleId: number): Promise<void> {
+      try {
+        const { circleChatApi } = await import('@/api/circle')
+        await circleChatApi.markAsRead(circleId)
+        
+        // 更新本地未读数为 0
+        const convIndex = this.conversations.findIndex((c: CircleConversation) => c.circleId === circleId)
+        if (convIndex !== -1) {
+          this.conversations[convIndex].unreadCount = 0
+        }
+        
+        console.log('✅ [CircleChat] 已标记圈子为已读:', circleId)
+      } catch (error) {
+        console.error('❌ [CircleChat] 标记已读失败:', error)
+      }
+    },
+
+    /** 处理加载的消息中的撤回消息（转换为系统提示） */
+    processRecalledMessages(messages: CircleMessage[]): void {
+      let processedCount = 0
+      
+      messages.forEach((msg, index) => {
+        if (msg.isRecalled === true && !msg._isSystemTip) {
+          // 创建新对象并替换，确保触发响应式更新
+          const newMsg: CircleMessage = {
+            ...msg,
+            content: '',
+            _isSystemTip: true,
+            _tipType: 'recall' as const,
+            _tipUsername: msg.sender?.nickname || ''
+          }
+          
+          // 使用 splice 替换元素，确保触发响应式
+          messages.splice(index, 1, newMsg)
+          processedCount++
+        }
+      })
+      
+      if (processedCount > 0) {
+        console.log('✅ [CircleChat] 已处理撤回消息:', processedCount, '条')
+      }
+    },
+
+    /** 处理加载的消息中的删除消息（转换为系统提示） */
+    processDeletedMessages(messages: CircleMessage[]): void {
+      let processedCount = 0
+      
+      messages.forEach((msg, index) => {
+        if (msg.deletedByAdmin === true && !msg._isSystemTip) {
+          const senderNickname = msg.sender?.nickname || '未知用户'
+          const deleterNickname = msg.deleter?.nickname || '管理员'
+          
+          // 创建新对象并替换，确保触发响应式更新
+          const newMsg: CircleMessage = {
+            ...msg,
+            content: '',
+            _isSystemTip: true,
+            _tipType: 'delete' as const,
+            _tipUsername: deleterNickname,
+            _deleteDetail: `${senderNickname}的消息被${deleterNickname}删除`
+          }
+          
+          // 使用 splice 替换元素，确保触发响应式
+          messages.splice(index, 1, newMsg)
+          processedCount++
+        }
+      })
+      
+      if (processedCount > 0) {
+        console.log('✅ [CircleChat] 已处理删除消息:', processedCount, '条')
+      }
     }
   }
 })
+
+export default useCircleChatStore

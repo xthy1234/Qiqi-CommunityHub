@@ -78,4 +78,24 @@ public class CircleChat implements Serializable {
      * 是否已撤回
      */
     private Boolean isRecalled = false;
+
+    /**
+     * 是否被管理员删除
+     */
+    @TableField("deleted_by_admin")
+    private Boolean deletedByAdmin = false;
+
+    /**
+     * 删除者用户 ID（管理员或圈主）
+     */
+    @TableField("deleted_by")
+    private Long deletedBy;
+
+    /**
+     * 删除时间
+     */
+    @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField("deleted_time")
+    private LocalDateTime deletedTime;
 }

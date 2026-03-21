@@ -102,6 +102,7 @@ import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
 import menu from '@/utils/menu'
+import { getWebSocket } from '@/utils/websocket'
 
 // 获取 router 实例
 const router = useRouter()
@@ -211,6 +212,9 @@ const executeLogin = async (): Promise<void> => {
     // 获取用户菜单
     await fetchUserMenus()
 
+    // 关键修改：登录成功后建立 WebSocket连接
+    await initializeWebSocket()
+
     // 跳转到目标页面
     redirectToTargetPage()
 
@@ -219,6 +223,27 @@ const executeLogin = async (): Promise<void> => {
     message.error('登录失败，请检查账号和密码')
   } finally {
     loginLoading.value = false
+  }
+}
+
+/**
+ * 初始化 WebSocket连接
+ */
+const initializeWebSocket = async (): Promise<void> => {
+  try {
+    const ws = getWebSocket()
+    if (ws && !ws.isConnected()) {
+      console.log('🔵 [登录] 开始建立 WebSocket连接...')
+      await ws.connect()
+      console.log('✅ [登录] WebSocket连接成功')
+    } else if (ws && ws.isConnected()) {
+      console.log('✅ [登录] WebSocket 已连接，无需重复连接')
+    } else {
+      console.warn('⚠️ [登录] WebSocket 实例不存在')
+    }
+  } catch (error) {
+    console.error('❌ [登录] WebSocket连接失败:', error)
+    // WebSocket连接失败不影响登录流程
   }
 }
 

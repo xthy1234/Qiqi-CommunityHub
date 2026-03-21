@@ -39,6 +39,18 @@ public class CircleChatMessage {
     @Schema(description = "创建时间", example = "2024-01-01 12:00:00")
     private LocalDateTime createTime;
 
+    @Schema(description = "是否已撤回", example = "false")
+    private Boolean isRecalled;
+
+    @Schema(description = "是否被管理员删除", example = "false")
+    private Boolean deletedByAdmin;
+
+    @Schema(description = "删除者信息")
+    private UserSimpleVO deleter;
+
+    @Schema(description = "删除时间", example = "2024-01-01 12:00:00")
+    private  LocalDateTime deletedTime;
+
     @Schema(description = "动作类型", example = "SEND")
     private String action;          // SEND: 发送消息，RECALL: 撤回消息，DELETE: 删除消息
 }
