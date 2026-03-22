@@ -14,6 +14,7 @@ import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.enums.CircleMemberRole;
 
+import com.gcs.vo.UserSimpleVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -123,6 +124,57 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
     }
 
     @Override
+    public PageUtils getMemberPageWithUserInfo(Long circleId, Map<String, Object> params) {
+        try {
+            IPage<CircleMember> memberPage = new Query<CircleMember>(params).getPage();
+
+            LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(CircleMember::getCircleId, circleId)
+                    .eq(CircleMember::getStatus, CommonStatus.ENABLED);
+
+            // 角色过滤
+            String role = (String) params.get("role");
+            if (StringUtils.hasText(role)) {
+                queryWrapper.eq(CircleMember::getRole, Integer.parseInt(role));
+            }
+
+            queryWrapper.orderByAsc(CircleMember::getJoinTime);
+
+            IPage<CircleMember> resultPage = this.page(memberPage, queryWrapper);
+
+            // 将实体列表转换为 VO 列表
+            List<CircleMemberVO> voList = resultPage.getRecords().stream()
+                    .map(member -> {
+                        CircleMemberVO vo = new CircleMemberVO();
+                        vo.setId(member.getId());
+                        vo.setRole(member.getRole());
+                        vo.setRoleDescription(getRoleDescription(member.getRole()));
+                        vo.setJoinTime(member.getJoinTime());
+                        vo.setStatus(member.getStatus());
+
+                        // 填充用户信息
+                        User user = userDao.selectById(member.getUserId());
+                        UserSimpleVO userSimpleVO = new UserSimpleVO();
+                        userSimpleVO.setId(user != null ? user.getId() : member.getUserId());
+                        userSimpleVO.setNickname(user != null ? user.getNickname() : "未知用户");
+                        userSimpleVO.setAvatar(user != null ? user.getAvatar() : "");
+                        userSimpleVO.setLastOnlineTime(user != null ? user.getLastOnlineTime() : null);
+                        vo.setUser(userSimpleVO);
+
+                        return vo;
+                    })
+                    .collect(Collectors.toList());
+
+            // 创建新的 PageUtils 对象
+            PageUtils pageUtils = new PageUtils(voList, resultPage.getTotal(), resultPage.getSize(), resultPage.getCurrent());
+            return pageUtils;
+        } catch (Exception e) {
+            log.error("获取成员列表失败，circleId: {}", circleId, e);
+            throw new RuntimeException("获取成员列表失败：" + e.getMessage());
+        }
+    }
+
+    @Override
     public PageUtils getMemberPage(Long circleId, Map<String, Object> params) {
         try {
             IPage<CircleMember> memberPage = new Query<CircleMember>(params).getPage();
@@ -147,6 +199,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
         }
     }
 
+
     @Override
     public CircleMemberVO getMemberDetail(Long circleId, Long userId) {
         try {
@@ -163,9 +216,14 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             User user = userDao.selectById(userId);
             CircleMemberVO vo = new CircleMemberVO();
             vo.setId(member.getId());
-            vo.setUserId(member.getUserId());
-            vo.setNickname(user != null ? user.getNickname() : "未知用户");
-            vo.setAvatar(user != null ? user.getAvatar() : "");
+
+            UserSimpleVO userSimpleVO = new UserSimpleVO();
+            userSimpleVO.setId(user != null ? user.getId() : userId);
+            userSimpleVO.setNickname(user != null ? user.getNickname() : "未知用户");
+            userSimpleVO.setAvatar(user != null ? user.getAvatar() : "");
+            userSimpleVO.setLastOnlineTime(user != null ? user.getLastOnlineTime() : null);
+            vo.setUser(userSimpleVO);
+
             vo.setRole(member.getRole());
             vo.setRoleDescription(getRoleDescription(member.getRole()));
             vo.setJoinTime(member.getJoinTime());

@@ -156,12 +156,11 @@ app.config.globalProperties.$http = httpCall
 app.config.globalProperties.$menu = menu
 
 // 初始化 WebSocket（仅创建实例，不建立连接）
-console.log('🔵 [WebSocket] 开始初始化...')
 try {
   const wsUrl = `ws://${window.location.hostname}:8080/ws`
-  console.log('🔵 [WebSocket] 准备连接:', wsUrl)
+
   initWebSocket(wsUrl)
-  console.log('✅ [WebSocket] 初始化成功（等待登录后连接）')
+
 } catch (error) {
   console.error('❌ [WebSocket] 初始化失败:', error)
 }
@@ -179,19 +178,19 @@ app.mount('#app')
     const userId = utilityTools.storageGet('userid')
     
     if (token && userId) {
-      console.log('🔵 [WebSocket] 检测到已登录用户，自动建立连接...')
+
       
       const ws = getWebSocket()
       if (ws && !ws.isConnected()) {
         await ws.connect()
-        console.log('✅ [WebSocket] 自动连接成功')
+
       } else if (ws && ws.isConnected()) {
-        console.log('✅ [WebSocket] 已经连接')
+
       } else {
         console.warn('⚠️ [WebSocket] 实例不存在')
       }
     } else {
-      console.log('ℹ️ [WebSocket] 用户未登录，等待手动登录')
+
     }
   } catch (error) {
     console.error('❌ [WebSocket] 自动连接失败:', error)

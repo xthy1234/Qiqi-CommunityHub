@@ -231,9 +231,6 @@ class WebSocketManager {
             }
           })
 
-          console.log('✅ [WebSocket] CHAT_MESSAGE 处理器执行完成:', 
-              '- 成功数量:', successCount,
-              '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 CHAT_MESSAGE 处理器！')
         }
@@ -371,44 +368,33 @@ class WebSocketManager {
     if (!this.client) return
 
     const currentUserId = this.getCurrentUserId()
-    
-    console.log('🔵 [CircleChat] 开始订阅圈子消息，当前用户 ID:', currentUserId)
+
     
     // 订阅所有圈子的消息（使用通配符）
     const circleDestination = `/topic/circles/*/messages`
     
     this.client.subscribe(circleDestination, (message: IMessage) => {
-      console.log('📨 [CircleChat] 收到圈子消息推送')
-      console.log('📨 [CircleChat] 消息 body:', message.body)
+
       
       try {
         const data = JSON.parse(message.body)
-        console.log('✅ [CircleChat] 解析后的消息对象:', data)
-        console.log('✅ [CircleChat] 消息结构:', JSON.stringify(data, null, 2))
         
         // 触发 CIRCLE_CHAT_MESSAGE 处理器
         const handlers = this.messageHandlers.get('CIRCLE_CHAT_MESSAGE')
-        
-        console.log('🔍 [CircleChat] 查找处理器:', 
-          '- 类型：CIRCLE_CHAT_MESSAGE',
-          '- 是否存在：', !!handlers,
-          '- 数量：', handlers?.size)
+
         
         if (handlers && handlers.size > 0) {
           let successCount = 0
           handlers.forEach(handler => {
             try {
-              console.log('📤 [CircleChat] 执行处理器，传入数据:', data)
+
               handler(data)
               successCount++
             } catch (error) {
               console.error(`❌ [CircleChat] 圈子消息处理器执行出错:`, error)
             }
           })
-          
-          console.log('✅ [CircleChat] CIRCLE_CHAT_MESSAGE 处理器执行完成:', 
-              '- 成功数量:', successCount,
-              '- 总数量:', handlers.size)
+
         } else {
           console.warn('⚠️ [CircleChat] 未找到 CIRCLE_CHAT_MESSAGE 处理器！')
           console.warn('⚠️ [CircleChat] 当前所有注册的处理器:', Array.from(this.messageHandlers.keys()))
@@ -420,8 +406,7 @@ class WebSocketManager {
         console.error('  - 原始数据:', message.body)
       }
     }, {})
-    
-    console.log('✅ [CircleChat] 已订阅圈子消息广播:', circleDestination)
+
   }
 
   /**
@@ -431,34 +416,27 @@ class WebSocketManager {
     if (!this.client) return
 
     const currentUserId = this.getCurrentUserId()
-    
-    console.log('🔵 [OnlineStatus] 订阅在线状态，当前用户 ID:', currentUserId)
+
     
     // 订阅用户在线状态更新（后端主动推送）
     const onlineStatusDestination = `/user/${currentUserId}/queue/user-online-status`
     
     this.client.subscribe(onlineStatusDestination, (message: IMessage) => {
-      console.log('📨 [OnlineStatus] 收到原始消息:', message)
-      console.log('📨 [OnlineStatus] 消息 body:', message.body)
+
       
       try {
         const data = JSON.parse(message.body)
-        console.log('✅ [WebSocket] 收到用户在线状态更新:', data)
-        console.log('✅ [WebSocket] 解析后的数据结构:', JSON.stringify(data, null, 2))
-        
+
+
         // 触发 USER_ONLINE_STATUS 处理器
         const handlers = this.messageHandlers.get('USER_ONLINE_STATUS')
-        
-        console.log('🔍 [WebSocket] 查找处理器:', 
-          '- 类型：USER_ONLINE_STATUS',
-          '- 是否存在：', !!handlers,
-          '- 数量：', handlers?.size)
+
         
         if (handlers && handlers.size > 0) {
           let successCount = 0
           handlers.forEach(handler => {
             try {
-              console.log('📤 [WebSocket] 执行处理器，传入数据:', data)
+
               handler(data)
               successCount++
             } catch (error) {
@@ -476,8 +454,7 @@ class WebSocketManager {
         console.error('  - 原始数据:', message.body)
       }
     }, {})
-    
-    console.log('✅ [WebSocket] 已订阅用户在线状态队列:', onlineStatusDestination)
+
 
     // 可选：订阅用户列表（批量推送）
     const userListDestination = `/topic/online-users`
@@ -485,7 +462,7 @@ class WebSocketManager {
     this.client.subscribe(userListDestination, (message: IMessage) => {
       try {
         const data = JSON.parse(message.body)
-        console.log('✅ [WebSocket] 收到在线用户列表更新:', data)
+
         
         // 触发 USER_LIST_UPDATE 处理器
         const handlers = this.messageHandlers.get('USER_LIST_UPDATE')
@@ -501,9 +478,6 @@ class WebSocketManager {
             }
           })
 
-          console.log('✅ [WebSocket] USER_LIST_UPDATE 处理器执行完成:', 
-              '- 成功数量:', successCount,
-              '- 总数量:', handlers.size)
         } else {
           console.warn('⚠️ [WebSocket] 未找到 USER_LIST_UPDATE 处理器！')
         }
@@ -514,8 +488,7 @@ class WebSocketManager {
         console.error('  - 原始数据:', message.body)
       }
     }, {})
-    
-    console.log('✅ [WebSocket] 已订阅在线用户列表广播:', userListDestination)
+
   }
 
   /**
@@ -532,7 +505,6 @@ class WebSocketManager {
       userIds: userIds,
     }
 
-    console.log('🔍 [WebSocket] 查询用户在线状态:', request)
     
     this.client.publish({
       destination: '/app/query-user-online-status',
@@ -549,7 +521,6 @@ class WebSocketManager {
       return
     }
 
-    console.log('📢 [WebSocket] 订阅好友在线状态')
     
     this.client.publish({
       destination: '/app/subscribe-friends-online-status',
@@ -740,7 +711,7 @@ class WebSocketManager {
     }
     
     this.messageHandlers.get(type)!.add(handler)
-    console.log(`✅ [WebSocket] 已注册 ${type} 处理器`)
+
     
     // 返回取消订阅函数
     return () => {
@@ -755,7 +726,7 @@ class WebSocketManager {
     const handlers = this.messageHandlers.get(type)
     if (handlers) {
       handlers.delete(handler)
-      console.log(`❌ [WebSocket] 已移除 ${type} 处理器`)
+
     }
   }
 
@@ -842,7 +813,7 @@ let wsManager: WebSocketManager | null = null
  */
 export function initWebSocket(url?: string): WebSocketManager {
   if (wsManager) {
-    console.log('✅ [WebSocket] 使用已有实例')
+
     return wsManager
   }
 
@@ -856,7 +827,6 @@ export function initWebSocket(url?: string): WebSocketManager {
     autoReconnect: true
   })
 
-  console.log('🔵 [WebSocket] 实例已创建（尚未连接）')
   return wsManager
 }
 

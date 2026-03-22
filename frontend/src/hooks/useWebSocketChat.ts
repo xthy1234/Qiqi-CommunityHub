@@ -101,9 +101,7 @@ export function useWebSocketChat() {
       const ws = getWebSocket()
       if (ws && ws.isConnected()) {
         ws.sendReadReceipt(fromUserId)
-        console.log('✅ [useWebSocketChat] 已读回执已发送:', 
-            '- 目标用户:', fromUserId, 
-            '- 原因:', reason)
+
       } else {
         console.warn('⚠️ [useWebSocketChat] WebSocket 未连接，无法发送已读回执')
       }
@@ -129,10 +127,7 @@ export function useWebSocketChat() {
       
       //  关键修改：移除自动发送已读回执的逻辑
       // 改为由 ChatDetail 组件根据实际页面状态决定是否发送
-      console.log('📨 [useWebSocketChat] 收到新消息:', 
-          '- 发送者:', message.fromUserId,
-          '- 内容:', message.content.substring(0, 30),
-          '- 当前聚焦用户:', currentChatUserId.value)
+
     })
 
     unsubscribeStatus = chatService.onMessageStatusUpdate(({ messageId, status }) => {

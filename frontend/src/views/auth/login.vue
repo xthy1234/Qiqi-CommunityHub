@@ -233,11 +233,11 @@ const initializeWebSocket = async (): Promise<void> => {
   try {
     const ws = getWebSocket()
     if (ws && !ws.isConnected()) {
-      console.log('🔵 [登录] 开始建立 WebSocket连接...')
+
       await ws.connect()
-      console.log('✅ [登录] WebSocket连接成功')
+
     } else if (ws && ws.isConnected()) {
-      console.log('✅ [登录] WebSocket 已连接，无需重复连接')
+
     } else {
       console.warn('⚠️ [登录] WebSocket 实例不存在')
     }

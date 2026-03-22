@@ -16,14 +16,8 @@ public class CircleMemberVO {
     @Schema(description = "成员关系 ID", example = "1")
     private Long id;
     
-    @Schema(description = "用户 ID", example = "1")
-    private Long userId;
-    
-    @Schema(description = "用户昵称", example = "张三")
-    private String nickname;
-    
-    @Schema(description = "用户头像", example = "http://example.com/avatar.jpg")
-    private String avatar;
+    @Schema(description = "用户信息")
+    private UserSimpleVO user;
     
     @Schema(description = "角色 (0:成员，1:管理员，2:圈主)", example = "0")
     private Integer role;
@@ -36,4 +30,5 @@ public class CircleMemberVO {
     
     @Schema(description = "状态 (1:正常，0:已退出)", example = "1")
     private CommonStatus status;
+
 }

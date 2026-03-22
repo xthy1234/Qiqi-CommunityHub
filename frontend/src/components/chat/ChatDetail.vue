@@ -469,7 +469,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
 
     //  如果是加载历史消息（一次性添加≥15 条）
     if (addedCount >= 15) {
-        console.log('📜 [Watch] 检测到加载历史消息，保持滚动位置')
+
 
         // 关键修复：保存当前滚动位置和高度
         const messageListEl = messageListRef.value
@@ -731,18 +731,18 @@ const setupOnlineStatusListener = () => {
   }
 
   const otherUserId = store.currentConversation?.userId
-  console.log('🔵 [OnlineStatus] 开始订阅，当前聊天对象 ID:', otherUserId)
+
 
   // 订阅用户在线状态
   const handler = (data: any) => {
-    console.log('📥 [OnlineStatus] 收到原始数据:', data)
+
 
     // 兼容处理：后端可能返回数组或单个对象
     let statusData
     if (Array.isArray(data)) {
       // 如果是数组，取第一个元素
       statusData = data[0]
-      console.log('📥 [OnlineStatus] 检测到数组格式，提取第一个元素:', statusData)
+
     } else {
       statusData = data
     }
@@ -757,33 +757,22 @@ const setupOnlineStatusListener = () => {
     const isOnline = statusData.isOnline ?? statusData.online
     const lastSeenAtValue = statusData.lastSeenAt
 
-    console.log('🔍 [OnlineStatus] 解析后的数据:',
-      '- userId:', userId,
-      '- isOnline:', isOnline,
-      '- lastSeenAt:', lastSeenAtValue)
 
     if (userId === otherUserId) {
       isOtherUserOnline.value = isOnline
       lastSeenAt.value = lastSeenAtValue
 
-      console.log('🟢 [OnlineStatus] 状态更新成功:',
-        '- 用户 ID:', otherUserId,
-        '- 在线:', isOnline,
-        '- 最后时间:', lastSeenAtValue)
     } else {
-      console.log('⚠️ [OnlineStatus] 用户 ID 不匹配，跳过:',
-        '- 期望:', otherUserId,
-        '- 实际:', userId)
+
     }
   }
 
   unsubscribeOnlineStatus = ws.on('USER_ONLINE_STATUS', handler)
 
-  console.log('✅ [OnlineStatus] 已注册处理器，等待后端推送...')
 
   // 主动查询当前聊天对象的在线状态
   if (store.currentConversation?.userId) {
-    console.log('🔍 [OnlineStatus] 主动查询用户在线状态:', store.currentConversation.userId)
+
     ws.queryUserOnlineStatus([store.currentConversation.userId])
   } else {
     console.warn('⚠️ [OnlineStatus] 当前会话为空，无法查询')

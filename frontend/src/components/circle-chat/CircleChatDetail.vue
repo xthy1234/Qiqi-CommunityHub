@@ -104,6 +104,9 @@ import chatService from '@/api/chat'
 import { ElMessage } from 'element-plus'
 import { circleWebSocket } from '@/api/circle'
 
+// 添加 emit 声明
+const emit = defineEmits(['show-members'])
+
 const appContext = useGlobalProperties()
 const store = useCircleChatStore()
 const messageListRef = ref<HTMLElement | null>(null)
@@ -155,13 +158,13 @@ const menuOptions = [
 const handleMenuClick = async (key: string) => {
   if (key === 'view-members') {
     // TODO: 打开成员列表侧边栏
-    console.log('查看成员')
+    emit('show-members')
   } else if (key === 'circle-settings') {
     // TODO: 打开圈子设置
-    console.log('圈子设置')
+
   } else if (key === 'leave-circle') {
     // TODO: 退出圈子
-    console.log('退出圈子')
+
   }
 }
 
@@ -230,7 +233,7 @@ const handleScroll = (e: Event) => {
 
   if (target.scrollTop === 0 && store.hasMore) {
     // TODO: 加载更多历史消息
-    console.log('加载更多消息')
+
   }
 }
 
@@ -247,11 +250,11 @@ const handleSendMessage = async (content: string) => {
     scrollToBottom()
 
     // 2. 通过 WebSocket 发送到后端
-    console.log('📤 [圈子聊天] 准备发送消息:', content)
+
 
     // 使用 circleWebSocket 发送消息到 /app/circle-message
     circleWebSocket.sendCircleMessage(store.currentCircle.id, content, 0)
-    console.log('✅ [圈子聊天] 消息已通过 WebSocket 发送')
+
 
     // 3. 等待后端推送确认（监听 CIRCLE_CHAT_MESSAGE 事件）
     // 不需要 setTimeout 模拟，后端会通过 WebSocket 推送完整的消息对象
@@ -267,7 +270,6 @@ const handleSendMessage = async (content: string) => {
 const handleRecallMessage = (messageId: number) => {
   if (!store.currentCircle) return
 
-  console.log('↩️ [圈子聊天] 撤回消息:', messageId)
 
   // 乐观更新 UI
   store.recallMessageOptimistic(messageId)
@@ -280,7 +282,6 @@ const handleRecallMessage = (messageId: number) => {
 const handleDeleteMessage = async (messageId: number) => {
   if (!store.currentCircle) return
 
-  console.log('🗑️ [圈子聊天] 删除消息:', messageId)
 
   try {
     // TODO: 调用 HTTP 删除接口
@@ -302,7 +303,6 @@ const handleDeleteMessage = async (messageId: number) => {
           body: JSON.stringify(deleteRequest)
         })
 
-        console.log('✅ [圈子聊天] 已发送删除请求:', messageId)
       }
     }
   } catch (error: any) {
@@ -370,11 +370,11 @@ const registerWebSocketHandlers = () => {
 
   // 注册圈子消息处理器（统一处理 SEND、RECALL、DELETE）
   unsubscribeCircleMessage = ws.on('CIRCLE_CHAT_MESSAGE', (data: any) => {
-    console.log('📨 [圈子聊天] 收到圈子消息:', data)
+
 
     // 1. 删除消息处理
     if (data.action === 'DELETE' || data.deletedByAdmin === true) {
-      console.log('🗑️ [圈子聊天] 收到删除消息通知:', data)
+
 
       const deleterNickname = data.deleter?.nickname || '管理员'
       store.handleDeleteMessageNotification(
@@ -403,7 +403,7 @@ const registerWebSocketHandlers = () => {
         isSelf: true
       }
       store.confirmSentMessage(messageWithSelfFlag)
-      console.log('✅ [圈子聊天] 收到自己发送的消息确认:', messageWithSelfFlag)
+
     } else {
       // 其他成员发送的消息
       const messageWithSelfFlag = {
@@ -411,7 +411,7 @@ const registerWebSocketHandlers = () => {
         isSelf: false
       }
       store.receiveMessage(messageWithSelfFlag)
-      console.log('✅ [圈子聊天] 收到其他成员的消息:', messageWithSelfFlag)
+
 
       // 关键修复：如果是在当前圈子收到的消息，立即标记为已读
       if (store.currentCircle && data.circleId === store.currentCircle.id) {
@@ -424,14 +424,13 @@ const registerWebSocketHandlers = () => {
     }
   })
 
-  console.log('✅ [圈子聊天] 已注册 WebSocket 消息处理器')
 }
 
 onMounted(() => {
   // 恢复上次浏览的圈子
   const saved = store.restoreCircleFromStorage()
   if (saved) {
-    console.log('恢复上次的圈子:', saved)
+
   }
 
   // 注册 WebSocket 监听器

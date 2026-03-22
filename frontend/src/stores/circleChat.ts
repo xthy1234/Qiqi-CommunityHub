@@ -172,8 +172,7 @@ export const useCircleChatStore = defineStore('circleChat', {
           _sending: false,
           isSelf: true
         }
-        
-        console.log('✅ [CircleChat] 确认发送的消息:', realMessage.id)
+
       } else {
         const exists = this.messages.some((m: CircleMessage) => m.id === realMessage.id)
         if (!exists) {
@@ -182,7 +181,7 @@ export const useCircleChatStore = defineStore('circleChat', {
             _sending: false,
             isSelf: true
           })
-          console.log('✅ [CircleChat] 添加新消息（无临时消息）:', realMessage.id)
+
         }
       }
 
@@ -272,8 +271,7 @@ export const useCircleChatStore = defineStore('circleChat', {
           _tipType: 'delete',
           _tipUsername: deletedByUsername || '管理员'
         }
-        
-        console.log('✅ [CircleChat] 已删除消息:', messageId, '- 操作人:', deletedByUsername)
+
       } else {
         console.warn('⚠️ [CircleChat] 未找到要删除的消息:', messageId)
       }
@@ -297,8 +295,7 @@ export const useCircleChatStore = defineStore('circleChat', {
           _tipUsername: deleterNickname || '管理员',
           _deleteDetail: `${senderNickname}的消息被${deleterNickname || '管理员'}删除`
         })
-        
-        console.log('✅ [CircleChat] 已处理删除消息通知:', messageId, '- 删除者:', deleterNickname)
+
       } else {
         console.warn('⚠️ [CircleChat] 未找到要处理删除通知的消息:', messageId)
       }
@@ -320,7 +317,36 @@ export const useCircleChatStore = defineStore('circleChat', {
 
     /** 设置成员列表 */
     setMembers(members: CircleMember[]) {
-      this.members = members
+      // 添加角色转换逻辑
+      const transformedMembers = members.map(member => ({
+        ...member,
+        role: this.transformRole(member.role)
+      }))
+      
+      this.members = transformedMembers
+    },
+
+    /** 
+     * 将后端数字角色转换为前端字符串角色
+     * @param role 数字角色 (0, 1, 2) 或已转换的角色
+     * @returns 字符串角色 ('OWNER', 'ADMIN', 'MEMBER')
+     */
+    transformRole(role: any): CircleRole {
+      if (typeof role === 'string') {
+        return role as CircleRole
+      }
+      
+      switch (role) {
+        case 2:
+          return 'OWNER'
+        case 1:
+          return 'ADMIN'
+        case 0:
+          return 'MEMBER'
+        default:
+          console.warn('未知的角色值:', role)
+          return 'MEMBER'
+      }
     },
 
     /** 更新成员在线状态 */
@@ -393,8 +419,7 @@ export const useCircleChatStore = defineStore('circleChat', {
             destination: '/app/circle-read-receipt',
             body: JSON.stringify(readReceipt)
           })
-          
-          console.log('✅ [CircleChat] 已发送已读回执，circleId:', circleId)
+
         }
       } else {
         console.warn('⚠️ [CircleChat] WebSocket 未连接，无法发送已读回执')
@@ -410,7 +435,7 @@ export const useCircleChatStore = defineStore('circleChat', {
         const convIndex = this.conversations.findIndex((c: CircleConversation) => c.circleId === circleId)
         if (convIndex !== -1) {
           this.conversations[convIndex].unreadCount = count
-          console.log(`✅ [CircleChat] 已更新圈子 ${circleId} 的未读数：`, count)
+
         }
       } catch (error) {
         console.error('❌ [CircleChat] 获取未读数失败:', error)
@@ -428,8 +453,7 @@ export const useCircleChatStore = defineStore('circleChat', {
         if (convIndex !== -1) {
           this.conversations[convIndex].unreadCount = 0
         }
-        
-        console.log('✅ [CircleChat] 已标记圈子为已读:', circleId)
+
       } catch (error) {
         console.error('❌ [CircleChat] 标记已读失败:', error)
       }
@@ -455,10 +479,6 @@ export const useCircleChatStore = defineStore('circleChat', {
           processedCount++
         }
       })
-      
-      if (processedCount > 0) {
-        console.log('✅ [CircleChat] 已处理撤回消息:', processedCount, '条')
-      }
     },
 
     /** 处理加载的消息中的删除消息（转换为系统提示） */
@@ -487,7 +507,7 @@ export const useCircleChatStore = defineStore('circleChat', {
       })
       
       if (processedCount > 0) {
-        console.log('✅ [CircleChat] 已处理删除消息:', processedCount, '条')
+
       }
     }
   }

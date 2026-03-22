@@ -86,7 +86,8 @@ public class CircleMemberController {
                 }
             }
             
-            PageUtils page = circleMemberService.getMemberPage(circleId, params);
+            // 调用新方法，获取包含用户信息的成员列表
+            PageUtils page = circleMemberService.getMemberPageWithUserInfo(circleId, params);
             return R.ok().put("data", page);
         } catch (Exception e) {
             log.error("获取成员列表失败，circleId: {}", circleId, e);

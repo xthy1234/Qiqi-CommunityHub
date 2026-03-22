@@ -1,10 +1,18 @@
 // src/api/circle.ts
 
-import type { Circle, CircleConversation, CircleMessage, CircleMember, PaginationParams, PaginationResult, InviteLinkResponse } from '@/types/circleChat'
-import { getWebSocket } from '@/utils/websocket'
+import type {
+  Circle,
+  CircleConversation,
+  CircleMember,
+  CircleMessage,
+  InviteLinkResponse,
+  PaginationParams,
+  PaginationResult
+} from '@/types/circleChat'
+import {getWebSocket} from '@/utils/websocket'
+import type {ApiResponse} from '@/utils/http'
 import httpClient from '@/utils/http'
-import type { AxiosResponse } from 'axios'
-import type { ApiResponse } from '@/utils/http'
+import type {AxiosResponse} from 'axios'
 
 /**
  * 圈子管理相关接口
@@ -77,8 +85,25 @@ export const circleMemberApi = {
       queryParams.role = params.role
     }
     
-    const response: AxiosResponse<ApiResponse<PaginationResult<CircleMember>>> = await httpClient.get(`/circles/${circleId}/members`, { params: queryParams })
-    return response.data.data
+    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get(`/circles/${circleId}/members`, { params: queryParams })
+    
+    // 转换后端返回的数据结构到前端期望的格式
+    const backendData = response.data.data
+    return {
+      list: backendData.list.map((item: any) => ({
+        id: item.id,
+        userId: item.user.id,
+        circleId: item.circleId,
+        nickname: item.user.nickname,
+        avatar: item.user.avatar,
+        role: item.role,
+        joinTime: item.joinTime,
+        isOnline: false // 后端未提供在线状态，暂设为false
+      })),
+      total: backendData.totalCount,
+      page: backendData.currPage,
+      limit: backendData.pageSize
+    }
   },
 
   /**
@@ -227,69 +252,56 @@ export const circleWebSocket = {
    * 订阅圈子消息主题
    */
   subscribeCircleMessages(circleId: number, callback: (message: CircleMessage) => void): () => void {
-    console.log('🔍 [圈子 WebSocket] 开始订阅圈子消息，circleId:', circleId)
-    
     // 1. 获取 WebSocket 实例
     const ws = getWebSocket()
-    console.log('📡 [圈子 WebSocket] WebSocket 实例:', ws)
-    console.log('📡 [圈子 WebSocket] WebSocket 连接状态:', ws?.isConnected ? '已连接' : '未连接')
-    
     if (!ws) {
       console.warn('⚠️ [圈子 WebSocket] WebSocket 实例不存在')
-      console.log('💡 [圈子 WebSocket] 请检查是否在 main.ts 中调用了 initWebSocket()')
+
       return () => {}
     }
 
     // 2. 检查 isConnected 方法是否存在
-    console.log('📡 [圈子 WebSocket] isConnected 方法:', typeof ws.isConnected)
+
     const isWsConnected = ws.isConnected()
-    console.log('📡 [圈子 WebSocket] WebSocket 连接结果:', isWsConnected)
+
     
     if (!isWsConnected) {
       console.warn('⚠️ [圈子 WebSocket] WebSocket 未连接')
-      console.log('💡 [圈子 WebSocket] 当前连接状态:')
-      console.log('   - client:', (ws as any).client)
-      console.log('   - client.connected:', (ws as any).client?.connected)
+
       return () => {}
     }
 
     // 3. 获取内部 STOMP client（需要访问私有属性）
     const client = (ws as any).client
-    console.log('📡 [圈子 WebSocket] STOMP Client:', client)
-    console.log('📡 [圈子 WebSocket] STOMP 连接状态:', client?.connected ? '已连接' : '未连接')
-    
+
+
     if (!client || !client.connected) {
       console.warn('⚠️ [圈子 WebSocket] STOMP 客户端未连接')
-      console.log('💡 [圈子 WebSocket] STOMP 连接失败，请检查:')
-      console.log('   1. WebSocket 连接是否正常')
-      console.log('   2. STOMP 协议握手是否成功')
       return () => {}
     }
 
     // 4. 订阅特定圈子的消息
     const destination = `/topic/circles/${circleId}/messages`
-    console.log('📬 [圈子 WebSocket] 准备订阅目的地:', destination)
+
     
     try {
       const subscription = client.subscribe(destination, (message: any) => {
-        console.log('✅ [圈子 WebSocket] 收到消息推送:', message)
-        console.log('✅ [圈子 WebSocket] 消息内容:', message.body)
+
         
         try {
           const chatMessage = JSON.parse(message.body) as CircleMessage
-          console.log('✅ [圈子 WebSocket] 解析后的消息对象:', chatMessage)
+
           callback(chatMessage)
         } catch (error) {
           console.error('❌ [圈子 WebSocket] 解析圈子消息失败:', error)
           console.error('❌ [圈子 WebSocket] 原始消息体:', message.body)
         }
       }, {})
-      
-      console.log('✅ [圈子 WebSocket] 订阅成功，subscription:', subscription)
+
       
       // 5. 返回取消订阅函数
       return () => {
-        console.log('🔕 [圈子 WebSocket] 取消订阅圈子:', circleId)
+
         subscription?.unsubscribe()
       }
     } catch (error) {
@@ -302,15 +314,14 @@ export const circleWebSocket = {
    * 发送圈子消息
    */
   sendCircleMessage(circleId: number, content: string, msgType: number = 0): void {
-    console.log('📤 [圈子 WebSocket] 准备发送消息:', { circleId, content, msgType })
+
     
     const ws = getWebSocket()
-    console.log('📡 [圈子 WebSocket] WebSocket 实例:', ws)
-    console.log('📡 [圈子 WebSocket] 连接状态:', ws?.isConnected ? '已连接' : '未连接')
+
     
     if (!ws || !ws.isConnected()) {
       console.error('❌ [圈子 WebSocket] WebSocket 未连接，无法发送消息')
-      console.log('💡 [圈子 WebSocket] 请确保在进入聊天页面之前 WebSocket 已连接')
+
       return
     }
 
@@ -322,8 +333,7 @@ export const circleWebSocket = {
 
     // 使用 STOMP publish 方法
     const client = (ws as any).client
-    console.log('📡 [圈子 WebSocket] STOMP Client:', client)
-    console.log('📡 [圈子 WebSocket] STOMP 状态:', client?.connected ? '已连接' : '未连接')
+
     
     if (client && client.connected) {
       try {
@@ -331,7 +341,7 @@ export const circleWebSocket = {
           destination: '/app/circle-message',
           body: JSON.stringify(message)
         })
-        console.log('✅ [圈子 WebSocket] 消息发送成功')
+
       } catch (error) {
         console.error('❌ [圈子 WebSocket] 消息发送失败:', error)
       }
@@ -344,7 +354,7 @@ export const circleWebSocket = {
    * 撤回消息
    */
   recallMessage(messageId: number, reason?: string): void {
-    console.log('↩️ [圈子 WebSocket] 准备撤回消息:', { messageId, reason })
+
     
     const ws = getWebSocket()
     if (!ws || !ws.isConnected()) {
@@ -365,7 +375,7 @@ export const circleWebSocket = {
           destination: '/app/circle-recall-message',
           body: JSON.stringify(request)
         })
-        console.log('✅ [圈子 WebSocket] 撤回消息发送成功')
+
       } catch (error) {
         console.error('❌ [圈子 WebSocket] 撤回消息失败:', error)
       }
@@ -378,7 +388,7 @@ export const circleWebSocket = {
    * 删除消息（仅群主和管理员）
    */
   deleteMessage(messageId: number): void {
-    console.log('🗑️ [圈子 WebSocket] 准备删除消息:', messageId)
+
     
     const ws = getWebSocket()
     if (!ws || !ws.isConnected()) {
@@ -398,7 +408,7 @@ export const circleWebSocket = {
           destination: '/app/circle-delete-message',
           body: JSON.stringify(request)
         })
-        console.log('✅ [圈子 WebSocket] 删除消息发送成功')
+
       } catch (error) {
         console.error('❌ [圈子 WebSocket] 删除消息失败:', error)
       }

@@ -177,9 +177,7 @@ const setupOnlineStatusListener = () => {
   const handler = (data: WsUserOnlineStatus['data']) => {
     if (data.userId === userId) {
       isOnline.value = data.online
-      console.log('🟢 [UserCard] 在线状态更新:',
-        '- 用户:', userId,
-        '- 在线:', data.online)
+
     }
   }
 

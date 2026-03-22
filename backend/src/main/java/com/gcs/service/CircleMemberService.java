@@ -46,6 +46,14 @@ public interface CircleMemberService extends IService<CircleMember> {
     void updateMemberRole(Long circleId, Long userId, Integer role);
 
     /**
+     * 分页获取成员列表（包含用户信息）
+     * @param circleId 圈子 ID
+     * @param params 查询参数
+     * @return 分页结果
+     */
+    PageUtils getMemberPageWithUserInfo(Long circleId, Map<String, Object> params);
+
+    /**
      * 分页获取成员列表
      * @param circleId 圈子 ID
      * @param params 查询参数

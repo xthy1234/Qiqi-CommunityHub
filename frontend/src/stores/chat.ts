@@ -70,11 +70,7 @@ export const useChatStore = defineStore('chat', {
     updateMessageStatus(data: { fromUserId: number, toUserId: number }) {
         const readerUserId = data.fromUserId
         const senderUserId = data.toUserId
-        
-        console.log('🔄 [Store.updateMessageStatus] 开始更新:', 
-            '- 阅读者:', readerUserId,
-            '- 发送者:', senderUserId,
-            '- 消息总数:', this.messages.length)
+
         
         const messagesToUpdate = this.messages.filter((m: Message) => {
             const isSentToReader = m.toUserId === readerUserId
@@ -84,17 +80,12 @@ export const useChatStore = defineStore('chat', {
             const shouldUpdate = isSentToReader && isFromSender && isUnread
             
             if (isSentToReader && isFromSender) {
-                console.log('  📝 [匹配]', 
-                    '- ID:', m.id,
-                    '- 当前状态:', m.status,
-                    '- 是否未读:', isUnread,
-                    '- 是否更新:', shouldUpdate)
+
             }
             
             return shouldUpdate
         })
-        
-        console.log('📋 [Store.updateMessageStatus] 待更新数量:', messagesToUpdate.length)
+
         
         if (messagesToUpdate.length === 0) {
             //  添加：检查是否有已经是已读的消息
@@ -105,8 +96,7 @@ export const useChatStore = defineStore('chat', {
             )
             
             if (alreadyReadMessages.length > 0) {
-                console.log('ℹ️ [Store.updateMessageStatus] 这些消息已经是已读状态，跳过更新:', 
-                    alreadyReadMessages.map((m: Message) => m.id))
+
             } else {
                 console.warn('⚠️ [Store.updateMessageStatus] 没有找到匹配的消息')
             }
@@ -116,11 +106,7 @@ export const useChatStore = defineStore('chat', {
         messagesToUpdate.forEach((message: Message) => {
             const oldStatus = message.status
             message.status = MessageStatus.READ
-            
-            console.log('✅ [Store.updateMessageStatus] 已更新:', 
-                '- 消息 ID:', message.id,
-                '- 旧状态:', oldStatus,
-                '- 新状态:', message.status)
+
         })
     },
 
@@ -408,9 +394,7 @@ export const useChatStore = defineStore('chat', {
                     //  关键修改：只更新未读数，不发送已读回执
                     // 已读回执由 ChatDetail 组件统一处理
                     this.conversations[index].unreadCount = 0
-                    
-                    console.log('📨 [Store] 收到当前会话的新消息，已清零未读数:', 
-                        message.fromUserId, '-', message.content.substring(0, 30))
+
                 } else {
                     this.conversations[index].unreadCount++
                     this.unreadCount++
@@ -625,7 +609,6 @@ export const useChatStore = defineStore('chat', {
 
       // 订阅用户在线状态更新
       ws.on('USER_ONLINE_STATUS', (data: any) => {
-        console.log('🟢 [ChatStore] 收到在线状态更新:', data)
         
         // 兼容处理：后端可能返回数组或单个对象
         let statusData
@@ -650,13 +633,13 @@ export const useChatStore = defineStore('chat', {
 
         // 如果是在线状态，可选：订阅好友列表
         if ((statusData.isOnline ?? statusData.online) && !current?.online) {
-          console.log('✨ 用户上线:', statusData.userId)
+
         }
       })
 
       // 订阅在线用户列表（批量更新）
       ws.on('USER_LIST_UPDATE', (data: any) => {
-        console.log('📋 [ChatStore] 收到在线用户列表:', data)
+
         
         data.users.forEach((user: any) => {
           this.onlineUsers.set(user.userId, {

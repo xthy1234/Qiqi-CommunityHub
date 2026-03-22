@@ -95,7 +95,7 @@ const initializeWebSocket = async () => {
   try {
 
     // await chatService.connect()
-    console.log('✅ [私聊] WebSocket 已在登录后建立，使用全局连接')
+
     isConnected.value = true
 
     setupWebSocketListeners()
