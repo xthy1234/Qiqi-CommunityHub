@@ -46,6 +46,7 @@ import { useRouter } from 'vue-router'
 import chatService from '@/api/chat'
 import type { Message } from '@/types/message'
 import { NAlert } from 'naive-ui'
+import { getWebSocket, ensureConnected } from '@/utils/websocket'
 
 const store = useChatStore()
 const router = useRouter()
@@ -99,7 +100,7 @@ const cleanupWebSocketListeners = () => {
 const initializeWebSocket = async () => {
   try {
 
-    // await chatService.connect()
+    await chatService.connect()
 
     isConnected.value = true
 

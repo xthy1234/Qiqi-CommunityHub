@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import chatService from '@/api/chat'
-import chatMessageService from '@/service/circleChatMessageService'
+import chatMessageService from '@/service/chatMessageService'
 import type { Message, ConversationVO } from '@/types/message'
 import { WsConnectionState } from '@/types/message'
 import { getWebSocket } from '@/utils/websocket'
@@ -116,30 +116,36 @@ export function useWebSocketChat() {
   }
 
   const setupListeners = () => {
-    // 使用新的消息服务
+    // 使用新的消息服务（私聊）
     const userId = currentChatUserId.value
     if (userId) {
       chatMessageService.init(userId)
       
-      // 订阅消息
+      // 订阅私聊消息
       cleanupFns.push(
-        chatMessageService.onMessage((message) => {
+        chatMessageService.onMessage((message: Message) => {
           messages.value.push(message)
           loadConversations()
-          wsLogger.debug('收到新消息', { 
-            fromUserId: message.fromUserId, 
+          wsLogger.debug('收到私聊消息', { 
+            fromUserId: message.fromUserId,
+            toUserId: message.toUserId,
             content: typeof message.content === 'string' ? message.content.substring(0, 50) : '[object]' 
           })
         }),
         
-        chatMessageService.onStatusUpdate(({ messageId, status }) => {
+        chatMessageService.onStatusUpdate(({ messageId, status }: { messageId: number; status: string }) => {
           updateMessageStatus(messageId, status)
           wsLogger.debug('消息状态更新', { messageId, status })
         }),
         
-        chatMessageService.onRecall(({ messageId, reason }) => {
+        chatMessageService.onRecall(({ messageId, reason }: { messageId: number; reason?: string }) => {
           wsLogger.info('消息被撤回', { messageId, reason })
           // TODO: 处理撤回逻辑
+        }),
+        
+        chatMessageService.onDelete(({ messageId }: { messageId: number }) => {
+          wsLogger.debug('消息被删除', { messageId })
+          // TODO: 处理删除逻辑
         })
       )
     }

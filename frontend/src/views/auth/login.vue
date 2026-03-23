@@ -108,6 +108,7 @@ import { useMessage } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
 import menu from '@/utils/menu'
 import { getWebSocket } from '@/utils/websocket'
+import { connectWebSocketOnStartup } from '@/utils/websocketInit'
 
 // 获取 router 实例
 const router = useRouter()
@@ -236,16 +237,13 @@ const executeLogin = async (): Promise<void> => {
  */
 const initializeWebSocket = async (): Promise<void> => {
   try {
-    const ws = getWebSocket()
-    if (ws && !ws.isConnected()) {
-
-      await ws.connect()
-
-    } else if (ws && ws.isConnected()) {
-
-    } else {
-      console.warn('⚠️ [登录] WebSocket 实例不存在')
-    }
+    // 使用统一的初始化方法
+    await connectWebSocketOnStartup({
+      debug: process.env.NODE_ENV === 'development',
+      heartbeatInterval: 30000,
+      reconnectInterval: 5000,
+      maxReconnectAttempts: 5
+    })
   } catch (error) {
     console.error('❌ [登录] WebSocket连接失败:', error)
     // WebSocket连接失败不影响登录流程

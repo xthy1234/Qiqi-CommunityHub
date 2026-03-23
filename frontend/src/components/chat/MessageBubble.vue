@@ -150,7 +150,6 @@ import { useGlobalProperties } from '@/utils/globalProperties'
 import { NAvatar, NImage, NIcon, NButton, NDropdown, useMessage } from 'naive-ui'
 import ChatAvatar from '@/components/chat/ChatAvatar.vue'
 import { getWebSocket } from '@/utils/websocket'
-
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -158,7 +157,7 @@ import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 
 const appContext = useGlobalProperties()
-const message = useMessage()
+const messageApi = useMessage()
 
 interface Props {
   message: Message
@@ -444,11 +443,11 @@ const handleCopyMessage = async (content: any) => {
 
     // 复制到剪贴板
     await navigator.clipboard.writeText(plainText)
-    message.success('复制成功')
+    messageApi.success('复制成功')
     emit('copy', plainText)
   } catch (error) {
     console.error('❌ [MessageBubble] 复制失败:', error)
-    message.error('复制失败')
+    messageApi.error('复制失败')
   }
 }
 
@@ -526,7 +525,7 @@ const getFileName = (url: string) => {
 const downloadFile = () => {
   const url = fileInfo.value.url
   if (!url) {
-    message.warning('文件链接无效')
+    messageApi.warning('文件链接无效')
     return
   }
 
@@ -539,7 +538,7 @@ const downloadFile = () => {
   link.click()
   document.body.removeChild(link)
 
-  message.success('开始下载文件')
+  messageApi.success('开始下载文件')
 }
 
 const handleAvatarClick = () => {
