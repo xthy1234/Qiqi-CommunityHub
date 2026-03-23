@@ -2,18 +2,49 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.gcs.dao.PrivateMessageDao">
     
+    <!-- ResultMap for PrivateMessage with JSON fields -->
+    <resultMap id="privateMessageResultMap" type="com.gcs.entity.PrivateMessage">
+        <id column="id" property="id"/>
+        <result column="from_user_id" property="fromUserId"/>
+        <result column="to_user_id" property="toUserId"/>
+        <result column="content" property="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="extra" property="extra" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="msg_type" property="msgType"/>
+        <result column="status" property="status" typeHandler="com.gcs.handler.MessageStatusTypeHandler"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted_by_sender" property="deletedBySender"/>
+        <result column="deleted_by_recipient" property="deletedByRecipient"/>
+        <result column="is_recalled" property="isRecalled"/>
+    </resultMap>
+
     <resultMap id="conversationResultMap" type="com.gcs.vo.ConversationVO">
         <result column="user_id" property="userId"/>
         <result column="username" property="username"/>
         <result column="avatar" property="avatar"/>
+        <result column="content" property="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="extra" property="extra" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result column="last_message" property="lastMessage"/>
         <result column="last_time" property="lastTime"/>
         <result column="unread_count" property="unreadCount"/>
     </resultMap>
     
     <!-- 查询两个用户之间的聊天记录（根据当前用户视角过滤） -->
-    <select id="selectChatHistory" resultType="com.gcs.entity.PrivateMessage">
-        SELECT * FROM private_message
+    <select id="selectChatHistory" resultMap="privateMessageResultMap">
+        SELECT
+            id,
+            from_user_id,
+            to_user_id,
+            content,
+            extra,
+            msg_type,
+            status,
+            create_time,
+            update_time,
+            deleted_by_sender,
+            deleted_by_recipient,
+            is_recalled
+        FROM private_message
         WHERE
             -- 只查询两个用户之间的消息
             ((from_user_id = #{userId1} AND to_user_id = #{userId2})
@@ -28,6 +59,8 @@
         ORDER BY create_time DESC
     </select>
     
+
+
     <!-- 查询会话列表 -->
     <select id="selectConversations" resultMap="conversationResultMap">
         WITH ranked_messages AS (
@@ -101,8 +134,21 @@
     </update>
     
     <!-- 查询两个用户之间的聊天记录（包含已删除的消息） -->
-    <select id="selectChatHistoryWithDeleted" resultType="com.gcs.entity.PrivateMessage">
-        SELECT * FROM private_message
+    <select id="selectChatHistoryWithDeleted" resultMap="privateMessageResultMap">
+        SELECT
+            id,
+            from_user_id,
+            to_user_id,
+            content,
+            extra,
+            msg_type,
+            status,
+            create_time,
+            update_time,
+            deleted_by_sender,
+            deleted_by_recipient,
+            is_recalled
+        FROM private_message
         WHERE (from_user_id = #{userId1} AND to_user_id = #{userId2})
            OR (from_user_id = #{userId2} AND to_user_id = #{userId1})
            AND

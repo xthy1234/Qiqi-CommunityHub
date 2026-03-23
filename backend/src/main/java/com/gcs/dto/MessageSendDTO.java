@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 发送私信请求 DTO
  */
@@ -18,8 +20,11 @@ public class MessageSendDTO {
     
     @NotBlank(message = "消息内容不能为空")
     @Schema(description = "消息内容", example = "你好！", required = true)
-    private String content;
-    
+    private Map<String, Object> content;
+
+    @Schema(description = "扩展信息 (JSON格式)")
+    private Map<String, Object> extra;
+
     @NotNull(message = "消息类型不能为空")
     @Schema(description = "消息类型 (0-文本，1-图片，2-文件)", example = "0", required = true)
     private Integer msgType;

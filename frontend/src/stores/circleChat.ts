@@ -117,16 +117,21 @@ export const useCircleChatStore = defineStore('circleChat', {
       this.messagePage++
     },
 
-    /** 
-     * 乐观添加发送中的消息 
-     * @returns 临时消息对象
-     */
+    /** 乐观添加：正在发送的消息 */
     addSendingMessage(content: string, circleId: number): CircleMessage {
-      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      // 修复：直接从 localStorage 获取当前用户 ID
+      const currentUserId = parseInt(localStorage.getItem('userid') || '0')
+
       
-      // 从 localStorage 获取当前用户 ID
-      const useridStr = localStorage.getItem('userid')
-      const currentUserId = Number(useridStr || '0')
+      const tempId = `temp_${Date.now()}_${Math.random()}`
+      
+      // 获取当前用户信息（用于显示头像和昵称）
+      const currentUserInfo = {
+        id: currentUserId,
+        nickname: localStorage.getItem('nickname') || '我',
+        avatar: localStorage.getItem('avatar') || ''
+      }
+
       
       const tempMessage: CircleMessage = {
         id: 0,
@@ -134,6 +139,11 @@ export const useCircleChatStore = defineStore('circleChat', {
         _sending: true,
         circleId: circleId,
         senderId: currentUserId,
+        sender: {  // 添加发送者信息，确保头像能显示
+          id: currentUserId,
+          nickname: currentUserInfo.nickname,
+          avatar: currentUserInfo.avatar
+        },
         content: content,
         msgType: 0,
         status: 'SENDING',
@@ -141,6 +151,7 @@ export const useCircleChatStore = defineStore('circleChat', {
         isSelf: true,
         action: 'SEND'
       }
+
       
       this.messages.push(tempMessage)
       
@@ -158,14 +169,28 @@ export const useCircleChatStore = defineStore('circleChat', {
 
     /** 确认发送的消息 */
     confirmSentMessage(realMessage: CircleMessage): void {
-      const tempIndex = this.messages.findIndex((m: CircleMessage) =>
-        m._sending === true &&
-        m.isSelf === true &&
-        m.content === realMessage.content &&
-        Math.abs(new Date(m.createTime).getTime() - new Date(realMessage.createTime).getTime()) < 5000
-      )
+
+      
+      // 关键修复：比较时需要统一格式，都转换为字符串进行比较
+      const normalizeContent = (content: any): string => {
+        return typeof content === 'string' ? content : JSON.stringify(content)
+      }
+      
+      const tempIndex = this.messages.findIndex((m: CircleMessage) => {
+        const isSending = m._sending === true
+        const isSelf = m.isSelf === true
+        const contentMatch = normalizeContent(m.content) === normalizeContent(realMessage.content)
+        const timeDiff = Math.abs(new Date(m.createTime).getTime() - new Date(realMessage.createTime).getTime())
+        const timeMatch = timeDiff < 5000
+
+        
+        return isSending && isSelf && contentMatch && timeMatch
+      })
+
 
       if (tempIndex !== -1) {
+
+        
         this.messages[tempIndex] = {
           ...realMessage,
           _tempId: undefined,
@@ -176,11 +201,14 @@ export const useCircleChatStore = defineStore('circleChat', {
       } else {
         const exists = this.messages.some((m: CircleMessage) => m.id === realMessage.id)
         if (!exists) {
+
+          
           this.messages.push({
             ...realMessage,
             _sending: false,
             isSelf: true
           })
+        } else {
 
         }
       }

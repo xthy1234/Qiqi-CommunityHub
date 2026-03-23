@@ -57,7 +57,7 @@
               </div>
               <div class="conversation-bottom">
                 <n-ellipsis class="conversation-message" :tooltip="false">
-                  {{ conv.lastMessage }}
+                  {{ parseTipTapContent(conv.lastMessage) }}
                 </n-ellipsis>
               </div>
             </div>
@@ -91,6 +91,60 @@ import { NBadge, NButton, NIcon, NSpin, NList, NListItem, NAvatar, NEllipsis } f
 import type { ConversationVO } from '@/types/message'
 import dayjs from "dayjs";
 import CollapsibleAvatarList from './CollapsibleAvatarList.vue'
+
+// 关键新增：解析 TipTap JSON 内容为预览文本
+const parseTipTapContent = (content: any): string => {
+  if (!content) return ''
+
+  try {
+    // 如果已经是字符串，尝试解析
+    let json: any
+    if (typeof content === 'string') {
+      json = JSON.parse(content)
+    } else {
+      json = content
+    }
+
+    // 递归提取文本内容
+    const extractText = (node: any): string => {
+      if (!node) return ''
+
+      if (typeof node === 'string') {
+        return node
+      }
+
+      if (Array.isArray(node)) {
+        return node.map(extractText).join('')
+      }
+
+      if (node.type === 'image') {
+        return '[图片]'
+      }
+
+      if (node.type === 'paragraph') {
+        const text = node.content ? extractText(node.content) : ''
+        return text ? text + '\n' : ''
+      }
+
+      if (node.content) {
+        return extractText(node.content)
+      }
+
+      if (node.text) {
+        return node.text
+      }
+
+      return ''
+    }
+
+    const text = extractText(json)
+    return text.trim().replace(/\n/g, ' ') // 换行符替换为空格
+  } catch (error) {
+    console.error('❌ [ConversationPanel] 解析消息内容失败:', error)
+    // 解析失败，直接返回原文本（截断）
+    return typeof content === 'string' ? content.substring(0, 50) : String(content)
+  }
+}
 
 interface Props {
   conversations: ConversationVO[]

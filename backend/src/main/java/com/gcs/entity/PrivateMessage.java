@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.gcs.enums.MessageStatus;
 import com.gcs.handler.MessageStatusTypeHandler;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -52,18 +54,26 @@ public class PrivateMessage implements Serializable {
     @Schema(description = "接收方用户 ID", example = "456")
     private Long toUserId;
 
+
     /**
-     * 消息内容
+     * 消息内容 (JSON格式)
      */
-    @Schema(description = "消息内容", example = "你好！")
-    private String content;
+    @Schema(description = "消息内容 (JSON格式)")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> content;
+
+    /**
+     * 扩展信息 (JSON格式)
+     */
+    @Schema(description = "扩展信息 (JSON格式)")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extra;
 
     /**
      * 消息类型 (0:文本，1:图片，2:文件)
      */
     @Schema(description = "消息类型 (0:文本，1:图片，2:文件)", example = "0")
     private Integer msgType;
-
     /**
      * 消息状态 (0:未读，1:已读)
      */

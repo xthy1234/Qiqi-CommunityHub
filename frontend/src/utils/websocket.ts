@@ -531,7 +531,7 @@ class WebSocketManager {
   /**
    * 发送私聊消息（关键方法！）- 按照后端文档实现
    */
-  sendPrivateMessage(toUserId: number, content: string, msgType: number = 0): void {
+  sendPrivateMessage(toUserId: number, chatMessage: any): void {
     if (!this.client || !this.client.connected) {
       console.warn('⚠️ [WebSocket] 未连接，消息已跳过')
       return
@@ -542,14 +542,17 @@ class WebSocketManager {
       console.error('❌ [WebSocket] 无法发送消息：未获取到当前用户 ID')
       return
     }
-    
-    //  关键：按照文档，直接发送纯 JSON 对象，不要包装
+    // 关键：content 应该是 JSON 对象，不要二次序列化
     const message: PrivateMessageDTO = {
       fromUserId,
       toUserId,
-      content,
-      msgType
+      content: chatMessage,
+      msgType: chatMessage.msgType
     }
+
+    // 关键新增：详细的日志输出
+
+
 
     // 发送到后端端点
     this.client.publish({

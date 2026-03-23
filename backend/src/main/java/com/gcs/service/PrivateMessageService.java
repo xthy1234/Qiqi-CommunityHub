@@ -22,7 +22,7 @@ public interface PrivateMessageService extends IService<PrivateMessage> {
      * @param msgType 消息类型
      * @return 发送结果
      */
-    MessageSendResponseVO sendMessage(Long fromUserId, Long toUserId, String content, Integer msgType);
+    MessageSendResponseVO sendMessage(Long fromUserId, Long toUserId, Map<String, Object> content, Integer msgType);
     
     /**
      * 获取与某用户的聊天记录

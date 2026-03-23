@@ -588,7 +588,8 @@ onBeforeUnmount(() => {
       border-color: #18a058;
     }
 
-    p.is-editor-empty:first-child::before {
+    // 所有需要穿透的选择器都加上 :deep()
+    :deep(p.is-editor-empty:first-child::before) {
       color: #adb5bd;
       content: attr(data-placeholder);
       float: left;
@@ -596,14 +597,14 @@ onBeforeUnmount(() => {
       pointer-events: none;
     }
 
-    h2, h3 {
+    :deep(h2), :deep(h3) {
       margin-top: 24px;
       margin-bottom: 16px;
       font-weight: 600;
       line-height: 1.25;
     }
 
-    h1 {
+    :deep(h1) {
       font-size: 2em;
       border-bottom: 2px solid #eaecef;
       padding-bottom: 0.3em;
@@ -613,37 +614,37 @@ onBeforeUnmount(() => {
       line-height: 1.25;
     }
 
-    h2 {
+    :deep(h2) {
       font-size: 1.5em;
       border-bottom: 1px solid #eaecef;
       padding-bottom: 0.3em;
     }
 
-    h3 {
+    :deep(h3) {
       font-size: 1.25em;
     }
 
-    p {
+    :deep(p) {
       margin: 0 0 1em 0;
     }
 
-    ul, ol {
+    :deep(ul), :deep(ol) {
       padding-left: 2em;
       margin: 0 0 1em 0;
     }
 
-    li {
+    :deep(li) {
       margin: 0.5em 0;
     }
 
-    blockquote {
+    :deep(blockquote) {
       margin: 0;
       padding: 0 1em;
       color: #6a737d;
       border-left: 0.25em solid #dfe2e5;
     }
 
-    code {
+    :deep(code) {
       padding: 0.2em 0.4em;
       margin: 0;
       font-size: 85%;
@@ -653,7 +654,7 @@ onBeforeUnmount(() => {
       color: #e83e8c;
     }
 
-    pre {
+    :deep(pre) {
       padding: 16px;
       overflow: auto;
       font-size: 85%;
@@ -673,7 +674,7 @@ onBeforeUnmount(() => {
       }
     }
 
-    img {
+    :deep(img) {
       max-width: 100%;
       box-sizing: border-box;
       border-radius: 4px;
@@ -681,7 +682,7 @@ onBeforeUnmount(() => {
       cursor: pointer;
     }
 
-    a {
+    :deep(a) {
       color: #18a058;
       text-decoration: none;
       cursor: pointer;
@@ -691,17 +692,17 @@ onBeforeUnmount(() => {
       }
     }
 
-    mark {
+    :deep(mark) {
       background-color: #faf089;
       border-radius: 0.4em;
       padding: 0.1em 0.2em;
     }
 
-    u {
+    :deep(u) {
       text-decoration: underline;
     }
 
-    s {
+    :deep(s) {
       text-decoration: line-through;
     }
   }

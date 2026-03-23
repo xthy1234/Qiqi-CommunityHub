@@ -6,7 +6,8 @@
         <id column="id" property="id"/>
         <result column="circle_id" property="circleId"/>
         <result column="sender_id" property="senderId"/>
-        <result column="content" property="content"/>
+        <result column="content" property="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="extra" property="extra" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result column="msg_type" property="msgType"/>
         <result column="status" property="status"/>
         <result column="create_time" property="createTime"/>
@@ -37,6 +38,7 @@
             circle_id,
             sender_id,
             content,
+            extra,
             msg_type,
             status,
             create_time,
@@ -57,6 +59,7 @@
             circle_id,
             sender_id,
             content,
+            extra,
             msg_type,
             status,
             create_time,
@@ -78,6 +81,7 @@
             circle_id,
             sender_id,
             content,
+            extra,
             msg_type,
             status,
             create_time,
@@ -99,8 +103,8 @@
             c.member_count,
             cc.id as last_message_id,
             CASE
-                WHEN cc.deleted_by_admin = true THEN ''
-                WHEN cc.is_recalled = true THEN ''
+                WHEN cc.deleted_by_admin = true THEN '{}'::jsonb
+                WHEN cc.is_recalled = true THEN '{}'::jsonb
                 ELSE cc.content
                 END as last_message_content,
             cc.sender_id as last_message_sender_id,
@@ -110,19 +114,24 @@
         FROM circle c
                  INNER JOIN circle_member cm ON c.id = cm.circle_id AND cm.user_id = #{userId} AND cm.status = 0
                  LEFT JOIN (
-            -- 获取每个圈子的最后一条消息（不排除已删除）
-            SELECT DISTINCT ON (circle_id)
-                id,
-                circle_id,
-                sender_id,
-                content,
-                create_time,
-                is_recalled,
-                deleted_by_admin,
-                deleted_by,
-                deleted_time
-            FROM circle_chat
-            ORDER BY circle_id, create_time DESC
+            -- 使用 ROW_NUMBER() 获取每个圈子的最后一条消息
+            SELECT *
+            FROM (
+                     SELECT
+                         id,
+                         circle_id,
+                         sender_id,
+                         content,
+                         extra,
+                         create_time,
+                         is_recalled,
+                         deleted_by_admin,
+                         deleted_by,
+                         deleted_time,
+                         ROW_NUMBER() OVER (PARTITION BY circle_id ORDER BY create_time DESC) as rn
+                     FROM circle_chat
+                 ) ranked_messages
+            WHERE rn = 1
         ) cc ON c.id = cc.circle_id
                  LEFT JOIN users u ON cc.sender_id = u.id
                  LEFT JOIN (
@@ -131,7 +140,7 @@
                 cc.circle_id,
                 COUNT(*) as unread_count
             FROM circle_chat cc
-            INNER JOIN circle_member cm ON cc.circle_id = cm.circle_id
+                     INNER JOIN circle_member cm ON cc.circle_id = cm.circle_id
                 AND cm.user_id = #{userId}
                 AND cm.status = 0
             WHERE cc.status = 0

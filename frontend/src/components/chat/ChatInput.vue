@@ -33,20 +33,13 @@
     </div>
     
     <div class="input-wrapper">
-      <n-input
-        ref="inputRef"
-        v-model:value="inputValue"
-        type="textarea"
-        placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
-        :autosize="{ minRows: 2, maxRows: 5 }"
-        @keydown="handleKeyDown"
-      />
+      <EditorContent :editor="editor" />
     </div>
     
     <div class="input-footer">
       <n-button 
         type="primary" 
-        :disabled="!inputValue.trim()" 
+        :disabled="!canSend"
         @click="handleSend"
       >
         发送
@@ -64,17 +57,84 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { NButton, NIcon, NTooltip, NInput } from 'naive-ui'
+import { useEditor, EditorContent } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import Image from '@tiptap/extension-image'
+import Placeholder from "@tiptap/extension-placeholder";
+import {uploadAPI} from "@/api/upload";
+import { FileNodeExtension } from '@/utils/tiptap-file-node'
+import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 
 const appContext = useGlobalProperties()
-const inputRef = ref<any>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const inputValue = ref<string>('')
+
+// 最大字符数限制
+const MAX_CHAR_COUNT = 500
+
+// 创建轻量化的 TipTap 编辑器实例
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    Image,
+    FileNodeExtension,
+    ShareCardNodeExtension, // 添加 ShareCard 扩展
+    Placeholder.configure({
+      placeholder: '输入消息... (Enter 发送，Shift+Enter 换行)'
+    })
+  ],
+  content: '',
+  editorProps: {
+    attributes: {
+      class: 'editor-content',
+      placeholder: '输入消息... (Enter 发送，Shift+Enter 换行)'
+    },
+    // 关键修复：粘贴图片时自动压缩
+    handleDOMEvents: {
+      paste: (view, event) => {
+        const items = event.clipboardData?.items
+        if (!items) return false
+
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile()
+            if (file) {
+              event.preventDefault()
+              handleImagePaste(file)
+              return true
+            }
+          }
+        }
+        return false
+      }
+    }
+  },
+  autofocus: 'end',
+  onUpdate: ({ editor }) => {
+    // 检查字符数限制
+    const text = editor.state.doc.textContent
+    if (text.length > MAX_CHAR_COUNT) {
+      appContext?.$message.warning(`消息内容超过 ${MAX_CHAR_COUNT} 字限制`)
+      // 截断多余内容
+      const pos = editor.state.selection.from
+      editor.commands.setTextSelection(Math.min(pos, MAX_CHAR_COUNT))
+      editor.commands.deleteSelection()
+    }
+  }
+})
+
+// 计算属性：判断是否可以发送消息
+const canSend = computed(() => {
+  if (!editor.value) return false
+  const json = editor.value.getJSON()
+  return !(json.content?.length === 1 && json.content[0].type === 'paragraph' && !json.content[0].content)
+})
 
 const emit = defineEmits<{
-  send: [content: string]
+  send: [content: string, msgType: number]
 }>()
 
 const handleKeyDown = (e: KeyboardEvent) => {
@@ -85,30 +145,113 @@ const handleKeyDown = (e: KeyboardEvent) => {
 }
 
 const handleSend = () => {
-  if (!inputValue.value.trim()) return
-  
-  emit('send', inputValue.value.trim())
-  inputValue.value = ''
+  if (!editor.value || !canSend.value) return
+
+  // 获取 TipTap 的 JSON 对象（不要 stringify，直接传递对象）
+  const contentJson = editor.value.getJSON()
+
+
+
+  // 直接发送 JSON 对象给父组件
+  emit('send', contentJson, 0)
+  editor.value.commands.clearContent()
 }
 
 const handleUpload = () => {
   fileInputRef.value?.click()
 }
 
-const handleFileChange = (e: Event) => {
+const handleFileChange = async (e: Event) => {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
-  if (file) {
+  if (!file || !editor.value) return
 
-    // TODO: 实现文件上传逻辑
+  try {
+
+
+    const response = await uploadAPI.uploadFile(file)
+
+
+    // 关键修复：正确解析响应数据并转换为完整 URL
+    const fileData = response.code === 0 ? response : response.data
+    let fileUrl = fileData.url
+
+    if (!fileUrl) {
+      throw new Error('上传响应中缺少 url 字段')
+    }
+
+    // 关键修复：如果是相对路径，转换为完整 URL
+    if (fileUrl.startsWith('/')) {
+      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
+      fileUrl = `${baseUrl}${fileUrl}`
+    }
+
+
+    if (file.type.startsWith('image/')) {
+      // 图片：插入到编辑器
+      editor.value.chain().focus().setImage({ src: fileUrl }).run()
+      appContext?.$message.success('图片上传成功')
+    } else {
+      // 文件：使用新的 File 节点插入
+      const extension = file.name.split('.').pop()
+
+
+      // 关键修复：确保所有属性都是正确的类型
+      editor.value.commands.setFile({
+        src: fileUrl,
+        name: String(file.name),
+        size: Number(file.size),
+        mimeType: String(file.type),
+        extension: extension ? String(extension) : ''
+      })
+
+      appContext?.$message.success('文件上传成功')
+    }
+  } catch (error: any) {
+    console.error('❌ [ChatInput] 文件上传失败:', error)
+    appContext?.$message.error(`文件上传失败：${error.message}`)
   }
+
   target.value = ''
 }
 
-const insertEmoji = () => {
+// 新增：处理粘贴的图片
+const handleImagePaste = async (file: File) => {
+  try {
 
+
+    const response = await uploadAPI.uploadFile(file)
+    const fileData = response.code === 0 ? response : response.data
+    let fileUrl = fileData.url
+
+    if (!fileUrl) {
+      throw new Error('上传响应中缺少 url 字段')
+    }
+
+    // 关键修复：如果是相对路径，转换为完整 URL
+    if (fileUrl.startsWith('/')) {
+      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
+      fileUrl = `${baseUrl}${fileUrl}`
+    }
+
+    // 插入图片到编辑器
+    editor.value.chain().focus().setImage({ src: fileUrl }).run()
+    appContext?.$message.success('图片粘贴成功')
+  } catch (error: any) {
+    console.error('❌ [ChatInput] 粘贴图片失败:', error)
+    appContext?.$message.error('图片粘贴失败')
+  }
+}
+
+const insertEmoji = () => {
   // TODO: 实现表情选择器
 }
+
+onBeforeUnmount(() => {
+  if (editor.value) {
+    editor.value.destroy()
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -125,8 +268,62 @@ const insertEmoji = () => {
 }
 
 .input-wrapper {
-  margin-bottom: 12px;
+  :deep(.ProseMirror) {
+    min-height: 80px;
+    max-height: 200px;
+    background: aliceblue;
+    overflow-y: auto;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1;
+
+    &:hover {
+      border-color: #c0c4cc;
+    }
+
+    &:focus {
+      border-color: #18a058;
+      box-shadow: 0 0 0 2px rgba(24, 160, 88, 0.2);
+    }
+  }
+  :deep(.ProseMirror) {
+    img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin: 8px 0;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      &:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+    }
+  }
+  :deep(.ProseMirror) {
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
+  }
+
 }
+
+
 
 .input-footer {
   display: flex;

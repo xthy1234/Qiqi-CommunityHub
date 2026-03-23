@@ -67,14 +67,20 @@ public class FileController {
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
         "jpg", "jpeg", "png", "gif", "bmp", "webp",
         "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-        "txt", "csv", "zip", "rar"
+        "txt", "csv", "zip", "rar", "7z"
     );
     
     private static final List<String> ALLOWED_MIME_TYPES = Arrays.asList(
         "image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp",
         "application/pdf", "application/msword", 
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain", "text/csv"
+        "text/plain", "text/csv",
+        "application/zip", "application/x-zip-compressed", "application/x-rar-compressed",
+        "application/x-7z-compressed",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     );
 
     /**
@@ -113,11 +119,16 @@ public class FileController {
             }
             
             log.info("文件上传成功：{}, 大小：{} bytes", fileName, multipartFile.getSize());
-            return R.ok().put("fileName", fileName).put("size", multipartFile.getSize());
+            return R.ok("文件上传成功").put("fileName", fileName).put("size", multipartFile.getSize()).put("url", "/files/" + fileName);
             
-        } catch (Exception e) {
+        } catch (IOException e) {
+            // 🔥 IOException 返回 400（客户端错误）
             log.error("文件上传失败：{}", e.getMessage(), e);
-            return R.error(e.getMessage());
+            return R.error(400, e.getMessage());
+        } catch (Exception e) {
+            // 🔥 其他异常返回 500（服务器错误）
+            log.error("文件上传失败：{}", e.getMessage(), e);
+            return R.error(500, "上传失败：" + e.getMessage());
         }
     }
     

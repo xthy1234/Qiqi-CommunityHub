@@ -225,7 +225,7 @@ public class CircleChatController {
             vo.setId(latestMessage.getId());
             vo.setCircleId(latestMessage.getCircleId());
             vo.setSenderId(latestMessage.getSenderId());
-            vo.setContent(latestMessage.getIsRecalled() ? "" : latestMessage.getContent());
+            vo.setContent(latestMessage.getIsRecalled() ? new java.util.HashMap<>() : latestMessage.getContent());
             vo.setMsgType(latestMessage.getMsgType());
             vo.setIsRecalled(latestMessage.getIsRecalled());
             vo.setCreateTime(latestMessage.getCreateTime());

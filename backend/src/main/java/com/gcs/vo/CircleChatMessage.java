@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 圈子聊天 WebSocket 消息传输对象
@@ -24,8 +25,11 @@ public class CircleChatMessage {
     @Schema(description = "发送方用户信息")
     private UserSimpleVO sender;
 
-    @Schema(description = "消息内容", example = "大家好！")
-    private String content;
+    @Schema(description = "消息内容 (JSON格式)")
+    private Map<String, Object> content;
+
+    @Schema(description = "扩展信息 (JSON格式)")
+    private Map<String, Object> extra;
 
     @Schema(description = "消息类型 (0:文本，1:图片，2:文件)", example = "0")
     private Integer msgType;

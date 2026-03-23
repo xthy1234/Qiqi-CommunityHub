@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 圈子聊天消息 VO（RESTful 返回用）
@@ -24,8 +25,8 @@ public class CircleChatMessageVO {
     @Schema(description = "发送方用户信息")
     private com.gcs.vo.UserSimpleVO sender;
 
-    @Schema(description = "消息内容", example = "大家好！")
-    private String content;
+    @Schema(description = "消息内容")
+    private Map<String, Object> content;
 
     @Schema(description = "消息类型 (0:文本，1:图片，2:文件)", example = "0")
     private Integer msgType;

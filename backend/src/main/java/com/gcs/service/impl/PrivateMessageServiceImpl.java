@@ -35,7 +35,7 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
     private PrivateMessageDao privateMessageDao;
     
     @Override
-    public MessageSendResponseVO sendMessage(Long fromUserId, Long toUserId, String content, Integer msgType) {
+    public MessageSendResponseVO sendMessage(Long fromUserId, Long toUserId, Map<String, Object> content, Integer msgType) {
         // 验证接收方用户是否存在（可选）
         
         PrivateMessage message = new PrivateMessage();
@@ -44,7 +44,7 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
         message.setContent(content);
         message.setMsgType(msgType);
         message.setStatus(MessageStatus.UNREAD);
-        
+
         this.save(message);
         
         MessageSendResponseVO responseVO = new MessageSendResponseVO();

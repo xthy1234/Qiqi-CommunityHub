@@ -240,24 +240,34 @@ const handleScroll = (e: Event) => {
 /**
  * 发送消息（完整实现）
  */
-const handleSendMessage = async (content: string) => {
+const handleSendMessage = async (content: any, msgType: number = 0) => {
   if (!store.currentCircle) return
   
   try {
+    // content 是 TipTap JSON 对象（从 ChatInput 直接传来）
+
+
     // 1. 乐观添加：立即显示在界面上，标记为"发送中"
-    const tempMessage = store.addSendingMessage(content, store.currentCircle.id)
+    // store 需要存储字符串形式，所以如果 content 是对象则 stringify
+    const contentString = typeof content === 'string' ? content : JSON.stringify(content)
+    const tempMessage = store.addSendingMessage(contentString, store.currentCircle.id)
     await nextTick()
     scrollToBottom()
 
-    // 2. 通过 WebSocket 发送到后端
+    // 2. 构建消息对象（content 保持为对象）
+    const chatMessage = {
+      circleId: store.currentCircle.id,
+      content: content,  // TipTap JSON 对象（不要 stringify）
+      msgType: 0,  // 固定为 0，后端会根据 JSON 内容判断
+      extra: {}
+    }
 
 
+    // 3. 通过 WebSocket 发送到后端
     // 使用 circleWebSocket 发送消息到 /app/circle-message
-    circleWebSocket.sendCircleMessage(store.currentCircle.id, content, 0)
+    circleWebSocket.sendCircleMessage(store.currentCircle.id, chatMessage)
 
-
-    // 3. 等待后端推送确认（监听 CIRCLE_CHAT_MESSAGE 事件）
-    // 不需要 setTimeout 模拟，后端会通过 WebSocket 推送完整的消息对象
+    // 4. 等待后端推送确认（监听 CIRCLE_CHAT_MESSAGE 事件）
     // store.confirmSentMessage() 会在收到推送时自动调用
 
   } catch (error: any) {

@@ -44,14 +44,24 @@
     </div>
     
     <div class="user-actions">
-      <n-button
-        :type="user.isFollowing ? 'default' : 'primary'"
-        size="small"
-        round
-        @click.stop="handleFollow"
-      >
-        {{ user.isFollowing ? '已关注' : '关注' }}
-      </n-button>
+      <div class="action-buttons">
+        <n-button
+          :type="user.isFollowing ? 'default' : 'primary'"
+          size="small"
+          round
+          @click.stop="handleFollow"
+        >
+          {{ user.isFollowing ? '已关注' : '关注' }}
+        </n-button>
+
+        <n-button
+          size="small"
+          round
+          @click.stop="handleMessage"
+        >
+          发消息
+        </n-button>
+      </div>
     </div>
   </div>
 </template>
@@ -70,6 +80,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'click', user: UserInfo): void
   (e: 'follow', user: UserInfo): void
+  (e: 'message', user: UserInfo): void
 }>()
 
 /**
@@ -92,6 +103,13 @@ const handleUserClick = () => {
  */
 const handleFollow = () => {
   emit('follow', props.user)
+}
+
+/**
+ * 处理发消息
+ */
+const handleMessage = () => {
+  emit('message', props.user)
 }
 </script>
 
@@ -169,6 +187,16 @@ const handleFollow = () => {
   .user-actions {
     width: 100%;
     text-align: center;
+
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+
+      .n-button {
+        flex: 0 0 auto;
+      }
+    }
   }
 }
 </style>

@@ -54,21 +54,46 @@ public class WebSocketChatController {
      * 处理私聊消息发送
      */
     @MessageMapping("/private-message")
-    public void sendPrivateMessage(@Payload ChatMessage chatMessage) {
-        log.info("🚀 [断点测试] 收到 WebSocket 消息：from={} to={}", 
-                 chatMessage.getFromUserId(), chatMessage.getToUserId());
-        
+    public void sendPrivateMessage(@Payload ChatMessage chatMessage, StompHeaderAccessor accessor) {
         try {
-            log.info("收到 WebSocket 消息：from={} to={}", chatMessage.getFromUserId(), chatMessage.getToUserId());
+            // ✅ 从 Session 获取真实用户 ID
+            Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
+            
+            log.info("🚀 [私聊消息] 收到 WebSocket 消息：from={}, to={}", 
+                    chatMessage.getFromUserId(), chatMessage.getToUserId());
 
-            // 1. 保存消息到数据库
+            // 🔒 验证用户是否已登录
+            if (currentUserId == null) {
+                log.error("❌ [私聊消息] 发送失败：用户未登录或 Session 已过期");
+                throw new IllegalStateException("用户未登录");
+            }
+
+            // 🔥 1. 验证必填字段 - content 不能为空
+            if (chatMessage.getContent() == null || chatMessage.getContent().isEmpty()) {
+                log.error("❌ [私聊消息] 发送失败：消息内容不能为空，from={}, to={}", 
+                         chatMessage.getFromUserId(), chatMessage.getToUserId());
+                throw new IllegalArgumentException("消息内容不能为空");
+            }
+            
+            // 🔥 2. 如果 msgType 为空，设置默认值
+            if (chatMessage.getMsgType() == null) {
+                chatMessage.setMsgType(0); // 默认为文本类型
+                log.warn("⚠️ [私聊消息] msgType 为空，使用默认值 0");
+            }
+
+            // 🔒 验证其他必填字段
+            if (chatMessage.getToUserId() == null) {
+                log.error("❌ [私聊消息] 发送失败：toUserId 不能为空");
+                throw new IllegalArgumentException("接收方用户 ID 不能为空");
+            }
+
+            // 保存消息到数据库
             PrivateMessage message = new PrivateMessage();
-            message.setFromUserId(chatMessage.getFromUserId());
+            message.setFromUserId(currentUserId);  // ✅ 使用 Session 中的真实 ID
             message.setToUserId(chatMessage.getToUserId());
-            message.setContent(chatMessage.getContent());
+            message.setContent(chatMessage.getContent());  // ✅ 确保不为 null
             message.setMsgType(chatMessage.getMsgType());
             message.setStatus(MessageStatus.UNREAD);
-            message.setCreateTime(LocalDateTime.now());
 
             privateMessageService.save(message);
             log.info("✅ 消息已保存到数据库，messageId={}", message.getId());
@@ -116,15 +141,12 @@ public class WebSocketChatController {
 
             log.info("🎉 消息推送完成，接收方：{}", chatMessage.getToUserId());
 
+        } catch (IllegalArgumentException e) {
+            log.error("❌ [私聊消息] 参数错误：{}", e.getMessage());
+            throw e;  // 抛出异常让前端知道错误
         } catch (Exception e) {
-            log.error("❌ 发送 WebSocket 消息失败", e);
-            log.error("   错误类型：{}", e.getClass().getName());
-            log.error("   错误消息：{}", e.getMessage());
-            if (e.getCause() != null) {
-                log.error("   根本原因：{}", e.getCause().getClass().getName());
-                log.error("   根本消息：{}", e.getCause().getMessage());
-            }
-            throw e; // 重新抛出异常，让前端也能看到错误
+            log.error("❌ [私聊消息] 发送失败", e);
+            throw e;  // 抛出异常让前端知道错误
         }
     }
 

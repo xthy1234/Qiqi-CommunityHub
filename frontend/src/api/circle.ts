@@ -206,7 +206,7 @@ export const circleChatApi = {
   /**
    * 发送消息（HTTP 方式，不推荐，仅作为降级方案）
    */
-  async sendMessage(circleId: number, content: string, msgType: number = 0): Promise<CircleMessage> {
+  async sendMessage(circleId: number, content: any, msgType: number = 0): Promise<CircleMessage> {
     const response: AxiosResponse<ApiResponse<CircleMessage>> = await httpClient.post(`/circles/${circleId}/chat/messages`, { 
       content, 
       msgType 
@@ -313,42 +313,68 @@ export const circleWebSocket = {
   /**
    * 发送圈子消息
    */
-  sendCircleMessage(circleId: number, content: string, msgType: number = 0): void {
+  sendCircleMessage(circleId: number, chatMessage: any): void {
+  
+  const ws = getWebSocket()
+  
+  if (!ws || !ws.isConnected()) {
+    console.error('❌ [圈子 WebSocket] WebSocket 未连接，无法发送消息')
+    return
+  }
 
-    
-    const ws = getWebSocket()
+  // chatMessage 已经是完整的对象格式：{ circleId, content(对象), msgType, extra }
+  // 直接使用传入的完整对象
+  const message = {
+    circleId: circleId,
+    content: chatMessage.content,  // TipTap JSON 对象（不要 stringify）
+    msgType: chatMessage.msgType,
+    extra: chatMessage.extra || {}
+  }
 
-    
-    if (!ws || !ws.isConnected()) {
-      console.error('❌ [圈子 WebSocket] WebSocket 未连接，无法发送消息')
+  // 关键新增：详细的日志输出
 
-      return
+
+
+  
+  // 验证 content 是否为完整的 TipTap 文档对象
+  if (typeof message.content !== 'object' || message.content === null) {
+    console.error('❌ [圈子 API] content 不是对象:', typeof message.content)
+    return
+  }
+  
+  if (!message.content.type) {
+    console.error('❌ [圈子 API] content 缺少 type 字段，这不是有效的 TipTap JSON')
+    console.error('   实际内容:', message.content)
+    return
+  }
+  
+  if (message.content.type !== 'doc') {
+    console.error('❌ [圈子 API] content.type 不是 "doc"，而是:', message.content.type)
+    console.error('   这可能导致后端反序列化失败')
+  }
+
+  // 使用 STOMP publish 方法
+  const client = (ws as any).client
+  
+  if (client && client.connected) {
+    try {
+      // 只对整个对象进行一次 JSON.stringify
+      // content 字段会作为嵌套的 JSON 对象一起序列化
+      const serializedBody = JSON.stringify(message)
+
+      
+      client.publish({
+        destination: '/app/circle-message',
+        body: serializedBody
+      })
+
+    } catch (error) {
+      console.error('❌ [圈子 WebSocket] 消息发送失败:', error)
     }
-
-    const message = {
-      circleId: circleId,
-      content: content,
-      msgType: msgType
-    }
-
-    // 使用 STOMP publish 方法
-    const client = (ws as any).client
-
-    
-    if (client && client.connected) {
-      try {
-        client.publish({
-          destination: '/app/circle-message',
-          body: JSON.stringify(message)
-        })
-
-      } catch (error) {
-        console.error('❌ [圈子 WebSocket] 消息发送失败:', error)
-      }
-    } else {
-      console.error('❌ [圈子 WebSocket] STOMP 客户端未连接')
-    }
-  },
+  } else {
+    console.error('❌ [圈子 WebSocket] STOMP 客户端未连接')
+  }
+},
 
   /**
    * 撤回消息

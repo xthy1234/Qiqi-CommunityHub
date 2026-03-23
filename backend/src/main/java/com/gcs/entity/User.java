@@ -134,7 +134,7 @@ public class User implements Serializable {
 
 
     /**
-     * 最后登录时间
+     * 最后在线时间
      */
     @Schema(description = "最后在线时间", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")

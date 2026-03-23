@@ -18,11 +18,11 @@ public interface CircleChatService extends IService<CircleChat> {
      * 发送圈子消息
      * @param circleId 圈子 ID
      * @param senderId 发送者 ID
-     * @param content 消息内容
+     * @param content 消息内容 (JSON格式)
      * @param msgType 消息类型
      * @return 发送后的消息
      */
-    CircleChatMessage sendMessage(Long circleId, Long senderId, String content, Integer msgType);
+    CircleChatMessage sendMessage(Long circleId, Long senderId, Map<String, Object> content, Integer msgType);
 
     /**
      * 获取圈子聊天记录

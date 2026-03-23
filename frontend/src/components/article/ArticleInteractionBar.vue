@@ -28,7 +28,8 @@
       <span>{{ isFavorited ? '已收藏' : '收藏' }} ({{ favoriteCount || 0 }})</span>
     </div>
 
-    <div class="interaction-item" @click="handleShare">
+    <!-- 分享按钮 -->
+    <div class="interaction-item" @click="showShareModal = true">
       <Icon icon="ri:share-line" width="18" />
       <span>分享</span>
     </div>
@@ -37,14 +38,88 @@
       <Icon icon="ri:alert-line" width="18" />
       <span>举报</span>
     </div>
+
+    <!-- 分享到聊天模态框 -->
+    <n-modal v-model:show="showShareModal" title="分享到聊天" preset="card" style="width: 500px;">
+      <p>请选择要分享给的好友或圈子：</p>
+
+      <!-- 标签切换 -->
+      <n-tabs v-model:value="shareTab" type="line" animated>
+        <n-tab-pane name="private" tab="私信">
+          <div v-if="loadingConversations" style="padding: 20px; text-align: center;">
+            <n-spin size="small" />
+            <span style="margin-left: 8px; color: #999;">加载中...</span>
+          </div>
+          <div v-else-if="conversations.length === 0" style="padding: 20px; text-align: center; color: #999;">
+            暂无好友会话
+          </div>
+          <n-select
+            v-else
+            v-model:value="selectedUserId"
+            :options="friendOptions"
+            placeholder="选择要分享的好友..."
+            filterable
+            style="margin-top: 12px;"
+          />
+        </n-tab-pane>
+        <n-tab-pane name="circle" tab="圈子">
+          <div v-if="circles.length === 0" style="padding: 20px; text-align: center; color: #999;">
+            暂无圈子
+          </div>
+          <n-select
+            v-else
+            v-model:value="selectedCircleId"
+            :options="circleOptions"
+            placeholder="选择要分享的圈子..."
+            filterable
+            style="margin-top: 12px;"
+          />
+        </n-tab-pane>
+      </n-tabs>
+
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showShareModal = false">取消</n-button>
+          <n-button
+            type="primary"
+            :disabled="!selectedUserId && !selectedCircleId"
+            @click="sendArticleToChat"
+          >
+            发送
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { Icon } from '@iconify/vue'
-import { ElMessage } from 'element-plus'
-import { interactionAPI } from '@/api/interaction'
+import {computed, defineComponent, h, onMounted, ref} from 'vue'
+import {Icon} from '@iconify/vue'
+import {ElMessage} from 'element-plus'
+import {interactionAPI} from '@/api/interaction'
+import {useChatStore} from '@/stores/chat'
+import {useCircleChatStore} from '@/stores/circleChat'
+import {storeToRefs} from 'pinia'
+import {NAvatar, NButton, NModal, NSelect, NSpace, NTabPane, NTabs} from 'naive-ui'
+import {getWebSocket} from '@/utils/websocket'
+import {circleApi, circleChatApi} from '@/api/circle'
+import type {Circle} from '@/types/circleChat'
+import messageAPI from '@/api/message'
+import {ConversationVO} from "@/types/message";
+
+// 定义全局 Window 接口扩展
+declare global {
+  interface Window {
+    detailArticleData?: {
+      title: string
+      coverUrl?: string
+      authorNickname?: string
+      publishTime?: string
+      id: number | string
+    }
+  }
+}
 
 interface Props {
   articleId: number | string
@@ -76,7 +151,6 @@ const isFavorited = ref<boolean>(false)
 const checkInteractions = async () => {
   try {
     const likeResponse = await interactionAPI.check(props.articleId, 2)
-
     isLiked.value = likeResponse.data.data?.hasAction || false
 
     const dislikeResponse = await interactionAPI.check(props.articleId, 3)
@@ -92,51 +166,36 @@ const checkInteractions = async () => {
 }
 
 // 点赞
-const handleLike = async () => {  try {
+const handleLike = async () => {
+  try {
     if (isLiked.value) {
-      // 取消点赞
-
       const params = {
         contentId: props.articleId,
         actionType: 2 as 2,
         tableName: 'article'
       }
-
-
       await interactionAPI.cancelLike(params)
       isLiked.value = false
-      // 本地减少点赞数
       emit('update', {
         isLiked: false,
         isDisliked: isDisliked.value,
         isFavorited: isFavorited.value,
         likeCount: (props.likeCount || 0) - 1
       })
-
       ElMessage.success('已取消点赞')
     } else {
-      // 执行点赞
-
       const params = {
         contentId: props.articleId,
         actionType: 2 as 2,
         tableName: 'article'
       }
-
-
       await interactionAPI.like(params)
-
-      // 本地增加点赞数
       isLiked.value = true
-
       let newLikeCount = (props.likeCount || 0) + 1
       let newDislikeCount = props.dislikeCount || 0
-
-      // 如果之前点踩了，取消点踩并减少计数
       if (isDisliked.value) {
         isDisliked.value = false
         newDislikeCount = (props.dislikeCount || 0) - 1
-        // 取消点踩的 API 调用
         const cancelParams = {
           contentId: props.articleId,
           actionType: 3 as 3,
@@ -144,10 +203,7 @@ const handleLike = async () => {  try {
         }
         await interactionAPI.cancelLike(cancelParams)
       }
-
-
       ElMessage.success('点赞成功')
-
       emit('update', {
         isLiked: true,
         isDisliked: false,
@@ -157,17 +213,7 @@ const handleLike = async () => {  try {
       })
     }
   } catch (error: any) {
-    // console.error('=== 点赞失败 ===')
-    // console.error('错误对象:', error)
-    // console.error('错误名称:', error.constructor.name)
-
     if (error.isAxiosError) {
-      // console.error('这是 Axios 错误')
-      // console.error('错误响应:', error.response)
-      // console.error('错误状态码:', error.response?.status)
-      // console.error('错误数据:', error.response?.data)
-      // console.error('错误消息:', error.message)
-
       if (error.response?.status === 400) {
         ElMessage.warning(error.response?.data?.msg || '您已经点过赞了')
       } else if (error.response?.status === 500) {
@@ -176,59 +222,42 @@ const handleLike = async () => {  try {
         ElMessage.error(error.response?.data?.msg || '操作失败')
       }
     } else {
-      // 普通错误
-      // console.error('普通错误:', error.message)
       ElMessage.error(error.message || '操作失败')
     }
   }
 }
 
 // 点踩
-const handleDislike = async () => {  try {
+const handleDislike = async () => {
+  try {
     if (isDisliked.value) {
-      // 取消点踩
-
       const params = {
         contentId: props.articleId,
         actionType: 3 as 3,
         tableName: 'article'
       }
-
-
       await interactionAPI.cancelLike(params)
       isDisliked.value = false
-      // 本地减少点踩数
       emit('update', {
         isLiked: isLiked.value,
         isDisliked: false,
         isFavorited: isFavorited.value,
         dislikeCount: (props.dislikeCount || 0) - 1
       })
-
       ElMessage.success('已取消点踩')
     } else {
-      // 执行点踩
-
       const params = {
         contentId: props.articleId,
         actionType: 3 as 3,
         tableName: 'article'
       }
-
-
       await interactionAPI.like(params)
-
-      // 本地增加点踩数
       isDisliked.value = true
-
       let newDislikeCount = (props.dislikeCount || 0) + 1
       let newLikeCount = props.likeCount || 0
-
-      // 如果之前点赞了，取消点赞并减少计数
       if (isLiked.value) {
         isLiked.value = false
         newLikeCount = (props.likeCount || 0) - 1
-        // 取消点赞的 API 调用
         const cancelParams = {
           contentId: props.articleId,
           actionType: 2 as 2,
@@ -236,10 +265,7 @@ const handleDislike = async () => {  try {
         }
         await interactionAPI.cancelLike(cancelParams)
       }
-
-
       ElMessage.success('点踩成功')
-
       emit('update', {
         isLiked: false,
         isDisliked: true,
@@ -249,17 +275,7 @@ const handleDislike = async () => {  try {
       })
     }
   } catch (error: any) {
-    // console.error('=== 点踩失败 ===')
-    // console.error('错误对象:', error)
-    // console.error('错误名称:', error.constructor.name)
-
     if (error.isAxiosError) {
-      // console.error('这是 Axios 错误')
-      // console.error('错误响应:', error.response)
-      // console.error('错误状态码:', error.response?.status)
-      // console.error('错误数据:', error.response?.data)
-      // console.error('错误消息:', error.message)
-
       if (error.response?.status === 400) {
         ElMessage.warning(error.response?.data?.msg || '您已经点过踩了')
       } else if (error.response?.status === 500) {
@@ -268,8 +284,6 @@ const handleDislike = async () => {  try {
         ElMessage.error(error.response?.data?.msg || '操作失败')
       }
     } else {
-      // 普通错误
-      // console.error('普通错误:', error.message)
       ElMessage.error(error.message || '操作失败')
     }
   }
@@ -279,7 +293,6 @@ const handleDislike = async () => {  try {
 const handleFavorite = async () => {
   try {
     if (isFavorited.value) {
-      // 取消收藏
       await interactionAPI.cancel({
         contentId: props.articleId,
         actionType: 1,
@@ -287,7 +300,6 @@ const handleFavorite = async () => {
       })
       isFavorited.value = false
       ElMessage.success('已取消收藏')
-
       emit('update', {
         isLiked: isLiked.value,
         isDisliked: isDisliked.value,
@@ -295,7 +307,6 @@ const handleFavorite = async () => {
         favoriteCount: (props.favoriteCount || 0) - 1
       })
     } else {
-      // 执行收藏
       await interactionAPI.create({
         contentId: props.articleId,
         actionType: 1,
@@ -304,7 +315,6 @@ const handleFavorite = async () => {
       })
       isFavorited.value = true
       ElMessage.success('收藏成功')
-
       emit('update', {
         isLiked: isLiked.value,
         isDisliked: isDisliked.value,
@@ -317,45 +327,202 @@ const handleFavorite = async () => {
   }
 }
 
-// 分享
-const handleShare = async () => {
-  const url = window.location.href
-  
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: document.title,
-        text: `推荐文章：${document.title}`,
-        url: url
-      })
-      
-      await interactionAPI.create({
-        contentId: props.articleId,
-        actionType: 4,
-        tableName: 'article',
-        remark: '用户通过系统分享'
-      })
-      
-      ElMessage.success('分享成功')
-    } catch (error) {
 
+
+// 使用聊天 Store
+const chatStore = useChatStore()
+const circleChatStore = useCircleChatStore()
+const { conversations } = storeToRefs(chatStore)
+
+// 新增：圈子列表状态
+const circles = ref<Circle[]>([])
+const shareTab = ref<'private' | 'circle'>('private')
+const selectedUserId = ref<number | null>(null)
+const selectedCircleId = ref<number | null>(null)
+const showShareModal = ref(false)
+const loadingConversations = ref(false)
+
+// 新增：获取用户加入的圈子列表
+const loadCircles = async () => {
+  try {
+    const result = await circleApi.getMyCircles({ page: 1, limit: 50 })
+    circles.value = result.list || []
+
+  } catch (error) {
+    console.error('❌ [ArticleInteractionBar] 加载圈子列表失败:', error)
+    circles.value = []
+  }
+}
+
+// 新增：加载会话列表
+const loadConversations = async () => {
+  if (conversations.value.length > 0) {
+
+    return
+  }
+
+  loadingConversations.value = true
+  try {
+    // 主动调用 API 获取会话列表
+    const result = await messageAPI.getConversations()
+
+
+    // 关键修复：result 就是 ConversationVO[] 数组，不需要 .list
+    chatStore.conversations = result as ConversationVO[] || []
+  } catch (error) {
+    console.error('❌ [ArticleInteractionBar] 加载会话列表失败:', error)
+  } finally {
+    loadingConversations.value = false
+  }
+}
+
+// 在组件挂载时加载圈子列表和会话列表
+onMounted(() => {
+  loadCircles()
+  loadConversations()
+})
+
+// 创建自定义选项组件
+const FriendOption = defineComponent({
+  props: {
+    avatar: String,
+    username: String
+  },
+  setup(props: { avatar?: string | null; username?: string | null }) {
+    return () =>
+      h('div', {
+        style: 'display: flex; align-items: center; gap: 8px; width: 100%;'
+      }, [
+        h(NAvatar, {
+          src: props.avatar || '',
+          size: 'small',
+          round: true,
+          style: 'flex-shrink: 0;'
+        }),
+        h('div', {
+          style: 'display: flex; flex-direction: column; overflow: hidden;'
+        }, [
+          h('span', {
+            style: 'font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'
+          }, props.username || '未知用户')
+        ])
+      ])
+  }
+})
+
+const CircleOption = defineComponent({
+  props: {
+    avatar: String,
+    name: String,
+    memberCount: Number
+  },
+  setup(props: { avatar?: string | null; name?: string | null; memberCount?: number | null }) {
+    return () =>
+      h('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
+        h(NAvatar, {
+          src: props.avatar || '',
+          size: 'small',
+          round: true,
+          style: 'flex-shrink: 0;'
+        }),
+        h('div', { style: 'display: flex; flex-direction: column;' }, [
+          h('span', { style: 'font-weight: 500;' }, props.name || '未知圈子'),
+          h('span', { style: 'font-size: 12px; color: #999;' }, `${props.memberCount || 0} 人`)
+        ])
+      ])
+  }
+})
+
+// 构建好友选项列表（带头像）
+const friendOptions = computed(() => {
+
+  return conversations.value.map((conv: ConversationVO) => ({
+    label: (option: any) => h(FriendOption, {
+      avatar: conv.avatar,
+      username: conv.username
+    }),
+    value: conv.userId
+  }))
+})
+
+// 构建圈子选项列表（带头像）
+const circleOptions = computed(() => {
+  return circles.value.map(circle => ({
+    label: (option: any) => h(CircleOption, {
+      avatar: circle.avatar,
+      name: circle.name,
+      memberCount: circle.memberCount
+    }),
+    value: circle.id
+  }))
+})
+
+// 将文章分享到聊天
+const sendArticleToChat = () => {
+  // 关键修复：优先从 window 获取，如果没有则尝试从父组件获取
+  const articleData = window.detailArticleData
+
+  if (!articleData) {
+    console.error('❌ [ArticleInteractionBar] 文章信息加载失败，window.detailArticleData 未定义')
+    ElMessage.error('文章信息加载失败，请刷新页面重试')
+    return
+  }
+
+  const { title, coverUrl, authorNickname, publishTime, id } = articleData
+  const articleUrl = `${window.location.origin}/#/index/articleDetail?id=${id}`
+
+  // 构建TipTap JSON格式的消息内容（对象形式）
+  const articleJsonContent = {
+    type: 'doc',
+    content: [
+      {
+        type: 'shareCardNode',
+        attrs: {
+          title: title,
+          summary: `作者：${authorNickname || '匿名'}`,
+          cover: coverUrl?.startsWith('http') ? coverUrl : `${window.location.origin}/${coverUrl}`,
+          url: articleUrl,
+          author: authorNickname || '匿名',
+          publishTime: publishTime
+        }
+      }
+    ]
+  }
+
+
+  // 判断是私信还是圈子分享
+  if (shareTab.value === 'private' && selectedUserId.value) {
+    // 私聊场景：传递对象而不是字符串
+    const tempMsg = chatStore.addSendingMessage(articleJsonContent, selectedUserId.value)
+    const ws = getWebSocket()
+    if (ws && ws.isConnected()) {
+      // 关键修复：构建完整的消息对象，不要直接传 content
+      const chatMessage = articleJsonContent  // TipTap JSON 对象
+
+      ws.sendPrivateMessage(tempMsg.toUserId, chatMessage)
+      ElMessage.success('文章已分享给好友')
+    } else {
+      ElMessage.warning('网络连接异常，消息发送失败')
+    }
+  } else if (shareTab.value === 'circle' && selectedCircleId.value) {
+    // 圈子场景
+    const tempMsg = circleChatStore.addSendingMessage(articleJsonContent, selectedCircleId.value)
+    const ws = getWebSocket()
+    if (ws && ws.isConnected()) {
+      // 关键修复：构建完整的消息对象
+      circleChatApi.sendMessage(selectedCircleId.value, articleJsonContent, 0)
+      ElMessage.success('文章已分享到圈子')
+    } else {
+      ElMessage.warning('网络连接异常，消息发送失败')
     }
   } else {
-    try {
-      await navigator.clipboard.writeText(url)
-      
-      await interactionAPI.create({
-        contentId: props.articleId,
-        actionType: 4,
-        tableName: 'article',
-        remark: '用户复制链接分享'
-      })
-      
-      ElMessage.success('链接已复制，可以分享给好友了')
-    } catch (error) {
-      ElMessage.warning('复制失败，请手动复制链接')
-    }
+    ElMessage.warning('请选择要分享的好友或圈子')
+    return
   }
+
+  showShareModal.value = false
+  selectedUserId.value = null
+  selectedCircleId.value = null
 }
 
 // 举报

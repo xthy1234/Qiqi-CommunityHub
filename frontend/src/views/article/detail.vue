@@ -226,6 +226,17 @@ const loadArticleDetail = async () => {
     const response = await articleAPI.getById(id)
     article.value = response.data.data
 
+    // 设置全局变量，供分享组件使用
+    if (article.value) {
+      window.detailArticleData = {
+        title: article.value.title,
+        coverUrl: getCoverImageUrl(),
+        authorNickname: article.value.authorNickname,
+        publishTime: article.value.publishTime,
+        id: article.value.id
+      }
+
+    }
 
     // 检查是否为当前用户
     const userId = appContext?.$toolUtil?.storageGet('userid')
@@ -235,6 +246,8 @@ const loadArticleDetail = async () => {
     console.error('加载文章失败:', error)
     ElMessage.error('加载文章失败')
     article.value = null
+    // 清除全局变量
+    window.detailArticleData = undefined
   } finally {
     loading.value = false
   }

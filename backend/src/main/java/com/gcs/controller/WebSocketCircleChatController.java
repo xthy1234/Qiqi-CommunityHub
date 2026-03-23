@@ -16,6 +16,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
+import java.util.Map;
+
 /**
  * 圈子聊天 WebSocket 控制器
  * 处理实时消息发送和撤回
@@ -65,7 +67,7 @@ public class WebSocketCircleChatController {
                 return;
             }
 
-            if (chatMessage.getContent() == null || chatMessage.getContent().trim().isEmpty()) {
+            if (chatMessage.getContent() == null || chatMessage.getContent().isEmpty()) {
                 log.error("❌ [圈子消息] 发送失败：消息内容不能为空");
                 return;
             }
@@ -148,7 +150,7 @@ public class WebSocketCircleChatController {
             recallNotification.setCircleId(message.getCircleId());
             recallNotification.setSenderId(currentUserId);  // 使用 Session 中的 ID
             recallNotification.setAction("RECALL");
-            recallNotification.setContent(""); // 撤回后内容为空
+            recallNotification.setContent(new java.util.HashMap<>()); // 撤回后内容为空
 
             // 广播给圈子所有成员
             String destination = "/topic/circles/" + message.getCircleId() + "/messages";
@@ -207,7 +209,7 @@ public class WebSocketCircleChatController {
             deleteNotification.setCircleId(message.getCircleId());
             deleteNotification.setSenderId(message.getSenderId());  // 原消息发送者 ID
             deleteNotification.setAction("DELETE");
-            deleteNotification.setContent(""); // 删除后内容为空
+            deleteNotification.setContent(new java.util.HashMap<>()); // 删除后内容为空
             deleteNotification.setDeletedByAdmin(true);
             
             // 🔥 设置删除者信息（UserSimpleVO 格式）

@@ -184,76 +184,39 @@ watch(() => store.currentConversation, (newConv: ConversationVO | null) => {
   }
 }, { deep: true })
 
-const handleSendMessage = async (content: string) => {
+/**
+ * 发送消息（完整实现）
+ */
+const handleSendMessage = async (content: any, msgType: number = 0) => {
   if (!store.currentConversation) return
   
   try {
-    //  1. 乐观添加：立即显示在界面上，标记为"发送中"
+    // content 是 TipTap JSON 对象（从 ChatInput 直接传来）
 
-    const tempMessage = store.addSendingMessage(content, store.currentConversation.userId)
+
+    // 1. 乐观添加：立即显示在界面上，标记为"发送中"
+    // store 需要存储字符串形式，所以如果 content 是对象则 stringify
+    const contentString = typeof content === 'string' ? content : JSON.stringify(content)
+    const tempMessage = store.addSendingMessage(contentString, store.currentConversation.userId)
     await nextTick()
     scrollToBottom()
 
-
-    //  2. 发送到后端（HTTP API 确保持久化）
-
-    //实际上，不需要再通过旧的接口向数据库中插入数据了。。。吧
-    // const response = await messageService.sendMessage({
-    //   toUserId: store.currentConversation.userId,
-    //   content,
-    //   msgType: 0
-    // })    //  3. 通过 WebSocket 推送给对方（同时也会推送给自己）
-    if (chatService.isConnected()) {
-
-      const ws = chatService.getWebSocket()
-      if (ws && store.currentConversation) {
-
-        ws.sendPrivateMessage(
-          store.currentConversation.userId,
-          content,
-          0
-        )
-
-
-      }
+    // 3. 通过 WebSocket 发送到后端
+    const ws = getWebSocket()
+    if (ws && ws.isConnected()) {
+      // 私聊消息格式
+      ws.sendPrivateMessage(store.currentConversation.userId, content)
     } else {
-      console.warn('⚠️ [步骤 3] WebSocket 未连接，无法推送')
-      //  如果 WebSocket 未连接，降级使用 HTTP 响应
-
-
-      try {
-        const response = await messageService.sendMessage({
-          toUserId: store.currentConversation.userId,
-          content,
-          msgType: 0
-        })
-
-        const fallbackMessage: Message = {
-          id: response.messageId || 0,
-          _tempId: tempMessage._tempId,
-          fromUserId: currentUserId.value || 0,
-          toUserId: store.currentConversation.userId,
-          content,
-          msgType: 0,
-          status: 'SENT',
-          createTime: response.createTime || new Date().toISOString(),
-          isSelf: true
-        }
-        store.confirmSentMessage(fallbackMessage)
-      } catch (httpError) {
-        console.error('❌ [降级处理] HTTP 发送消息失败:', httpError)
-        ElMessage.error('消息发送失败，请检查网络连接')
-      }
+      console.error('❌ [私聊] WebSocket 未连接')
+      ElMessage.error('网络连接异常，消息发送失败')
     }
 
-    await nextTick()
-    scrollToBottom()
+    // 4. 等待后端推送确认
+    // store.confirmSentMessage() 会在收到推送时自动调用
 
-
-  } catch (error) {
-    console.error('❌ [ChatDetail.sendMessage] 发送消息失败:', error)
-    console.error('  - 错误堆栈:', error)
-    //  TODO: 消息发送失败处理（显示重试按钮）
+  } catch (error: any) {
+    console.error('发送消息失败:', error)
+    ElMessage.error('消息发送失败')
   }
 }
 
@@ -420,13 +383,6 @@ const checkIsAtBottom = () => {
 
     const distanceToBottom = scrollHeight - scrollTop - clientHeight
 
-    // console.log('📍 [checkIsAtBottom]',
-    //     '- scrollTop:', scrollTop,
-    //     '- scrollHeight:', scrollHeight,
-    //     '- clientHeight:', clientHeight,
-    //     '- 距离底部:', distanceToBottom,
-    //     '- 阈值:', threshold,
-    //     '- 结果:', distanceToBottom <= threshold)
 
     return distanceToBottom <= threshold
 }
@@ -446,10 +402,7 @@ const handleScroll = (e: Event) => {
     isUserScrolling.value = false
   }
 
-  // console.log('📜 [handleScroll]',
-  //     '- 之前在底部:', wasAtBottom,
-  //     '- 现在在底部:', isAtBottom.value,
-  //     '- 是否滚动中:', isUserScrolling.value)
+
 
   // 加载更多历史消息
   if (target.scrollTop === 0 && !store.loading && store.hasMore) {
@@ -460,12 +413,6 @@ const handleScroll = (e: Event) => {
 watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
     const addedCount = newLen - oldLen
 
-    // console.log('👀 [Watch] 消息长度变化:',
-    //     '- 旧值:', oldLen,
-    //     '- 新值:', newLen,
-    //     '- 增加:', addedCount,
-    //     '- isAtBottom:', isAtBottom.value,
-    //     '- isUserScrolling:', isUserScrolling.value)
 
     //  如果是加载历史消息（一次性添加≥15 条）
     if (addedCount >= 15) {

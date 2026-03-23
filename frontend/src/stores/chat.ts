@@ -165,22 +165,36 @@ export const useChatStore = defineStore('chat', {
      */
     confirmSentMessage(realMessage: Message): void {
 
-      const tempIndex = this.messages.findIndex((m: Message) =>
-        m._sending === true && 
-        m.isSelf === true &&
-        m.content === realMessage.content &&
-        m.toUserId === realMessage.toUserId &&
-        Math.abs(new Date(m.createTime).getTime() - new Date(realMessage.createTime).getTime()) < 5000 // 5 秒误差内
-      )
 
 
-      
-      if (tempIndex !== -1) {
-        const oldTempMessage = this.messages[tempIndex]
+      // 关键修复：比较时需要统一格式，都转换为字符串进行比较
+      const normalizeContent = (content: any): string => {
+        return typeof content === 'string' ? content : JSON.stringify(content)
+      }
+
+      const tempIndex = this.messages.findIndex((m: Message) => {
+        const isSending = m._sending === true
+        const isSelf = m.isSelf === true
+        const toUserMatch = m.toUserId === realMessage.toUserId
+        const contentMatch = normalizeContent(m.content) === normalizeContent(realMessage.content)
+        const timeDiff = Math.abs(new Date(m.createTime).getTime() - new Date(realMessage.createTime).getTime())
+        const timeMatch = timeDiff < 5000
+
         
-        //  关键修改：保留完整的消息结构，包括 fromUser 和 toUser
+        return isSending && isSelf && toUserMatch && contentMatch && timeMatch
+      })
+
+
+      if (tempIndex !== -1) {
+
+        
+        const oldTempMessage = this.messages[tempIndex]
+
+
+        
+        // 关键修改：保留完整的消息结构，包括 fromUser 和 toUser
         this.messages[tempIndex] = {
-          ...realMessage,  //  使用真实消息的完整数据
+          ...realMessage,  // 使用真实消息的完整数据
           _tempId: undefined,
           _sending: false,
           isSelf: true
@@ -192,24 +206,36 @@ export const useChatStore = defineStore('chat', {
         // 但这条消息确实是自己发的，直接添加（去重）
         const exists = this.messages.some((m: Message) => m.id === realMessage.id)
         if (!exists) {
+
+          
           this.messages.push({
             ...realMessage,
             _sending: false,
             isSelf: true
           })
-
         } else {
 
         }
       }
-      
-      // 更新会话列表的 lastMessage
-      const convIndex = this.conversations.findIndex((c: ConversationVO) => c.userId === realMessage.toUserId)
-      if (convIndex !== -1) {
-        this.conversations[convIndex].lastMessage = realMessage.content
-        this.conversations[convIndex].lastTime = realMessage.createTime
 
+      // 更新会话列表
+      const index = this.conversations.findIndex((c: ConversationVO) => c.userId === realMessage.toUserId)
+      if (index !== -1) {
+        this.conversations.splice(index, 1)
       }
+      
+      // 添加到最前面，确保有用户名和头像
+      const conversationData: ConversationVO = {
+        userId: realMessage.toUserId,
+        username: this.currentConversation?.username || '未知用户',
+        avatar: this.currentConversation?.avatar || '',
+        lastMessage: typeof realMessage.content === 'string' ? realMessage.content : JSON.stringify(realMessage.content),
+        lastTime: realMessage.createTime,
+        unreadCount: 0
+      }
+      
+      this.conversations.unshift(conversationData)
+
     },
 
     /** 加载会话列表 */

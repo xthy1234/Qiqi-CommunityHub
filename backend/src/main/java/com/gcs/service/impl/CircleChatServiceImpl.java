@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 圈子聊天服务实现类
@@ -47,9 +48,12 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
     @Autowired
     private UserDao userDao;
 
+    /**
+     * 发送圈子消息（支持JSON格式内容）
+     */
     @Override
     @Transactional
-    public CircleChatMessage sendMessage(Long circleId, Long senderId, String content, Integer msgType) {
+    public CircleChatMessage sendMessage(Long circleId, Long senderId, Map<String, Object> contentJson, Integer msgType) {
         try {
             // 1. 验证圈子是否存在且正常
             Circle circle = circleService.getById(circleId);
@@ -67,7 +71,8 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             CircleChat chat = new CircleChat();
             chat.setCircleId(circleId);
             chat.setSenderId(senderId);
-            chat.setContent(content);
+            // 设置新的 JSON 内容字段
+            chat.setContent(contentJson);
             chat.setMsgType(msgType != null ? msgType : 0);
             chat.setStatus(0); // 默认未读
             chat.setIsRecalled(false);
@@ -107,7 +112,12 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
 
             IPage<CircleChat> resultPage = this.page(chatPage, queryWrapper);
 
-            return new PageUtils(resultPage);
+            // 在转换 VO 时，使用新的 contentJson 字段
+            List<CircleChatMessageVO> voList = resultPage.getRecords().stream()
+                    .map(chat -> convertToRestfulVO(chat, currentUserId))
+                    .collect(Collectors.toList());
+
+            return new PageUtils(voList, resultPage.getTotal(), resultPage.getSize(), resultPage.getCurrent());
         } catch (Exception e) {
             log.error("获取聊天记录失败，circleId: {}, userId: {}", circleId, currentUserId, e);
             throw new RuntimeException("获取聊天记录失败：" + e.getMessage());
@@ -193,7 +203,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
 
             // 3. 执行撤回操作
             message.setIsRecalled(true);
-            message.setContent(""); // 根据规范，撤回时 content 置空
+//            message.setContent(""); // 根据规范，撤回时 content 置空
             message.setUpdateTime(LocalDateTime.now());
             this.updateById(message);
 
@@ -341,15 +351,15 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             vo.setSender(convertToUserSimpleVO(sender));
         }
         
-        // 🔥 处理撤回和删除的消息内容
+        // 🔥 处理撤回和删除的消息内容：将 contentJson 置为空 Map
         if (chat.getDeletedByAdmin()) {
-            vo.setContent("");  // 删除后内容为空
+            vo.setContent(new java.util.HashMap<>());  // 删除后内容为空对象
         } else if (chat.getIsRecalled()) {
-            vo.setContent("");  // 撤回后内容为空
+            vo.setContent(new java.util.HashMap<>());  // 撤回后内容为空对象
         } else {
             vo.setContent(chat.getContent());
         }
-        
+
         vo.setMsgType(chat.getMsgType());
         vo.setIsRecalled(chat.getIsRecalled());
         vo.setDeletedByAdmin(chat.getDeletedByAdmin());
@@ -378,11 +388,11 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
         messageVO.setCircleId(chat.getCircleId());
         messageVO.setSenderId(chat.getSenderId());
         
-        // 🔥 处理撤回和删除的消息内容
-        if (chat.getDeletedByAdmin()) {
-            messageVO.setContent("");  // 删除后内容为空
-        } else if (chat.getIsRecalled()) {
-            messageVO.setContent("");  // 撤回后内容为空
+        // 🔥 处理撤回和删除的消息内容：将 contentJson 置为空 Map
+        if (Boolean.TRUE.equals(chat.getDeletedByAdmin())) {  // ✅ 使用 Boolean.TRUE.equals() 避免空指针
+            messageVO.setContent(new java.util.HashMap<>());  // 删除后内容为空对象
+        } else if (Boolean.TRUE.equals(chat.getIsRecalled())) {  // ✅ 同上
+            messageVO.setContent(new java.util.HashMap<>());  // 撤回后内容为空对象
         } else {
             messageVO.setContent(chat.getContent());
         }

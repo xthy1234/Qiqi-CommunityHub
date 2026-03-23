@@ -1,9 +1,12 @@
 package com.gcs.vo;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 私信消息 VO
@@ -20,10 +23,15 @@ public class MessageVO {
     
     @Schema(description = "接收方用户 ID", example = "456")
     private Long toUserId;
-    
-    @Schema(description = "消息内容", example = "你好！")
-    private String content;
-    
+
+
+    @Schema(description = "消息内容 (JSON格式)")
+    private Map<String, Object> content;
+
+
+    @Schema(description = "扩展信息 (JSON格式)")
+    private Map<String, Object> extra;
+
     @Schema(description = "消息类型 (0:文本，1:图片，2:文件)", example = "0")
     private Integer msgType;
     

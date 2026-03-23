@@ -7,6 +7,7 @@ import com.gcs.entity.User;
 import com.gcs.entity.view.UserView;
 
 import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 
 /**
@@ -62,18 +63,29 @@ public interface UserDao extends BaseMapper<User> {
     User selectByEmail(@Param("email") String email);
 
     /**
-     * 统计用户数量
-     * @param status 状态
+     * 统计指定状态的用户数量
+     * @param status 用户状态
      * @return 用户数量
      */
     Integer countUsers(@Param("status") Integer status);
+    
+    /**
+     * 更新最后登录信息
+     * @param userId 用户 ID
+     * @param lastLoginIp 最后登录 IP
+     */
+    void updateLastLoginInfo(@Param("userId") Long userId, @Param("lastLoginIp") String lastLoginIp);
+    
+    /**
+     * 更新最后在线时间
+     * @param userId 用户 ID
+     */
+    void updateLastOnlineTime(@Param("userId") Long userId);
 
     /**
-     * 更新用户最后登录信息
+     * 查询与指定用户有会话的所有用户 ID
      * @param userId 用户 ID
-     * @param lastLoginIp 登录 IP
-     * @return 更新结果
+     * @return 相关用户 ID 列表
      */
-    int updateLastLoginInfo(@Param("userId") Long userId, 
-                           @Param("lastLoginIp") String lastLoginIp);
+    List<Long> selectRelatedUserIds(@Param("userId") Long userId);
 }

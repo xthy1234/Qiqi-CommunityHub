@@ -34,6 +34,7 @@
               :user="user"
               @click="handleUserClick"
               @follow="handleFollow"
+              @message="handleMessage"
             />
           </div>
 
@@ -67,6 +68,7 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import UserCard from '@/components/discover/UserCard.vue'
 import type { UserInfo } from '@/types/discover'
 import userApi from '@/api/user'
+import followApi from '@/api/follow'
 
 const router = useRouter()
 const message = useMessage()
@@ -136,8 +138,12 @@ const handleUserClick = (user: UserInfo) => {
  */
 const handleFollow = async (user: UserInfo) => {
   try {
-    // TODO: 调用后端 API 关注/取消关注
-    // await $http.post(`/users/follow/${user.id}`)
+    const action = user.isFollowing ? 'unfollow' : 'follow'
+
+    await followApi.followOrUnfollow({
+      userId: user.id,
+      action: action
+    })
     
     user.isFollowing = !user.isFollowing
     message.success(user.isFollowing ? '关注成功' : '已取消关注')
@@ -145,6 +151,19 @@ const handleFollow = async (user: UserInfo) => {
   } catch (error: any) {
     console.error('操作失败:', error)
     message.error(error.message || '操作失败')
+  }
+}
+
+/**
+ * 发送私信
+ */
+const handleMessage = async (user: UserInfo) => {
+  try {
+    // 直接跳转到与该用户的聊天页面
+    router.push(`/chat/${user.id}`)
+  } catch (error: any) {
+    console.error('跳转失败:', error)
+    message.error('打开聊天窗口失败')
   }
 }
 

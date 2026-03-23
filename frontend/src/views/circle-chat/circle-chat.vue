@@ -121,11 +121,11 @@ const createRules = {
  */
 const loadConversations = async () => {
   try {
-    console.log('🔍 [圈子聊天] 开始加载会话列表...')
+
     store.loading = true
     const result = await circleChatApi.getConversations({ page: 1, limit: 20 })
     store.setConversations(result.list)
-    console.log('✅ [圈子聊天] 会话列表加载完成，总未读数:', store.totalUnreadCount)
+
 
   } catch (error: any) {
     console.error('❌ [圈子聊天] 加载会话列表失败:', error)
@@ -139,23 +139,23 @@ const loadConversations = async () => {
  * 选择圈子
  */
 const handleSelectCircle = async (conv: CircleConversation) => {
-  console.log('🔄 [圈子聊天] 用户选择圈子:', conv.circleId)
+
 
   try {
     // 1. 获取圈子详情
-    console.log('📋 [圈子聊天] 获取圈子详情，circleId:', conv.circleId)
+
     const circle = await circleApi.getCircleById(conv.circleId)
 
     // 2. 切换圈子
-    console.log('🔀 [圈子聊天] 切换到圈子:', circle.name)
+
     await store.switchCircle(circle)
 
     // 3. 加载聊天记录
-    console.log('💬 [圈子聊天] 加载聊天记录，circleId:', circle.id)
+
     await loadChatHistory(circle.id)
 
     // 4. 加载成员列表
-    console.log('👥 [圈子聊天] 加载成员列表，circleId:', circle.id)
+
     await loadMembers(circle.id)
 
     // 5. 不再在这里单独订阅，因为 WebSocketManager 已经全局订阅了
@@ -171,7 +171,7 @@ const handleSelectCircle = async (conv: CircleConversation) => {
  */
 const loadChatHistory = async (circleId: number) => {
   try {
-    console.log('📥 [圈子聊天] 准备加载聊天记录:', circleId)
+
     const result = await circleChatApi.getChatHistory(circleId, { page: 1, limit: 20 })
     store.setMessages(result.list.reverse(), true)  // reverse 让最新的在下面
 
@@ -181,7 +181,6 @@ const loadChatHistory = async (circleId: number) => {
     // 处理删除消息（转换为系统提示）
     store.processDeletedMessages(store.messages)
 
-    console.log('✅ [圈子聊天] 聊天记录加载完成，消息数:', result.list.length)
 
   } catch (error: any) {
     console.error('❌ [圈子聊天] 加载聊天记录失败:', error)
@@ -193,11 +192,11 @@ const loadChatHistory = async (circleId: number) => {
  */
 const loadMembers = async (circleId: number) => {
   try {
-    console.log('📡 [圈子聊天] 开始加载成员列表:', circleId)
+
     const result = await circleMemberApi.getMembers(circleId, { page: 1, limit: 100 })
-    console.log('📊 [圈子聊天] 成员列表API响应:', result)
+
     store.setMembers(result.list)
-    console.log('✅ [圈子聊天] 成员列表加载完成，成员数:', result.list.length)
+
 
   } catch (error: any) {
     console.error('❌ [圈子聊天] 加载成员列表失败:', error)
@@ -209,8 +208,7 @@ const loadMembers = async (circleId: number) => {
  */
 const handleInviteMember = () => {
   if (!store.currentCircle) return
-  
-  console.log('📨 [圈子聊天] 用户尝试邀请成员到圈子:', store.currentCircle.name)
+
   // TODO: 打开邀请对话框
   message.info('邀请功能开发中')
 }
@@ -219,7 +217,7 @@ const handleInviteMember = () => {
  * 点击成员
  */
 const handleMemberClick = (member: CircleMember) => {
-  console.log('👤 [圈子聊天] 用户点击成员:', member.userId, '角色:', member.role)
+
   // TODO: 显示成员信息或发起私聊
 }
 
@@ -231,14 +229,14 @@ const handleCreateCircle = async () => {
     await createFormRef.value?.validate()
     
     creatingLoading.value = true
-    console.log('🆕 [圈子聊天] 创建新圈子:', createForm.value.name)
+
     await circleApi.createCircle(createForm.value)
     
     message.success('创建成功')
     showCreateModal.value = false
     
     // 刷新列表
-    console.log('🔁 [圈子聊天] 创建成功，刷新会话列表')
+
     await loadConversations()
     
   } catch (error: any) {
@@ -255,7 +253,7 @@ const handleCreateCircle = async () => {
 
 // 生命周期
 onMounted(async () => {
-  console.log('🎯 [圈子聊天] 页面挂载，开始初始化...')
+
 
   // 不再在这里连接 WebSocket，因为登录后已经全局连接了
   // 只需要检查连接状态即可
@@ -265,7 +263,7 @@ onMounted(async () => {
   }
 
   await loadConversations()
-  console.log('🎉 [圈子聊天] 初始化成功')
+
 })
 
 onUnmounted(() => {
