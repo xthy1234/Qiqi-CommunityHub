@@ -9,14 +9,14 @@ export default function canvasBg(){
 				window.setTimeout(callback, 1000 / 60);
 			};
 	})();
-	var c = document.getElementById('canvas');
-	var $ = c.getContext('2d');
-	var w = c.width = window.innerWidth;
-	var h = c.height = window.innerHeight;
-	var _w = w * 0.5;
-	var _h = h * 0.5;
-	var arr = [];
-	var cnt = 0;
+	const c = document.getElementById('canvas');
+	const $ = c.getContext('2d');
+	let w = c.width = window.innerWidth;
+	let h = c.height = window.innerHeight;
+	const _w = w * 0.5;
+	const _h = h * 0.5;
+	const arr = [];
+	let cnt = 0;
 
 	window.addEventListener('load', resize);
 	window.addEventListener('resize', resize, false);
@@ -33,13 +33,13 @@ export default function canvasBg(){
 
 	function anim() {
 		cnt++;
-		if (cnt % 6) draw();
+		if (cnt % 6) {draw();}
 		window.requestAnimFrame(anim);
 	}
 	anim();
 
 	function draw() {
-		var splot = {
+		let splot = {
 			x: rng(_w - 900, _w + 900),
 			y: rng(_h - 900, _h + 900),
 			r: rng(20, 80),
@@ -53,9 +53,9 @@ export default function canvasBg(){
 		}
 		$.clearRect(0, 0, w, h);
 
-		for (var i = 0; i < arr.length; i++) {
+		for (let i = 0; i < arr.length; i++) {
 
-			splot = arr[i];;
+			splot = arr[i];
 			$.fillStyle = rndCol();
 			$.beginPath();
 			$.arc(splot.x, splot.y, splot.r, 0, Math.PI * 2, true);
@@ -73,9 +73,9 @@ export default function canvasBg(){
 	}
 
 	function rndCol() {
-		var r = Math.floor(Math.random() * 180);
-		var g = Math.floor(Math.random() * 60);
-		var b = Math.floor(Math.random() * 100);
+		const r = Math.floor(Math.random() * 180);
+		const g = Math.floor(Math.random() * 60);
+		const b = Math.floor(Math.random() * 100);
 		return "rgb(" + r + "," + g + "," + b + ")";
 	}
 

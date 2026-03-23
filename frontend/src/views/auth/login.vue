@@ -8,7 +8,9 @@
         label-placement="left"
         label-width="90px"
       >
-        <div class="title_view">中文社区交流平台登录</div>
+        <div class="title_view">
+          中文社区交流平台登录
+        </div>
 
         <!-- 用户名输入 -->
         <n-form-item
@@ -65,7 +67,10 @@
         </n-form-item>
 
         <!-- 记住密码选项 -->
-        <div class="remember_option" v-if="loginType === LoginTypeEnum.USERNAME">
+        <div
+          v-if="loginType === LoginTypeEnum.USERNAME"
+          class="remember_option"
+        >
           <n-checkbox v-model:checked="shouldRememberPassword">
             记住密码
           </n-checkbox>
@@ -74,11 +79,11 @@
         <!-- 操作按钮 -->
         <div class="button_group">
           <n-button
+            v-if="loginType === LoginTypeEnum.USERNAME"
             class="login_button"
             type="success"
             :loading="loginLoading"
             @click="handleLogin"
-            v-if="loginType === LoginTypeEnum.USERNAME"
           >
             登录
           </n-button>

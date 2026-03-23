@@ -1,4 +1,3 @@
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import menu from './menu'
 import CryptoJS from 'crypto-js'
 
@@ -7,8 +6,6 @@ const KEY = '1234567890123456'
 const IV = 'abcdefghijklmnop'
 
 interface ToolUtil {
-	message(msg: string, type: 'success' | 'warning' | 'info' | 'error', close?: () => void): void
-	notify(title: string, msg: string, type?: 'success' | 'warning' | 'info' | 'error', close?: () => void): void
 	storageSet(key: string, value: string): void
 	storageGet(key: string): string
 	storageGetObj<T = any>(key: string): T | null
@@ -32,33 +29,6 @@ interface ToolUtil {
 }
 
 const toolUtil: ToolUtil = {
-	// 提示语
-	message(msg, type, close?) {
-		ElMessage({
-			message: msg,
-			type: type,
-			duration: 2500,
-			onClose() {
-				if (close) {
-					close()
-				}
-			}
-		})
-	},
-
-	// 右部提示语
-	notify(title, msg, type = 'success', close?) {
-		ElNotification({
-			title: title,
-			message: msg,
-			type: type,
-			onClose() {
-				if (close) {
-					close()
-				}
-			}
-		})
-	},
 
 	storageSet(key, value) {
 		localStorage.setItem(key, value)
@@ -169,7 +139,7 @@ const toolUtil: ToolUtil = {
 				
 				// 遍历二级菜单项
 				for (const menuItem of child) {
-					if (!menuItem) continue
+					if (!menuItem) {continue}
 					
 					// 检查路由路径是否匹配
 					const menuJump = menuItem.menuJump || ''

@@ -1,84 +1,105 @@
 <template>
   <div
-      class="sidebar-container"
-      :class="{ 'sidebar-expanded': isExpanded }"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave"
+    class="sidebar-container"
+    :class="{ 'sidebar-expanded': isExpanded }"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
     <!-- 品牌 Logo 区域 -->
     <div class="sidebar-brand">
       <div class="brand-content">
         <img
-            v-if="isExpanded"
-            src="/logo.ico"
-            alt="Logo"
-            class="brand-logo"
+          v-if="isExpanded"
+          src="/logo.ico"
+          alt="Logo"
+          class="brand-logo"
         />
         <img
-            v-else
-            src="/favicon.ico"
-            alt="Logo"
-            class="brand-icon"
+          v-else
+          src="/favicon.ico"
+          alt="Logo"
+          class="brand-icon"
         />
       </div>
     </div>
 
     <!-- 菜单区域 -->
-    <div class="sidebar-menu-wrapper" :class="{ 'menu-scrollable': menuItems.length > 0 }">
+    <div
+      class="sidebar-menu-wrapper"
+      :class="{ 'menu-scrollable': menuItems.length > 0 }"
+    >
       <n-menu
-          ref="menuRef"
-          v-model:value="activeKey"
-          :mode="'vertical'"
-          :collapsed="!isExpanded"
-          :collapsed-width="64"
-          :width="isExpanded ? 280 : 64"
-          :collapsed-icon-size="22"
-          :options="menuOptions"
-          :indent="16"
-          :default-expand-all="false"
-          :expanded-keys="expandedKeys"
-          @update:value="handleMenuSelect"
-          @update:expanded-keys="handleExpandedChange"
-          class="sidebar-menu"
+        ref="menuRef"
+        v-model:value="activeKey"
+        :mode="'vertical'"
+        :collapsed="!isExpanded"
+        :collapsed-width="64"
+        :width="isExpanded ? 280 : 64"
+        :collapsed-icon-size="22"
+        :options="menuOptions"
+        :indent="16"
+        :default-expand-all="false"
+        :expanded-keys="expandedKeys"
+        class="sidebar-menu"
+        @update:value="handleMenuSelect"
+        @update:expanded-keys="handleExpandedChange"
       />
     </div>
 
     <!-- 底部操作区 -->
     <div class="sidebar-footer">
-      <div class="manual-toggle-wrapper" @click.stop="handleManualToggle">
+      <div
+        class="manual-toggle-wrapper"
+        @click.stop="handleManualToggle"
+      >
         <div class="manual-toggle-button">
-          <Icon :icon="isExpanded ? 'ri:arrow-left-s-line' : 'ri:arrow-right-s-line'" width="20" />
+          <Icon
+            :icon="isExpanded ? 'ri:arrow-left-s-line' : 'ri:arrow-right-s-line'"
+            width="20"
+          />
           <span v-if="isExpanded">{{ sidebarLocked ? '点击收起' : '自动' }}</span>
-<!--          <span v-else>点击展开</span>-->
+          <!--          <span v-else>点击展开</span>-->
         </div>
       </div>
 
       <!-- 固定开关 -->
-      <div class="toggle-button-wrapper" @click="toggleSidebarLock">
+      <div
+        class="toggle-button-wrapper"
+        @click="toggleSidebarLock"
+      >
         <div class="toggle-button">
           <Icon
-              :icon="!sidebarLocked ? 'ri:pushpin-line' : 'ri:lock-unlock-line'"
-              width="20"
+            :icon="!sidebarLocked ? 'ri:pushpin-line' : 'ri:lock-unlock-line'"
+            width="20"
           />
           <span v-if="isExpanded">{{ sidebarLocked ? '解除锁定' : '锁定展开' }}</span>
         </div>
       </div>
 
       <!-- 外部链接 -->
-      <div v-if="isExpanded" class="external-links">
+      <div
+        v-if="isExpanded"
+        class="external-links"
+      >
         <a
-            href="https://github.com"
-            target="_blank"
-            class="external-link"
-            title="GitHub"
+          href="https://github.com"
+          target="_blank"
+          class="external-link"
+          title="GitHub"
         >
-          <Icon icon="ri:github-fill" width="20" />
+          <Icon
+            icon="ri:github-fill"
+            width="20"
+          />
           <span>GitHub</span>
         </a>
       </div>
 
       <!-- 用户头像区域 -->
-      <div class="user-avatar-section" @click="handleAvatarClick">
+      <div
+        class="user-avatar-section"
+        @click="handleAvatarClick"
+      >
         <n-avatar
           v-if="userAvatarUrl"
           :src="userAvatarUrl"
@@ -92,11 +113,21 @@
           round
           class="user-avatar-placeholder"
         >
-          <Icon icon="ri:user-line" :size="20" />
+          <Icon
+            icon="ri:user-line"
+            :size="20"
+          />
         </n-avatar>
-        <div v-if="isExpanded" class="user-info">
-          <div class="user-nickname">{{ userNickname || '未登录' }}</div>
-          <div class="user-account">{{ userAccount || '点击登录' }}</div>
+        <div
+          v-if="isExpanded"
+          class="user-info"
+        >
+          <div class="user-nickname">
+            {{ userNickname || '未登录' }}
+          </div>
+          <div class="user-account">
+            {{ userAccount || '点击登录' }}
+          </div>
         </div>
       </div>
     </div>
@@ -323,7 +354,7 @@ const handleMenuSelect = (key: string, item: MenuOption) => {
       }
       if (option.children) {
         const found = findMenuItem(option.children, searchKey)
-        if (found) return found
+        if (found) {return found}
       }
     }
     return undefined
@@ -340,7 +371,7 @@ const handleExpandedChange = (keys: string[]) => {
 }
 
 const navigateToRoute = (path: string): void => {
-  if (!path) return
+  if (!path) {return}
   router.push(path.startsWith('/') ? path : `/index/${path}`)
 
   // 如果是聊天页面，自动收起侧边栏
@@ -399,7 +430,6 @@ const initializeComponent = async (): Promise<void> => {
   const token = appContext?.$toolUtil?.storageGet('Token')
   authToken.value = !!token
 
-
   // 🔒 读取锁定状态
   const locked = appContext?.$toolUtil?.storageGet('sidebarLocked')
 
@@ -409,7 +439,6 @@ const initializeComponent = async (): Promise<void> => {
   }else{
     sidebarLocked.value = Boolean(locked)
   }
-
 
   // 📦 读取展开/收起状态
   const savedExpanded = appContext?.$toolUtil?.storageGet('sidebarExpanded')
@@ -440,7 +469,7 @@ const loadUserInfo = (): void => {
 }
 
 const getFullUrl = (path: string, baseUrl?: string): string => {
-  if (!path) return ''
+  if (!path) {return ''}
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path
   }

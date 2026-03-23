@@ -2,8 +2,8 @@
   <div class="user-avatar-dropdown">
     <n-dropdown
       :options="dropdownOptions"
-      @select="handleSelect"
       placement="bottom-end"
+      @select="handleSelect"
     >
       <div class="avatar-wrapper">
         <n-avatar
@@ -19,7 +19,10 @@
         >
           {{ userNickname?.charAt(0) || '用' }}
         </n-avatar>
-        <Icon class="dropdown-icon" icon="ri:arrow-down-s-line" />
+        <Icon
+          class="dropdown-icon"
+          icon="ri:arrow-down-s-line"
+        />
       </div>
     </n-dropdown>
   </div>

@@ -1,5 +1,8 @@
 <template>
-  <PageContainer :header-title="isEdit ? '编辑圈子' : '创建圈子'" :show-back="false">
+  <PageContainer
+    :header-title="isEdit ? '编辑圈子' : '创建圈子'"
+    :show-back="false"
+  >
     <div class="circle-editor-page">
       <!-- 表单区域 -->
       <n-form
@@ -11,7 +14,10 @@
         class="circle-form"
       >
         <!-- 圈子名称 -->
-        <n-form-item label="圈子名称" path="name">
+        <n-form-item
+          label="圈子名称"
+          path="name"
+        >
           <n-input
             v-model:value="formData.name"
             placeholder="请输入圈子名称"
@@ -25,19 +31,25 @@
         <n-form-item label="圈头像">
           <div class="avatar-upload-content">
             <AvatarUpload
-                v-model="avatarUrl"
-                upload-action="files"
-                :is-disabled="false"
-                @change="handleAvatarChange"
+              v-model="avatarUrl"
+              upload-action="files"
+              :is-disabled="false"
+              @change="handleAvatarChange"
             >
-              <n-button type="primary" size="small">
+              <n-button
+                type="primary"
+                size="small"
+              >
                 更换头像
               </n-button>
             </AvatarUpload>
           </div>
         </n-form-item>
         <!-- 圈子描述 -->
-        <n-form-item label="圈子描述" path="description">
+        <n-form-item
+          label="圈子描述"
+          path="description"
+        >
           <n-input
             v-model:value="formData.description"
             type="textarea"
@@ -50,19 +62,26 @@
         </n-form-item>
 
         <!-- 圈子类型 -->
-        <n-form-item label="圈子类型" path="type">
+        <n-form-item
+          label="圈子类型"
+          path="type"
+        >
           <n-radio-group v-model:value="formData.type">
             <n-space>
               <n-radio :value="1">
                 <div class="radio-content">
                   <strong>公开</strong>
-                  <div class="desc">任何人都可以查看和申请加入</div>
+                  <div class="desc">
+                    任何人都可以查看和申请加入
+                  </div>
                 </div>
               </n-radio>
               <n-radio :value="0">
                 <div class="radio-content">
                   <strong>私密</strong>
-                  <div class="desc">只有被邀请的成员才能加入</div>
+                  <div class="desc">
+                    只有被邀请的成员才能加入
+                  </div>
                 </div>
               </n-radio>
             </n-space>
@@ -71,13 +90,16 @@
 
         <!-- 操作按钮 -->
         <div class="form-actions">
-          <n-button @click="handleCancel" size="large">
+          <n-button
+            size="large"
+            @click="handleCancel"
+          >
             取消
           </n-button>
           <n-button
-            @click="handleSave"
             size="large"
             :loading="saving"
+            @click="handleSave"
           >
             {{ isEdit ? '保存修改' : '创建圈子' }}
           </n-button>
@@ -205,7 +227,7 @@ const handleSave = async () => {
  * 加载圈子详情
  */
 const loadCircleDetail = async () => {
-  if (!route.query.id) return
+  if (!route.query.id) {return}
   
   try {
     const data = await circleApi.getCircleById(parseInt(route.query.id as string))

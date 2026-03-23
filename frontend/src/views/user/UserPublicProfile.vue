@@ -1,5 +1,8 @@
 <template>
-  <PageContainer :header-title="pageTitle"   @back="goBack">
+  <PageContainer
+    :header-title="pageTitle"
+    @back="goBack"
+  >
     <div class="user-public-profile">
       <!-- 用户信息卡片 -->
       <div class="profile-header">
@@ -22,16 +25,27 @@
         </div>
 
         <div class="user-basic-info">
-          <h2 class="user-nickname">{{ userInfo.nickname || userInfo.account }}</h2>
-          <p v-if="userInfo.signature" class="user-signature">
+          <h2 class="user-nickname">
+            {{ userInfo.nickname || userInfo.account }}
+          </h2>
+          <p
+            v-if="userInfo.signature"
+            class="user-signature"
+          >
             {{ userInfo.signature }}
           </p>
           <div class="user-stats">
-            <div class="stat-item" @click="goToFollowingList">
+            <div
+              class="stat-item"
+              @click="goToFollowingList"
+            >
               <span class="stat-value">{{ userInfo.followingCount || 0 }}</span>
               <span class="stat-label">关注</span>
             </div>
-            <div class="stat-item" @click="goToFollowerList">
+            <div
+              class="stat-item"
+              @click="goToFollowerList"
+            >
               <span class="stat-value">{{ userInfo.followerCount || 0 }}</span>
               <span class="stat-label">粉丝</span>
             </div>
@@ -66,25 +80,42 @@
 
       <!-- 详细信息 -->
       <div class="profile-details">
-        <div class="info-item" v-if="userInfo.gender">
-          <Icon icon="ri:genderless-line" :size="18" />
+        <div
+          v-if="userInfo.gender"
+          class="info-item"
+        >
+          <Icon
+            icon="ri:genderless-line"
+            :size="18"
+          />
           <span>{{ getGenderText(userInfo.gender) }}</span>
         </div>
-        <div class="info-item" v-if="userInfo.birthday">
-          <Icon icon="ri:calendar-line" :size="18" />
+        <div
+          v-if="userInfo.birthday"
+          class="info-item"
+        >
+          <Icon
+            icon="ri:calendar-line"
+            :size="18"
+          />
           <span>{{ userInfo.birthday }}</span>
         </div>
         <div class="info-item">
-          <Icon icon="ri:time-line" :size="18" />
+          <Icon
+            icon="ri:time-line"
+            :size="18"
+          />
           <span>加入于 {{ formatDateTime(userInfo.createTime) }}</span>
         </div>
-
       </div>
 
       <!-- 作者的文章列表 -->
       <div class="articles-section">
         <h3 class="section-title">
-          <Icon icon="ri:article-line" :size="20" />
+          <Icon
+            icon="ri:article-line"
+            :size="20"
+          />
           TA 的文章
         </h3>
 
@@ -103,9 +134,9 @@
           :page-size="articlePagination.limit"
           show-size-picker
           :page-sizes="[5, 10, 20]"
+          class="article-pagination"
           @update:page="handleArticlePageChange"
           @update:page-size="handlePageSizeChange"
-          class="article-pagination"
         >
           <template #prefix="{ itemCount }">
             共 {{ itemCount }} 条
@@ -202,16 +233,14 @@ const pageTitle = computed(() => {
 })
 
 const isCurrentUser = computed(() => {
-  if (!currentUserId.value || !userInfo.value.id) return false
+  if (!currentUserId.value || !userInfo.value.id) {return false}
   return currentUserId.value === userInfo.value.id
 })
 
 const fetchUserInfo = async () => {
   try {
     const userId = route.params.id
-    const response = await $http({
-      url: `users/${userId}`,
-      method: 'get',
+    const response = await $http.get(`users/${userId}`, {
       params: { detail: false }
     })
     
@@ -250,11 +279,7 @@ const fetchUserArticles = async () => {
       authorId: userInfo.value.id
     }
 
-    const response = await $http({
-      url: '/articles',
-      method: 'get',
-      params
-    })
+    const response = await $http.get('/articles', { params })
 
     const apiData = response.data.data
     articleList.value = apiData.list || []
@@ -294,7 +319,7 @@ const checkLoginStatus = async () => {
 }
 
 const handleFollowToggle = async () => {
-  if (followActionLoading.value) return
+  if (followActionLoading.value) {return}
 
   followActionLoading.value = true
   try {

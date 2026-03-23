@@ -1,23 +1,58 @@
 <!-- src/components/chat/ShareCardNode.vue -->
 <template>
   <node-view-wrapper class="share-card-wrapper">
-    <div class="share-card" @click="handleClick">
-      <div v-if="coverUrl" class="share-card-cover">
-        <img :src="coverUrl" :alt="title" @error="handleCoverError" />
+    <div
+      class="share-card"
+      @click="handleClick"
+    >
+      <div
+        v-if="coverUrl"
+        class="share-card-cover"
+      >
+        <img
+          :src="coverUrl"
+          :alt="title"
+          @error="handleCoverError"
+        />
       </div>
       <div class="share-card-content">
-        <div class="share-card-title">{{ title }}</div>
-        <div v-if="summary" class="share-card-summary">{{ summary }}</div>
+        <div class="share-card-title">
+          {{ title }}
+        </div>
+        <div
+          v-if="summary"
+          class="share-card-summary"
+        >
+          {{ summary }}
+        </div>
         <div class="share-card-meta">
-          <span v-if="author" class="share-card-author">{{ author }}</span>
-          <span v-if="publishTime" class="share-card-time">{{ formatTime(publishTime) }}</span>
+          <span
+            v-if="author"
+            class="share-card-author"
+          >{{ author }}</span>
+          <span
+            v-if="publishTime"
+            class="share-card-time"
+          >{{ formatTime(publishTime) }}</span>
         </div>
         <div class="share-card-action">
-          <n-button size="small" type="primary" @click.stop="handleOpen">
+          <n-button
+            size="small"
+            type="primary"
+            @click.stop="handleOpen"
+          >
             <template #icon>
               <n-icon>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+                  />
                 </svg>
               </n-icon>
             </template>
@@ -68,7 +103,7 @@ const publishTime = computed(() => props.node?.attrs?.publishTime || '')
 
 // 格式化时间
 const formatTime = (time: string): string => {
-  if (!time) return ''
+  if (!time) {return ''}
   try {
     const date = new Date(time)
     return date.toLocaleDateString('zh-CN', {

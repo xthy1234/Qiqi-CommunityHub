@@ -1,7 +1,7 @@
 export default function canvasBg(){
-	var w = window.innerWidth;
-	var h = window.innerHeight;
-	var ctx = document.getElementById('canvas');
+	let w = window.innerWidth;
+	let h = window.innerHeight;
+	const ctx = document.getElementById('canvas');
 	
 	window.addEventListener('load', resize);
 	window.addEventListener('resize', resize, false);
@@ -13,44 +13,44 @@ export default function canvasBg(){
 	
 	resize();
 	
-	let ctxfr = ctx.getContext('2d');
+	const ctxfr = ctx.getContext('2d');
 	
 	// min and max radius, radius threshold and percentage of filled circles
-	var radMin = 5,
+	const radMin = 5,
 		radMax = 125,
 		filledCircle = 60, //percentage of filled circles
 		concentricCircle = 30, //percentage of concentric circles
 		radThreshold = 25; //IFF special, over this radius concentric, otherwise filled
 	
 	//min and max speed to move
-	var speedMin = 0.3,
+	const speedMin = 0.3,
 		speedMax = 2.5;
 	
 	//max reachable opacity for every circle and blur effect
-	var maxOpacity = 0.6;
+	const maxOpacity = 0.6;
 	
 	//default palette choice
-	var colors = ['52,168,83', '117,95,147', '199,108,23', '194,62,55', '0,172,212', '120,120,120'],
+	const colors = ['52,168,83', '117,95,147', '199,108,23', '194,62,55', '0,172,212', '120,120,120'],
 		bgColors = ['52,168,83', '117,95,147', '199,108,23', '194,62,55', '0,172,212', '120,120,120'],
 		circleBorder = 10,
 		backgroundLine = bgColors[0];
-	var backgroundMlt = 0.85;
+	const backgroundMlt = 0.85;
 	
 	//min distance for links
-	var linkDist = Math.min(canvas.width, canvas.height) / 2.4,
+	const linkDist = Math.min(canvas.width, canvas.height) / 2.4,
 		lineBorder = 2.5;
 	
 	//most importantly: number of overall circles and arrays containing them
-	var maxCircles = 12,
+	const maxCircles = 12,
 		points = [],
 		pointsBack = [];
 	
 	//populating the screen
-	for (var i = 0; i < maxCircles * 2; i++) points.push(new Circle());
-	for (var i = 0; i < maxCircles; i++) pointsBack.push(new Circle(true));
+	for (var i = 0; i < maxCircles * 2; i++) {points.push(new Circle());}
+	for (var i = 0; i < maxCircles; i++) {pointsBack.push(new Circle(true));}
 	
 	//experimental vars
-	var circleExp = 1,
+	let circleExp = 1,
 		circleExpMax = 1.003,
 		circleExpMin = 0.997,
 		circleExpSp = 0.00004,
@@ -72,10 +72,10 @@ export default function canvasBg(){
 		this.speedAngle = Math.random() * 2 * Math.PI;
 		this.speedx = Math.cos(this.speedAngle) * this.speed;
 		this.speedy = Math.sin(this.speedAngle) * this.speed;
-		var spacex = Math.abs((this.x - (this.speedx < 0 ? -1 : 1) * (canvas.width / 2 + this.radius)) / this.speedx),
+		const spacex = Math.abs((this.x - (this.speedx < 0 ? -1 : 1) * (canvas.width / 2 + this.radius)) / this.speedx),
 			spacey = Math.abs((this.y - (this.speedy < 0 ? -1 : 1) * (canvas.height / 2 + this.radius)) / this.speedy);
 		this.ttl = Math.min(spacex, spacey);
-	};
+	}
 	
 	Circle.prototype.init = function() {
 		Circle.call(this, this.background);
@@ -98,7 +98,7 @@ export default function canvasBg(){
 	//rendering function
 	function drawCircle(ctx, circle) {
 		//circle.radius *= circleExp;
-		var radius = circle.background ? circle.radius *= circleExp : circle.radius /= circleExp;
+		const radius = circle.background ? circle.radius *= circleExp : circle.radius /= circleExp;
 		ctx.beginPath();
 		ctx.arc(circle.x, circle.y, radius * circleExp, 0, 2 * Math.PI, false);
 		ctx.lineWidth = Math.max(1, circleBorder * (radMin - circle.radius) / (radMin - radMax));
@@ -120,7 +120,7 @@ export default function canvasBg(){
 		}
 		circle.x += circle.speedx;
 		circle.y += circle.speedy;
-		if (circle.opacity < (circle.background ? maxOpacity : 1)) circle.opacity += 0.01;
+		if (circle.opacity < (circle.background ? maxOpacity : 1)) {circle.opacity += 0.01;}
 		circle.ttl--;
 	}
 	
@@ -133,7 +133,7 @@ export default function canvasBg(){
 	function draw() {
 	
 		if (circlePulse) {
-			if (circleExp < circleExpMin || circleExp > circleExpMax) circleExpSp *= -1;
+			if (circleExp < circleExpMin || circleExp > circleExpMax) {circleExpSp *= -1;}
 			circleExp += circleExpSp;
 		}
 	
@@ -146,32 +146,32 @@ export default function canvasBg(){
 		//function to render each single circle, its connections and to manage its out of boundaries replacement
 		function renderPoints(ctx, arr) {
 			for (var i = 0; i < arr.length; i++) {
-				var circle = arr[i];
+				const circle = arr[i];
 				//checking if out of boundaries
 				if (circle.ttl < 0) {}
-				var xEscape = canvas.width / 2 + circle.radius,
+				const xEscape = canvas.width / 2 + circle.radius,
 					yEscape = canvas.height / 2 + circle.radius;
-				if (circle.ttl < -20) arr[i].init(arr[i].background);
+				if (circle.ttl < -20) {arr[i].init(arr[i].background);}
 				//if (Math.abs(circle.y) > yEscape || Math.abs(circle.x) > xEscape) arr[i].init(arr[i].background);
 				drawCircle(ctx, circle);
 			}
 			for (var i = 0; i < arr.length - 1; i++) {
-				for (var j = i + 1; j < arr.length; j++) {
-					var deltax = arr[i].x - arr[j].x;
-					var deltay = arr[i].y - arr[j].y;
-					var dist = Math.pow(Math.pow(deltax, 2) + Math.pow(deltay, 2), 0.5);
+				for (let j = i + 1; j < arr.length; j++) {
+					const deltax = arr[i].x - arr[j].x;
+					const deltay = arr[i].y - arr[j].y;
+					const dist = Math.pow(Math.pow(deltax, 2) + Math.pow(deltay, 2), 0.5);
 					//if the circles are overlapping, no laser connecting them
-					if (dist <= arr[i].radius + arr[j].radius) continue;
+					if (dist <= arr[i].radius + arr[j].radius) {continue;}
 					//otherwise we connect them only if the dist is < linkDist
 					if (dist < linkDist) {
-						var xi = (arr[i].x < arr[j].x ? 1 : -1) * Math.abs(arr[i].radius * deltax / dist);
-						var yi = (arr[i].y < arr[j].y ? 1 : -1) * Math.abs(arr[i].radius * deltay / dist);
-						var xj = (arr[i].x < arr[j].x ? -1 : 1) * Math.abs(arr[j].radius * deltax / dist);
-						var yj = (arr[i].y < arr[j].y ? -1 : 1) * Math.abs(arr[j].radius * deltay / dist);
+						const xi = (arr[i].x < arr[j].x ? 1 : -1) * Math.abs(arr[i].radius * deltax / dist);
+						const yi = (arr[i].y < arr[j].y ? 1 : -1) * Math.abs(arr[i].radius * deltay / dist);
+						const xj = (arr[i].x < arr[j].x ? -1 : 1) * Math.abs(arr[j].radius * deltax / dist);
+						const yj = (arr[i].y < arr[j].y ? -1 : 1) * Math.abs(arr[j].radius * deltay / dist);
 						ctx.beginPath();
 						ctx.moveTo(arr[i].x + xi, arr[i].y + yi);
 						ctx.lineTo(arr[j].x + xj, arr[j].y + yj);
-						var samecolor = arr[i].color == arr[j].color;
+						const samecolor = arr[i].color == arr[j].color;
 						ctx.strokeStyle = ["rgba(", arr[i].borderColor, ",", Math.min(arr[i].opacity, arr[j].opacity) * ((linkDist -
 							dist) / linkDist), ")"].join("");
 						ctx.lineWidth = (arr[i].background ? lineBorder * backgroundMlt : lineBorder) * ((linkDist - dist) / linkDist); //*((linkDist-dist)/linkDist);

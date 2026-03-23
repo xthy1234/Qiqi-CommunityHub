@@ -1,6 +1,8 @@
 <template>
-  <PageContainer :header-title="isEdit ? '编辑文章' : '创作文章'" :show-back="false">
-
+  <PageContainer
+    :header-title="isEdit ? '编辑文章' : '创作文章'"
+    :show-back="false"
+  >
     <!-- 表单区域 -->
     <n-form
       ref="formRef"
@@ -11,7 +13,10 @@
       class="article-form"
     >
       <!-- 文章标题 -->
-      <n-form-item label="文章标题" path="title">
+      <n-form-item
+        label="文章标题"
+        path="title"
+      >
         <n-input
           v-model:value="formData.title"
           placeholder="请输入文章标题"
@@ -22,7 +27,10 @@
       </n-form-item>
 
       <!-- 分类选择 -->
-      <n-form-item label="文章分类" path="categoryId">
+      <n-form-item
+        label="文章分类"
+        path="categoryId"
+      >
         <n-select
           v-model:value="formData.categoryId"
           :options="categorySelectOptions"
@@ -32,17 +40,26 @@
       </n-form-item>
 
       <!-- 封面上传 -->
-      <n-form-item label="封面图片" path="coverUrl">
+      <n-form-item
+        label="封面图片"
+        path="coverUrl"
+      >
         <CoverUpload v-model="formData.coverUrl" />
       </n-form-item>
 
       <!-- 文章内容编辑器 -->
-      <n-form-item label="" path="content">
+      <n-form-item
+        label=""
+        path="content"
+      >
         <RichTextEditor v-model="formData.content" />
       </n-form-item>
 
       <!-- 发布时间（可选） -->
-      <n-form-item label="发布时间" path="publishTime">
+      <n-form-item
+        label="发布时间"
+        path="publishTime"
+      >
         <n-date-picker
           v-model:value="formData.publishTime"
           type="datetime"
@@ -57,21 +74,24 @@
 
       <!-- 操作按钮 -->
       <div class="form-actions">
-        <n-button @click="handleCancel" size="large">
+        <n-button
+          size="large"
+          @click="handleCancel"
+        >
           取消
         </n-button>
         <n-button
-          @click="handleSaveDraft"
           size="large"
           :loading="savingDraft"
+          @click="handleSaveDraft"
         >
           保存草稿
         </n-button>
         <n-button
           type="primary"
-          @click="handleSubmit"
           size="large"
           :loading="submitting"
+          @click="handleSubmit"
         >
           {{ isEdit ? '保存修改' : '立即发布' }}
         </n-button>
@@ -240,14 +260,10 @@ const handleSubmit = async () => {
   try {
     submitting.value = true
 
-    let url = isEdit.value ? `/articles/${route.query.id}` : '/articles'
-    let method = isEdit.value ? 'put' : 'post'
+    const url = isEdit.value ? `/articles/${route.query.id}` : '/articles'
+    const method = isEdit.value ? 'put' : 'post'
 
-    const response = await appContext?.$http({
-      url,
-      method,
-      data: formData
-    })
+    const response = await appContext?.$http[method](url, formData)
 
     message.success(isEdit.value ? '修改成功' : '发布成功')
 
@@ -272,7 +288,7 @@ const loadCategoryOptions = async () => {
 }
 
 const loadArticleDetail = async () => {
-  if (!route.query.id) return
+  if (!route.query.id) {return}
 
   try {
     const response = await appContext?.$http.get(`/articles/${route.query.id}`)
@@ -296,7 +312,7 @@ const loadArticleDetail = async () => {
 const loadDraftDetail = async () => {
   const id = route.query.draftId || route.query.id
 
-  if (!id) return
+  if (!id) {return}
 
   try {
     const response = await articleAPI.getDraftById(id)

@@ -1,6 +1,9 @@
 <template>
   <div class="article-search-box">
-    <n-space :size="12" :wrap="!compact">
+    <n-space
+      :size="12"
+      :wrap="!compact"
+    >
       <!-- 搜索输入框 -->
       <n-input
         v-model:value="keyword"
@@ -64,8 +67,8 @@
       <!-- 重置按钮（可选） -->
       <n-button
         v-if="showReset"
-        @click="handleReset"
         :disabled="disabled"
+        @click="handleReset"
       >
         <template #icon>
           <Icon icon="ri:restart-line" />
@@ -127,7 +130,7 @@ watch(() => props.modelValue, (newVal) => {
 })
 
 const handleSearch = () => {
-  if (!keyword.value?.trim()) return
+  if (!keyword.value?.trim()) {return}
   
   const params: SearchParams = {
     keyword: keyword.value.trim()

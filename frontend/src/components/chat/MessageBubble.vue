@@ -1,5 +1,8 @@
 <template>
-  <div class="message-wrapper" :class="{ 'own': isOwn }">
+  <div
+    class="message-wrapper"
+    :class="{ 'own': isOwn }"
+  >
     <!--  使用独立的头像组件 -->
     <ChatAvatar
       :user-id="message.fromUserId"
@@ -10,28 +13,62 @@
       @click="handleAvatarClick"
     />
 
-    <div class="message-bubble" :class="{ 'own': isOwn }" @contextmenu.prevent="showContextMenu">
+    <div
+      class="message-bubble"
+      :class="{ 'own': isOwn }"
+      @contextmenu.prevent="showContextMenu"
+    >
       <div class="message-content">
         <!-- 检查是否为纯文件消息 -->
         <template v-if="isFileMessage">
-          <div class="file-card" @click="downloadFile">
+          <div
+            class="file-card"
+            @click="downloadFile"
+          >
             <div class="file-icon">
-              <n-icon size="40" :color="getFileIconColor(fileInfo.type)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+              <n-icon
+                size="40"
+                :color="getFileIconColor(fileInfo.type)"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+                  />
                 </svg>
               </n-icon>
             </div>
             <div class="file-info">
-              <div class="file-name">{{ fileInfo.name }}</div>
-              <div class="file-size">{{ fileInfo.size }}</div>
+              <div class="file-name">
+                {{ fileInfo.name }}
+              </div>
+              <div class="file-size">
+                {{ fileInfo.size }}
+              </div>
             </div>
             <div class="file-action">
-              <n-button size="small" type="primary" @click.stop="downloadFile">
+              <n-button
+                size="small"
+                type="primary"
+                @click.stop="downloadFile"
+              >
                 <template #icon>
                   <n-icon>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z"/>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z"
+                      />
                     </svg>
                   </n-icon>
                 </template>
@@ -49,7 +86,10 @@
             class="tiptap-readonly"
           />
           <!-- 加载中提示 -->
-          <div v-else class="message-loading">
+          <div
+            v-else
+            class="message-loading"
+          >
             <n-spin size="small" />
           </div>
         </template>
@@ -57,7 +97,11 @@
     </div>
 
     <!-- 右键菜单 -->
-    <div v-if="contextMenuVisible" class="message-context-menu" :style="contextMenuStyle">
+    <div
+      v-if="contextMenuVisible"
+      class="message-context-menu"
+      :style="contextMenuStyle"
+    >
       <n-dropdown
         :options="menuOptions"
         :x="contextMenuX"
@@ -70,10 +114,16 @@
 
     <div class="message-meta">
       <span class="message-time">{{ formatTime(message.createTime) }}</span>
-      <span v-if="isOwn" class="message-status">
+      <span
+        v-if="isOwn"
+        class="message-status"
+      >
         <!--  显示发送中状态 -->
         <template v-if="message._sending || message.status === 'SENDING'">
-          <n-spin size="small" :stroke-width="3" />
+          <n-spin
+            size="small"
+            :stroke-width="3"
+          />
         </template>
         <template v-else-if="message.status === 1 || message.status === 'READ'">
           已读
@@ -97,10 +147,10 @@ import { computed, ref, onMounted, onBeforeUnmount, toRaw } from 'vue'
 import type { Message } from '@/types/message'
 import dayjs from 'dayjs'
 import { useGlobalProperties } from '@/utils/globalProperties'
-import { NAvatar, NImage, NIcon, NButton, NDropdown } from 'naive-ui'
+import { NAvatar, NImage, NIcon, NButton, NDropdown, useMessage } from 'naive-ui'
 import ChatAvatar from '@/components/chat/ChatAvatar.vue'
 import { getWebSocket } from '@/utils/websocket'
-// 引入只读模式的 TipTap 相关模块
+
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -108,6 +158,7 @@ import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 
 const appContext = useGlobalProperties()
+const message = useMessage()
 
 interface Props {
   message: Message
@@ -124,7 +175,7 @@ const emit = defineEmits<{
 
 // 新增：判断是否为文件消息
 const isFileMessage = computed(() => {
-  if (!props.message.content) return false
+  if (!props.message.content) {return false}
 
   let content: any
   try {
@@ -145,7 +196,7 @@ const isFileMessage = computed(() => {
 
 // 新增：判断是否为分享卡片消息
 const isShareCardMessage = computed(() => {
-  if (!props.message.content) return false
+  if (!props.message.content) {return false}
 
   let content: any
   try {
@@ -165,7 +216,7 @@ const isShareCardMessage = computed(() => {
 
 // 新增：解析文件信息
 const fileInfo = computed(() => {
-  if (!props.message.content) return { name: '未知文件', size: '', url: '', type: '' }
+  if (!props.message.content) {return { name: '未知文件', size: '', url: '', type: '' }}
 
   let content: any
   try {
@@ -184,7 +235,7 @@ const fileInfo = computed(() => {
 
       // 格式化文件大小
       const formatFileSize = (bytes: number): string => {
-        if (!bytes || bytes === 0) return '0 B'
+        if (!bytes || bytes === 0) {return '0 B'}
         const k = 1024
         const sizes = ['B', 'KB', 'MB', 'GB']
         const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -201,11 +252,11 @@ const fileInfo = computed(() => {
         const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']
         const zipExts = ['zip', 'rar', '7z']
 
-        if (imageExts.includes(ext) || mime.startsWith('image/')) return 'image'
-        if (videoExts.includes(ext) || mime.startsWith('video/')) return 'video'
-        if (audioExts.includes(ext) || mime.startsWith('audio/')) return 'audio'
-        if (docExts.includes(ext)) return 'document'
-        if (zipExts.includes(ext)) return 'archive'
+        if (imageExts.includes(ext) || mime.startsWith('image/')) {return 'image'}
+        if (videoExts.includes(ext) || mime.startsWith('video/')) {return 'video'}
+        if (audioExts.includes(ext) || mime.startsWith('audio/')) {return 'audio'}
+        if (docExts.includes(ext)) {return 'document'}
+        if (zipExts.includes(ext)) {return 'archive'}
         return 'file'
       }
 
@@ -242,8 +293,6 @@ const editorReady = ref(false)
 // 在组件挂载后初始化只读编辑器
 onMounted(() => {
 
-
-
   try {
     // 关键修复：使用 toRaw 去除响应式包装，确保使用纯 JSON 对象
     let contentJson: any
@@ -256,8 +305,6 @@ onMounted(() => {
       // 使用 toRaw 获取原始对象，避免 Vue 的 Proxy 包装导致的问题
       contentJson = toRaw(props.message.content)
     }
-
-
 
     // 创建编辑器实例（不使用 ref）
     readonlyEditor = new Editor({
@@ -397,17 +444,17 @@ const handleCopyMessage = async (content: any) => {
 
     // 复制到剪贴板
     await navigator.clipboard.writeText(plainText)
-    appContext?.$message.success('复制成功')
+    message.success('复制成功')
     emit('copy', plainText)
   } catch (error) {
     console.error('❌ [MessageBubble] 复制失败:', error)
-    appContext?.$message.error('复制失败')
+    message.error('复制失败')
   }
 }
 
 // 新增：从 TipTap JSON 中提取纯文本
 const extractPlainText = (node: any): string => {
-  if (!node) return ''
+  if (!node) {return ''}
 
   if (typeof node === 'string') {
     return node
@@ -479,7 +526,7 @@ const getFileName = (url: string) => {
 const downloadFile = () => {
   const url = fileInfo.value.url
   if (!url) {
-    appContext?.$message.warning('文件链接无效')
+    message.warning('文件链接无效')
     return
   }
 
@@ -492,7 +539,7 @@ const downloadFile = () => {
   link.click()
   document.body.removeChild(link)
 
-  appContext?.$message.success('开始下载文件')
+  message.success('开始下载文件')
 }
 
 const handleAvatarClick = () => {

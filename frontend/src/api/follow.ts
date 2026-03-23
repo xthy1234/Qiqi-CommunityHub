@@ -64,8 +64,8 @@ class FollowService {
    */
   async getFollowingList(
     userId: number, 
-    page: number = 1, 
-    limit: number = 20
+    page = 1, 
+    limit = 20
   ): Promise<PaginationData<FollowRecord>> {
     const response: AxiosResponse<ApiResponse<PaginationData<FollowRecord>>> = await httpClient.get(
       `${this.baseUrl}/following`,
@@ -82,8 +82,8 @@ class FollowService {
    */
   async getFollowerList(
     userId: number, 
-    page: number = 1, 
-    limit: number = 20
+    page = 1, 
+    limit = 20
   ): Promise<PaginationData<FollowRecord>> {
     const response: AxiosResponse<ApiResponse<PaginationData<FollowRecord>>> = await httpClient.get(
       `${this.baseUrl}/followers`,

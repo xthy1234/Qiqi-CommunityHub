@@ -253,7 +253,7 @@ const routes: Array<RouteRecordRaw> = [
         path: 'user/:id/followers',
         component: UserFollowersList,
         meta: { title: '粉丝列表' }
-      },
+      }
     ]
   },
   {

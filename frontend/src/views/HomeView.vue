@@ -1,12 +1,28 @@
 <template>
-  <PageContainer header-title="游戏社区" :show-back="false">
-
+  <PageContainer
+    header-title="游戏社区"
+    :show-back="false"
+  >
     <!-- 轮播图区域 -->
-    <n-card :bordered="false" class="carousel-card">
-      <n-spin v-if="isLoadingCarousel" description="加载轮播图中...">
-        <n-skeleton text style="height: 300px; width: 1200px" />
+    <n-card
+      :bordered="false"
+      class="carousel-card"
+    >
+      <n-spin
+        v-if="isLoadingCarousel"
+        description="加载轮播图中..."
+      >
+        <n-skeleton
+          text
+          style="height: 300px; width: 1200px"
+        />
       </n-spin>
-      <n-carousel v-else show-arrow autoplay class="custom-carousel">
+      <n-carousel
+        v-else
+        show-arrow
+        autoplay
+        class="custom-carousel"
+      >
         <img
           v-for="(item, index) in carouselImages"
           :key="item.id || index"
@@ -14,7 +30,7 @@
           :src="baseUrl + '/' + (item.imageUrl || item.linkUrl || '')"
           :alt="item.title || '轮播图'"
           @error="handleImageError"
-        >
+        />
       </n-carousel>
     </n-card>
 
@@ -31,8 +47,8 @@
       <n-button
         type="primary"
         size="large"
-        @click="navigateToArticleList"
         class="view-more-btn"
+        @click="navigateToArticleList"
       >
         <template #icon>
           <Icon icon="ri:apps-line" />
@@ -132,7 +148,7 @@ const getDefaultAvatar = (): string => {
 }
 
 const isHttpUrl = (url: string): boolean => {
-  if (!url) return false
+  if (!url) {return false}
   return url.startsWith('http')
 }
 
@@ -155,7 +171,7 @@ const getCoverImageUrl = (coverUrl: string): string => {
 }
 
 const formatDate = (dateStr: string): string => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   const date = new Date(dateStr)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -164,7 +180,7 @@ const formatDate = (dateStr: string): string => {
 }
 
 const formatNumber = (num: number | undefined | null): string => {
-  if (num === undefined || num === null) return '0'
+  if (num === undefined || num === null) {return '0'}
   if (num >= 10000) {
     return (num / 10000).toFixed(1) + 'w'
   }

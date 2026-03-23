@@ -4,12 +4,21 @@
     <!-- 顶部栏 -->
     <div class="chat-header">
       <div class="chat-header-left">
-        <n-avatar :src="store.currentCircle?.avatar" round size="medium" />
+        <n-avatar
+          :src="store.currentCircle?.avatar"
+          round
+          size="medium"
+        />
         <div class="chat-info">
-          <div class="chat-name">{{ store.currentCircle?.name }}</div>
+          <div class="chat-name">
+            {{ store.currentCircle?.name }}
+          </div>
           <div class="chat-description">
             {{ store.currentCircle?.memberCount }} 人 · 
-            <span v-if="onlineCount > 0" class="online-count">
+            <span
+              v-if="onlineCount > 0"
+              class="online-count"
+            >
               {{ onlineCount }} 人在线
             </span>
           </div>
@@ -17,12 +26,24 @@
       </div>
       
       <div class="chat-header-right">
-        <n-dropdown :options="menuOptions" trigger="click" @select="handleMenuClick">
+        <n-dropdown
+          :options="menuOptions"
+          trigger="click"
+          @select="handleMenuClick"
+        >
           <n-button text>
             <template #icon>
               <n-icon size="20">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2z"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2z"
+                  />
                 </svg>
               </n-icon>
             </template>
@@ -39,19 +60,40 @@
     >
       <n-spin :show="store.loading">
         <!-- 加载更多触发器 -->
-        <div v-if="store.hasMore && store.messages.length > 0" class="load-more-trigger">
-          <n-text depth="3">加载中...</n-text>
+        <div
+          v-if="store.hasMore && store.messages.length > 0"
+          class="load-more-trigger"
+        >
+          <n-text depth="3">
+            加载中...
+          </n-text>
         </div>
         
         <!-- 空状态 -->
-        <div v-if="store.messages.length === 0" class="empty-messages">
+        <div
+          v-if="store.messages.length === 0"
+          class="empty-messages"
+        >
           <div class="empty-state">
-            <n-icon size="80" color="#dcdfe6">
-              <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
+            <n-icon
+              size="80"
+              color="#dcdfe6"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="80"
+                height="80"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"
+                />
               </svg>
             </n-icon>
-            <div class="empty-message-title">暂无聊天记录</div>
+            <div class="empty-message-title">
+              暂无聊天记录
+            </div>
             <div class="empty-message-description">
               发送第一条消息，开启你们的讨论吧~
             </div>
@@ -59,8 +101,14 @@
         </div>
         
         <!-- 消息列表 -->
-        <div v-else class="messages-wrapper">
-          <template v-for="msg in store.messages" :key="msg.id || msg._tempId">
+        <div
+          v-else
+          class="messages-wrapper"
+        >
+          <template
+            v-for="msg in store.messages"
+            :key="msg.id || msg._tempId"
+          >
             <!-- 系统提示消息 -->
             <SystemMessageTip
               v-if="msg._isSystemTip"
@@ -101,7 +149,7 @@ import { NIcon, NDropdown, NAvatar, NSpin, NText } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { getWebSocket } from '@/utils/websocket'
 import chatService from '@/api/chat'
-import { ElMessage } from 'element-plus'
+import { getCurrentInstance } from 'vue'
 import { circleWebSocket } from '@/api/circle'
 
 // 添加 emit 声明
@@ -112,10 +160,11 @@ const store = useCircleChatStore()
 const messageListRef = ref<HTMLElement | null>(null)
 const isUserScrolling = ref(false)
 const isAtBottom = ref(true)
-
+const instance = getCurrentInstance()
+const $message = instance?.appContext.config.globalProperties.$message
 // WebSocket 订阅取消函数
 let unsubscribeCircleMessage: (() => void) | null = null
-let unsubscribeCircleDelete: (() => void) | null = null
+const unsubscribeCircleDelete: (() => void) | null = null
 
 // 在线人数统计
 const onlineCount = computed(() => {
@@ -240,12 +289,11 @@ const handleScroll = (e: Event) => {
 /**
  * 发送消息（完整实现）
  */
-const handleSendMessage = async (content: any, msgType: number = 0) => {
-  if (!store.currentCircle) return
+const handleSendMessage = async (content: any, msgType = 0) => {
+  if (!store.currentCircle) {return}
   
   try {
     // content 是 TipTap JSON 对象（从 ChatInput 直接传来）
-
 
     // 1. 乐观添加：立即显示在界面上，标记为"发送中"
     // store 需要存储字符串形式，所以如果 content 是对象则 stringify
@@ -262,7 +310,6 @@ const handleSendMessage = async (content: any, msgType: number = 0) => {
       extra: {}
     }
 
-
     // 3. 通过 WebSocket 发送到后端
     // 使用 circleWebSocket 发送消息到 /app/circle-message
     circleWebSocket.sendCircleMessage(store.currentCircle.id, chatMessage)
@@ -272,14 +319,13 @@ const handleSendMessage = async (content: any, msgType: number = 0) => {
 
   } catch (error: any) {
     console.error('发送消息失败:', error)
-    ElMessage.error('消息发送失败')
+    $message?.error('消息发送失败')
   }
 }
 
 // 撤回消息
 const handleRecallMessage = (messageId: number) => {
-  if (!store.currentCircle) return
-
+  if (!store.currentCircle) {return}
 
   // 乐观更新 UI
   store.recallMessageOptimistic(messageId)
@@ -290,8 +336,7 @@ const handleRecallMessage = (messageId: number) => {
 
 // 删除消息
 const handleDeleteMessage = async (messageId: number) => {
-  if (!store.currentCircle) return
-
+  if (!store.currentCircle) {return}
 
   try {
     // TODO: 调用 HTTP 删除接口
@@ -317,7 +362,7 @@ const handleDeleteMessage = async (messageId: number) => {
     }
   } catch (error: any) {
     console.error('删除消息失败:', error)
-    ElMessage.error('删除消息失败')
+    $message?.error('删除消息失败')
   }
 }
 
@@ -381,10 +426,8 @@ const registerWebSocketHandlers = () => {
   // 注册圈子消息处理器（统一处理 SEND、RECALL、DELETE）
   unsubscribeCircleMessage = ws.on('CIRCLE_CHAT_MESSAGE', (data: any) => {
 
-
     // 1. 删除消息处理
     if (data.action === 'DELETE' || data.deletedByAdmin === true) {
-
 
       const deleterNickname = data.deleter?.nickname || '管理员'
       store.handleDeleteMessageNotification(
@@ -421,7 +464,6 @@ const registerWebSocketHandlers = () => {
         isSelf: false
       }
       store.receiveMessage(messageWithSelfFlag)
-
 
       // 关键修复：如果是在当前圈子收到的消息，立即标记为已读
       if (store.currentCircle && data.circleId === store.currentCircle.id) {

@@ -9,10 +9,57 @@ import type {
   PaginationParams,
   PaginationResult
 } from '@/types/circleChat'
-import {getWebSocket} from '@/utils/websocket'
+import {getWebSocket, initWebSocket} from '@/utils/websocket'
 import type {ApiResponse} from '@/utils/http'
 import httpClient from '@/utils/http'
 import type {AxiosResponse} from 'axios'
+
+/**
+ * 初始化圈子聊天的 WebSocket连接
+ * 确保在使用圈子聊天功能前调用
+ */
+export function ensureCircleWebSocketConnected(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = getWebSocket()
+    
+    if (!ws) {
+      // WebSocket 实例不存在，需要初始化
+      console.warn('⚠️ [圈子聊天] WebSocket 实例不存在，正在初始化...')
+      
+      try {
+        const wsManager = initWebSocket()
+        wsManager.connect()
+          .then(() => {
+            console.log('✅ [圈子聊天] WebSocket 初始化成功')
+            resolve()
+          })
+          .catch((error) => {
+            console.error('❌ [圈子聊天] WebSocket 初始化失败:', error)
+            reject(error)
+          })
+      } catch (error) {
+        console.error('❌ [圈子聊天] WebSocket 初始化异常:', error)
+        reject(error)
+      }
+    } else if (!ws.isConnected()) {
+      // WebSocket 实例存在但未连接
+      console.warn('⚠️ [圈子聊天] WebSocket 未连接，正在重新连接...')
+      
+      ws.connect()
+        .then(() => {
+          console.log('✅ [圈子聊天] WebSocket 重连成功')
+          resolve()
+        })
+        .catch((error) => {
+          console.error('❌ [圈子聊天] WebSocket 重连失败:', error)
+          reject(error)
+        })
+    } else {
+      // WebSocket 已连接
+      resolve()
+    }
+  })
+}
 
 /**
  * 圈子管理相关接口
@@ -206,7 +253,7 @@ export const circleChatApi = {
   /**
    * 发送消息（HTTP 方式，不推荐，仅作为降级方案）
    */
-  async sendMessage(circleId: number, content: any, msgType: number = 0): Promise<CircleMessage> {
+  async sendMessage(circleId: number, content: any, msgType = 0): Promise<CircleMessage> {
     const response: AxiosResponse<ApiResponse<CircleMessage>> = await httpClient.post(`/circles/${circleId}/chat/messages`, { 
       content, 
       msgType 
@@ -263,7 +310,6 @@ export const circleWebSocket = {
     // 2. 检查 isConnected 方法是否存在
 
     const isWsConnected = ws.isConnected()
-
     
     if (!isWsConnected) {
       console.warn('⚠️ [圈子 WebSocket] WebSocket 未连接')
@@ -274,7 +320,6 @@ export const circleWebSocket = {
     // 3. 获取内部 STOMP client（需要访问私有属性）
     const client = (ws as any).client
 
-
     if (!client || !client.connected) {
       console.warn('⚠️ [圈子 WebSocket] STOMP 客户端未连接')
       return () => {}
@@ -282,11 +327,9 @@ export const circleWebSocket = {
 
     // 4. 订阅特定圈子的消息
     const destination = `/topic/circles/${circleId}/messages`
-
     
     try {
       const subscription = client.subscribe(destination, (message: any) => {
-
         
         try {
           const chatMessage = JSON.parse(message.body) as CircleMessage
@@ -297,7 +340,6 @@ export const circleWebSocket = {
           console.error('❌ [圈子 WebSocket] 原始消息体:', message.body)
         }
       }, {})
-
       
       // 5. 返回取消订阅函数
       return () => {
@@ -332,9 +374,6 @@ export const circleWebSocket = {
   }
 
   // 关键新增：详细的日志输出
-
-
-
   
   // 验证 content 是否为完整的 TipTap 文档对象
   if (typeof message.content !== 'object' || message.content === null) {
@@ -361,7 +400,6 @@ export const circleWebSocket = {
       // 只对整个对象进行一次 JSON.stringify
       // content 字段会作为嵌套的 JSON 对象一起序列化
       const serializedBody = JSON.stringify(message)
-
       
       client.publish({
         destination: '/app/circle-message',
@@ -380,7 +418,6 @@ export const circleWebSocket = {
    * 撤回消息
    */
   recallMessage(messageId: number, reason?: string): void {
-
     
     const ws = getWebSocket()
     if (!ws || !ws.isConnected()) {
@@ -414,7 +451,6 @@ export const circleWebSocket = {
    * 删除消息（仅群主和管理员）
    */
   deleteMessage(messageId: number): void {
-
     
     const ws = getWebSocket()
     if (!ws || !ws.isConnected()) {

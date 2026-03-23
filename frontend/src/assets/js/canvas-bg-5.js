@@ -1,17 +1,17 @@
 export default function canvasBg() {
-    var canvas = document.getElementById('canvas'),
+    const canvas = document.getElementById('canvas'),
             ctx = canvas.getContext('2d')
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         ctx.lineWidth = .3;
         ctx.strokeStyle = (new Color(150)).style;
 
-        var mousePosition = {
+        const mousePosition = {
             x: 30 * canvas.width / 100,
             y: 30 * canvas.height / 100
         };
 
-        var dots = {
+        const dots = {
             nb: 750,
             distance: 50,
             d_radius: 100,
@@ -31,10 +31,10 @@ export default function canvasBg() {
         }
 
         function averageColorStyles(dot1, dot2) {
-            var color1 = dot1.color,
+            const color1 = dot1.color,
                 color2 = dot2.color;
 
-            var r = mixComponents(color1.r, dot1.radius, color2.r, dot2.radius),
+            const r = mixComponents(color1.r, dot1.radius, color2.r, dot2.radius),
                 g = mixComponents(color1.g, dot1.radius, color2.g, dot2.radius),
                 b = mixComponents(color1.b, dot1.radius, color2.b, dot2.radius);
             return createColorStyle(Math.floor(r), Math.floor(g), Math.floor(b));
@@ -79,7 +79,7 @@ export default function canvasBg() {
         function moveDots() {
             for (i = 0; i < dots.nb; i++) {
 
-                var dot = dots.array[i];
+                const dot = dots.array[i];
 
                 if (dot.y < 0 || dot.y > canvas.height) {
                     dot.vx = dot.vx;
@@ -118,7 +118,7 @@ export default function canvasBg() {
 
         function drawDots() {
             for (i = 0; i < dots.nb; i++) {
-                var dot = dots.array[i];
+                const dot = dots.array[i];
                 dot.draw();
             }
         }

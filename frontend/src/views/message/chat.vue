@@ -1,5 +1,5 @@
 <template>
-<!--  <PageContainer header-title="聊天" :show-back="false">-->
+  <!--  <PageContainer header-title="聊天" :show-back="false">-->
 
   <div class="chat-container">
     <!-- 左侧会话列表 -->
@@ -18,8 +18,16 @@
     </div>
 
     <!-- WebSocket 连接状态提示 -->
-    <div v-if="!isConnected" class="connection-toast">
-      <n-alert title="WebSocket 未连接" type="warning" :bordered="false" closable>
+    <div
+      v-if="!isConnected"
+      class="connection-toast"
+    >
+      <n-alert
+        title="WebSocket 未连接"
+        type="warning"
+        :bordered="false"
+        closable
+      >
         正在尝试重新连接...
       </n-alert>
     </div>
@@ -28,14 +36,13 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, watch, ref} from 'vue'
+import { onMounted, onUnmounted, watch, ref} from 'vue'
 import { useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import ChatDetail from '../../components/chat/ChatDetail.vue'
 import ConversationPanel from '@/components/chat/ConversationPanel.vue'
 import EmptyChat from '@/components/chat/EmptyChat.vue'
 import { useRouter } from 'vue-router'
-import PageContainer from "@/components/common/PageContainer.vue";
 import chatService from '@/api/chat'
 import type { Message } from '@/types/message'
 import { NAlert } from 'naive-ui'
@@ -57,11 +64,9 @@ const setupWebSocketListeners = () => {
   unsubscribeMessage = chatService.onNewMessage((message: Message) => {    //  关键：使用 isSelf 字段判断
     if (message.isSelf) {
 
-
       store.confirmSentMessage(message)
 
     } else {
-
 
       store.receiveMessage(message)
 
@@ -125,10 +130,8 @@ const initializeChatWithUser = async (userId: number) => {
     return
   }
 
-
   //  检查是否已有该会话（从后端加载的）
   const existingConv = store.conversations.find((c: any) => c.userId === userId)
-
 
   if (existingConv) {
 
@@ -162,7 +165,6 @@ const initializeChatWithUser = async (userId: number) => {
 // 监听路由参数变化
 watch(() => route.params.userId, async (newUserId: string | undefined, oldUserId: string | undefined) => {
 
-
   // 如果是首次初始化（undefined -> undefined），跳过
   if (!newUserId || newUserId === oldUserId) {
 
@@ -170,7 +172,6 @@ watch(() => route.params.userId, async (newUserId: string | undefined, oldUserId
   }
 
   const userId = Number(newUserId)
-
 
   if (!isNaN(userId)) {
 
@@ -198,7 +199,6 @@ onMounted(async () => {  try {
   if (route.params.userId && !isInitialized) {
     const userId = Number(route.params.userId)
 
-
     if (!isNaN(userId)) {
 
       setTimeout(async () => {
@@ -215,11 +215,9 @@ onMounted(async () => {  try {
   //  如果没有路由参数，尝试从 sessionStorage 恢复会话
   else if (!store.currentConversation) {
 
-
     const savedSession = store.restoreSessionFromStorage()
 
     if (savedSession) {
-
 
       // 检查是否已有该会话（从后端加载的）
       const existingConv = store.conversations.find((c: any) => c.userId === savedSession.userId)

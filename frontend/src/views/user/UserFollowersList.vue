@@ -1,12 +1,22 @@
 <template>
-  <PageContainer :header-title="pageTitle" :show-back="true">
+  <PageContainer
+    :header-title="pageTitle"
+    :show-back="true"
+  >
     <div class="followers-list-page">
       <!-- 用户信息摘要 -->
       <div class="user-summary">
-        <n-skeleton v-if="loading" :width="200" height="30" />
+        <n-skeleton
+          v-if="loading"
+          :width="200"
+          height="30"
+        />
         <template v-else>
           <span class="summary-text">
-            <Icon icon="ri:user-community-line" :size="20" />
+            <Icon
+              icon="ri:user-community-line"
+              :size="20"
+            />
             {{ userInfo.nickname || userInfo.account }} 拥有 {{ total }} 位粉丝
           </span>
         </template>
@@ -15,15 +25,18 @@
       <!-- 粉丝列表 -->
       <div class="list-container">
         <n-spin :show="loading">
-          <div v-if="userList.length > 0" class="user-list">
+          <div
+            v-if="userList.length > 0"
+            class="user-list"
+          >
             <UserCard
               v-for="item in userList"
               :key="item.id"
               :user="item"
               :scene-type="'followers'"
-              :currentUserId="currentUserId"
-              @follow-change="handleFollowChange"
+              :current-user-id="currentUserId"
               show
+              @follow-change="handleFollowChange"
             />
           </div>
           
@@ -43,9 +56,9 @@
         :page-size="pagination.limit"
         show-size-picker
         :page-sizes="[10, 20, 50]"
+        class="pagination"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
-        class="pagination"
       >
         <template #prefix="{ itemCount }">
           共 {{ itemCount }} 条

@@ -145,7 +145,7 @@ export function usePagination<T = any>(options: PaginationOptions): UsePaginatio
   const hasNext = computed(() => pagination.page < totalPages.value)
 
   const rangeText = computed(() => {
-    if (totalCount.value === 0) return '共 0 条'
+    if (totalCount.value === 0) {return '共 0 条'}
 
     const start = (pagination.page - 1) * pagination.limit + 1
     const end = Math.min(pagination.page * pagination.limit, totalCount.value)

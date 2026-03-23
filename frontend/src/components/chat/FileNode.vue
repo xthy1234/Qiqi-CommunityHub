@@ -1,23 +1,53 @@
 <template>
   <node-view-wrapper class="file-node-wrapper">
-    <div class="file-card" @click="handleDownload">
+    <div
+      class="file-card"
+      @click="handleDownload"
+    >
       <div class="file-icon">
-        <n-icon size="40" :color="getFileIconColor(fileInfo.type)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+        <n-icon
+          size="40"
+          :color="getFileIconColor(fileInfo.type)"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+          >
+            <path
+              fill="currentColor"
+              d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+            />
           </svg>
         </n-icon>
       </div>
       <div class="file-info">
-        <div class="file-name">{{ fileInfo.name }}</div>
-        <div class="file-size">{{ fileInfo.size }}</div>
+        <div class="file-name">
+          {{ fileInfo.name }}
+        </div>
+        <div class="file-size">
+          {{ fileInfo.size }}
+        </div>
       </div>
       <div class="file-action">
-        <n-button size="small" type="primary" @click.stop="handleDownload">
+        <n-button
+          size="small"
+          type="primary"
+          @click.stop="handleDownload"
+        >
           <template #icon>
             <n-icon>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z"
+                />
               </svg>
             </n-icon>
           </template>
@@ -62,7 +92,7 @@ const appContext = useGlobalProperties()
 
 // 格式化文件大小
 const formatFileSize = (bytes: number): string => {
-  if (!bytes || bytes === 0) return '0 B'
+  if (!bytes || bytes === 0) {return '0 B'}
 
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
@@ -83,11 +113,11 @@ const getFileType = (extension?: string | null, mimeType?: string | null): strin
   const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']
   const zipExts = ['zip', 'rar', '7z']
 
-  if (imageExts.includes(ext) || mime.startsWith('image/')) return 'image'
-  if (videoExts.includes(ext) || mime.startsWith('video/')) return 'video'
-  if (audioExts.includes(ext) || mime.startsWith('audio/')) return 'audio'
-  if (docExts.includes(ext)) return 'document'
-  if (zipExts.includes(ext)) return 'archive'
+  if (imageExts.includes(ext) || mime.startsWith('image/')) {return 'image'}
+  if (videoExts.includes(ext) || mime.startsWith('video/')) {return 'video'}
+  if (audioExts.includes(ext) || mime.startsWith('audio/')) {return 'audio'}
+  if (docExts.includes(ext)) {return 'document'}
+  if (zipExts.includes(ext)) {return 'archive'}
   return 'file'
 }
 

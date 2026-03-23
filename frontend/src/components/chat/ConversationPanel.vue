@@ -6,12 +6,27 @@
   >
     <!--  头部操作区域：未读消息提示 -->
     <template #header-actions>
-      <n-badge :value="unreadCount" :show="unreadCount > 0" :max="99">
-        <n-button text size="small">
+      <n-badge
+        :value="unreadCount"
+        :show="unreadCount > 0"
+        :max="99"
+      >
+        <n-button
+          text
+          size="small"
+        >
           <template #icon>
             <n-icon size="18">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"
+                />
               </svg>
             </n-icon>
           </template>
@@ -22,31 +37,71 @@
     <!--  展开模式：完整会话列表 -->
     <template #list-content>
       <n-spin :show="loading">
-        <div v-if="conversations.length === 0" class="empty-conversations">
+        <div
+          v-if="conversations.length === 0"
+          class="empty-conversations"
+        >
           <div class="empty-state">
-            <n-icon size="80" color="#dcdfe6">
-              <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
+            <n-icon
+              size="80"
+              color="#dcdfe6"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="80"
+                height="80"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"
+                />
               </svg>
             </n-icon>
-            <div class="empty-title">暂时还没有私信会话</div>
+            <div class="empty-title">
+              暂时还没有私信会话
+            </div>
             <div class="empty-description">
-              去 <n-button text type="primary" @click.stop="handleGoToFollowing">关注列表</n-button>
-              或 <n-button text type="primary" @click.stop="handleGoToSearch">搜索</n-button> 找人聊天吧
+              去 <n-button
+                text
+                type="primary"
+                @click.stop="handleGoToFollowing"
+              >
+                关注列表
+              </n-button>
+              或 <n-button
+                text
+                type="primary"
+                @click.stop="handleGoToSearch"
+              >
+                搜索
+              </n-button> 找人聊天吧
             </div>
           </div>
         </div>
         
-        <n-list v-else hoverable clickable>
+        <n-list
+          v-else
+          hoverable
+          clickable
+        >
           <n-list-item
             v-for="conv in conversations"
             :key="conv.userId"
-            @click="handleSelectConversation(conv)"
             :class="{ 'active': activeUserId === conv.userId }"
+            @click="handleSelectConversation(conv)"
           >
             <template #prefix>
-              <n-badge :value="conv.unreadCount" :show="conv.unreadCount > 0" :dot-style="{ background: '#18a058' }">
-                <n-avatar :src="conv.avatar" round size="large" />
+              <n-badge
+                :value="conv.unreadCount"
+                :show="conv.unreadCount > 0"
+                :dot-style="{ background: '#18a058' }"
+              >
+                <n-avatar
+                  :src="conv.avatar"
+                  round
+                  size="large"
+                />
               </n-badge>
             </template>
             
@@ -56,7 +111,10 @@
                 <span class="conversation-time">{{ formatTime(conv.lastTime) }}</span>
               </div>
               <div class="conversation-bottom">
-                <n-ellipsis class="conversation-message" :tooltip="false">
+                <n-ellipsis
+                  class="conversation-message"
+                  :tooltip="false"
+                >
                   {{ parseTipTapContent(conv.lastMessage) }}
                 </n-ellipsis>
               </div>
@@ -76,8 +134,17 @@
           :class="{ 'active': activeUserId === conv.userId }"
           @click="handleSelectConversation(conv)"
         >
-          <n-badge :value="conv.unreadCount" :show="conv.unreadCount > 0" :dot-style="{ background: '#18a058' }">
-            <n-avatar :src="conv.avatar" round size="large" style="cursor: pointer;" />
+          <n-badge
+            :value="conv.unreadCount"
+            :show="conv.unreadCount > 0"
+            :dot-style="{ background: '#18a058' }"
+          >
+            <n-avatar
+              :src="conv.avatar"
+              round
+              size="large"
+              style="cursor: pointer;"
+            />
           </n-badge>
         </div>
       </n-spin>
@@ -94,7 +161,7 @@ import CollapsibleAvatarList from './CollapsibleAvatarList.vue'
 
 // 关键新增：解析 TipTap JSON 内容为预览文本
 const parseTipTapContent = (content: any): string => {
-  if (!content) return ''
+  if (!content) {return ''}
 
   try {
     // 如果已经是字符串，尝试解析
@@ -107,7 +174,7 @@ const parseTipTapContent = (content: any): string => {
 
     // 递归提取文本内容
     const extractText = (node: any): string => {
-      if (!node) return ''
+      if (!node) {return ''}
 
       if (typeof node === 'string') {
         return node

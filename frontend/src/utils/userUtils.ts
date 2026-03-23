@@ -12,7 +12,7 @@ const DEFAULT_PLACEHOLDER = '/placeholder.svg'
  * @returns 完整的 URL
  */
 export const getFullUrl = (path: string, baseUrl?: string): string => {
-  if (!path) return DEFAULT_PLACEHOLDER
+  if (!path) {return DEFAULT_PLACEHOLDER}
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path
   }
@@ -42,7 +42,7 @@ export const getFullUrl = (path: string, baseUrl?: string): string => {
  * @returns 完整的头像 URL
  */
 export const getAvatarUrl = (avatar?: string | null): string => {
-  if (!avatar) return DEFAULT_PLACEHOLDER
+  if (!avatar) {return DEFAULT_PLACEHOLDER}
   return getFullUrl(avatar)
 }
 
@@ -52,7 +52,7 @@ export const getAvatarUrl = (avatar?: string | null): string => {
  * @returns 完整的封面 URL
  */
 export const getArticleCoverUrl = (coverUrl?: string | null): string => {
-  if (!coverUrl) return DEFAULT_PLACEHOLDER
+  if (!coverUrl) {return DEFAULT_PLACEHOLDER}
   const firstImage = coverUrl.split(',')[0]
   return getFullUrl(firstImage)
 }
@@ -77,7 +77,7 @@ export const getGenderText = (gender?: number): string => {
  * @returns 格式化后的日期时间字符串
  */
 export const formatDateTime = (dateTime?: string): string => {
-  if (!dateTime) return '-'
+  if (!dateTime) {return '-'}
   const date = new Date(dateTime)
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
@@ -94,7 +94,7 @@ export const formatDateTime = (dateTime?: string): string => {
  * @returns 格式化后的日期字符串
  */
 export const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   const date = new Date(dateStr)
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -109,7 +109,7 @@ export const formatDate = (dateStr?: string): string => {
  */
 export const handleImageError = (e: Event): void => {
   const target = e.target as HTMLImageElement
-  if (!target) return
+  if (!target) {return}
   
   // 直接设置为占位图
   target.src = DEFAULT_PLACEHOLDER
@@ -124,7 +124,7 @@ export const getAuditStatusText = (status: string | number): string => {
   const statusMap: Record<string, string> = {
     '0': '待审核',
     '1': '已发布',
-    '2': '审核不通过',
+    '2': '审核不通过'
   }
   return statusMap[status] || '未知状态'
 }

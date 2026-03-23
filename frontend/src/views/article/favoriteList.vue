@@ -30,9 +30,9 @@
       :page-size="pagination.limit"
       show-size-picker
       :page-sizes="[5, 10, 20]"
+      style="margin-top: 20px; justify-content: center;"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
-      style="margin-top: 20px; justify-content: center;"
     >
       <template #prefix="{ itemCount }">
         共 {{ itemCount }} 条
@@ -92,7 +92,6 @@ const fetchCategoryList = async (): Promise<void> => {
     const response = await appContext?.$http.get('/categories')
     const apiData = response.data
 
-
     // 根据实际返回格式解析数据
     let categories: any[] = []
 
@@ -106,7 +105,6 @@ const fetchCategoryList = async (): Promise<void> => {
       // 直接数组：[...]
       categories = apiData
     }
-
 
     categoryOptions.value = [
       { label: '全部分类', value: undefined },
@@ -145,11 +143,7 @@ const fetchFavoriteList = async (): Promise<void> => {
       params.categoryId = selectedCategoryId.value
     }
 
-    const response = await appContext?.$http({
-      url: '/articles',
-      method: 'get',
-      params
-    })
+    const response = await appContext?.$http.get('/articles', { params })
 
     const apiData = response.data.data
     articleList.value = apiData.list || []
@@ -162,7 +156,6 @@ const fetchFavoriteList = async (): Promise<void> => {
     isLoading.value = false
   }
 }
-
 
 const navigateToHome = (): void => {
   router.push('/index/home')

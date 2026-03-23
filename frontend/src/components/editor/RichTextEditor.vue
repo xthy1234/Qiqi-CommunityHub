@@ -1,28 +1,37 @@
 <template>
   <div class="editor-wrapper">
     <!-- 工具栏 -->
-    <div class="toolbar" v-if="editor">
+    <div
+      v-if="editor"
+      class="toolbar"
+    >
       <!-- 撤销/重做 -->
       <n-button
         size="tiny"
-        @click="editor.chain().focus().undo().run()"
         :disabled="!editor.can().undo()"
         quaternary
         title="撤销 (Ctrl+Z)"
+        @click="editor.chain().focus().undo().run()"
       >
         <template #icon>
-          <Icon icon="material-symbols:undo" width="16" />
+          <Icon
+            icon="material-symbols:undo"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
-        @click="editor.chain().focus().redo().run()"
         :disabled="!editor.can().redo()"
         quaternary
         title="重做 (Ctrl+Y)"
+        @click="editor.chain().focus().redo().run()"
       >
         <template #icon>
-          <Icon icon="material-symbols:redo" width="16" />
+          <Icon
+            icon="material-symbols:redo"
+            width="16"
+          />
         </template>
       </n-button>
 
@@ -44,45 +53,57 @@
       <n-button
         size="tiny"
         :type="editor.isActive('bold') ? 'primary' : ''"
-        @click="toggleBold"
         quaternary
         title="加粗 (Ctrl+B)"
+        @click="toggleBold"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-bold" width="16" />
+          <Icon
+            icon="material-symbols:format-bold"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive('italic') ? 'primary' : ''"
-        @click="toggleItalic"
         quaternary
         title="斜体 (Ctrl+I)"
+        @click="toggleItalic"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-italic" width="16" />
+          <Icon
+            icon="material-symbols:format-italic"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive('underline') ? 'primary' : ''"
-        @click="toggleUnderline"
         quaternary
         title="下划线 (Ctrl+U)"
+        @click="toggleUnderline"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-underlined" width="16" />
+          <Icon
+            icon="material-symbols:format-underlined"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive('strike') ? 'primary' : ''"
-        @click="toggleStrike"
         quaternary
         title="删除线"
+        @click="toggleStrike"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-strikethrough" width="16" />
+          <Icon
+            icon="material-symbols:format-strikethrough"
+            width="16"
+          />
         </template>
       </n-button>
 
@@ -92,23 +113,29 @@
       <n-button
         size="tiny"
         :type="editor.isActive('bulletList') ? 'primary' : ''"
-        @click="toggleBulletList"
         quaternary
         title="无序列表"
+        @click="toggleBulletList"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-list-bulleted" width="16" />
+          <Icon
+            icon="material-symbols:format-list-bulleted"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive('orderedList') ? 'primary' : ''"
-        @click="toggleOrderedList"
         quaternary
         title="有序列表"
+        @click="toggleOrderedList"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-list-numbered" width="16" />
+          <Icon
+            icon="material-symbols:format-list-numbered"
+            width="16"
+          />
         </template>
       </n-button>
 
@@ -118,34 +145,43 @@
       <n-button
         size="tiny"
         :type="editor.isActive('blockquote') ? 'primary' : ''"
-        @click="toggleBlockquote"
         quaternary
         title="引用块"
+        @click="toggleBlockquote"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-quote" width="16" />
+          <Icon
+            icon="material-symbols:format-quote"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive('code') ? 'primary' : ''"
-        @click="toggleCode"
         quaternary
         title="行内代码"
+        @click="toggleCode"
       >
         <template #icon>
-          <Icon icon="material-symbols:code" width="16" />
+          <Icon
+            icon="material-symbols:code"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive('codeBlock') ? 'primary' : ''"
-        @click="toggleCodeBlock"
         quaternary
         title="代码块"
+        @click="toggleCodeBlock"
       >
         <template #icon>
-          <Icon icon="material-symbols:code-blocks" width="16" />
+          <Icon
+            icon="material-symbols:code-blocks"
+            width="16"
+          />
         </template>
       </n-button>
 
@@ -154,22 +190,28 @@
       <!-- 插入元素 -->
       <n-button
         size="tiny"
-        @click="openLinkDialog"
         quaternary
         title="插入链接 (Ctrl+K)"
+        @click="openLinkDialog"
       >
         <template #icon>
-          <Icon icon="material-symbols:link" width="16" />
+          <Icon
+            icon="material-symbols:link"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
-        @click="openImageDialog"
         quaternary
         title="插入图片"
+        @click="openImageDialog"
       >
         <template #icon>
-          <Icon icon="material-symbols:image" width="16" />
+          <Icon
+            icon="material-symbols:image"
+            width="16"
+          />
         </template>
       </n-button>
 
@@ -179,40 +221,52 @@
       <n-button
         size="tiny"
         :type="editor.isActive({ textAlign: 'left' }) ? 'primary' : ''"
-        @click="editor.chain().focus().setTextAlign('left').run()"
         quaternary
         title="左对齐"
+        @click="editor.chain().focus().setTextAlign('left').run()"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-align-left" width="16" />
+          <Icon
+            icon="material-symbols:format-align-left"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive({ textAlign: 'center' }) ? 'primary' : ''"
-        @click="editor.chain().focus().setTextAlign('center').run()"
         quaternary
         title="居中"
+        @click="editor.chain().focus().setTextAlign('center').run()"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-align-center" width="16" />
+          <Icon
+            icon="material-symbols:format-align-center"
+            width="16"
+          />
         </template>
       </n-button>
       <n-button
         size="tiny"
         :type="editor.isActive({ textAlign: 'right' }) ? 'primary' : ''"
-        @click="editor.chain().focus().setTextAlign('right').run()"
         quaternary
         title="右对齐"
+        @click="editor.chain().focus().setTextAlign('right').run()"
       >
         <template #icon>
-          <Icon icon="material-symbols:format-align-right" width="16" />
+          <Icon
+            icon="material-symbols:format-align-right"
+            width="16"
+          />
         </template>
       </n-button>
     </div>
 
     <!-- 编辑器内容区 -->
-    <editor-content :editor="editor" class="tiptap" />
+    <editor-content
+      :editor="editor"
+      class="tiptap"
+    />
 
     <!-- 链接插入对话框 -->
     <n-modal
@@ -221,7 +275,11 @@
       title="插入链接"
       :style="{ width: '400px' }"
     >
-      <n-form :model="linkForm" label-placement="left" label-width="80px">
+      <n-form
+        :model="linkForm"
+        label-placement="left"
+        label-width="80px"
+      >
         <n-form-item label="链接文本">
           <n-input
             v-model:value="linkForm.text"
@@ -229,7 +287,10 @@
             :disabled="!!selectedText"
           />
         </n-form-item>
-        <n-form-item label="链接地址" required>
+        <n-form-item
+          label="链接地址"
+          required
+        >
           <n-input
             v-model:value="linkForm.url"
             placeholder="https://example.com"
@@ -238,8 +299,15 @@
       </n-form>
       <template #action>
         <n-space justify="end">
-          <n-button @click="linkDialogVisible = false">取消</n-button>
-          <n-button type="primary" @click="insertLink">确定</n-button>
+          <n-button @click="linkDialogVisible = false">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            @click="insertLink"
+          >
+            确定
+          </n-button>
           <n-button
             v-if="editor?.isActive('link')"
             type="error"
@@ -258,8 +326,15 @@
       title="插入图片"
       :style="{ width: '400px' }"
     >
-      <n-form :model="imageForm" label-placement="left" label-width="80px">
-        <n-form-item label="图片 URL" required>
+      <n-form
+        :model="imageForm"
+        label-placement="left"
+        label-width="80px"
+      >
+        <n-form-item
+          label="图片 URL"
+          required
+        >
           <n-input
             v-model:value="imageForm.url"
             placeholder="https://example.com/image.jpg"
@@ -274,8 +349,15 @@
       </n-form>
       <template #action>
         <n-space justify="end">
-          <n-button @click="imageDialogVisible = false">取消</n-button>
-          <n-button type="primary" @click="insertImage">确定</n-button>
+          <n-button @click="imageDialogVisible = false">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            @click="insertImage"
+          >
+            确定
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -393,7 +475,7 @@ const editor = useEditor({
       linkForm.url = href || ''
       linkForm.text = selectedText.value
     }
-  },
+  }
 })
 
 watch(() => props.modelValue, (newVal) => {
@@ -403,7 +485,7 @@ watch(() => props.modelValue, (newVal) => {
 }, { immediate: true })
 
 const setHeading = (level: string) => {
-  if (!editor.value) return
+  if (!editor.value) {return}
 
   if (level === 'paragraph') {
     editor.value.chain().focus().setParagraph().run()
@@ -447,12 +529,12 @@ const toggleCode = () => {
 }
 
 const toggleCodeBlock = () => {
-  if (!editor.value) return
+  if (!editor.value) {return}
   editor.value.chain().focus().toggleCodeBlock().run()
 }
 
 const openLinkDialog = () => {
-  if (!editor.value) return
+  if (!editor.value) {return}
 
   if (!selectedText.value && !editor.value.isActive('link')) {
     message.warning('请先选中要添加链接的文字')
@@ -471,7 +553,7 @@ const openLinkDialog = () => {
 }
 
 const insertLink = () => {
-  if (!editor.value || !linkForm.url) return
+  if (!editor.value || !linkForm.url) {return}
 
   if (!selectedText.value && !linkForm.text) {
     linkForm.text = linkForm.url
@@ -500,7 +582,7 @@ const insertLink = () => {
 }
 
 const removeLink = () => {
-  if (!editor.value) return
+  if (!editor.value) {return}
   editor.value.chain().focus().unsetLink().run()
   linkDialogVisible.value = false
 }
@@ -512,7 +594,7 @@ const openImageDialog = () => {
 }
 
 const insertImage = () => {
-  if (!editor.value || !imageForm.url) return
+  if (!editor.value || !imageForm.url) {return}
 
   editor.value
     .chain()

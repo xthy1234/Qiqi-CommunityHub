@@ -1,16 +1,39 @@
 <template>
   <div class="article-grid-list">
     <!-- 加载中 - 骨架屏 -->
-    <n-grid v-if="loading" :cols="responsiveCols.cols" :x-gap="20" :y-gap="20">
-      <n-grid-item v-for="i in loadingCount" :key="i">
+    <n-grid
+      v-if="loading"
+      :cols="responsiveCols.cols"
+      :x-gap="20"
+      :y-gap="20"
+    >
+      <n-grid-item
+        v-for="i in loadingCount"
+        :key="i"
+      >
         <n-card>
           <div class="skeleton-article-card">
-            <n-skeleton text style="height: 150px; margin-bottom: 12px;" />
-            <n-skeleton text style="width: 80%" />
-            <n-skeleton text :repeat="2" />
+            <n-skeleton
+              text
+              style="height: 150px; margin-bottom: 12px;"
+            />
+            <n-skeleton
+              text
+              style="width: 80%"
+            />
+            <n-skeleton
+              text
+              :repeat="2"
+            />
             <div class="skeleton-meta">
-              <n-skeleton circular size="small" />
-              <n-skeleton text style="width: 100px" />
+              <n-skeleton
+                circular
+                size="small"
+              />
+              <n-skeleton
+                text
+                style="width: 100px"
+              />
             </div>
           </div>
         </n-card>

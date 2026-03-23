@@ -81,8 +81,6 @@ export class ArticleAPI {
   delete(id: number | string) {
     return http.delete(`${this.endpoint}/${id}`)
   }
-
-
   
   /**
    * 点赞文章
@@ -104,8 +102,6 @@ export class ArticleAPI {
       }
     })
   }
-
-
   
   /**
    * 批量删除文章

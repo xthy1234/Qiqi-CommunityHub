@@ -4,15 +4,29 @@
     @back="navigateToHome"
   >
     <template #headerExtra>
-      <n-button v-if="showAddButton" type="primary" @click="navigateToAdd">
-        <Icon icon="ri:add-circle-line" style="margin-right: 4px;" />
+      <n-button
+        v-if="showAddButton"
+        type="primary"
+        @click="navigateToAdd"
+      >
+        <Icon
+          icon="ri:add-circle-line"
+          style="margin-right: 4px;"
+        />
         发布新文章
       </n-button>
     </template>
 
     <!-- 搜索和筛选区域 -->
-    <n-card :bordered="false" class="filter-section">
-      <n-space align="center" :size="12">        <!-- 分类选择器 -->
+    <n-card
+      :bordered="false"
+      class="filter-section"
+    >
+      <n-space
+        align="center"
+        :size="12"
+      >
+        <!-- 分类选择器 -->
         <ArticleCategorySelect
           v-model="selectedCategoryId"
           placeholder="选择分类"
@@ -20,11 +34,11 @@
         />
         <!-- 搜索输入框 -->
         <n-input
-            v-model:value="searchCriteria.keyword"
-            placeholder="请输入文章标题或关键词"
-            clearable
-            style="width: 300px;"
-            @keyup.enter="handleSearch"
+          v-model:value="searchCriteria.keyword"
+          placeholder="请输入文章标题或关键词"
+          clearable
+          style="width: 300px;"
+          @keyup.enter="handleSearch"
         >
           <template #prefix>
             <Icon icon="ri:search-line" />
@@ -32,7 +46,10 @@
         </n-input>
 
         <!-- 搜索按钮 -->
-        <n-button type="primary" @click="handleSearch">
+        <n-button
+          type="primary"
+          @click="handleSearch"
+        >
           <template #icon>
             <Icon icon="ri:search-eye-line" />
           </template>
@@ -48,12 +65,12 @@
         </n-button>
 
         <!-- 新建草稿按钮 -->
-<!--        <n-button type="success" @click="handleCreateDraft">-->
-<!--          <template #icon>-->
-<!--            <Icon icon="ri:add-line" />-->
-<!--          </template>-->
-<!--          新建草稿-->
-<!--        </n-button>-->
+        <!--        <n-button type="success" @click="handleCreateDraft">-->
+        <!--          <template #icon>-->
+        <!--            <Icon icon="ri:add-line" />-->
+        <!--          </template>-->
+        <!--          新建草稿-->
+        <!--        </n-button>-->
       </n-space>
     </n-card>
 
@@ -73,9 +90,9 @@
       :page-size="pagination.limit"
       show-size-picker
       :page-sizes="[5, 10, 20]"
+      style="margin-top: 20px; justify-content: center;"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
-      style="margin-top: 20px; justify-content: center;"
     >
       <template #prefix="{ itemCount }">
         共 {{ itemCount }} 条
@@ -96,6 +113,7 @@ import ArticleGridList from '@/components/article/ArticleGridList.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ArticleCategorySelect from '@/components/article/ArticleCategorySelect.vue'
+import httpClient from '@/utils/http'
 
 interface Article {
   id: number | string
@@ -226,9 +244,7 @@ const fetchArticleList = async (): Promise<void> => {
     // 添加关键词搜索
     if (searchCriteria.value.keyword && searchCriteria.value.keyword.trim()) {
       // 使用全文搜索接口
-      const searchResponse = await appContext?.$http({
-        url: '/articles/search',
-        method: 'get',
+      const searchResponse = await httpClient.get('/articles/search', {
         params: {
           keyword: searchCriteria.value.keyword.trim(),
           categoryId: selectedCategoryId.value,
@@ -260,7 +276,7 @@ const fetchArticleList = async (): Promise<void> => {
 }
 
 const formatDate = (dateStr: string): string => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   const date = new Date(dateStr)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')

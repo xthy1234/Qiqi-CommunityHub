@@ -101,7 +101,8 @@ const handleMouseDown = (event: MouseEvent): void => {
  * 鼠标移动事件处理
  */
 const handleMouseMove = (event: MouseEvent): void => {
-  if (!isMousePressed.value) return  const movedDistance = event.clientX - beginClientX.value
+  if (!isMousePressed.value) return
+  const movedDistance = event.clientX - beginClientX.value
 
   if (movedDistance > 0 && movedDistance <= maxWidth.value) {
     if (sliderHandle.value && progressBar.value) {

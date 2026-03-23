@@ -17,10 +17,7 @@ export class UploadAPI {
     formData.append('file', file)
 
     try {
-      const response = await http({
-        url: this.uploadUrl,
-        method: 'post',
-        data: formData,
+      const response = await http.post(this.uploadUrl, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

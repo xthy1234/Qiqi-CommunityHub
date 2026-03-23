@@ -4,24 +4,43 @@
       :action="uploadUrl"
       :headers="uploadHeaders"
       :show-file-list="false"
-      @finish="handleAvatarSuccess"
       :before-upload="beforeAvatarUpload"
       :disabled="isDisabled"
+      @finish="handleAvatarSuccess"
     >
-      <n-button type="primary" v-if="false">上传头像</n-button>
+      <n-button
+        v-if="false"
+        type="primary"
+      >
+        上传头像
+      </n-button>
 
-      <div v-if="imageUrl" class="avatar-preview">
-        <img :src="imageUrl" alt="头像" class="avatar-image" />
+      <div
+        v-if="imageUrl"
+        class="avatar-preview"
+      >
+        <img
+          :src="imageUrl"
+          alt="头像"
+          class="avatar-image"
+        />
         <div class="avatar-mask">
-          <Icon icon="carbon:plus" class="mask-icon" />
+          <Icon
+            icon="carbon:plus"
+            class="mask-icon"
+          />
         </div>
       </div>
-      <div v-else class="avatar-uploader">
-        <Icon icon="carbon:plus" class="uploader-icon" />
+      <div
+        v-else
+        class="avatar-uploader"
+      >
+        <Icon
+          icon="carbon:plus"
+          class="uploader-icon"
+        />
       </div>
     </n-upload>
-
-
   </div>
 </template>
 
@@ -57,7 +76,6 @@ watch(() => props.modelValue, (newVal) => {
 const uploadUrl = computed(() => {
   const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
 
-
   return `${baseUrl}/${props.uploadAction}`
 })
 
@@ -75,7 +93,6 @@ const handleAvatarSuccess = ({ event }: { event: Event }) => {
   const uploadedFilePath = "files/" + response.fileName
   const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
   imageUrl.value = `${baseUrl}/${uploadedFilePath}`
-
 
   emit('update:modelValue', uploadedFilePath)
   emit('change', imageUrl.value)

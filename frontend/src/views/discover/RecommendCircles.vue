@@ -1,9 +1,18 @@
 <!-- src/views/discover/RecommendCircles.vue -->
 <template>
-  <PageContainer header-title="推荐圈子" :show-back="false">
+  <PageContainer
+    header-title="推荐圈子"
+    :show-back="false"
+  >
     <template #headerExtra>
-      <n-button type="primary" @click="navigateToCreate">
-        <Icon icon="ri:add-circle-line" style="margin-right: 4px;" />
+      <n-button
+        type="primary"
+        @click="navigateToCreate"
+      >
+        <Icon
+          icon="ri:add-circle-line"
+          style="margin-right: 4px;"
+        />
         创建圈子
       </n-button>
     </template>
@@ -19,19 +28,36 @@
         >
           <template #prefix>
             <n-icon size="18">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+                />
               </svg>
             </n-icon>
           </template>
         </n-input>
         
         <div class="search-bar-right">
-          <n-radio-group v-model:value="circleType" @change="handleTypeChange">
+          <n-radio-group
+            v-model:value="circleType"
+            @change="handleTypeChange"
+          >
             <n-space>
-              <n-radio :value="null">全部</n-radio>
-              <n-radio :value="1">公开</n-radio>
-              <n-radio :value="0">私密</n-radio>
+              <n-radio :value="null">
+                全部
+              </n-radio>
+              <n-radio :value="1">
+                公开
+              </n-radio>
+              <n-radio :value="0">
+                私密
+              </n-radio>
             </n-space>
           </n-radio-group>
         </div>
@@ -40,11 +66,17 @@
       <!-- 圈子列表 -->
       <div class="circles-grid">
         <n-spin :show="loading">
-          <div v-if="circles.length === 0 && !loading" class="empty-state">
+          <div
+            v-if="circles.length === 0 && !loading"
+            class="empty-state"
+          >
             <n-empty description="暂无推荐圈子" />
           </div>
 
-          <div v-else class="circles-content">
+          <div
+            v-else
+            class="circles-content"
+          >
             <CircleCard
               v-for="circle in circles"
               :key="circle.id"
@@ -62,9 +94,9 @@
             :page-size="pagination.limit"
             show-size-picker
             :page-sizes="[10, 20, 50]"
+            class="pagination"
             @update:page="handlePageChange"
             @update:page-size="handlePageSizeChange"
-            class="pagination"
           >
             <template #prefix="{ itemCount }">
               共 {{ itemCount }} 条
@@ -217,7 +249,7 @@ const handlePageSizeChange = (pageSize: number) => {
  * 获取名称首字母
  */
 const getInitials = (name: string) => {
-  if (!name) return ''
+  if (!name) {return ''}
   return name.charAt(0).toUpperCase()
 }
 
@@ -225,7 +257,7 @@ const getInitials = (name: string) => {
  * 格式化创建时间
  */
 const formatCreateTime = (time?: string) => {
-  if (!time) return '未知'
+  if (!time) {return '未知'}
   return dayjs(time).format('YYYY-MM-DD')
 }
 

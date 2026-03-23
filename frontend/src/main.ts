@@ -36,23 +36,14 @@ import {
   NDropdown,
   NRadio,
   NRadioGroup
-} from "naive-ui";
-
-// Element Plus 样式和图标配置
-import 'element-plus/dist/index.css'
-import 'element-plus/theme-chalk/dark/css-vars.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-
-// Element Plus 国际化配置
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import ElementPlus from 'element-plus'
+} from "naive-ui"
 
 // 地图组件初始化
 import VueAMap, { initAMapApiLoader } from "@vuemap/vue-amap"
 import "@vuemap/vue-amap/dist/style.css"
 
 // WebSocket 初始化
-import { initWebSocket, getWebSocket } from '@/utils/websocket'
+import { connectWebSocketOnStartup } from '@/utils/websocketInit'
 
 // vue3-tiptap-editor 编辑器
 
@@ -61,22 +52,13 @@ import httpClient from './utils/http'
 import appConfig from './utils/config'
 import utilityTools from './utils/toolUtil'
 import menu from './utils/menu'
-import httpCall from "./utils/http";
+import httpCall from "./utils/http"
 
 // 创建自定义组件
 const app = createApp(App)
 
 // 创建 Pinia 实例
 const pinia = createPinia()
-
-// 注册所有 Element Plus 图标组件
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
-
-// 配置 Element Plus
-app.use(ElementPlus, { locale: zhCn })
-
 
 //naive ui 组件
 app.component('NButton', NButton)
@@ -145,7 +127,6 @@ try {
 // app.component('editor', Editor)
 // app.component('uploads', Upload)
 
-
 // 全局属性配置 - 确保正确的顺序和配置
 app.config.globalProperties.$config = appConfig.getApiConfig()
 app.config.globalProperties.$project = appConfig.getProjectInfo().projectName
@@ -155,47 +136,40 @@ app.config.globalProperties.$http = httpCall
 // 挂载 menu 到全局属性
 app.config.globalProperties.$menu = menu
 
-// 初始化 WebSocket（仅创建实例，不建立连接）
-try {
-  const wsUrl = `ws://${window.location.hostname}:8080/ws`
-
-  initWebSocket(wsUrl)
-
-} catch (error) {
-  console.error('❌ [WebSocket] 初始化失败:', error)
-}
-
 // 挂载应用
 app.use(pinia)
 app.use(router)
 app.mount('#app')
 
-// 关键修改：应用挂载后检查登录状态并自动建立 WebSocket连接
-;(async () => {
-  try {
-    // 检查用户是否已登录
-    const token = utilityTools.storageGet('Token')
-    const userId = utilityTools.storageGet('userid')
-    
-    if (token && userId) {
-
-      
-      const ws = getWebSocket()
-      if (ws && !ws.isConnected()) {
-        await ws.connect()
-
-      } else if (ws && ws.isConnected()) {
-
-      } else {
-        console.warn('⚠️ [WebSocket] 实例不存在')
-      }
-    } else {
-
-    }
-  } catch (error) {
-    console.error('❌ [WebSocket] 自动连接失败:', error)
-  }
-})()
+// 添加全局消息工具（在应用挂载后）
+app.config.globalProperties.$message = app.config.globalProperties.$message || {}
+app.config.globalProperties.$dialog = app.config.globalProperties.$dialog || {}
+app.config.globalProperties.$notification = app.config.globalProperties.$notification || {}
 
 // 导出应用实例供测试使用
 export default app
+
+async function bootstrap() {
+  const app = createApp(App)
+  
+  // 设置全局 Vue 实例引用（供 WebSocket 使用）
+  ;(window as any).__vue_app__ = app
+  
+  // 挂载 Pinia
+  app.use(pinia)
+  
+  // 挂载路由
+  app.use(router)
+  
+  // 初始化 WebSocket（异步，不阻塞应用启动）
+  connectWebSocketOnStartup({
+    debug: process.env.NODE_ENV === 'development',
+    heartbeatInterval: 30000,
+    reconnectInterval: 5000,
+    maxReconnectAttempts: 5
+  }).catch(error => {
+    console.error('WebSocket 初始化失败:', error)
+  })
+
+  app.mount('#app')
+}

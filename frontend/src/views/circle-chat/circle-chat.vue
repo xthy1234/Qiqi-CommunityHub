@@ -1,83 +1,95 @@
 <!-- src/views/circle-chat/index.vue -->
 <template>
-
-    <div class="circle-chat-page">
-      <!-- 左侧：圈子会话列表 -->
-      <CircleConversationPanel
-        :conversations="store.conversations"
-        :loading="store.loading"
-        :active-circle-id="store.currentCircle?.id"
-        @select-circle="handleSelectCircle"
-        @refresh="loadConversations"
+  <div class="circle-chat-page">
+    <!-- 左侧：圈子会话列表 -->
+    <CircleConversationPanel
+      :conversations="store.conversations"
+      :loading="store.loading"
+      :active-circle-id="store.currentCircle?.id"
+      @select-circle="handleSelectCircle"
+      @refresh="loadConversations"
+    />
+      
+    <!-- 中间：聊天区域 -->
+    <div class="chat-main">
+      <CircleChatDetail 
+        v-if="store.currentCircle" 
+        @show-members="showMemberList = true"
       />
-      
-      <!-- 中间：聊天区域 -->
-      <div class="chat-main">
-        <CircleChatDetail 
-          v-if="store.currentCircle" 
-          @show-members="showMemberList = true"
-        />
-        <EmptyChat v-else />
-      </div>
-      
-      <!-- 右侧：成员列表 (需要时显示) -->
-      <transition name="slide-right">
-        <CircleMemberList
-          v-if="showMemberList"
-          :members="store.members"
-          :loading="store.loading"
-          @back="showMemberList = false"
-          @invite="handleInviteMember"
-          @member-click="handleMemberClick"
-        />
-      </transition>
+      <EmptyChat v-else />
     </div>
+      
+    <!-- 右侧：成员列表 (需要时显示) -->
+    <transition name="slide-right">
+      <CircleMemberList
+        v-if="showMemberList"
+        :members="store.members"
+        :loading="store.loading"
+        @back="showMemberList = false"
+        @invite="handleInviteMember"
+        @member-click="handleMemberClick"
+      />
+    </transition>
+  </div>
 
-    <!-- 创建圈子对话框 -->
-    <n-modal
-      v-model:show="showCreateModal"
-      title="创建新圈子"
-      preset="dialog"
-      :positive-button-props="{ loading: creatingLoading }"
-      @positive-click="handleCreateCircle"
+  <!-- 创建圈子对话框 -->
+  <n-modal
+    v-model:show="showCreateModal"
+    title="创建新圈子"
+    preset="dialog"
+    :positive-button-props="{ loading: creatingLoading }"
+    @positive-click="handleCreateCircle"
+  >
+    <n-form
+      ref="createFormRef"
+      :model="createForm"
+      :rules="createRules"
+      label-placement="left"
+      label-width="80px"
     >
-      <n-form
-        ref="createFormRef"
-        :model="createForm"
-        :rules="createRules"
-        label-placement="left"
-        label-width="80px"
+      <n-form-item
+        label="圈子名称"
+        path="name"
       >
-        <n-form-item label="圈子名称" path="name">
-          <n-input
-            v-model:value="createForm.name"
-            placeholder="请输入圈子名称"
-            maxlength="20"
-            show-count
-          />
-        </n-form-item>
+        <n-input
+          v-model:value="createForm.name"
+          placeholder="请输入圈子名称"
+          maxlength="20"
+          show-count
+        />
+      </n-form-item>
         
-        <n-form-item label="圈子描述" path="description">
-          <n-input
-            v-model:value="createForm.description"
-            type="textarea"
-            placeholder="请输入圈子描述（可选）"
-            maxlength="200"
-            show-count
-            :rows="3"
-          />
-        </n-form-item>
+      <n-form-item
+        label="圈子描述"
+        path="description"
+      >
+        <n-input
+          v-model:value="createForm.description"
+          type="textarea"
+          placeholder="请输入圈子描述（可选）"
+          maxlength="200"
+          show-count
+          :rows="3"
+        />
+      </n-form-item>
         
-        <n-form-item label="圈子类型" path="type">
-          <n-radio-group v-model:value="createForm.type">
-            <n-space>
-              <n-radio :value="1">公开</n-radio>
-              <n-radio :value="0">私密</n-radio>
-            </n-space>
-          </n-radio-group>
-        </n-form-item>
-      </n-form>
-    </n-modal>
+      <n-form-item
+        label="圈子类型"
+        path="type"
+      >
+        <n-radio-group v-model:value="createForm.type">
+          <n-space>
+            <n-radio :value="1">
+              公开
+            </n-radio>
+            <n-radio :value="0">
+              私密
+            </n-radio>
+          </n-space>
+        </n-radio-group>
+      </n-form-item>
+    </n-form>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
@@ -92,6 +104,7 @@ import { circleApi, circleMemberApi, circleChatApi, circleWebSocket } from '@/ap
 import type { CircleConversation, CircleMessage, CircleMember } from '@/types/circleChat'
 import {getWebSocket} from "@/utils/websocket"
 import chatService from '@/api/chat'
+import { ensureCircleWebSocketConnected } from '@/api/circle'
 
 const store = useCircleChatStore()
 const message = useMessage()
@@ -126,7 +139,6 @@ const loadConversations = async () => {
     const result = await circleChatApi.getConversations({ page: 1, limit: 20 })
     store.setConversations(result.list)
 
-
   } catch (error: any) {
     console.error('❌ [圈子聊天] 加载会话列表失败:', error)
     message.error(error.message || '加载失败')
@@ -139,7 +151,6 @@ const loadConversations = async () => {
  * 选择圈子
  */
 const handleSelectCircle = async (conv: CircleConversation) => {
-
 
   try {
     // 1. 获取圈子详情
@@ -181,7 +192,6 @@ const loadChatHistory = async (circleId: number) => {
     // 处理删除消息（转换为系统提示）
     store.processDeletedMessages(store.messages)
 
-
   } catch (error: any) {
     console.error('❌ [圈子聊天] 加载聊天记录失败:', error)
   }
@@ -197,7 +207,6 @@ const loadMembers = async (circleId: number) => {
 
     store.setMembers(result.list)
 
-
   } catch (error: any) {
     console.error('❌ [圈子聊天] 加载成员列表失败:', error)
   }
@@ -207,7 +216,7 @@ const loadMembers = async (circleId: number) => {
  * 邀请成员
  */
 const handleInviteMember = () => {
-  if (!store.currentCircle) return
+  if (!store.currentCircle) {return}
 
   // TODO: 打开邀请对话框
   message.info('邀请功能开发中')
@@ -253,14 +262,10 @@ const handleCreateCircle = async () => {
 
 // 生命周期
 onMounted(async () => {
-
-
-  // 不再在这里连接 WebSocket，因为登录后已经全局连接了
-  // 只需要检查连接状态即可
-  const ws = getWebSocket()
-  if (!ws) {
-    console.warn('⚠️ [圈子聊天] WebSocket 实例不存在')
-  }
+  // ✅ 新增：确保 WebSocket 已连接
+  await ensureCircleWebSocketConnected().catch((error) => {
+    console.error('❌ [圈子聊天] WebSocket连接失败:', error)
+  })
 
   await loadConversations()
 

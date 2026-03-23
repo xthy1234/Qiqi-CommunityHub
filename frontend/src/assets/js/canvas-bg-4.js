@@ -1,20 +1,20 @@
 export default function canvasBg() {
-    var num = 200;
-    var w = window.innerWidth;
-    var h = window.innerHeight;
-    var max = 100;
-    var _x = 0;
-    var _y = 0;
-    var _z = 150;
-    var dtr = function(d) {
+    const num = 200;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const max = 100;
+    const _x = 0;
+    const _y = 0;
+    const _z = 150;
+    const dtr = function(d) {
         return d * Math.PI / 180;
     };
-    var canvas = document.getElementById("canvas");
+    const canvas = document.getElementById("canvas");
 
-    var rnd = function() {
+    const rnd = function() {
         return Math.sin(Math.floor(Math.random() * 360) * Math.PI / 180);
     };
-    var dist = function(p1, p2, p3) {
+    const dist = function(p1, p2, p3) {
         return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2) + Math.pow(p2.z - p1.z, 2));
     };
 
@@ -139,7 +139,7 @@ export default function canvasBg() {
             };
         },
         steps: function(_obj_, sz, rot, pos, disp) {
-            var _args = trans.parts.sz(_obj_, sz);
+            let _args = trans.parts.sz(_obj_, sz);
             _args = trans.parts.rot.x(_args, rot);
             _args = trans.parts.rot.y(_args, rot);
             _args = trans.parts.rot.z(_args, rot);
@@ -153,7 +153,7 @@ export default function canvasBg() {
         }
     };
 
-    var threeD = function(param) {
+    const threeD = function(param) {
         this.transIn = {};
         this.transOut = {};
         this.transIn.vtx = (param.vtx);
@@ -173,7 +173,7 @@ export default function canvasBg() {
         );
     };
 
-    var Build = function() {
+    const Build = function() {
         this.vel = 0.04;
         this.lim = 360;
         this.diff = 200;
@@ -193,7 +193,7 @@ export default function canvasBg() {
         this.dist = [];
         this.calc = [];
 
-        for (var i = 0, len = num; i < len; i++) {
+        for (let i = 0, len = num; i < len; i++) {
             this.add();
         }
 
@@ -251,11 +251,11 @@ export default function canvasBg() {
         this.rotObj.y += 0.1;
         this.rotObj.z += 0.1;
 
-        for (var i = 0; i < this.varr.length; i++) {
-            for (var val in this.calc[i]) {
+        for (let i = 0; i < this.varr.length; i++) {
+            for (const val in this.calc[i]) {
                 if (this.calc[i].hasOwnProperty(val)) {
                     this.calc[i][val] += this.vel;
-                    if (this.calc[i][val] > this.lim) this.calc[i][val] = 0;
+                    if (this.calc[i][val] > this.lim) {this.calc[i][val] = 0;}
                 }
             }
 
@@ -267,8 +267,8 @@ export default function canvasBg() {
             this.varr[i].transIn.rot = this.rotObj;
             this.varr[i].transIn.sz = this.objSz;
             this.varr[i].vupd();
-            if (this.varr[i].transOut.p < 0) continue;
-            var g = this.$.createRadialGradient(this.varr[i].transOut.x, this.varr[i].transOut.y, this.varr[i]
+            if (this.varr[i].transOut.p < 0) {continue;}
+            const g = this.$.createRadialGradient(this.varr[i].transOut.x, this.varr[i].transOut.y, this.varr[i]
                 .transOut.p, this.varr[i].transOut.x, this.varr[i].transOut.y, this.varr[i].transOut.p * 2);
             this.$.globalCompositeOperation = 'lighter';
             g.addColorStop(0, 'hsla(255, 255%, 255%, 1)');
@@ -311,25 +311,25 @@ export default function canvasBg() {
             this.toY = (e.touches[0].clientY - this.canvas.height / 2) * 0.8;
         }.bind(this));
         window.addEventListener('mousedown', function(e) {
-            for (var i = 0; i < 100; i++) {
+            for (let i = 0; i < 100; i++) {
                 this.add();
             }
         }.bind(this));
         window.addEventListener('touchstart', function(e) {
             e.preventDefault();
-            for (var i = 0; i < 100; i++) {
+            for (let i = 0; i < 100; i++) {
                 this.add();
             }
         }.bind(this));
     };
 
-    var app = new Build();
+    const app = new Build();
     app.run();
 
     window.addEventListener('resize', function() {
         // canvas.width = w = window.innerWidth;
         // canvas.height = h = window.innerHeight;
-        var app = new Build();
+        const app = new Build();
         app.run();
     });
 }

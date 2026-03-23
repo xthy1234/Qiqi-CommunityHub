@@ -14,8 +14,14 @@ NEW_FILE_CODE
         class="article-cover-img"
         @error="handleImageError"
       />
-      <div v-else class="cover-placeholder">
-        <Icon icon="ri:image-line" width="40" />
+      <div
+        v-else
+        class="cover-placeholder"
+      >
+        <Icon
+          icon="ri:image-line"
+          width="40"
+        />
       </div>
     </template>
     
@@ -32,29 +38,44 @@ NEW_FILE_CODE
     
     <div class="article-meta">
       <UserAvatarLink
-        :userId="article.authorId || ''"
+        :user-id="article.authorId || ''"
         :nickname="article.authorNickname"
         :avatar="article.authorAvatar"
         :size="32"
-        :showName="true"
+        :show-name="true"
       />
-      <div class="publish-time" v-if="article.publishTime">
-        <Icon icon="ri:calendar-line" width="14" />
+      <div
+        v-if="article.publishTime"
+        class="publish-time"
+      >
+        <Icon
+          icon="ri:calendar-line"
+          width="14"
+        />
         {{ formatDate(article.publishTime) }}
       </div>
     </div>
     
     <div class="article-stats">
       <div class="stat-item">
-        <Icon icon="ri:eye-line" width="16" />
+        <Icon
+          icon="ri:eye-line"
+          width="16"
+        />
         <span>{{ formatNumber(article.viewCount || 0) }}</span>
       </div>
       <div class="stat-item">
-        <Icon icon="ri:thumb-up-line" width="16" />
+        <Icon
+          icon="ri:thumb-up-line"
+          width="16"
+        />
         <span>{{ formatNumber(article.likeCount || 0) }}</span>
       </div>
       <div class="stat-item">
-        <Icon icon="ri:chat-1-line" width="16" />
+        <Icon
+          icon="ri:chat-1-line"
+          width="16"
+        />
         <span>{{ formatNumber(article.commentCount || 0) }}</span>
       </div>
     </div>
@@ -98,17 +119,17 @@ const appContext = useGlobalProperties()
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
 
 const isHttpUrl = (url: string): boolean => {
-  if (!url) return false
+  if (!url) {return false}
   return url.startsWith('http')
 }
 
 const getCoverImageUrl = (coverUrl: string): string => {
-  if (!coverUrl || coverUrl === 'null') return '/placeholder.svg'
+  if (!coverUrl || coverUrl === 'null') {return '/placeholder.svg'}
   return isHttpUrl(coverUrl) ? coverUrl : `${baseUrl.value}/${coverUrl}`
 }
 
 const formatDate = (dateStr: string): string => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   const date = new Date(dateStr)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')

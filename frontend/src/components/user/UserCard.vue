@@ -8,18 +8,31 @@
           round
           class="avatar"
         />
-        <span v-if="isOnline" class="online-dot"></span>
+        <span
+          v-if="isOnline"
+          class="online-dot"
+        />
       </div>
       
       <div class="user-details">
         <div class="user-header">
-          <span class="nickname" @click="goToUserProfile">{{ user.username || user.nickname }}</span>
-          <n-tag v-if="isFriend" type="success" size="small" class="friend-tag">
+          <span
+            class="nickname"
+            @click="goToUserProfile"
+          >{{ user.username || user.nickname }}</span>
+          <n-tag
+            v-if="isFriend"
+            type="success"
+            size="small"
+            class="friend-tag"
+          >
             互相关注
           </n-tag>
         </div>
         
-        <p class="signature">{{ user.signature || '暂无签名' }}</p>
+        <p class="signature">
+          {{ user.signature || '暂无签名' }}
+        </p>
         
         <div class="actions">
           <n-button
@@ -46,7 +59,10 @@
     </div>
     
     <div class="follow-time">
-      <Icon icon="ri:time-line" :size="14" />
+      <Icon
+        icon="ri:time-line"
+        :size="14"
+      />
       <span>{{ formatFollowTime(user.followTime) }}</span>
     </div>
   </div>
@@ -100,7 +116,7 @@ const isCurrentUser = computed(() => {  // 优先使用 userId，如果没有则
 // 是否显示关注按钮 - 仅在搜索场景或特定场景显示
 const showFollowBtn = computed(() => {
   // 如果是自己，不显示
-  if (isCurrentUser.value) return false
+  if (isCurrentUser.value) {return false}
 
   // 根据场景决定是否显示关注按钮
   switch (props.sceneType) {
@@ -166,7 +182,7 @@ onUnmounted(() => {
 // 订阅用户在线状态
 const setupOnlineStatusListener = () => {
   const userId = getUserActualId()
-  if (!userId) return
+  if (!userId) {return}
 
   const ws = getWebSocket()
   if (!ws || !ws.isConnected()) {
@@ -188,7 +204,7 @@ const setupOnlineStatusListener = () => {
 }
 
 const handleFollowToggle = async () => {
-  if (actionLoading.value) return
+  if (actionLoading.value) {return}
   
   actionLoading.value = true
   try {

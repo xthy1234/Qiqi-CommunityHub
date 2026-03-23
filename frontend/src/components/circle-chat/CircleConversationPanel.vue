@@ -7,12 +7,28 @@
   >
     <!-- 头部操作区域 -->
     <template #header-actions>
-      <n-badge :value="store.totalUnreadCount" :show="store.totalUnreadCount > 0" :max="99">
-        <n-button text size="small" @click="handleRefresh">
+      <n-badge
+        :value="store.totalUnreadCount"
+        :show="store.totalUnreadCount > 0"
+        :max="99"
+      >
+        <n-button
+          text
+          size="small"
+          @click="handleRefresh"
+        >
           <template #icon>
             <n-icon size="18">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                />
               </svg>
             </n-icon>
           </template>
@@ -23,31 +39,65 @@
     <!-- 展开模式：完整会话列表 -->
     <template #list-content>
       <n-spin :show="loading">
-        <div v-if="conversations.length === 0" class="empty-conversations">
+        <div
+          v-if="conversations.length === 0"
+          class="empty-conversations"
+        >
           <div class="empty-state">
-            <n-icon size="80" color="#dcdfe6">
-              <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2z"/>
+            <n-icon
+              size="80"
+              color="#dcdfe6"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="80"
+                height="80"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2z"
+                />
               </svg>
             </n-icon>
-            <div class="empty-title">暂时还没有加入任何圈子</div>
+            <div class="empty-title">
+              暂时还没有加入任何圈子
+            </div>
             <div class="empty-description">
-              去 <n-button text type="primary" @click.stop="handleGoToDiscover">发现</n-button>
+              去 <n-button
+                text
+                type="primary"
+                @click.stop="handleGoToDiscover"
+              >
+                发现
+              </n-button>
               加入感兴趣的圈子吧
             </div>
           </div>
         </div>
         
-        <n-list v-else hoverable clickable>
+        <n-list
+          v-else
+          hoverable
+          clickable
+        >
           <n-list-item
             v-for="conv in conversations"
             :key="conv.circleId"
-            @click="handleSelectConversation(conv)"
             :class="{ 'active': activeCircleId === conv.circleId }"
+            @click="handleSelectConversation(conv)"
           >
             <template #prefix>
-              <n-badge :value="conv.unreadCount" :show="conv.unreadCount > 0" :dot-style="{ background: '#18a058' }">
-                <n-avatar :src="conv.circleAvatar" round size="large" />
+              <n-badge
+                :value="conv.unreadCount"
+                :show="conv.unreadCount > 0"
+                :dot-style="{ background: '#18a058' }"
+              >
+                <n-avatar
+                  :src="conv.circleAvatar"
+                  round
+                  size="large"
+                />
               </n-badge>
             </template>
             
@@ -57,8 +107,14 @@
                 <span class="conversation-time">{{ formatTime(conv.lastMessageTime) }}</span>
               </div>
               <div class="conversation-bottom">
-                <n-ellipsis class="conversation-message" :tooltip="false">
-                  <span v-if="conv.lastMessageSenderNickname" class="sender-name">
+                <n-ellipsis
+                  class="conversation-message"
+                  :tooltip="false"
+                >
+                  <span
+                    v-if="conv.lastMessageSenderNickname"
+                    class="sender-name"
+                  >
                     {{ conv.lastMessageSenderNickname }}:
                   </span>
                   {{ conv.lastMessageContent || '暂无消息' }}
@@ -80,8 +136,17 @@
           :class="{ 'active': activeCircleId === conv.circleId }"
           @click="handleSelectConversation(conv)"
         >
-          <n-badge :value="conv.unreadCount" :show="conv.unreadCount > 0" :dot-style="{ background: '#18a058' }">
-            <n-avatar :src="conv.circleAvatar" round size="large" style="cursor: pointer;" />
+          <n-badge
+            :value="conv.unreadCount"
+            :show="conv.unreadCount > 0"
+            :dot-style="{ background: '#18a058' }"
+          >
+            <n-avatar
+              :src="conv.circleAvatar"
+              round
+              size="large"
+              style="cursor: pointer;"
+            />
           </n-badge>
         </div>
       </n-spin>

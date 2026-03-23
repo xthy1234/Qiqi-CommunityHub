@@ -3,126 +3,158 @@
     header-title="编辑个人资料"
     @back="goBack"
   >
-      <n-form
-        ref="editFormRef"
-        :model="editForm"
-        :rules="editRules"
-        label-width="120px"
-        class="edit-form"
-      >
-        <!-- 头像上传 -->
-        <n-form-item label="头像">
-          <div class="avatar-upload-content">
-            <AvatarUpload
-              v-model="avatarUrl"
-              upload-action="files"
-              :is-disabled="false"
-              @change="handleAvatarChange"
+    <n-form
+      ref="editFormRef"
+      :model="editForm"
+      :rules="editRules"
+      label-width="120px"
+      class="edit-form"
+    >
+      <!-- 头像上传 -->
+      <n-form-item label="头像">
+        <div class="avatar-upload-content">
+          <AvatarUpload
+            v-model="avatarUrl"
+            upload-action="files"
+            :is-disabled="false"
+            @change="handleAvatarChange"
+          >
+            <n-button
+              type="primary"
+              size="small"
             >
-              <n-button type="primary" size="small">
-                更换头像
-              </n-button>
-            </AvatarUpload>
-          </div>
-        </n-form-item>
-
-        <n-grid :cols="12" :x-gap="20">
-          <!-- 用户账号（只读） -->
-          <n-grid-item :span="6">
-            <n-form-item label="用户账号" path="account">
-              <n-input
-                v-model:value="editForm.account"
-                placeholder="用户账号"
-                readonly
-                disabled
-              />
-            </n-form-item>
-          </n-grid-item>
-
-          <!-- 用户姓名 -->
-          <n-grid-item :span="6">
-            <n-form-item label="用户姓名" path="nickname">
-              <n-input
-                v-model:value="editForm.nickname"
-                placeholder="请输入用户姓名"
-                clearable
-              />
-            </n-form-item>
-          </n-grid-item>
-
-          <!-- 性别选择 -->
-          <n-grid-item :span="6">
-            <n-form-item label="性别" path="gender">
-              <n-select
-                v-model:value="editForm.gender"
-                :options="genderOptions"
-                placeholder="请选择性别"
-                clearable
-              />
-            </n-form-item>
-          </n-grid-item>
-
-          <!-- 手机号码 -->
-          <n-grid-item :span="6">
-            <n-form-item label="手机号码" path="phone">
-              <n-input
-                v-model:value="editForm.phone"
-                placeholder="请输入手机号码"
-                maxlength="11"
-                clearable
-              />
-            </n-form-item>
-          </n-grid-item>
-
-          <!-- 邮箱地址 -->
-          <n-grid-item :span="6">
-            <n-form-item label="邮箱" path="email">
-              <n-input
-                v-model:value="editForm.email"
-                placeholder="请输入邮箱地址"
-                clearable
-              />
-            </n-form-item>
-          </n-grid-item>
-
-          <!-- 生日选择 -->
-          <n-grid-item :span="6">
-            <n-form-item label="生日" path="birthday">
-              <n-date-picker
-                v-model:value="editForm.birthday"
-                type="date"
-                placeholder="选择生日"
-                style="width: 100%"
-                format="yyyy-MM-dd"
-                value-format="yyyy-MM-dd"
-              />
-            </n-form-item>
-          </n-grid-item>
-
-          <!-- 个性签名 -->
-          <n-grid-item :span="12">
-            <n-form-item label="个性签名" path="signature">
-              <n-input
-                v-model:value="editForm.signature"
-                type="textarea"
-                :rows="4"
-                placeholder="请输入个性签名"
-                maxlength="200"
-                show-count
-              />
-            </n-form-item>
-          </n-grid-item>
-        </n-grid>
-
-        <!-- 操作按钮 -->
-        <div class="form-actions">
-          <n-button type="primary" @click="handleSubmit" :loading="isSubmitting">
-            保存修改
-          </n-button>
-          <n-button @click="goBack">取消</n-button>
+              更换头像
+            </n-button>
+          </AvatarUpload>
         </div>
-      </n-form>
+      </n-form-item>
 
+      <n-grid
+        :cols="12"
+        :x-gap="20"
+      >
+        <!-- 用户账号（只读） -->
+        <n-grid-item :span="6">
+          <n-form-item
+            label="用户账号"
+            path="account"
+          >
+            <n-input
+              v-model:value="editForm.account"
+              placeholder="用户账号"
+              readonly
+              disabled
+            />
+          </n-form-item>
+        </n-grid-item>
+
+        <!-- 用户姓名 -->
+        <n-grid-item :span="6">
+          <n-form-item
+            label="用户姓名"
+            path="nickname"
+          >
+            <n-input
+              v-model:value="editForm.nickname"
+              placeholder="请输入用户姓名"
+              clearable
+            />
+          </n-form-item>
+        </n-grid-item>
+
+        <!-- 性别选择 -->
+        <n-grid-item :span="6">
+          <n-form-item
+            label="性别"
+            path="gender"
+          >
+            <n-select
+              v-model:value="editForm.gender"
+              :options="genderOptions"
+              placeholder="请选择性别"
+              clearable
+            />
+          </n-form-item>
+        </n-grid-item>
+
+        <!-- 手机号码 -->
+        <n-grid-item :span="6">
+          <n-form-item
+            label="手机号码"
+            path="phone"
+          >
+            <n-input
+              v-model:value="editForm.phone"
+              placeholder="请输入手机号码"
+              maxlength="11"
+              clearable
+            />
+          </n-form-item>
+        </n-grid-item>
+
+        <!-- 邮箱地址 -->
+        <n-grid-item :span="6">
+          <n-form-item
+            label="邮箱"
+            path="email"
+          >
+            <n-input
+              v-model:value="editForm.email"
+              placeholder="请输入邮箱地址"
+              clearable
+            />
+          </n-form-item>
+        </n-grid-item>
+
+        <!-- 生日选择 -->
+        <n-grid-item :span="6">
+          <n-form-item
+            label="生日"
+            path="birthday"
+          >
+            <n-date-picker
+              v-model:value="editForm.birthday"
+              type="date"
+              placeholder="选择生日"
+              style="width: 100%"
+              format="yyyy-MM-dd"
+              value-format="yyyy-MM-dd"
+            />
+          </n-form-item>
+        </n-grid-item>
+
+        <!-- 个性签名 -->
+        <n-grid-item :span="12">
+          <n-form-item
+            label="个性签名"
+            path="signature"
+          >
+            <n-input
+              v-model:value="editForm.signature"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入个性签名"
+              maxlength="200"
+              show-count
+            />
+          </n-form-item>
+        </n-grid-item>
+      </n-grid>
+
+      <!-- 操作按钮 -->
+      <div class="form-actions">
+        <n-button
+          type="primary"
+          :loading="isSubmitting"
+          @click="handleSubmit"
+        >
+          保存修改
+        </n-button>
+        <n-button @click="goBack">
+          取消
+        </n-button>
+      </div>
+    </n-form>
   </PageContainer>
 </template>
 
@@ -147,7 +179,6 @@ const message = useMessage()
 const dialog = useDialog()
 const appContext = useGlobalProperties()
 const $http = appContext?.$http
-
 
 interface EditForm {
   id?: number
@@ -182,7 +213,7 @@ const editForm = reactive<EditForm>({
 })
 
 const validateMobile = (rule: any, value: string) => {
-  if (!value) return Promise.resolve()
+  if (!value) {return Promise.resolve()}
   const mobileReg = /^1[3-9]\d{9}$/
   if (!mobileReg.test(value)) {
     return Promise.reject(new Error('请输入正确的手机号码'))
@@ -191,7 +222,7 @@ const validateMobile = (rule: any, value: string) => {
 }
 
 const validateEmail = (rule: any, value: string) => {
-  if (!value) return Promise.resolve()
+  if (!value) {return Promise.resolve()}
   const emailReg = /^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/
   if (!emailReg.test(value)) {
     return Promise.reject(new Error('请输入正确的邮箱地址'))
@@ -225,11 +256,8 @@ const fetchUserInfo = async () => {
       return
     }
 
-    const response = await $http({
-      url: `users/${currentUser.id}`,
-      method: 'get',
-      params: { detail: true },
-      credentials: 'include'
+    const response = await $http.get(`users/${currentUser.id}`, {
+      params: { detail: true }
     })
     
     const userData = response.data.data
@@ -264,9 +292,8 @@ const handleAvatarChange = (url: string) => {
   }
 }
 
-
 const handleSubmit = async () => {
-  if (!editFormRef.value) return
+  if (!editFormRef.value) {return}
 
   try {
     await editFormRef.value.validate()
@@ -283,11 +310,7 @@ const handleSubmit = async () => {
       signature: editForm.signature
     }
 
-    const response = await $http({
-      url: `users/${editForm.id}`,
-      method: 'put',
-      data: updateData
-    })
+    const response = await $http.put(`users/${editForm.id}`, updateData)
 
     if (response.data && response.data.data) {
       const userInfoKey = 'userInfo'

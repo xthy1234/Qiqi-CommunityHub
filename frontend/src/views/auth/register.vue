@@ -8,16 +8,25 @@
         label-placement="left"
         label-width="120px"
       >
-        <div class="title_view">{{ projectName }}注册</div>
+        <div class="title_view">
+          {{ projectName }}注册
+        </div>
 
         <!-- 步骤条 -->
-        <n-steps class="steps-container" :current="currentStep + 1" status="process">
+        <n-steps
+          class="steps-container"
+          :current="currentStep + 1"
+          status="process"
+        >
           <n-step title="填写账号信息" />
           <n-step title="完善个人资料" />
         </n-steps>
 
         <!-- 第一步：必填项 -->
-        <div v-show="currentStep === 0" class="step-content">
+        <div
+          v-show="currentStep === 0"
+          class="step-content"
+        >
           <n-form-item
             label="账号："
             path="account"
@@ -82,7 +91,10 @@
         </div>
 
         <!-- 第二步：可选项 -->
-        <div v-show="currentStep === 1" class="step-content">
+        <div
+          v-show="currentStep === 1"
+          class="step-content"
+        >
           <n-form-item label="头像：">
             <div class="list_file_list">
               <AvatarUpload
@@ -92,7 +104,9 @@
                 @change="handleAvatarChange"
               />
             </div>
-            <div class="avatar-tip">（可选）不上传则使用默认头像</div>
+            <div class="avatar-tip">
+              （可选）不上传则使用默认头像
+            </div>
           </n-form-item>
 
           <n-form-item label="昵称：">
@@ -143,7 +157,10 @@
             注册
           </n-button>
 
-          <div class="login_redirect" @click="navigateToLogin">
+          <div
+            class="login_redirect"
+            @click="navigateToLogin"
+          >
             已有账号，直接登录
           </div>
         </div>
@@ -278,7 +295,7 @@ const handleRegistration = async (): Promise<void> => {
     const submitData: any = {
       account: registrationForm.value.account,
       password: registrationForm.value.password,
-      phone: registrationForm.value.phone,
+      phone: registrationForm.value.phone
     }
 
     if (registrationForm.value.nickname) {

@@ -1,6 +1,9 @@
 <!-- src/components/discover/UserCard.vue -->
 <template>
-  <div class="user-card" @click="handleUserClick">
+  <div
+    class="user-card"
+    @click="handleUserClick"
+  >
     <div class="user-avatar-wrapper">
       <n-avatar
         v-if="user.avatar"
@@ -8,16 +11,25 @@
         round
         size="large"
       />
-      <n-avatar v-else round size="large">
+      <n-avatar
+        v-else
+        round
+        size="large"
+      >
         {{ getInitials(user.nickname) }}
       </n-avatar>
       
       <!-- 在线状态 -->
-      <span v-if="user.isOnline" class="online-indicator"></span>
+      <span
+        v-if="user.isOnline"
+        class="online-indicator"
+      />
     </div>
     
     <div class="user-info">
-      <div class="user-name">{{ user.nickname }}</div>
+      <div class="user-name">
+        {{ user.nickname }}
+      </div>
       <div class="user-signature">
         <n-ellipsis :tooltip="false">
           {{ user.signature || '这个人很懒，什么都没写' }}
@@ -26,16 +38,32 @@
       <div class="user-stats">
         <span class="stat-item">
           <n-icon size="14">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3s-3-1.34-3-3s1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22c.03-1.99 4-3.08 6-3.08c1.99 0 5.97 1.09 6 3.08C16.71 18.92 14.5 20.2 12 20.2z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="currentColor"
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3s-3-1.34-3-3s1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22c.03-1.99 4-3.08 6-3.08c1.99 0 5.97 1.09 6 3.08C16.71 18.92 14.5 20.2 12 20.2z"
+              />
             </svg>
           </n-icon>
           {{ user.followerCount || 0 }}
         </span>
         <span class="stat-item">
           <n-icon size="14">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="currentColor"
+                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+              />
             </svg>
           </n-icon>
           {{ user.articleCount || 0 }}
@@ -87,7 +115,7 @@ const emit = defineEmits<{
  * 获取昵称首字母
  */
 const getInitials = (nickname: string) => {
-  if (!nickname) return ''
+  if (!nickname) {return ''}
   return nickname.charAt(0).toUpperCase()
 }
 

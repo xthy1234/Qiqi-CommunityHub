@@ -9,14 +9,17 @@
       :back-path="backPath"
       @back="handleBack"
     >
-      <template v-if="$slots.headerExtra" #extra>
-        <slot name="headerExtra"></slot>
+      <template
+        v-if="$slots.headerExtra"
+        #extra
+      >
+        <slot name="headerExtra" />
       </template>
     </PageHeader>
 
     <!-- 主内容区域 -->
     <div class="page-content">
-      <slot></slot>
+      <slot />
     </div>
   </div>
 </template>

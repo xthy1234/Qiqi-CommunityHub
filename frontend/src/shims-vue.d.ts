@@ -61,13 +61,6 @@ interface Window {
   ResizeObserver: typeof ResizeObserver
 }
 
-// 声明 Element Plus 国际化模块
-declare module 'element-plus/es/locale/lang/zh-cn' {
-  import type { Language } from 'element-plus'
-  const lang: Language
-  export default lang
-}
-
 // 声明 vue-router 模块
 declare module 'vue-router' {
   import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'

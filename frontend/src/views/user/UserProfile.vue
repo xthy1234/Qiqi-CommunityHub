@@ -1,5 +1,8 @@
 <template>
-  <PageContainer header-title="个人信息" :show-back="false">
+  <PageContainer
+    header-title="个人信息"
+    :show-back="false"
+  >
     <div class="profile-content">
       <!-- 头像区域 -->
       <div class="avatar-section">
@@ -39,22 +42,34 @@
           <span class="info-value">{{ getGenderText(userInfo.gender) }}</span>
         </div>
 
-        <div class="info-item" v-if="userInfo.phone">
+        <div
+          v-if="userInfo.phone"
+          class="info-item"
+        >
           <span class="info-label">手机号码：</span>
           <span class="info-value">{{ userInfo.phone }}</span>
         </div>
 
-        <div class="info-item" v-if="userInfo.email">
+        <div
+          v-if="userInfo.email"
+          class="info-item"
+        >
           <span class="info-label">邮箱：</span>
           <span class="info-value">{{ userInfo.email }}</span>
         </div>
 
-        <div class="info-item" v-if="userInfo.birthday">
+        <div
+          v-if="userInfo.birthday"
+          class="info-item"
+        >
           <span class="info-label">生日：</span>
           <span class="info-value">{{ userInfo.birthday }}</span>
         </div>
 
-        <div class="info-item" v-if="userInfo.signature">
+        <div
+          v-if="userInfo.signature"
+          class="info-item"
+        >
           <span class="info-label">个性签名：</span>
           <span class="info-value signature-text">{{ userInfo.signature }}</span>
         </div>
@@ -64,7 +79,10 @@
           <span class="info-value">{{ formatDateTime(userInfo.createTime) }}</span>
         </div>
 
-        <div class="info-item" v-if="userInfo.lastLoginTime">
+        <div
+          v-if="userInfo.lastLoginTime"
+          class="info-item"
+        >
           <span class="info-label">最后登录：</span>
           <span class="info-value">{{ formatDateTime(userInfo.lastLoginTime) }}</span>
         </div>
@@ -72,7 +90,9 @@
 
       <!-- 作者的文章列表 -->
       <div class="author-articles-section">
-        <h3 class="section-title">TA 的文章</h3>
+        <h3 class="section-title">
+          TA 的文章
+        </h3>
 
         <!-- 使用 ArticleGridList 组件 -->
         <ArticleGridList
@@ -91,9 +111,9 @@
           :page-size="articlePagination.limit"
           show-size-picker
           :page-sizes="[5, 10, 20]"
+          class="article-pagination"
           @update:page="handleArticlePageChange"
           @update:page-size="handlePageSizeChange"
-          class="article-pagination"
         >
           <template #prefix="{ itemCount }">
             共 {{ itemCount }} 条
@@ -105,14 +125,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useGlobalProperties } from '@/utils/globalProperties'
-import { NAvatar, NPagination } from 'naive-ui'
-import { getAvatarUrl, getGenderText, formatDateTime } from '@/utils/userUtils'
-import PageContainer from '@/components/common/PageContainer.vue'
-import ArticleGridList from '@/components/article/ArticleGridList.vue'
+import { NMessageProvider, useMessage, NButton, NInput, NSelect, NPagination, NCard, NAvatar, NTag, NSkeleton, NGrid, NGridItem, NEmpty, NSpace } from 'naive-ui'
+import { Icon } from '@iconify/vue'
+import { handleImageError, getFullUrl, getGenderText, formatDateTime, getAvatarUrl } from '@/utils/userUtils'
+import { articleAPI } from '@/api/article'
 import userService from '@/api/user'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import ArticleGridList from '@/components/article/ArticleGridList.vue'
+import ArticleCategorySelect from '@/components/article/ArticleCategorySelect.vue'
+import httpClient from '@/utils/http'
 
 interface UserInfo {
   id?: number
@@ -150,6 +175,7 @@ interface Pagination {
 }
 
 const router = useRouter()
+const route = useRoute()
 const appContext = useGlobalProperties()
 const $http = appContext.$http
 
@@ -169,20 +195,18 @@ const articlesLoading = ref<boolean>(false)
 const articleTotalCount = ref<number>(0)
 const articlePagination = ref<Pagination>({ page: 1, limit: 5 })
 
-const fetchUserInfo = async () => {
+const fetchUserInfo = async (): Promise<void> => {
   try {
     const currentUser = await userService.getCurrentUser()
+
     if (!currentUser?.id) {
       appContext?.$toolUtil.message('请先登录', 'error')
       router.push('/login')
       return
     }
 
-    const response = await $http({
-      url: `users/${currentUser.id}`,
-      method: 'get',
-      params: { detail: true },
-      credentials: 'include'
+    const response = await httpClient.get(`users/${currentUser.id}`, {
+      params: { detail: true }
     })
     
     const userData = response.data.data
@@ -214,7 +238,7 @@ const fetchUserInfo = async () => {
   }
 }
 
-const fetchUserArticles = async () => {
+const fetchUserArticles = async (): Promise<void> => {
   articlesLoading.value = true
 
   try {
@@ -224,11 +248,7 @@ const fetchUserArticles = async () => {
       authorId: userInfo.value.id
     }
 
-    const response = await $http({
-      url: '/articles',
-      method: 'get',
-      params
-    })
+    const response = await httpClient.get('/articles', { params })
 
     const apiData = response.data.data
     articleList.value = apiData.list || []

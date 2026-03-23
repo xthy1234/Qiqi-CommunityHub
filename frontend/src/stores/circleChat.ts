@@ -1,8 +1,10 @@
 // src/stores/circleChat.ts
-
 import { defineStore } from 'pinia'
 import type { Circle, CircleConversation, CircleMessage, CircleMember, CircleRole } from '@/types/circleChat'
 import type { MessageStatus } from '@/types/message'
+import circleChatMessageService from '@/service/circleChatMessageService'
+import { wsLogger } from '@/utils/websocketLogger'
+import { getWebSocket } from '@/utils/websocket'
 
 interface CircleChatState {
   // 圈子列表
@@ -85,6 +87,31 @@ export const useCircleChatStore = defineStore('circleChat', {
       this.hasMore = true
     },
 
+    /** 初始化圈子消息监听 */
+    initializeCircleMessages() {
+      const ws = getWebSocket()
+      if (!ws || !ws.isConnected()) {
+        wsLogger.warn('WebSocket 未连接，无法初始化圈子消息')
+        return
+      }
+
+      wsLogger.info('初始化圈子消息服务')
+
+      // 使用新的圈子消息服务
+      circleChatMessageService.init()
+      
+      // 订阅圈子消息
+      circleChatMessageService.onMessage((message) => {
+        this.receiveMessage(message)
+      })
+      
+      // 订阅消息删除
+      circleChatMessageService.onDelete((data) => {
+        wsLogger.debug('收到圈子消息删除通知', data)
+        this.handleDeleteMessageNotification(data.messageId, data.deleterId, data.deleterNickname)
+      })
+    },
+
     /** 更新圈子会话列表 */
     setConversations(conversations: CircleConversation[]) {
       this.conversations = conversations
@@ -106,7 +133,7 @@ export const useCircleChatStore = defineStore('circleChat', {
     },
 
     /** 设置消息列表 */
-    setMessages(messages: CircleMessage[], reset: boolean = false) {
+    setMessages(messages: CircleMessage[], reset = false) {
       if (reset) {
         this.messages = messages
       } else {
@@ -121,7 +148,6 @@ export const useCircleChatStore = defineStore('circleChat', {
     addSendingMessage(content: string, circleId: number): CircleMessage {
       // 修复：直接从 localStorage 获取当前用户 ID
       const currentUserId = parseInt(localStorage.getItem('userid') || '0')
-
       
       const tempId = `temp_${Date.now()}_${Math.random()}`
       
@@ -131,7 +157,6 @@ export const useCircleChatStore = defineStore('circleChat', {
         nickname: localStorage.getItem('nickname') || '我',
         avatar: localStorage.getItem('avatar') || ''
       }
-
       
       const tempMessage: CircleMessage = {
         id: 0,
@@ -151,7 +176,6 @@ export const useCircleChatStore = defineStore('circleChat', {
         isSelf: true,
         action: 'SEND'
       }
-
       
       this.messages.push(tempMessage)
       
@@ -169,7 +193,6 @@ export const useCircleChatStore = defineStore('circleChat', {
 
     /** 确认发送的消息 */
     confirmSentMessage(realMessage: CircleMessage): void {
-
       
       // 关键修复：比较时需要统一格式，都转换为字符串进行比较
       const normalizeContent = (content: any): string => {
@@ -182,14 +205,11 @@ export const useCircleChatStore = defineStore('circleChat', {
         const contentMatch = normalizeContent(m.content) === normalizeContent(realMessage.content)
         const timeDiff = Math.abs(new Date(m.createTime).getTime() - new Date(realMessage.createTime).getTime())
         const timeMatch = timeDiff < 5000
-
         
         return isSending && isSelf && contentMatch && timeMatch
       })
 
-
       if (tempIndex !== -1) {
-
         
         this.messages[tempIndex] = {
           ...realMessage,
@@ -201,7 +221,6 @@ export const useCircleChatStore = defineStore('circleChat', {
       } else {
         const exists = this.messages.some((m: CircleMessage) => m.id === realMessage.id)
         if (!exists) {
-
           
           this.messages.push({
             ...realMessage,
@@ -229,6 +248,13 @@ export const useCircleChatStore = defineStore('circleChat', {
     receiveMessage(message: CircleMessage) {
       // 关键修改：不再检查 message.isSelf，由组件层处理
       
+      wsLogger.debug('收到圈子消息', {
+        circleId: message.circleId,
+        senderId: message.senderId,
+        currentCircleId: this.currentCircle?.id,
+        contentPreview: typeof message.content === 'string' ? message.content.substring(0, 30) : '[object]'
+      })
+      
       if (this.currentCircle && message.circleId === this.currentCircle.id) {
         // 当前正在查看这个圈子，直接添加消息，不增加未读数
         this.messages.push(message)
@@ -242,6 +268,8 @@ export const useCircleChatStore = defineStore('circleChat', {
         // 关键修复：立即调用后端 API 标记为已读（更新数据库的 last_read_time）
         // 使用防抖，避免频繁调用
         this.debounceMarkAsRead(message.circleId)
+        
+        wsLogger.debug('当前圈子消息，已清零未读数', { circleId: message.circleId })
       } else {
         // 不在当前圈子，增加未读数
         const convIndex = this.conversations.findIndex((c: CircleConversation) => c.circleId === message.circleId)
@@ -251,6 +279,11 @@ export const useCircleChatStore = defineStore('circleChat', {
           this.conversations[convIndex].unreadCount++
           const conv = this.conversations.splice(convIndex, 1)[0]
           this.conversations.unshift(conv)
+          
+          wsLogger.debug('非当前圈子消息，增加未读数', {
+            circleId: message.circleId,
+            newUnreadCount: this.conversations[convIndex].unreadCount
+          })
         } else {
           // 如果会话列表中还没有这个圈子，创建新的会话项
           const newConv: CircleConversation = {
@@ -264,6 +297,8 @@ export const useCircleChatStore = defineStore('circleChat', {
             memberCount: 0
           }
           this.conversations.unshift(newConv)
+          
+          wsLogger.debug('新圈子消息，创建新会话', { circleId: message.circleId })
         }
       }
     },

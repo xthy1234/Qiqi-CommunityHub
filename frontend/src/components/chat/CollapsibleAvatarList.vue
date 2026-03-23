@@ -1,16 +1,39 @@
 <template>
-  <div class="collapsible-avatar-list" :class="{ 'collapsed': isCollapsed }">
+  <div
+    class="collapsible-avatar-list"
+    :class="{ 'collapsed': isCollapsed }"
+  >
     <!-- 展开模式 -->
-    <div v-if="!isCollapsed" class="expanded-view">
-      <div class="header" v-if="showHeader">
-        <h3 class="title">{{ title }}</h3>
+    <div
+      v-if="!isCollapsed"
+      class="expanded-view"
+    >
+      <div
+        v-if="showHeader"
+        class="header"
+      >
+        <h3 class="title">
+          {{ title }}
+        </h3>
         <div class="actions">
-          <slot name="header-actions"></slot>
-          <n-button text size="small" @click="toggleCollapse">
+          <slot name="header-actions" />
+          <n-button
+            text
+            size="small"
+            @click="toggleCollapse"
+          >
             <template #icon>
               <n-icon size="18">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M15.41 7.41L14 6l-6 6l6 6l1.41-1.41L10.83 12z"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M15.41 7.41L14 6l-6 6l6 6l1.41-1.41L10.83 12z"
+                  />
                 </svg>
               </n-icon>
             </template>
@@ -19,18 +42,33 @@
       </div>
       
       <div class="content-list">
-        <slot name="list-content"></slot>
+        <slot name="list-content" />
       </div>
     </div>
     
     <!-- 折叠模式 -->
-    <div v-else class="collapsed-view">
+    <div
+      v-else
+      class="collapsed-view"
+    >
       <div class="collapsed-header">
-        <n-button text size="small" @click="toggleCollapse">
+        <n-button
+          text
+          size="small"
+          @click="toggleCollapse"
+        >
           <template #icon>
             <n-icon size="18">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M8.59 16.59L13.17 12L8.59 7.41L10 6l6 6l-6 6l-1.41-1.41z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M8.59 16.59L13.17 12L8.59 7.41L10 6l6 6l-6 6l-1.41-1.41z"
+                />
               </svg>
             </n-icon>
           </template>
@@ -38,7 +76,7 @@
       </div>
       
       <div class="collapsed-items">
-        <slot name="collapsed-content"></slot>
+        <slot name="collapsed-content" />
       </div>
     </div>
   </div>
@@ -87,7 +125,7 @@ onMounted(() => {
 })
 
 //  监听状态变化并保存到 localStorage
-watch(isCollapsed, (newVal:Boolean, oldVal: Boolean) => {
+watch(isCollapsed, (newVal:boolean, oldVal: boolean) => {
   //  只有在初始化完成后才保存（避免初始状态被覆盖）
   if (!isInitialized.value) {
     return

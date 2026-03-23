@@ -1,14 +1,29 @@
 <template>
-  <div class="page-header" v-if="showHeader">
+  <div
+    v-if="showHeader"
+    class="page-header"
+  >
     <div class="header-left">
-      <h2 class="page-title">{{ title }}</h2>
-      <div v-if="showBack" class="back-btn" @click="handleBack">
-        <Icon icon="ri:arrow-left-s-line" style="margin-right: 4px;" />
+      <h2 class="page-title">
+        {{ title }}
+      </h2>
+      <div
+        v-if="showBack"
+        class="back-btn"
+        @click="handleBack"
+      >
+        <Icon
+          icon="ri:arrow-left-s-line"
+          style="margin-right: 4px;"
+        />
         {{ backText || '返回' }}
       </div>
     </div>
-    <div v-if="$slots.extra" class="header-extra">
-      <slot name="extra"></slot>
+    <div
+      v-if="$slots.extra"
+      class="header-extra"
+    >
+      <slot name="extra" />
     </div>
   </div>
 </template>

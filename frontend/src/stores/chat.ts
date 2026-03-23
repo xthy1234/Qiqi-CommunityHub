@@ -1,12 +1,14 @@
-
-import { ElMessage } from 'element-plus'
+import { getCurrentInstance } from 'vue'
 import type {ConversationVO, Message} from '@/types/message'
 import messageService from '@/api/message'
 import userService from '@/api/user'
 import { getWebSocket } from '@/utils/websocket'
-import {defineStore} from "pinia";
+import {defineStore} from "pinia"
 import { MessageStatus, isUnreadMessage, isReadMessage } from '@/types/message'
 import type { WsUserOnlineStatus } from '@/types/message'
+import chatMessageService from '@/service/circleChatMessageService'
+import onlineStatusService from '@/service/onlineStatusService'
+import { wsLogger } from '@/utils/websocketLogger'
 
 interface ChatState {
   conversations: ConversationVO[]
@@ -70,7 +72,6 @@ export const useChatStore = defineStore('chat', {
     updateMessageStatus(data: { fromUserId: number, toUserId: number }) {
         const readerUserId = data.fromUserId
         const senderUserId = data.toUserId
-
         
         const messagesToUpdate = this.messages.filter((m: Message) => {
             const isSentToReader = m.toUserId === readerUserId
@@ -85,7 +86,6 @@ export const useChatStore = defineStore('chat', {
             
             return shouldUpdate
         })
-
         
         if (messagesToUpdate.length === 0) {
             //  添加：检查是否有已经是已读的消息
@@ -96,9 +96,9 @@ export const useChatStore = defineStore('chat', {
             )
             
             if (alreadyReadMessages.length > 0) {
-
+              wsLogger.debug('消息已是已读状态', { count: alreadyReadMessages.length })
             } else {
-                console.warn('⚠️ [Store.updateMessageStatus] 没有找到匹配的消息')
+              wsLogger.warn('未找到匹配的消息', { readerUserId, senderUserId })
             }
             return
         }
@@ -106,7 +106,11 @@ export const useChatStore = defineStore('chat', {
         messagesToUpdate.forEach((message: Message) => {
             const oldStatus = message.status
             message.status = MessageStatus.READ
-
+            wsLogger.debug('更新消息状态为已读', { 
+              messageId: message.id, 
+              oldStatus, 
+              newStatus: MessageStatus.READ 
+            })
         })
     },
 
@@ -137,7 +141,7 @@ export const useChatStore = defineStore('chat', {
       this.messages.push(tempMessage)
      
       // 更新会话列表
-      const index = this.conversations.findIndex((c: ConversationVO) => c.userId === toUserId)
+      const index = this.conversations.findIndex((c: any) => c.userId === toUserId)
       if (index !== -1) {
         this.conversations.splice(index, 1)
 
@@ -154,7 +158,6 @@ export const useChatStore = defineStore('chat', {
       }
       
       this.conversations.unshift(conversationData)
-
       
       return tempMessage
     },
@@ -164,8 +167,6 @@ export const useChatStore = defineStore('chat', {
      * 找到本地临时消息并更新为真实数据
      */
     confirmSentMessage(realMessage: Message): void {
-
-
 
       // 关键修复：比较时需要统一格式，都转换为字符串进行比较
       const normalizeContent = (content: any): string => {
@@ -179,18 +180,13 @@ export const useChatStore = defineStore('chat', {
         const contentMatch = normalizeContent(m.content) === normalizeContent(realMessage.content)
         const timeDiff = Math.abs(new Date(m.createTime).getTime() - new Date(realMessage.createTime).getTime())
         const timeMatch = timeDiff < 5000
-
         
         return isSending && isSelf && toUserMatch && contentMatch && timeMatch
       })
 
-
       if (tempIndex !== -1) {
-
         
         const oldTempMessage = this.messages[tempIndex]
-
-
         
         // 关键修改：保留完整的消息结构，包括 fromUser 和 toUser
         this.messages[tempIndex] = {
@@ -200,13 +196,11 @@ export const useChatStore = defineStore('chat', {
           isSelf: true
         }
 
-
       } else {
         // 没有找到临时消息，可能是网络延迟或页面刷新后
         // 但这条消息确实是自己发的，直接添加（去重）
         const exists = this.messages.some((m: Message) => m.id === realMessage.id)
         if (!exists) {
-
           
           this.messages.push({
             ...realMessage,
@@ -244,16 +238,13 @@ export const useChatStore = defineStore('chat', {
       try {
         this.loading = true
         const data = await messageService.getConversations()
-
         
         //  保留已有的临时会话（通过路由参数创建的）
         const temporaryConversations = this.conversations.filter((c: any) => c._isTemporary)
-
         
         // 确保 data 是数组类型，并合并临时会话
         const apiConversations = Array.isArray(data) ? data : []
         this.conversations = [...apiConversations, ...temporaryConversations]
-
         
         // 计算总未读数
         this.unreadCount = this.conversations.reduce((sum: number, conv: ConversationVO) => sum + (conv.unreadCount || 0), 0)
@@ -311,7 +302,6 @@ export const useChatStore = defineStore('chat', {
         // 加载聊天记录
 
         await this.loadMessages((conversation as any).userId, true)
-
         
         //  标记为已读（使用 WebSocket 发送已读回执）
         if ((conversation as any).unreadCount && (conversation as any).unreadCount > 0) {
@@ -337,14 +327,14 @@ export const useChatStore = defineStore('chat', {
     },
 
     /** 加载消息列表 */
-    async loadMessages(userId: number, reset: boolean = false) {
+    async loadMessages(userId: number, reset = false) {
       try {
         if (reset) {
           this.messagePage = 1
           this.messages = []
         }
 
-        if (!this.hasMore) return
+        if (!this.hasMore) {return}
 
         this.loading = true
         const page = this.messagePage
@@ -405,6 +395,13 @@ export const useChatStore = defineStore('chat', {
             return
         }
         
+        wsLogger.debug('收到新消息', {
+          fromUserId: message.fromUserId,
+          toUserId: message.toUserId,
+          currentConversationId: this.currentConversation?.userId,
+          contentPreview: typeof message.content === 'string' ? message.content.substring(0, 30) : '[object]'
+        })
+        
         if (this.currentConversation && 
             (message.fromUserId === this.currentConversation.userId || 
              message.toUserId === this.currentConversation.userId)) {
@@ -420,10 +417,17 @@ export const useChatStore = defineStore('chat', {
                     //  关键修改：只更新未读数，不发送已读回执
                     // 已读回执由 ChatDetail 组件统一处理
                     this.conversations[index].unreadCount = 0
+                    wsLogger.debug('当前会话消息，清零未读数', { 
+                      conversationId: message.fromUserId 
+                    })
 
                 } else {
                     this.conversations[index].unreadCount++
                     this.unreadCount++
+                    wsLogger.debug('非当前会话消息，增加未读数', { 
+                      conversationId: message.fromUserId,
+                      newUnreadCount: this.conversations[index].unreadCount 
+                    })
                 }
                 
                 const conv = this.conversations.splice(index, 1)[0]
@@ -439,6 +443,11 @@ export const useChatStore = defineStore('chat', {
                 
                 const conv = this.conversations.splice(index, 1)[0]
                 this.conversations.unshift(conv)
+                
+                wsLogger.debug('新消息添加到会话列表', {
+                  fromUserId: message.fromUserId,
+                  newUnreadCount: this.unreadCount
+                })
             }
         }
     },
@@ -466,12 +475,10 @@ export const useChatStore = defineStore('chat', {
      * 立即将消息标记为已撤回状态
      */
     recallMessageOptimistic(messageId: number): void {
-
       
       const msgIndex = this.messages.findIndex((m: Message) => m.id === messageId)
       if (msgIndex !== -1) {
         const msg = this.messages[msgIndex]
-
         
         //  直接修改原对象，触发响应式更新
         this.messages[msgIndex] = {
@@ -494,16 +501,13 @@ export const useChatStore = defineStore('chat', {
      * @returns 被删除的消息对象（用于可能的回滚），如果未找到则返回 null
      */
     deleteMessageOptimistic(messageId: number): Message | null {
-
       
       const msgIndex = this.messages.findIndex((m: Message) => m.id === messageId)
       if (msgIndex !== -1) {
         const deletedMsg = this.messages[msgIndex]
-
         
         //  从数组中移除（使用 splice 确保响应式更新）
         this.messages.splice(msgIndex, 1)
-
         
         //  返回被删除的消息（用于可能的回滚）
         return deletedMsg
@@ -518,12 +522,10 @@ export const useChatStore = defineStore('chat', {
      * 处理后端推送的撤回消息
      */
     receiveRecallNotification(data: { messageId: number, userId: number, reason?: string }): void {
-
       
       const msgIndex = this.messages.findIndex((m: Message) => m.id === data.messageId)
       if (msgIndex !== -1) {
         const msg = this.messages[msgIndex]
-
         
         //  转换为系统提示消息
         this.messages[msgIndex] = {
@@ -550,7 +552,6 @@ export const useChatStore = defineStore('chat', {
      * 2. 处理异常情况（如乐观删除失败）
      */
     receiveDeleteNotification(data: { messageId: number, userId: number, bothDeleted?: boolean }): void {
-
       
       //  检查消息是否已经被乐观删除
       const msgIndex = this.messages.findIndex((m: Message) => m.id === data.messageId)
@@ -629,54 +630,44 @@ export const useChatStore = defineStore('chat', {
     initializeOnlineStatus() {
       const ws = getWebSocket()
       if (!ws || !ws.isConnected()) {
-        console.warn('⚠️ [ChatStore] WebSocket 未连接，无法初始化在线状态')
+        wsLogger.warn('WebSocket 未连接，无法初始化在线状态')
         return
       }
 
-      // 订阅用户在线状态更新
-      ws.on('USER_ONLINE_STATUS', (data: any) => {
-        
-        // 兼容处理：后端可能返回数组或单个对象
-        let statusData
-        if (Array.isArray(data)) {
-          // 如果是数组，遍历处理所有用户
-          data.forEach((item: any) => {
-            this.updateUserOnlineStatus(item.userId, {
-              online: item.isOnline ?? item.online,
-              lastSeenAt: item.lastSeenAt
-            })
-          })
-          return
-        } else {
-          statusData = data
-        }
+      // 获取当前用户 ID
+      const useridStr = localStorage.getItem('userid')
+      const currentUserId = Number(useridStr || '0')
+      
+      if (!currentUserId) {
+        wsLogger.error('无法初始化在线状态：未获取到当前用户 ID')
+        return
+      }
 
-        const current = this.onlineUsers.get(statusData.userId)
-        this.onlineUsers.set(statusData.userId, {
-          online: statusData.isOnline ?? statusData.online,
-          lastSeenAt: statusData.lastSeenAt
+      // 使用新的在线状态服务
+      onlineStatusService.init(currentUserId)
+      
+      // 订阅用户在线状态
+      onlineStatusService.onStatusChange((status) => {
+        this.updateUserOnlineStatus(status.userId, {
+          online: status.isOnline,
+          lastSeenAt: status.lastSeenAt
         })
-
-        // 如果是在线状态，可选：订阅好友列表
-        if ((statusData.isOnline ?? statusData.online) && !current?.online) {
-
-        }
+        wsLogger.debug('用户在线状态更新', status)
       })
 
-      // 订阅在线用户列表（批量更新）
-      ws.on('USER_LIST_UPDATE', (data: any) => {
-
-        
-        data.users.forEach((user: any) => {
+      // 订阅在线用户列表
+      onlineStatusService.onListUpdate((users) => {
+        users.forEach(user => {
           this.onlineUsers.set(user.userId, {
             online: user.online,
             lastSeenAt: user.lastSeenAt
           })
         })
+        wsLogger.debug('批量更新在线用户', { count: users.length })
       })
 
       // 订阅所有好友的在线状态
-      ws.subscribeFriendsOnlineStatus()
+      onlineStatusService.subscribeFriendsStatus()
     },
 
     /** 更新用户在线状态 */

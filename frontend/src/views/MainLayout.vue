@@ -1,7 +1,10 @@
 <template>
   <div class="main_layout">
     <!-- 主内容区（左侧边栏 + 右侧内容） -->
-    <div class="main_container" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+    <div
+      class="main_container"
+      :class="{ 'sidebar-collapsed': isSidebarCollapsed }"
+    >
       <!-- 左侧边栏 -->
       <Sidebar @update:collapsed="handleSidebarCollapsed" />
 
@@ -12,11 +15,11 @@
         </div>
 
         <!-- 底部信息 -->
-<!--        <div class="footer_section">-->
-<!--          <div class="company_info"></div>-->
-<!--          <div class="record_info"></div>-->
-<!--          <div class="contact_info"></div>-->
-<!--        </div>-->
+        <!--        <div class="footer_section">-->
+        <!--          <div class="company_info"></div>-->
+        <!--          <div class="record_info"></div>-->
+        <!--          <div class="contact_info"></div>-->
+        <!--        </div>-->
       </div>
     </div>
   </div>

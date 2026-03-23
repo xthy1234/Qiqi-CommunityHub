@@ -1,5 +1,8 @@
 <template>
-  <div class="user-avatar-link" @click.stop="handleClick">
+  <div
+    class="user-avatar-link"
+    @click.stop="handleClick"
+  >
     <n-avatar
       v-if="avatarUrl"
       :src="avatarUrl"
@@ -17,7 +20,10 @@
       <span class="avatar-initial">{{ getInitial() }}</span>
     </n-avatar>
     
-    <span v-if="showName && nickname" class="user-nickname">
+    <span
+      v-if="showName && nickname"
+      class="user-nickname"
+    >
       {{ nickname }}
     </span>
   </div>

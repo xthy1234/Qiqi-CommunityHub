@@ -20,7 +20,10 @@
         label-width="120px"
         class="password-form"
       >
-        <n-form-item label="原密码" path="oldPassword">
+        <n-form-item
+          label="原密码"
+          path="oldPassword"
+        >
           <n-input
             v-model:value="passwordForm.oldPassword"
             type="password"
@@ -30,7 +33,10 @@
           />
         </n-form-item>
 
-        <n-form-item label="新密码" path="newPassword">
+        <n-form-item
+          label="新密码"
+          path="newPassword"
+        >
           <n-input
             v-model:value="passwordForm.newPassword"
             type="password"
@@ -39,11 +45,16 @@
             clearable
           />
           <template #feedback>
-            <div class="form-tip">密码长度至少 6 位</div>
+            <div class="form-tip">
+              密码长度至少 6 位
+            </div>
           </template>
         </n-form-item>
 
-        <n-form-item label="确认新密码" path="confirmPassword">
+        <n-form-item
+          label="确认新密码"
+          path="confirmPassword"
+        >
           <n-input
             v-model:value="passwordForm.confirmPassword"
             type="password"
@@ -56,13 +67,15 @@
         <div class="form-actions">
           <n-button
             type="primary" 
-            @click="handleSubmit" 
-            :loading="isSubmitting"
+            :loading="isSubmitting" 
             class="submit-btn"
+            @click="handleSubmit"
           >
             确认修改
           </n-button>
-          <n-button @click="handleReset">重置</n-button>
+          <n-button @click="handleReset">
+            重置
+          </n-button>
         </div>
       </n-form>
     </div>
@@ -142,7 +155,7 @@ const passwordRules = reactive<FormRules>({
 })
 
 const handleSubmit = async () => {
-  if (!passwordFormRef.value) return
+  if (!passwordFormRef.value) {return}
   
   try {
     await passwordFormRef.value.validate()
@@ -156,9 +169,7 @@ const handleSubmit = async () => {
       return
     }
 
-    const response = await $http({
-      url: `users/${userid}/password`,
-      method: 'put',
+    const response = await $http.put(`users/${userid}/password`, null, {
       params: {
         oldPassword: passwordForm.oldPassword,
         newPassword: passwordForm.newPassword
@@ -180,7 +191,7 @@ const handleSubmit = async () => {
 }
 
 const handleReset = () => {
-  if (!passwordFormRef.value) return
+  if (!passwordFormRef.value) {return}
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''

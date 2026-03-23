@@ -24,7 +24,7 @@ class MessageService {
    * @param page 页码
    * @param limit 每页数量
    */
-  async getChatHistory(userId: number, page: number = 1, limit: number = 20): Promise<{ list: Message[]; total: number }> {
+  async getChatHistory(userId: number, page = 1, limit = 20): Promise<{ list: Message[]; total: number }> {
     const response: AxiosResponse<ApiResponse<{ list: Message[]; total: number }>> = await httpClient.get(`${this.baseUrl}/with/${userId}`, {
       params: { page, limit }
     })

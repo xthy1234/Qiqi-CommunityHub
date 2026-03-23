@@ -4,14 +4,23 @@
     @back="handleBack"
   >
     <template #headerExtra>
-      <n-button type="primary" @click="navigateToAdd">
-        <Icon icon="ri:add-circle-line" style="margin-right: 4px;" />
+      <n-button
+        type="primary"
+        @click="navigateToAdd"
+      >
+        <Icon
+          icon="ri:add-circle-line"
+          style="margin-right: 4px;"
+        />
         新建草稿
       </n-button>
     </template>
 
     <!-- 搜索和筛选区域 -->
-    <n-card :bordered="false" class="filter-section">
+    <n-card
+      :bordered="false"
+      class="filter-section"
+    >
       <n-space align="center">
         <n-input
           v-model:value="searchCriteria.title"
@@ -25,14 +34,20 @@
           </template>
         </n-input>
 
-        <n-button type="primary" @click="handleSearch">
+        <n-button
+          type="primary"
+          @click="handleSearch"
+        >
           <template #icon>
             <Icon icon="ri:search-eye-line" />
           </template>
           搜索
         </n-button>
 
-        <n-button type="success" @click="handleCreateDraft">
+        <n-button
+          type="success"
+          @click="handleCreateDraft"
+        >
           <template #icon>
             <Icon icon="ri:add-line" />
           </template>
@@ -72,9 +87,9 @@
       :page-size="pagination.limit"
       show-size-picker
       :page-sizes="[20, 50, 100]"
+      style="margin-top: 20px; justify-content: center;"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
-      style="margin-top: 20px; justify-content: center;"
     >
       <template #prefix="{ itemCount }">
         共 {{ itemCount }} 条
@@ -321,7 +336,7 @@ const confirmDelete = async () => {
 }
 
 const getCoverImageUrl = (coverUrl?: string): string => {
-  if (!coverUrl) return getDefaultCoverImage()
+  if (!coverUrl) {return getDefaultCoverImage()}
 
   const baseUrl = appContext?.$config?.url || ''
 
@@ -337,7 +352,7 @@ const getDefaultCoverImage = () => {
 }
 
 const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   const date = new Date(dateStr)
   return date.toLocaleString('zh-CN', {
     year: 'numeric',

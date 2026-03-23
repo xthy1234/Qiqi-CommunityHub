@@ -1,5 +1,5 @@
 export default function canvasBg() {
-    var canvas,
+    let canvas,
         ctx,
         width,
         height,
@@ -54,19 +54,19 @@ export default function canvasBg() {
     };
 
     line.prototype.updateDist = function() {
-        var dx = this.target.x - this.x,
+        const dx = this.target.x - this.x,
             dy = this.target.y - this.y;
         this.dist = Math.sqrt(dx * dx + dy * dy);
     }
 
     line.prototype.updateAngle = function() {
-        var dx = this.target.x - this.x,
+        const dx = this.target.x - this.x,
             dy = this.target.y - this.y;
         this.angle = Math.atan2(dy, dx);
     }
 
     line.prototype.changeTarget = function() {
-        var randStart = randInt(0, 3);
+        const randStart = randInt(0, 3);
         switch (randStart) {
             case 0: // up
                 this.target.y = this.y - size;
@@ -85,8 +85,8 @@ export default function canvasBg() {
 
     line.prototype.draw = function(i) {
         ctx.beginPath();
-        var rando = rand(0, 10);
-        for (var j = 0, length = this.path.length; j < length; j++) {
+        const rando = rand(0, 10);
+        for (let j = 0, length = this.path.length; j < length; j++) {
             ctx[(j === 0) ? 'moveTo' : 'lineTo'](this.path[j].x + rand(-rando, rando), this.path[j].y +
                 rand(-rando, rando));
         }
@@ -101,7 +101,7 @@ export default function canvasBg() {
 
     function randInt(min, max) {
         return Math.floor(min + Math.random() * (max - min + 1));
-    };
+    }
 
     function init() {
         canvas = document.getElementById('canvas');
@@ -129,7 +129,7 @@ export default function canvasBg() {
     }
 
     function step() {
-        var i = lines.length;
+        let i = lines.length;
         while (i--) {
             lines[i].step(i);
         }
@@ -146,10 +146,10 @@ export default function canvasBg() {
         ctx.save();
         ctx.translate(width / 2, height / 2);
         ctx.rotate(tick * 0.001);
-        var scale = 0.8 + Math.cos(tick * 0.02) * 0.2;
+        const scale = 0.8 + Math.cos(tick * 0.02) * 0.2;
         ctx.scale(scale, scale);
         ctx.translate(-width / 2, -height / 2);
-        var i = lines.length;
+        let i = lines.length;
         while (i--) {
             lines[i].draw(i);
         }

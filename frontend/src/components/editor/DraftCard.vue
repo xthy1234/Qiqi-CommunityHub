@@ -6,7 +6,10 @@
   >
     <div class="draft-card-content">
       <!-- 选择框 -->
-      <div class="select-checkbox" @click.stop>
+      <div
+        class="select-checkbox"
+        @click.stop
+      >
         <n-checkbox
           :checked="isSelected"
           @update:checked="handleSelectChange"
@@ -14,7 +17,10 @@
       </div>
 
       <!-- 封面图 -->
-      <div class="cover-wrapper" @click.stop="handleClick">
+      <div
+        class="cover-wrapper"
+        @click.stop="handleClick"
+      >
         <img
           v-if="draft.coverUrl"
           :src="getCoverImageUrl(draft.coverUrl)"
@@ -22,39 +28,60 @@
           class="cover-image"
           @error="handleImageError"
         />
-        <div v-else class="cover-placeholder">
-          <Icon icon="ri:image-line" width="40" />
+        <div
+          v-else
+          class="cover-placeholder"
+        >
+          <Icon
+            icon="ri:image-line"
+            width="40"
+          />
         </div>
       </div>
 
       <!-- 内容区域 -->
       <div class="content-wrapper">
         <!-- 标题 -->
-        <div class="draft-title" @click.stop="handleClick">
+        <div
+          class="draft-title"
+          @click.stop="handleClick"
+        >
           {{ draft.title }}
         </div>
 
         <!-- 分类和创建时间 -->
         <div class="draft-meta">
           <span class="meta-item">
-            <Icon icon="material-symbols:category" width="14" />
+            <Icon
+              icon="material-symbols:category"
+              width="14"
+            />
             {{ draft.categoryName || '未分类' }}
           </span>
           <span class="meta-item">
-            <Icon icon="material-symbols:access-time" width="14" />
+            <Icon
+              icon="material-symbols:access-time"
+              width="14"
+            />
             {{ formatDate(draft.createTime) }}
           </span>
         </div>
 
         <!-- 操作按钮 -->
-        <div class="draft-actions" @click.stop>
+        <div
+          class="draft-actions"
+          @click.stop
+        >
           <n-button
             type="primary"
             size="small"
             @click="handleEdit"
           >
             <template #icon>
-              <Icon icon="ri:edit-line" width="16" />
+              <Icon
+                icon="ri:edit-line"
+                width="16"
+              />
             </template>
             编辑
           </n-button>
@@ -65,7 +92,10 @@
             @click="handleSubmit"
           >
             <template #icon>
-              <Icon icon="ri:send-plane-line" width="16" />
+              <Icon
+                icon="ri:send-plane-line"
+                width="16"
+              />
             </template>
             提交审核
           </n-button>
@@ -76,7 +106,10 @@
             @click="handleDelete"
           >
             <template #icon>
-              <Icon icon="ri:delete-bin-line" width="16" />
+              <Icon
+                icon="ri:delete-bin-line"
+                width="16"
+              />
             </template>
             删除
           </n-button>
@@ -124,7 +157,7 @@ const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:808
 const isSelected = computed(() => props.draft.isSelected || false)
 
 const getCoverImageUrl = (coverUrl?: string): string => {
-  if (!coverUrl) return '/placeholder.svg'
+  if (!coverUrl) {return '/placeholder.svg'}
   
   if (coverUrl.startsWith('http')) {
     return coverUrl
@@ -134,7 +167,7 @@ const getCoverImageUrl = (coverUrl?: string): string => {
 }
 
 const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   const date = new Date(dateStr)
   return date.toLocaleString('zh-CN', {
     year: 'numeric',

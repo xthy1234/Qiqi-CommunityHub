@@ -9,57 +9,76 @@
     <!-- 发表评论输入框 -->
     <div class="comment-input-wrapper">
       <div class="current-user-avatar">
-        <el-avatar :size="40" :src="userAvatar" />
+        <n-avatar
+          :size="40"
+          :src="userAvatar"
+        />
       </div>
       <div class="comment-input-box">
-        <el-input
-          v-model="newComment.content"
+        <n-input
+          v-model:value="newComment.content"
           type="textarea"
           :rows="3"
           placeholder="写下你的评论..."
           maxlength="500"
-          show-word-limit
+          show-count
         />
         <div class="comment-actions">
-          <el-button
+          <n-button
             type="primary"
-            @click="submitComment"
             :loading="submitting"
             :disabled="!newComment.content.trim()"
+            @click="submitComment"
           >
             {{ replyingToComment ? '回复评论' : '发表评论' }}
-          </el-button>
-          <el-button
+          </n-button>
+          <n-button
             v-if="replyingToComment"
             @click="cancelReply"
           >
             取消
-          </el-button>
+          </n-button>
         </div>
       </div>
     </div>
 
     <!-- 评论列表 -->
     <div class="comment-list-wrapper">
-      <div v-if="commentsLoading" class="comments-loading">
-        <Icon icon="ri:loader-4-line" class="is-loading" width="24" />
+      <div
+        v-if="commentsLoading"
+        class="comments-loading"
+      >
+        <Icon
+          icon="ri:loader-4-line"
+          class="is-loading"
+          width="24"
+        />
         <span>加载评论...</span>
       </div>
 
-      <div v-else-if="commentList.length === 0" class="empty-comments">
-        <Icon icon="ri:message-3-line" width="48" />
+      <div
+        v-else-if="commentList.length === 0"
+        class="empty-comments"
+      >
+        <Icon
+          icon="ri:message-3-line"
+          width="48"
+        />
         <span>暂无评论，快来抢沙发吧~</span>
       </div>
 
-      <div v-else class="comment-list">
+      <div
+        v-else
+        class="comment-list"
+      >
         <div
-          class="comment-item"
           v-for="comment in commentList"
           :key="comment.id"
+          class="comment-item"
         >
           <div class="comment-avatar">
             <UserAvatarLink
-              :userId="comment.userId"
+              :user-id="comment.userId"
               :nickname="comment.userNickname"
               :avatar="comment.userAvatar"
               :size="40"
@@ -70,13 +89,18 @@
               <span class="comment-author">{{ comment.userNickname }}</span>
               <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
             </div>
-            <div class="comment-text">{{ comment.content }}</div>
+            <div class="comment-text">
+              {{ comment.content }}
+            </div>
             <div class="comment-actions-bar">
               <div
                 class="action-item"
                 @click="toggleReply(comment)"
               >
-                <Icon icon="ri:chat-1-line" width="16" />
+                <Icon
+                  icon="ri:chat-1-line"
+                  width="16"
+                />
                 <span>回复</span>
               </div>
               <div
@@ -84,7 +108,10 @@
                 :class="{ active: comment.isLiked }"
                 @click="() => likeComment(comment, 2)"
               >
-                <Icon :icon="comment.isLiked ? 'ri:thumb-up-fill' : 'ri:thumb-up-line'" width="16" />
+                <Icon
+                  :icon="comment.isLiked ? 'ri:thumb-up-fill' : 'ri:thumb-up-line'"
+                  width="16"
+                />
                 <span>{{ comment.likeCount || 0 }}</span>
               </div>
               <div
@@ -92,7 +119,10 @@
                 :class="{ active: comment.isDisliked }"
                 @click="() => likeComment(comment, 3)"
               >
-                <Icon :icon="comment.isDisliked ? 'ri:thumb-down-fill' : 'ri:thumb-down-line'" width="16" />
+                <Icon
+                  :icon="comment.isDisliked ? 'ri:thumb-down-fill' : 'ri:thumb-down-line'"
+                  width="16"
+                />
                 <span>踩</span>
               </div>
               <div
@@ -100,21 +130,27 @@
                 class="action-item delete"
                 @click="deleteComment(comment)"
               >
-                <Icon icon="ri:delete-bin-line" width="16" />
+                <Icon
+                  icon="ri:delete-bin-line"
+                  width="16"
+                />
                 <span>删除</span>
               </div>
             </div>
 
             <!-- 子评论（回复） -->
-            <div v-if="comment.children && comment.children.length > 0" class="comment-replies">
+            <div
+              v-if="comment.children && comment.children.length > 0"
+              class="comment-replies"
+            >
               <div
-                class="reply-item"
                 v-for="reply in comment.children"
                 :key="reply.id"
+                class="reply-item"
               >
                 <div class="reply-avatar">
                   <UserAvatarLink
-                    :userId="reply.userId"
+                    :user-id="reply.userId"
                     :nickname="reply.userNickname"
                     :avatar="reply.userAvatar"
                     :size="32"
@@ -125,13 +161,18 @@
                     <span class="reply-author">{{ reply.userNickname }}</span>
                     <span class="reply-time">{{ formatDate(reply.createTime) }}</span>
                   </div>
-                  <div class="reply-text">{{ reply.content }}</div>
+                  <div class="reply-text">
+                    {{ reply.content }}
+                  </div>
                   <div class="reply-actions-bar">
                     <div
                       class="action-item small"
                       @click="toggleReply(reply)"
                     >
-                      <Icon icon="ri:chat-1-line" width="14" />
+                      <Icon
+                        icon="ri:chat-1-line"
+                        width="14"
+                      />
                       <span>回复</span>
                     </div>
                     <div
@@ -139,7 +180,10 @@
                       :class="{ active: reply.isLiked }"
                       @click="() => likeComment(reply, 2)"
                     >
-                      <Icon :icon="reply.isLiked ? 'ri:thumb-up-fill' : 'ri:thumb-up-line'" width="14" />
+                      <Icon
+                        :icon="reply.isLiked ? 'ri:thumb-up-fill' : 'ri:thumb-up-line'"
+                        width="14"
+                      />
                       <span>{{ reply.likeCount || 0 }}</span>
                     </div>
                     <div
@@ -147,7 +191,10 @@
                       :class="{ active: reply.isDisliked }"
                       @click="() => likeComment(reply, 3)"
                     >
-                      <Icon :icon="reply.isDisliked ? 'ri:thumb-down-fill' : 'ri:thumb-down-line'" width="14" />
+                      <Icon
+                        :icon="reply.isDisliked ? 'ri:thumb-down-fill' : 'ri:thumb-down-line'"
+                        width="14"
+                      />
                       <span>踩</span>
                     </div>
                     <div
@@ -155,7 +202,10 @@
                       class="action-item small delete"
                       @click="deleteComment(reply)"
                     >
-                      <Icon icon="ri:delete-bin-line" width="14" />
+                      <Icon
+                        icon="ri:delete-bin-line"
+                        width="14"
+                      />
                       <span>删除</span>
                     </div>
                   </div>
@@ -172,12 +222,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { getCurrentInstance } from 'vue'
 import { commentAPI, type Comment } from '@/api/comment'
 import { interactionAPI } from '@/api/interaction'
 import { getAvatarUrl, formatDate } from '@/utils/userUtils'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
+import { NAvatar, NInput, NButton, useDialog, useMessage } from 'naive-ui'
 
 interface Props {
   articleId: number | string
@@ -193,6 +244,8 @@ const emit = defineEmits<{
 }>()
 
 const appContext = useGlobalProperties()
+const message = useMessage()
+const dialog = useDialog()
 
 const commentList = ref<Comment[]>([])
 const commentCount = ref<number>(0)
@@ -203,21 +256,21 @@ const replyingToComment = ref<Comment | null>(null)
 
 // 加载评论列表
 const loadComments = async () => {
-  if (!props.articleId) return
+  if (!props.articleId) {return}
 
   commentsLoading.value = true
   try {
-    const response = await commentAPI.getTree(props.articleId)    // 直接使用后端返回的数据，不要修改 isLiked 和 isDisliked
+    const response = await commentAPI.getTree(props.articleId)
     if (response.data.data && Array.isArray(response.data.data)) {
       commentList.value = response.data.data
 
     } else {
       commentList.value = []
     }
-    
+
     const countResponse = await commentAPI.getCount(props.articleId)
     commentCount.value = countResponse.data.data || 0
-    
+
     emit('update', { count: commentCount.value })
   } catch (error) {
 // console.error('加载评论失败:', error)
@@ -228,11 +281,11 @@ const loadComments = async () => {
 
 // 提交评论
 const submitComment = async () => {
-  if (!props.articleId || !newComment.value.content.trim()) return
+  if (!props.articleId || !newComment.value.content.trim()) {return}
 
   const token = appContext?.$toolUtil?.storageGet('Token')
   if (!token) {
-    ElMessage.warning('请先登录')
+    message.warning('请先登录')
     return
   }
 
@@ -244,20 +297,20 @@ const submitComment = async () => {
         parentId: replyingToComment.value.id!,
         replyContent: newComment.value.content
       })
-      ElMessage.success('回复成功')
+      message.success('回复成功')
     } else {
       await commentAPI.create({
         contentId: props.articleId,
         content: newComment.value.content
       })
-      ElMessage.success('评论成功')
+      message.success('评论成功')
     }
 
     newComment.value.content = ''
     replyingToComment.value = null
     await loadComments()
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.msg || '评论失败，请重试')
+    message.error(error.response?.data?.msg || '评论失败，请重试')
   } finally {
     submitting.value = false
   }
@@ -279,8 +332,8 @@ const cancelReply = () => {
 }
 
 // 点赞/点踩评论
-const likeComment = async (comment: Comment, actionType: 2 | 3) => {
-  if (!comment.id) return
+const likeComment = async (comment: Comment, actionTy: 2 | 3) => {
+  if (!comment.id) {return}
 
   try {
     const isLike = actionType === 2
@@ -325,44 +378,56 @@ const likeComment = async (comment: Comment, actionType: 2 | 3) => {
       }
     }
   } catch (error) {
-    ElMessage.error('操作失败')
+    message.error('操作失败')
   }
 }
 
 // 删除评论
 const deleteComment = async (comment: Comment) => {
-  if (!comment.id) return
+  if (!comment.id) {return}
 
   try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
+    await new Promise<void>((resolve, reject) => {
+      dialog.warning({
+        title: '提示',
+        content: '确定要删除这条评论吗？',
+        positiveText: '确定',
+        negativeText: '取消',
+        onPositiveClick: () => {
+          resolve()
+        },
+        onNegativeClick: () => {
+          reject('cancel')
+        },
+        onClose: () => {
+          reject('cancel')
+        }
+      })
     })
 
     const response = await commentAPI.delete(comment.id)
-    
+
     if (response.data.code === 0 || response.data.success) {
-      ElMessage.success('删除成功')
+      message.success('删除成功')
       setTimeout(async () => {
         await loadComments()
       }, 300)
     } else {
-      ElMessage.error(response.data.msg || '删除失败')
+      message.error(response.data.msg || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      message.error('删除失败')
     }
   }
 }
 
 // 判断是否有权限删除评论
 const canDeleteComment = (comment: Comment): boolean => {
-  if (!props.currentUserId) return false
-  if (props.isAdmin) return true
-  if (props.articleAuthorId && String(props.articleAuthorId) === String(props.currentUserId)) return true
-  if (String(comment.userId) === String(props.currentUserId)) return true
+  if (!props.currentUserId) {return false}
+  if (props.isAdmin) {return true}
+  if (props.articleAuthorId && String(props.articleAuthorId) === String(props.currentUserId)) {return true}
+  if (String(comment.userId) === String(props.currentUserId)) {return true}
   return false
 }
 

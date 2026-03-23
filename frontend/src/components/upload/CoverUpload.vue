@@ -1,25 +1,51 @@
 <template>
   <div class="cover-upload-wrapper">
-    <div class="cover-preview" v-if="modelValue">
-      <img :src="imageUrl" alt="封面预览" />
+    <div
+      v-if="modelValue"
+      class="cover-preview"
+    >
+      <img
+        :src="imageUrl"
+        alt="封面预览"
+      />
       <div class="cover-actions">
-        <n-button size="small" @click="triggerUpload">
+        <n-button
+          size="small"
+          @click="triggerUpload"
+        >
           <template #icon>
-            <Icon icon="material-symbols:refresh" width="16" />
+            <Icon
+              icon="material-symbols:refresh"
+              width="16"
+            />
           </template>
           更换
         </n-button>
-        <n-button size="small" type="error" @click="handleRemove">
+        <n-button
+          size="small"
+          type="error"
+          @click="handleRemove"
+        >
           <template #icon>
-            <Icon icon="material-symbols:delete" width="16" />
+            <Icon
+              icon="material-symbols:delete"
+              width="16"
+            />
           </template>
           删除
         </n-button>
       </div>
     </div>
 
-    <div class="cover-upload-btn" v-else @click="triggerUpload">
-      <Icon icon="ri:add-line" width="40" />
+    <div
+      v-else
+      class="cover-upload-btn"
+      @click="triggerUpload"
+    >
+      <Icon
+        icon="ri:add-line"
+        width="40"
+      />
       <span>点击上传封面图</span>
       <div class="cover-tip">
         建议尺寸：800x600 像素，支持 jpg、png 格式，大小不超过 10MB
@@ -62,7 +88,7 @@ const uploadHeaders = computed(() => ({
 }))
 
 const imageUrl = computed(() => {
-  if (!props.modelValue) return ''
+  if (!props.modelValue) {return ''}
 
   return props.modelValue.startsWith('http')
     ? props.modelValue
@@ -77,7 +103,7 @@ const handleFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
 
-  if (!file) return
+  if (!file) {return}
 
   const isImage = file.type.startsWith('image/')
   const isLt2M = file.size / 1024 / 1024 < 10
@@ -95,10 +121,7 @@ const handleFileChange = async (event: Event) => {
   formDataUpload.append('file', file)
 
   try {
-    const response = await appContext?.$http({
-      url: uploadUrl.value,
-      method: 'post',
-      data: formDataUpload,
+    const response = await appContext?.$http.post(uploadUrl.value, formDataUpload, {
       headers: {
         'Content-Type': 'multipart/form-data',
         token: uploadHeaders.value.token
@@ -118,7 +141,7 @@ const handleFileChange = async (event: Event) => {
       message.error(res.message || '封面上传失败')
     }
   } catch (error) {
-// console.error('上传失败:', error)
+    console.error('上传失败:', error)
     message.error('上传失败，请重试')
   } finally {
     if (target) {

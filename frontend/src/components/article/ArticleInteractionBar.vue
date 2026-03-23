@@ -6,7 +6,10 @@
       :class="{ active: isLiked }" 
       @click="handleLike"
     >
-      <Icon :icon="isLiked ? 'ri:thumb-up-fill' : 'ri:thumb-up-line'" width="18" />
+      <Icon
+        :icon="isLiked ? 'ri:thumb-up-fill' : 'ri:thumb-up-line'"
+        width="18"
+      />
       <span>{{ isLiked ? '已赞' : '点赞' }} ({{ likeCount || 0 }})</span>
     </div>
 
@@ -15,7 +18,10 @@
       :class="{ active: isDisliked }" 
       @click="handleDislike"
     >
-      <Icon :icon="isDisliked ? 'ri:thumb-down-fill' : 'ri:thumb-down-line'" width="18" />
+      <Icon
+        :icon="isDisliked ? 'ri:thumb-down-fill' : 'ri:thumb-down-line'"
+        width="18"
+      />
       <span>{{ isDisliked ? '已踩' : '点踩' }}</span>
     </div>
 
@@ -24,33 +30,66 @@
       :class="{ active: isFavorited }" 
       @click="handleFavorite"
     >
-      <Icon :icon="isFavorited ? 'ri:star-fill' : 'ri:star-line'" width="18" />
+      <Icon
+        :icon="isFavorited ? 'ri:star-fill' : 'ri:star-line'"
+        width="18"
+      />
       <span>{{ isFavorited ? '已收藏' : '收藏' }} ({{ favoriteCount || 0 }})</span>
     </div>
 
     <!-- 分享按钮 -->
-    <div class="interaction-item" @click="showShareModal = true">
-      <Icon icon="ri:share-line" width="18" />
+    <div
+      class="interaction-item"
+      @click="showShareModal = true"
+    >
+      <Icon
+        icon="ri:share-line"
+        width="18"
+      />
       <span>分享</span>
     </div>
 
-    <div class="interaction-item" @click="handleReport">
-      <Icon icon="ri:alert-line" width="18" />
+    <div
+      class="interaction-item"
+      @click="handleReport"
+    >
+      <Icon
+        icon="ri:alert-line"
+        width="18"
+      />
       <span>举报</span>
     </div>
 
     <!-- 分享到聊天模态框 -->
-    <n-modal v-model:show="showShareModal" title="分享到聊天" preset="card" style="width: 500px;">
+    <n-modal
+      v-model:show="showShareModal"
+      title="分享到聊天"
+      preset="card"
+      style="width: 500px;"
+    >
       <p>请选择要分享给的好友或圈子：</p>
 
       <!-- 标签切换 -->
-      <n-tabs v-model:value="shareTab" type="line" animated>
-        <n-tab-pane name="private" tab="私信">
-          <div v-if="loadingConversations" style="padding: 20px; text-align: center;">
+      <n-tabs
+        v-model:value="shareTab"
+        type="line"
+        animated
+      >
+        <n-tab-pane
+          name="private"
+          tab="私信"
+        >
+          <div
+            v-if="loadingConversations"
+            style="padding: 20px; text-align: center;"
+          >
             <n-spin size="small" />
             <span style="margin-left: 8px; color: #999;">加载中...</span>
           </div>
-          <div v-else-if="conversations.length === 0" style="padding: 20px; text-align: center; color: #999;">
+          <div
+            v-else-if="conversations.length === 0"
+            style="padding: 20px; text-align: center; color: #999;"
+          >
             暂无好友会话
           </div>
           <n-select
@@ -62,8 +101,14 @@
             style="margin-top: 12px;"
           />
         </n-tab-pane>
-        <n-tab-pane name="circle" tab="圈子">
-          <div v-if="circles.length === 0" style="padding: 20px; text-align: center; color: #999;">
+        <n-tab-pane
+          name="circle"
+          tab="圈子"
+        >
+          <div
+            v-if="circles.length === 0"
+            style="padding: 20px; text-align: center; color: #999;"
+          >
             暂无圈子
           </div>
           <n-select
@@ -79,7 +124,9 @@
 
       <template #footer>
         <n-space justify="end">
-          <n-button @click="showShareModal = false">取消</n-button>
+          <n-button @click="showShareModal = false">
+            取消
+          </n-button>
           <n-button
             type="primary"
             :disabled="!selectedUserId && !selectedCircleId"
@@ -96,12 +143,12 @@
 <script setup lang="ts">
 import {computed, defineComponent, h, onMounted, ref} from 'vue'
 import {Icon} from '@iconify/vue'
-import {ElMessage} from 'element-plus'
+import { getCurrentInstance } from 'vue'
 import {interactionAPI} from '@/api/interaction'
 import {useChatStore} from '@/stores/chat'
 import {useCircleChatStore} from '@/stores/circleChat'
 import {storeToRefs} from 'pinia'
-import {NAvatar, NButton, NModal, NSelect, NSpace, NTabPane, NTabs} from 'naive-ui'
+import {NAvatar, NButton, NModal, NSelect, NSpace, NTabPane, NTabs, useMessage} from 'naive-ui'
 import {getWebSocket} from '@/utils/websocket'
 import {circleApi, circleChatApi} from '@/api/circle'
 import type {Circle} from '@/types/circleChat'
@@ -146,6 +193,7 @@ const emit = defineEmits<{
 const isLiked = ref<boolean>(false)
 const isDisliked = ref<boolean>(false)
 const isFavorited = ref<boolean>(false)
+const message = useMessage()
 
 // 检查互动状态
 const checkInteractions = async () => {
@@ -171,7 +219,7 @@ const handleLike = async () => {
     if (isLiked.value) {
       const params = {
         contentId: props.articleId,
-        actionType: 2 as 2,
+        actionType: 2 as const,
         tableName: 'article'
       }
       await interactionAPI.cancelLike(params)
@@ -182,28 +230,28 @@ const handleLike = async () => {
         isFavorited: isFavorited.value,
         likeCount: (props.likeCount || 0) - 1
       })
-      ElMessage.success('已取消点赞')
+      message.success('已取消点赞')
     } else {
       const params = {
         contentId: props.articleId,
-        actionType: 2 as 2,
+        actionType: 2 as const,
         tableName: 'article'
       }
       await interactionAPI.like(params)
       isLiked.value = true
-      let newLikeCount = (props.likeCount || 0) + 1
+      const newLikeCount = (props.likeCount || 0) + 1
       let newDislikeCount = props.dislikeCount || 0
       if (isDisliked.value) {
         isDisliked.value = false
         newDislikeCount = (props.dislikeCount || 0) - 1
         const cancelParams = {
           contentId: props.articleId,
-          actionType: 3 as 3,
+          actionType: 3 as const,
           tableName: 'article'
         }
         await interactionAPI.cancelLike(cancelParams)
       }
-      ElMessage.success('点赞成功')
+      message.success('点赞成功')
       emit('update', {
         isLiked: true,
         isDisliked: false,
@@ -215,14 +263,14 @@ const handleLike = async () => {
   } catch (error: any) {
     if (error.isAxiosError) {
       if (error.response?.status === 400) {
-        ElMessage.warning(error.response?.data?.msg || '您已经点过赞了')
+        message.warning(error.response?.data?.msg || '您已经点过赞了')
       } else if (error.response?.status === 500) {
-        ElMessage.error('服务器错误：' + (error.response?.data?.msg || ''))
+        message.error('服务器错误：' + (error.response?.data?.msg || ''))
       } else {
-        ElMessage.error(error.response?.data?.msg || '操作失败')
+        message.error(error.response?.data?.msg || '操作失败')
       }
     } else {
-      ElMessage.error(error.message || '操作失败')
+      message.error(error.message || '操作失败')
     }
   }
 }
@@ -233,7 +281,7 @@ const handleDislike = async () => {
     if (isDisliked.value) {
       const params = {
         contentId: props.articleId,
-        actionType: 3 as 3,
+        actionType: 3 as const,
         tableName: 'article'
       }
       await interactionAPI.cancelLike(params)
@@ -244,28 +292,28 @@ const handleDislike = async () => {
         isFavorited: isFavorited.value,
         dislikeCount: (props.dislikeCount || 0) - 1
       })
-      ElMessage.success('已取消点踩')
+      message.success('已取消点踩')
     } else {
       const params = {
         contentId: props.articleId,
-        actionType: 3 as 3,
+        actionType: 3 as const,
         tableName: 'article'
       }
       await interactionAPI.like(params)
       isDisliked.value = true
-      let newDislikeCount = (props.dislikeCount || 0) + 1
+      const newDislikeCount = (props.dislikeCount || 0) + 1
       let newLikeCount = props.likeCount || 0
       if (isLiked.value) {
         isLiked.value = false
         newLikeCount = (props.likeCount || 0) - 1
         const cancelParams = {
           contentId: props.articleId,
-          actionType: 2 as 2,
+          actionType: 2 as const,
           tableName: 'article'
         }
         await interactionAPI.cancelLike(cancelParams)
       }
-      ElMessage.success('点踩成功')
+      message.success('点踩成功')
       emit('update', {
         isLiked: false,
         isDisliked: true,
@@ -277,14 +325,14 @@ const handleDislike = async () => {
   } catch (error: any) {
     if (error.isAxiosError) {
       if (error.response?.status === 400) {
-        ElMessage.warning(error.response?.data?.msg || '您已经点过踩了')
+        message.warning(error.response?.data?.msg || '您已经点过踩了')
       } else if (error.response?.status === 500) {
-        ElMessage.error('服务器错误：' + (error.response?.data?.msg || ''))
+        message.error('服务器错误：' + (error.response?.data?.msg || ''))
       } else {
-        ElMessage.error(error.response?.data?.msg || '操作失败')
+        message.error(error.response?.data?.msg || '操作失败')
       }
     } else {
-      ElMessage.error(error.message || '操作失败')
+      message.error(error.message || '操作失败')
     }
   }
 }
@@ -299,7 +347,7 @@ const handleFavorite = async () => {
         tableName: 'article'
       })
       isFavorited.value = false
-      ElMessage.success('已取消收藏')
+      message.success('已取消收藏')
       emit('update', {
         isLiked: isLiked.value,
         isDisliked: isDisliked.value,
@@ -314,7 +362,7 @@ const handleFavorite = async () => {
         remark: '用户手动收藏'
       })
       isFavorited.value = true
-      ElMessage.success('收藏成功')
+      message.success('收藏成功')
       emit('update', {
         isLiked: isLiked.value,
         isDisliked: isDisliked.value,
@@ -323,11 +371,9 @@ const handleFavorite = async () => {
       })
     }
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.msg || '操作失败')
+    message.error(error.response?.data?.msg || '操作失败')
   }
 }
-
-
 
 // 使用聊天 Store
 const chatStore = useChatStore()
@@ -365,7 +411,6 @@ const loadConversations = async () => {
   try {
     // 主动调用 API 获取会话列表
     const result = await messageAPI.getConversations()
-
 
     // 关键修复：result 就是 ConversationVO[] 数组，不需要 .list
     chatStore.conversations = result as ConversationVO[] || []
@@ -464,7 +509,7 @@ const sendArticleToChat = () => {
 
   if (!articleData) {
     console.error('❌ [ArticleInteractionBar] 文章信息加载失败，window.detailArticleData 未定义')
-    ElMessage.error('文章信息加载失败，请刷新页面重试')
+    message.error('文章信息加载失败，请刷新页面重试')
     return
   }
 
@@ -489,7 +534,6 @@ const sendArticleToChat = () => {
     ]
   }
 
-
   // 判断是私信还是圈子分享
   if (shareTab.value === 'private' && selectedUserId.value) {
     // 私聊场景：传递对象而不是字符串
@@ -500,9 +544,9 @@ const sendArticleToChat = () => {
       const chatMessage = articleJsonContent  // TipTap JSON 对象
 
       ws.sendPrivateMessage(tempMsg.toUserId, chatMessage)
-      ElMessage.success('文章已分享给好友')
+      message.success('文章已分享给好友')
     } else {
-      ElMessage.warning('网络连接异常，消息发送失败')
+      message.warning('网络连接异常，消息发送失败')
     }
   } else if (shareTab.value === 'circle' && selectedCircleId.value) {
     // 圈子场景
@@ -511,12 +555,12 @@ const sendArticleToChat = () => {
     if (ws && ws.isConnected()) {
       // 关键修复：构建完整的消息对象
       circleChatApi.sendMessage(selectedCircleId.value, articleJsonContent, 0)
-      ElMessage.success('文章已分享到圈子')
+      message.success('文章已分享到圈子')
     } else {
-      ElMessage.warning('网络连接异常，消息发送失败')
+      message.warning('网络连接异常，消息发送失败')
     }
   } else {
-    ElMessage.warning('请选择要分享的好友或圈子')
+    message.warning('请选择要分享的好友或圈子')
     return
   }
 
@@ -527,7 +571,7 @@ const sendArticleToChat = () => {
 
 // 举报
 const handleReport = () => {
-  ElMessage.info('举报功能开发中...')
+  message.info('举报功能开发中...')
 }
 
 // 初始化时检查状态
