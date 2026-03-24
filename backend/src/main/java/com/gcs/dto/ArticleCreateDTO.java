@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 帖子创建请求对象（正式版 - 需要完整信息）
  */
@@ -23,9 +25,12 @@ public class ArticleCreateDTO {
     @Schema(description = "封面图片 URL", example = "http://example.com/cover.jpg")
     private String coverUrl;
     
-    @Schema(description = "内容详情", example = "这是帖子的具体内容...")
-    private String content;
-    
+    @Schema(description = "内容详情")
+    private Map<String, Object> content;
+
+    @Schema(description = "扩展信息 (JSON格式)")
+    private Map<String, Object> extra;
+
     @Schema(description = "附件 URL", example = "http://example.com/attachment.zip")
     private String attachment;
 }

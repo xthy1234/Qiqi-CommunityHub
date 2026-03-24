@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 文章草稿数据传输对象（用于返回草稿详情）
@@ -18,9 +19,12 @@ public class ArticleDraftVO {
     
     @Schema(description = "标题", example = "我的文章")
     private String title;
-    
-    @Schema(description = "内容详情", example = "这是文章内容...")
-    private String content;
+
+    @Schema(description = "内容详情")
+    private Map<String, Object> content;
+
+    @Schema(description = "扩展信息 (JSON格式)")
+    private Map<String, Object> extra;
     
     @Schema(description = "封面图片 URL", example = "http://example.com/cover.jpg")
     private String coverUrl;

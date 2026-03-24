@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.ArticleContributorDao">
+
+    <!-- 文章贡献者结果映射 -->
+    <resultMap type="com.gcs.entity.ArticleContributor" id="articleContributorMap">
+        <result property="id" column="id"/>
+        <result property="articleId" column="article_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="contributedLines" column="contributed_lines"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <!-- 查询文章的所有贡献者 -->
+    <select id="selectByArticleId" resultMap="articleContributorMap">
+        SELECT
+            id,
+            article_id,
+            user_id,
+            contributed_lines,
+            create_time
+        FROM article_contributor
+        WHERE article_id = #{articleId}
+        ORDER BY contributed_lines DESC, create_time ASC
+    </select>
+
+    <!-- 查询指定用户的贡献记录 -->
+    <select id="selectByArticleAndUser" resultMap="articleContributorMap">
+        SELECT
+            id,
+            article_id,
+            user_id,
+            contributed_lines,
+            create_time
+        FROM article_contributor
+        WHERE article_id = #{articleId}
+          AND user_id = #{userId}
+    </select>
+
+    <!-- 更新贡献行数（累加） -->
+    <update id="addContributedLines">
+        UPDATE article_contributor
+        SET contributed_lines = contributed_lines + #{lines}
+        WHERE article_id = #{articleId}
+          AND user_id = #{userId}
+    </update>
+
+</mapper>

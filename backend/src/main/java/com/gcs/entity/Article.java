@@ -1,6 +1,7 @@
 package com.gcs.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.gcs.enums.AuditStatus;
 import com.gcs.handler.AuditStatusTypeHandler;
 import lombok.Data;
@@ -10,6 +11,7 @@ import lombok.AllArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -79,8 +81,14 @@ public class Article implements Serializable {
      * 内容详情
      */
     @Schema(description = "内容详情", example = "这是帖子的具体内容...")
-    private String content;
-
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> content;
+    /**
+     * 扩展信息 (JSON格式)
+     */
+    @Schema(description = "扩展信息 (JSON格式)")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extra;
     /**
      * 发布时间
      */
@@ -131,6 +139,12 @@ public class Article implements Serializable {
      */
     @Schema(description = "评论数量", example = "20")
     private Integer commentCount = 0;
+
+    /**
+     * 编辑模式（0-仅作者可编辑，1-所有人可建议）
+     */
+    @Schema(description = "编辑模式（0-仅作者可编辑，1-所有人可建议）", example = "0")
+    private Integer editMode;
     
     /**
      * 逻辑删除标志 (false:未删除，true:已删除)

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="forget-view">
-      <el-form :model="resetPasswordForm" class="forget-container">
+      <n-form :model="resetPasswordForm" class="forget-container">
         <!-- 页面标题 -->
         <div class="forget-title">
           中文社区交流平台{{ getPageTitle(currentStep) }}
@@ -16,14 +16,14 @@
               :class="getStepClass(1)"
             >
               <div class="number" v-if="currentStep < 2">1</div>
-              <el-icon v-else><Check /></el-icon>
+              <Icon v-else icon="ri:check-line" />
             </div>
             <div
               class="step-number"
               :class="getStepClass(2)"
             >
               <div class="number" v-if="currentStep < 3">2</div>
-              <el-icon v-else><Check /></el-icon>
+              <Icon v-else icon="ri:check-line" />
             </div>
             <div
               class="step-number"
@@ -38,30 +38,30 @@
         <div v-if="currentStep === 1" class="form-step">
           <div class="form-item">
             <div class="item-label">用户名：</div>
-            <el-input
+            <n-input
               class="form-input"
-              v-model="resetPasswordForm.username"
+              v-model:value="resetPasswordForm.username"
               placeholder="请输入用户名"
               type="text"
             />
           </div>
           <div class="form-item">
             <div class="item-label">邮箱：</div>
-            <el-input
+            <n-input
               class="form-input"
-              v-model="resetPasswordForm.email"
+              v-model:value="resetPasswordForm.email"
               placeholder="请输入邮箱"
               type="email"
             />
           </div>
           <div class="button-container">
-            <el-button
+            <n-button
               class="next-button"
               type="success"
               @click="handleVerifyIdentity"
             >
               验证身份
-            </el-button>
+            </n-button>
             <div class="login-link" @click="navigateToLogin">返回登录</div>
           </div>
         </div>
@@ -70,42 +70,36 @@
         <div v-if="currentStep === 2" class="form-step">
           <div class="form-item">
             <div class="item-label">密保问题：</div>
-            <el-select
+            <n-select
               class="form-select"
-              v-model="resetPasswordForm.securityQuestion"
+              v-model:value="resetPasswordForm.securityQuestion"
               placeholder="请选择密保问题"
-            >
-              <el-option
-                v-for="question in securityQuestions"
-                :key="question.value"
-                :label="question.label"
-                :value="question.value"
-              />
-            </el-select>
+              :options="securityQuestions"
+            />
           </div>
           <div class="form-item">
             <div class="item-label">密保答案：</div>
-            <el-input
+            <n-input
               class="form-input"
-              v-model="resetPasswordForm.securityAnswer"
+              v-model:value="resetPasswordForm.securityAnswer"
               placeholder="请输入密保答案"
               type="text"
             />
           </div>
           <div class="button-container">
-            <el-button
+            <n-button
               class="prev-button"
               @click="currentStep = 1"
             >
               上一步
-            </el-button>
-            <el-button
+            </n-button>
+            <n-button
               class="next-button"
               type="primary"
               @click="handleVerifySecurity"
             >
               验证密保
-            </el-button>
+            </n-button>
             <div class="login-link" @click="navigateToLogin">返回登录</div>
           </div>
         </div>
@@ -114,40 +108,40 @@
         <div v-if="currentStep === 3" class="form-step">
           <div class="form-item">
             <div class="item-label">新密码：</div>
-            <el-input
+            <n-input
               class="form-input"
-              v-model="resetPasswordForm.newPassword"
+              v-model:value="resetPasswordForm.newPassword"
               placeholder="请输入新密码"
               type="password"
             />
           </div>
           <div class="form-item">
             <div class="item-label">确认密码：</div>
-            <el-input
+            <n-input
               class="form-input"
-              v-model="resetPasswordForm.confirmPassword"
+              v-model:value="resetPasswordForm.confirmPassword"
               placeholder="请再次输入新密码"
               type="password"
             />
           </div>
           <div class="button-container">
-            <el-button
+            <n-button
               class="prev-button"
               @click="currentStep = 2"
             >
               上一步
-            </el-button>
-            <el-button
+            </n-button>
+            <n-button
               class="reset-button"
               type="warning"
               @click="handleResetPassword"
             >
               重置密码
-            </el-button>
+            </n-button>
             <div class="login-link" @click="navigateToLogin">返回登录</div>
           </div>
         </div>
-      </el-form>
+      </n-form>
     </div>
   </div>
 </template>
@@ -156,10 +150,10 @@
 import {
   ref,
   getCurrentInstance,
-
   type Ref
 } from 'vue'
-import { Check } from '@element-plus/icons-vue'
+import { Icon } from '@iconify/vue'
+import { NForm, NInput, NButton, NSelect } from 'naive-ui'
 
 // ==================== 类型定义 ====================
 /**
@@ -401,254 +395,106 @@ const navigateToLogin = (): void => {
 
     /* 步骤指示器 */
     .step-indicator {
-      padding: 30px 0 40px;
-      flex-direction: column;
-      display: flex;
+      position: relative;
+      margin: 20px 0;
       width: 100%;
-      align-items: center;
+      display: flex;
+      justify-content: center;
 
-      /* 进度线条 */
       .progress-line {
-        background: #ccc;
+        position: absolute;
+        top: 50%;
+        left: 10%;
         width: 80%;
         height: 2px;
+        background: #e0e0e0;
+        transform: translateY(-50%);
+        z-index: 0;
       }
 
-      /* 步骤数字容器 */
       .step-numbers {
-        margin: -20px 0 0;
         display: flex;
-        width: 80%;
+        width: 100%;
         justify-content: space-between;
-        align-items: center;
-        height: 40px;
+        z-index: 1;
 
-        /* 步骤数字 */
         .step-number {
-          border: 4px solid #ddd;
           border-radius: 50%;
-          color: #aaa;
-          background: #fff;
-          display: flex;
           width: 40px;
-          font-size: 18px;
+          height: 40px;
+          display: flex;
           justify-content: center;
           align-items: center;
-          height: 40px;
+          font-weight: bold;
 
-          /* 活跃状态 */
-          &.step-number-active {
-            color: #0d308460;
-            background: #fff;
-            font-size: 22px;
-            border-color: #0d308460;
+          &.step-number-default {
+            background: #e0e0e0;
+            color: #999;
           }
 
-          /* 完成状态 */
+          &.step-number-active {
+            background: #409eff;
+            color: #fff;
+            transform: scale(1.1);
+          }
+
           &.step-number-completed {
-            color: #19a91d;
-            background: #fff;
-            border-color: #19a91d;
+            background: #67c23a;
+            color: #fff;
+          }
+
+          .number {
+            font-size: 16px;
           }
         }
       }
-    }
-
-    /* 表单步骤容器 */
-    .form-step {
-      padding: 20px 0;
     }
 
     /* 表单项 */
-    .form-item {
-      margin: 0 auto 30px;
-      display: flex;
-      width: 70%;
-      justify-content: flex-start;
-      align-items: center;
+    .form-step {
+      padding: 20px 10% 30px;
+      width: 100%;
 
-      /* 表单标签 */
-      .item-label {
-        background: none;
-        display: block;
-        width: 130px;
-        font-size: 14px;
-        line-height: 36px;
-        box-sizing: border-box;
-        text-align: right;
-        height: 36px;
-      }
+      .form-item {
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
 
-      /* 输入框样式 */
-      :deep(.form-input) {
-        border: 3px ridge #eee;
-        border-radius: 0;
-        padding: 0 10px;
-        color: #666;
-        background: linear-gradient(
-          30deg,
-          rgba(227, 231, 242, 1) 0%,
-          rgba(255, 255, 255, 1) 20%,
-          rgba(255, 255, 255, 1) 80%,
-          rgba(227, 231, 242, 1) 100%
-        );
-        width: 80%;
-        line-height: 44px;
-        box-sizing: border-box;
-        height: 44px;
-
-        /* 移除默认输入框样式 */
-        .el-input__wrapper {
-          border: none;
-          box-shadow: none;
-          background: none;
-          border-radius: 0;
-          height: 100%;
-          padding: 0;
+        .item-label {
+          margin-bottom: 8px;
+          color: #333;
+          font-size: 14px;
         }
 
-        .is-focus {
-          box-shadow: none !important;
+        .form-input,
+        .form-select {
+          width: 80%;
         }
       }
 
-      /* 下拉选择框样式 */
-      :deep(.form-select) {
-        border: 3px ridge #eee;
-        border-radius: 0;
-        padding: 0 10px;
-        color: #666;
-        background: linear-gradient(
-          30deg,
-          rgba(227, 231, 242, 1) 0%,
-          rgba(255, 255, 255, 1) 20%,
-          rgba(255, 255, 255, 1) 80%,
-          rgba(227, 231, 242, 1) 100%
-        );
-        width: 80%;
-        line-height: 44px;
-        box-sizing: border-box;
+      .button-container {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        justify-content: center;
 
-        /* 移除默认下拉框样式 */
-        .select-trigger {
-          height: 100%;
+        .next-button,
+        .prev-button,
+        .reset-button {
+          min-width: 100px;
+        }
 
-          .el-input {
-            height: 100%;
+        .login-link {
+          cursor: pointer;
+          color: #409eff;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          margin-left: 10px;
 
-            .el-input__wrapper {
-              border: none;
-              box-shadow: none;
-              background: none;
-              border-radius: 0;
-              height: 100%;
-              padding: 0;
-            }
-
-            .is-focus {
-              box-shadow: none !important;
-            }
+          &:hover {
+            text-decoration: underline;
           }
-        }
-      }
-    }
-
-    /* 按钮容器 */
-    .button-container {
-      margin: 20px auto 0;
-      display: flex;
-      width: 70%;
-      justify-content: center;
-      align-items: center;
-      flex-wrap: wrap;
-
-      /* 上一步按钮 */
-      :deep(.prev-button) {
-        border: 3px ridge rgba(93, 83, 181, 1);
-        cursor: pointer;
-        border-radius: 4px;
-        padding: 0 40px;
-        margin: 0 10px 0 0;
-        color: #fff;
-        background: linear-gradient(
-          180deg,
-          rgba(191, 187, 233, 1) 0%,
-          rgba(139, 133, 203, 1) 50%,
-          rgba(111, 100, 203, 1) 51%,
-          rgba(93, 83, 181, 1) 100%
-        );
-        width: auto;
-        font-size: 16px;
-        height: 44px;
-
-        &:hover {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-      }
-
-      /* 下一步按钮 */
-      :deep(.next-button) {
-        border: 3px ridge rgba(93, 83, 181, 1);
-        cursor: pointer;
-        border-radius: 4px;
-        padding: 0 40px;
-        margin: 0 10px 0 0;
-        color: #fff;
-        background: linear-gradient(
-          180deg,
-          rgba(191, 187, 233, 1) 0%,
-          rgba(139, 133, 203, 1) 50%,
-          rgba(111, 100, 203, 1) 51%,
-          rgba(93, 83, 181, 1) 100%
-        );
-        width: auto;
-        font-size: 16px;
-        height: 44px;
-
-        &:hover {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-      }
-
-      /* 重置密码按钮 */
-      :deep(.reset-button) {
-        border: 3px ridge rgba(93, 83, 181, 1);
-        cursor: pointer;
-        border-radius: 4px;
-        padding: 0 40px;
-        margin: 0 10px 0 0;
-        color: #fff;
-        background: linear-gradient(
-          180deg,
-          rgba(191, 187, 233, 1) 0%,
-          rgba(139, 133, 203, 1) 50%,
-          rgba(111, 100, 203, 1) 51%,
-          rgba(93, 83, 181, 1) 100%
-        );
-        width: auto;
-        font-size: 16px;
-        height: 44px;
-
-        &:hover {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-      }
-
-      /* 登录链接 */
-      .login-link {
-        cursor: pointer;
-        padding: 10px 0 0;
-        color: #999;
-        width: 100%;
-        font-size: 14px;
-        text-align: right;
-
-        &:hover {
-          color: #666;
-          text-decoration: underline;
         }
       }
     }

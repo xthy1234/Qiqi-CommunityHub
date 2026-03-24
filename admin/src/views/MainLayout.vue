@@ -10,11 +10,15 @@
         <div class="page_content">
           <router-view v-if="isAuthenticated" />
           <div v-else class="loading-container">
-            <el-result icon="warning" title="请先登录" sub-title="您尚未登录，无法访问管理页面">
-              <template #extra>
-                <el-button type="primary" @click="goToLogin">去登录</el-button>
+            <n-result
+              status="warning"
+              title="请先登录"
+              description="您尚未登录，无法访问管理页面"
+            >
+              <template #footer>
+                <n-button type="primary" @click="goToLogin">去登录</n-button>
               </template>
-            </el-result>
+            </n-result>
           </div>
         </div>
 
@@ -32,6 +36,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Icon } from '@iconify/vue'
+import { NResult, NButton } from 'naive-ui'
 import Sidebar from '@/components/common/Sidebar.vue'
 import UserAvatarDropdown from '@/components/UserAvatarDropdown.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'

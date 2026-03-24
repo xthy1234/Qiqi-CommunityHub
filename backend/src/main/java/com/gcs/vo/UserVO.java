@@ -43,6 +43,9 @@ public class UserVO implements Serializable {
     @Schema(description = "角色 ID", example = "1")
     private Long roleId;
     
+    @Schema(description = "角色名称", example = "普通用户")
+    private String roleName;
+    
     @Schema(description = "生日", example = "2000-01-01")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd")
     private LocalDate birthday;

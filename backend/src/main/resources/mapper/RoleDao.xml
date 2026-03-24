@@ -7,7 +7,6 @@
     <resultMap type="com.gcs.entity.Role" id="roleMap">
         <result property="id" column="id"/>
         <result property="roleName" column="role_name"/>
-        <result property="tableName" column="table_name"/>
         <result property="hasBackLogin" column="has_back_login"/>
         <result property="hasBackRegister" column="has_back_register"/>
         <result property="hasFrontLogin" column="has_front_login"/>
@@ -27,7 +26,6 @@
         SELECT
             r.id,
             r.role_name,
-            r.table_name,
             r.has_back_login,
             r.has_back_register,
             r.has_front_login,
@@ -44,7 +42,14 @@
         <where>
             1=1
             <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
-                AND ${ew.sqlSegment}
+                <choose>
+                    <when test="ew.sqlSegment.startsWith('role.')">
+                        AND ${ew.sqlSegment.replace('role.', 'r.')}
+                    </when>
+                    <otherwise>
+                        AND ${ew.sqlSegment}
+                    </otherwise>
+                </choose>
             </if>
         </where>
         ORDER BY r.create_time DESC
@@ -55,7 +60,6 @@
         SELECT
             r.id,
             r.role_name,
-            r.table_name,
             r.has_back_login,
             r.has_back_register,
             r.has_front_login,
@@ -72,7 +76,14 @@
         <where>
             1=1
             <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
-                AND ${ew.sqlSegment}
+                <choose>
+                    <when test="ew.sqlSegment.startsWith('role.')">
+                        AND ${ew.sqlSegment.replace('role.', 'r.')}
+                    </when>
+                    <otherwise>
+                        AND ${ew.sqlSegment}
+                    </otherwise>
+                </choose>
             </if>
         </where>
     </select>
@@ -82,7 +93,6 @@
         SELECT
             id,
             role_name,
-            table_name,
             has_back_login,
             has_back_register,
             has_front_login,
@@ -91,22 +101,6 @@
             update_time
         FROM role
         WHERE role_name = #{roleName}
-    </select>
-
-    <!-- 根据表名查询角色 -->
-    <select id="selectByTableName" resultType="com.gcs.entity.Role">
-        SELECT
-            id,
-            role_name,
-            table_name,
-            has_back_login,
-            has_back_register,
-            has_front_login,
-            has_front_register,
-            create_time,
-            update_time
-        FROM role
-        WHERE table_name = #{tableName}
     </select>
 
 </mapper>

@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 帖子通用数据传输对象
  */
@@ -35,9 +37,12 @@ public class ArticleDTO {
     
     @Schema(description = "附件 URL", example = "http://example.com/attachment.zip")
     private String attachment;
-    
-    @Schema(description = "内容详情", example = "这是帖子的具体内容...")
-    private String content;
+
+    @Schema(description = "内容详情")
+    private Map<String, Object> content;
+
+    @Schema(description = "扩展信息 (JSON格式)")
+    private Map<String, Object> extra;
     
     @Schema(description = "发布时间", example = "2026-01-01")
     private String publishTime;

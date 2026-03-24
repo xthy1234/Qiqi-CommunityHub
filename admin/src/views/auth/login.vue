@@ -121,54 +121,106 @@ const refreshCaptcha = async () => {
 }
 
 const handleLogin = async () => {
-  if (!loginFormRef.value) return
+  console.log('===== [登录] 开始执行 =====')
 
-  await loginFormRef.value.validate(async (valid) => {
-    if (!valid) return
+  if (!loginFormRef.value) {
+    console.error('===== [登录] 错误：loginFormRef 为 null =====')
+    return
+  }
 
+  console.log('===== [登录] loginFormRef 存在，开始验证表单 =====')
+  console.log('[登录] 表单数据:', loginForm)
+
+  try {
+    // Naive UI 3.x 使用 await validate()，成功时不返回任何值，失败时抛出错误
+    await loginFormRef.value.validate()
+
+    console.log('===== [登录] 表单验证通过，开始提交 =====')
     loading.value = true
+    console.log('[登录] loading 状态已设置为 true')
 
     try {
+      console.log('[登录] 准备调用登录 API...')
+      console.log('[登录] 请求参数:', {
+        account: loginForm.account,
+        password: loginForm.password
+      })
+
       const response = await apiService.user.adminLogin({
         account: loginForm.account,
         password: loginForm.password
       })
 
+      console.log('===== [登录] API 响应 =====')
+      console.log('[登录] 完整响应:', response)
+      console.log('[登录] 响应数据:', response.data)
+
       const responseData = response.data
 
       if (responseData.code === 200 || responseData.code === 0) {
+        console.log('===== [登录] 登录成功 =====')
         const token = responseData.data?.token || responseData.token
         const userInfo = responseData.data?.user || responseData.data
 
+        console.log('[登录] Token:', token)
+        console.log('[登录] 用户信息:', userInfo)
+
         userStore.setToken(token)
+        console.log('[登录] Token 已存储到 userStore')
+
         userStore.setUserInfo(userInfo)
+        console.log('[登录] 用户信息已存储到 userStore')
 
         localStorage.setItem('adminName', loginForm.account)
+        console.log('[登录] adminName 已存储到 localStorage:', loginForm.account)
 
         if (rememberPassword.value) {
           localStorage.setItem('loginForm', JSON.stringify({
             account: loginForm.account,
             password: loginForm.password
           }))
+          console.log('[登录] 账号密码已保存到 localStorage')
         } else {
           localStorage.removeItem('loginForm')
+          console.log('[登录] 已清除 localStorage 中的登录信息')
         }
 
         message.success('登录成功')
+        console.log('[登录] 显示成功消息提示')
 
         const redirectPath = localStorage.getItem('redirectPath') || '/'
+        console.log('[登录] 跳转路径:', redirectPath)
+
         router.push(redirectPath)
+        console.log('[登录] 路由跳转已执行')
       } else {
+        console.error('===== [登录] 业务逻辑失败 =====')
+        console.error('[登录] 错误码:', responseData.code)
+        console.error('[登录] 错误消息:', responseData.msg)
         message.error(responseData.msg || '登录失败')
       }
     } catch (error: any) {
-      console.error('登录失败:', error)
+      console.error('===== [登录] API 调用异常 =====')
+      console.error('[登录] 错误对象:', error)
+      console.error('[登录] 错误名称:', error.constructor.name)
+      console.error('[登录] 响应数据:', error.response?.data)
+      console.error('[登录] 状态码:', error.response?.status)
+
       const errorMsg = error.response?.data?.msg || error.msg || '登录失败，请检查账号和密码'
+      console.error('[登录] 最终错误消息:', errorMsg)
       message.error(errorMsg)
     } finally {
       loading.value = false
+      console.log('===== [登录] 流程结束，loading 已重置 =====')
     }
-  })
+  } catch (validationErrors) {
+    console.error('===== [登录] 表单验证失败 =====')
+    console.error('[登录] 验证错误:', validationErrors)
+    message.error('请填写完整的登录信息')
+    return
+  }
+
+  console.log('===== [登录] 整个流程执行完毕 =====')
 }
 
 const goToRegister = () => {

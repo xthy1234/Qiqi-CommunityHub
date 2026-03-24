@@ -165,12 +165,35 @@ const previousExpandedKeys = ref<string[]>([])
 const userAvatarUrl = ref<string>('')
 const userNickname = ref<string>('')
 const userAccount = ref<string>('')
+const pendingCount = ref<number>(0)
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null
 
 // 渲染图标函数
 const renderIcon = (icon: string) => {
   return () => h(Icon, { icon, size: 18 })
+}
+
+// 渲染徽章
+const renderBadge = (count: number) => {
+  return () => h(
+    'span',
+    {
+      style: {
+        position: 'absolute',
+        top: '4px',
+        right: '8px',
+        background: '#f00',
+        color: '#fff',
+        borderRadius: '50%',
+        padding: '2px 6px',
+        fontSize: '10px',
+        minWidth: '16px',
+        textAlign: 'center'
+      }
+    },
+    { default: () => count > 99 ? '99+' : String(count) }
+  )
 }
 
 // 菜单选项
@@ -227,7 +250,7 @@ const menuOptions = computed<MenuOption[]>(() => {
       ]
     },
     {
-      label: '发布',
+      label: '创作',
       key: 'publish',
       icon: renderIcon('ri:add-circle-line'),
       children: [
@@ -242,6 +265,38 @@ const menuOptions = computed<MenuOption[]>(() => {
           key: 'publish-draft',
           icon: renderIcon('ri:file-list-line'),
           click: () => navigateToRoute('/index/article/draftList')
+        },
+        {
+          label: '待审建议',
+          key: 'publish-suggestions',
+          icon: renderIcon('ri:review-line'),
+          click: () => navigateToSuggestions(),
+          extra: pendingCount.value > 0 ? renderBadge(pendingCount.value) : undefined
+        }
+      ]
+    },
+    {
+      label: '我的建议',
+      key: 'my-suggestions',
+      icon: renderIcon('ri:edit-circle-line'),
+      click: () => navigateToMySuggestions()
+    },
+    {
+      label: '协作',
+      key: 'collaboration',
+      icon: renderIcon('ri:team-line'),
+      children: [
+        {
+          label: '版本管理',
+          key: 'collab-versions',
+          icon: renderIcon('ri:git-commit-line'),
+          click: () => navigateToVersions()
+        },
+        {
+          label: '贡献者',
+          key: 'collab-contributors',
+          icon: renderIcon('ri:award-line'),
+          click: () => navigateToContributors()
         }
       ]
     }
@@ -380,6 +435,40 @@ const navigateToRoute = (path: string): void => {
   }
 }
 
+const navigateToSuggestions = (): void => {
+  // 跳转到待审核建议列表页（作者所有文章的待审建议）
+  router.push('/index/article/suggestions?status=0')
+}
+
+const navigateToMySuggestions = (): void => {
+  // 跳转到"我的建议"列表页（查看自己提交的建议）
+  router.push('/index/my-suggestions')
+}
+
+const navigateToVersions = (): void => {
+  // 版本管理需要先选择文章，这里给出提示
+  dialog.info({
+    title: '版本管理',
+    content: '请先在文章列表中打开要查看版本历史的文章详情页，然后点击"版本历史"按钮。',
+    positiveText: '知道了',
+    onPositiveClick: () => {
+      router.push('/index/articleList')
+    }
+  })
+}
+
+const navigateToContributors = (): void => {
+  // 贡献者页面也需要先选择文章
+  dialog.info({
+    title: '贡献者列表',
+    content: '请先在文章列表中打开要查看贡献者的文章详情页，然后查看底部的贡献者列表。',
+    positiveText: '知道了',
+    onPositiveClick: () => {
+      router.push('/index/articleList')
+    }
+  })
+}
+
 const navigateToFavorite = (): void => {
   router.push('/index/favoriteList?centerType=1')
 }
@@ -466,6 +555,20 @@ const loadUserInfo = (): void => {
 
   userNickname.value = nickname || ''
   userAccount.value = account || ''
+
+  // 加载待审核建议数量
+  loadPendingSuggestionsCount()
+}
+
+const loadPendingSuggestionsCount = async (): Promise<void> => {
+  try {
+    // TODO: 调用 API 获取待审核建议数量
+    // const response = await articleSuggestionAPI.getMyReceivedSuggestions({ status: 0, page: 1, limit: 1 })
+    // pendingCount.value = response.data.data?.total || 0
+    pendingCount.value = 0 // 临时值，实际应该调用 API
+  } catch (error) {
+    console.error('加载待审核数量失败:', error)
+  }
 }
 
 const getFullUrl = (path: string, baseUrl?: string): string => {
@@ -587,14 +690,27 @@ const handleManualToggle = (): void => {
 
     .sidebar-menu-wrapper {
       flex: 1;
-      overflow-y: hidden;
+      overflow-y: auto;
       overflow-x: hidden;
       min-height: 0;
       position: relative;
-      transition: overflow-y 0.3s ease;
 
-      &.menu-scrollable:hover {
-        overflow-y: auto;
+      // 自定义滚动条样式
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #dcdfe6;
+        border-radius: 2px;
+
+        &:hover {
+          background: #c0c4cc;
+        }
       }
 
       .sidebar-menu {
@@ -619,24 +735,6 @@ const handleManualToggle = (): void => {
             &.n-menu-item-content--selected {
               background-color: rgba(24, 160, 88, 0.1);
             }
-          }
-        }
-
-        // 滚动条美化
-        &::-webkit-scrollbar {
-          width: 4px;
-        }
-
-        &::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
-        &::-webkit-scrollbar-thumb {
-          background: #dcdfe6;
-          border-radius: 2px;
-
-          &:hover {
-            background: #c0c4cc;
           }
         }
       }

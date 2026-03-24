@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.ArticleEditSuggestionDao">
+
+    <!-- 文章修改建议结果映射 -->
+    <resultMap type="com.gcs.entity.ArticleEditSuggestion" id="articleEditSuggestionMap">
+        <result property="id" column="id"/>
+        <result property="articleId" column="article_id"/>
+        <result property="proposerId" column="proposer_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="changeSummary" column="change_summary"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="reviewTime" column="review_time"/>
+        <result property="reviewerId" column="reviewer_id"/>
+    </resultMap>
+
+    <!-- 查询文章的建议列表 -->
+    <select id="selectByArticleId" resultMap="articleEditSuggestionMap">
+        SELECT
+            id,
+            article_id,
+            proposer_id,
+            title,
+            content,
+            change_summary,
+            status,
+            create_time,
+            review_time,
+            reviewer_id
+        FROM article_edit_suggestion
+        WHERE article_id = #{articleId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询待审核的建议列表 -->
+    <select id="selectPendingSuggestions" resultMap="articleEditSuggestionMap">
+        SELECT
+            id,
+            article_id,
+            proposer_id,
+            title,
+            content,
+            change_summary,
+            status,
+            create_time,
+            review_time,
+            reviewer_id
+        FROM article_edit_suggestion
+        WHERE article_id = #{articleId}
+          AND status = 0
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 统计待审核建议数量 -->
+    <select id="countPendingSuggestions" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM article_edit_suggestion
+        WHERE article_id = #{articleId}
+          AND status = 0
+    </select>
+
+</mapper>

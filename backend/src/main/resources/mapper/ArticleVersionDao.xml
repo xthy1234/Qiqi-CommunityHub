@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.ArticleVersionDao">
+
+    <!-- 文章版本结果映射 -->
+    <resultMap type="com.gcs.entity.ArticleVersion" id="articleVersionMap">
+        <result property="id" column="id"/>
+        <result property="articleId" column="article_id"/>
+        <result property="version" column="version"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="changeSummary" column="change_summary"/>
+        <result property="operatorId" column="operator_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="isDeleted" column="is_deleted"/>
+    </resultMap>
+
+    <!-- 查询文章的版本列表 -->
+    <select id="selectByArticleId" resultMap="articleVersionMap">
+        SELECT
+            id,
+            article_id,
+            version,
+            title,
+            content,
+            change_summary,
+            operator_id,
+            create_time,
+            is_deleted
+        FROM article_version
+        WHERE article_id = #{articleId}
+          AND is_deleted = false
+        ORDER BY version DESC
+    </select>
+
+    <!-- 查询指定版本 -->
+    <select id="selectByVersion" resultMap="articleVersionMap">
+        SELECT
+            id,
+            article_id,
+            version,
+            title,
+            content,
+            change_summary,
+            operator_id,
+            create_time,
+            is_deleted
+        FROM article_version
+        WHERE article_id = #{articleId}
+          AND version = #{version}
+          AND is_deleted = false
+    </select>
+
+    <!-- 获取最大版本号 -->
+    <select id="getMaxVersion" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(version), 0)
+        FROM article_version
+        WHERE article_id = #{articleId}
+          AND is_deleted = false
+    </select>
+
+</mapper>

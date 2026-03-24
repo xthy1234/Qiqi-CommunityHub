@@ -1,14 +1,14 @@
 import http from '@/utils/http'
 
 export interface Article {
-  id?: number | string
+  id: number | string
   title: string
   coverUrl: string
   categoryId: number | string
   categoryName: string
   authorId: number | string
   authorNickname: string
-  content: string
+  content: object
   attachment?: string | null
   favoriteCount: number
   likeCount: number

@@ -7,7 +7,9 @@ import java.util.stream.Collectors;
 import java.util.List;
 
 import com.gcs.dto.*;
+import com.gcs.entity.Role;
 import com.gcs.enums.CommonStatus;
+import com.gcs.service.RoleService;
 import com.gcs.vo.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -48,12 +50,19 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/users")
 public class UserController {
     
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private TokenService tokenService;
+    private final UserService userService;
     
+    private final TokenService tokenService;
+    
+    private final RoleService roleService;
+    
+    @Autowired
+    public UserController(UserService userService, TokenService tokenService, RoleService roleService) {
+        this.userService = userService;
+        this.tokenService = tokenService;
+        this.roleService = roleService;
+    }
+
     /**
      * 注册用户
      */
@@ -269,6 +278,28 @@ public class UserController {
                 .stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
+            
+            // 批量查询角色信息并设置到 VO 中
+            if (!voList.isEmpty()) {
+                List<Long> roleIds = voList.stream()
+                    .map(UserVO::getRoleId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+                
+                if (!roleIds.isEmpty()) {
+                    List<Role> roles = roleService.listByIds(roleIds);
+                    Map<Long, String> roleNameMap = roles.stream()
+                        .collect(Collectors.toMap(Role::getId, Role::getRoleName, (v1, v2) -> v1));
+                    
+                    voList.forEach(vo -> {
+                        if (vo.getRoleId() != null && roleNameMap.containsKey(vo.getRoleId())) {
+                            vo.setRoleName(roleNameMap.get(vo.getRoleId()));
+                        }
+                    });
+                }
+            }
+            
             page.setList(voList);
             
             return R.ok().put("data", page);

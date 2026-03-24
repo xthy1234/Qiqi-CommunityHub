@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.NotificationDao">
+
+    <!-- 通知结果映射 -->
+    <resultMap type="com.gcs.entity.Notification" id="notificationMap">
+        <result property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type"/>
+        <result property="sourceId" column="source_id"/>
+        <result property="content" column="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="extra" column="extra" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="isRead" column="is_read"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <!-- 查询用户的通知列表 -->
+    <select id="selectByUserId" resultMap="notificationMap">
+        SELECT
+            id,
+            user_id,
+            type,
+            source_id,
+            content,
+            extra,
+            is_read,
+            create_time
+        FROM notification
+        WHERE user_id = #{userId}
+        <if test="isRead != null">
+            AND is_read = #{isRead}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 统计用户未读通知数量 -->
+    <select id="countUnread" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM notification
+        WHERE user_id = #{userId}
+          AND is_read = false
+    </select>
+
+    <!-- 批量标记为已读 -->
+    <update id="markAsRead">
+        UPDATE notification
+        SET is_read = true
+        WHERE user_id = #{userId}
+          AND id IN
+        <foreach collection="notificationIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 清空用户的所有通知 -->
+    <delete id="clearAll">
+        DELETE FROM notification
+        WHERE user_id = #{userId}
+    </delete>
+
+</mapper>

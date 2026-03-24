@@ -162,7 +162,7 @@ declare global {
       title: string
       coverUrl?: string
       authorNickname?: string
-      publishTime?: string
+      publishTime?: string | null
       id: number | string
     }
   }

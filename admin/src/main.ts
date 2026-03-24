@@ -2,9 +2,8 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+
+
 import httpClient from './utils/http'
 import toolUtil from './utils/toolUtil'
 import AppConfig from './utils/config'
@@ -17,11 +16,6 @@ const pinia = createPinia()
 // 地图配置
 
 // 注册所有图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
-
-app.use(ElementPlus)
 app.use(naive)
 app.use(pinia)
 app.use(router)

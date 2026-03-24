@@ -1,146 +1,130 @@
-// src/utils/userUtils.ts
-import toolUtil from './toolUtil'
+import { useGlobalProperties } from './globalProperties'
+
+/**
+ * 默认占位图路径
+ */
+const DEFAULT_PLACEHOLDER = '/placeholder.svg'
+
+/**
+ * 获取完整的 URL 地址
+ * @param path 相对路径或完整 URL
+ * @param baseUrl 基础 URL（可选）
+ * @returns 完整的 URL
+ */
+export const getFullUrl = (path: string, baseUrl?: string): string => {
+  if (!path) {return DEFAULT_PLACEHOLDER}
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
+  
+  // 如果提供了 baseUrl，直接使用
+  if (baseUrl) {
+    return `${baseUrl}/${path}`
+  }
+  
+  // 如果没有提供 baseUrl，尝试从全局配置获取
+  try {
+    const appContext = useGlobalProperties()
+    if (appContext && appContext.$config && appContext.$config.url) {
+      return `${appContext.$config.url}/${path}`
+    }
+  } catch (error) {
+    console.warn('获取全局配置失败，使用相对路径:', error)
+  }
+  
+  // 如果无法获取配置，返回原路径（可能是相对路径）
+  return path
+}
 
 /**
  * 获取头像 URL
- * @param avatar 头像路径或 URL
+ * @param avatar 头像路径
  * @returns 完整的头像 URL
  */
-export function getAvatarUrl(avatar?: string): string {
-  if (!avatar) {
-    return '/default-avatar.png'
-  }
-  
-  // 如果已经是完整 URL，直接返回
-  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-    return avatar
-  }
-  
-  // 否则拼接基础 URL
-  const baseUrl = process.env.VUE_APP_BASE_API || ''
-  return `${baseUrl}${avatar}`
+export const getAvatarUrl = (avatar?: string | null): string => {
+  if (!avatar) {return DEFAULT_PLACEHOLDER}
+  return getFullUrl(avatar)
 }
 
 /**
- * 获取头像 initials（姓名首字母）
- * @param nickname 昵称
- * @returns 首字母
+ * 获取文章封面 URL
+ * @param coverUrl 封面路径
+ * @returns 完整的封面 URL
  */
-export function getAvatarInitials(nickname?: string): string {
-  if (!nickname) {
-    return '用户'
-  }
-  
-  // 如果是中文，返回第一个字
-  if (/^[\u4e00-\u9fa5]+$/.test(nickname)) {
-    return nickname.charAt(0)
-  }
-  
-  // 如果是英文，返回首字母大写
-  return nickname.charAt(0).toUpperCase()
+export const getArticleCoverUrl = (coverUrl?: string | null): string => {
+  if (!coverUrl) {return DEFAULT_PLACEHOLDER}
+  const firstImage = coverUrl.split(',')[0]
+  return getFullUrl(firstImage)
 }
 
 /**
- * 格式化性别文本
- * @param gender 性别值 (0:未知，1:男，2:女)
- * @returns 性别文本
+ * 获取性别文本
+ * @param gender 性别代码 (0: 未知，1: 男，2: 女)
+ * @returns 性别描述文本
  */
-export function getGenderText(gender?: number): string {
-  switch (gender) {
-    case 1:
-      return '男'
-    case 2:
-      return '女'
-    default:
-      return '未知'
+export const getGenderText = (gender?: number): string => {
+  const genderMap: Record<number, string> = {
+    0: '未知',
+    1: '男',
+    2: '女'
   }
+  return genderMap[gender ?? 0] || '未知'
 }
 
 /**
  * 格式化日期时间
  * @param dateTime 日期时间字符串
- * @returns 格式化后的字符串
+ * @returns 格式化后的日期时间字符串
  */
-export function formatDateTime(dateTime?: string): string {
-  if (!dateTime) {
-    return '-'
-  }
+export const formatDateTime = (dateTime?: string): string => {
+  if (!dateTime) {return '-'}
+  const date = new Date(dateTime)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+/**
+ * 格式化日期（仅日期部分）
+ * @param dateStr 日期字符串
+ * @returns 格式化后的日期字符串
+ */
+export const formatDate = (dateStr?: string): string => {
+  if (!dateStr) {return ''}
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+}
+
+/**
+ * 图片加载失败的默认处理
+ * @param e 图片错误事件
+ */
+export const handleImageError = (e: Event): void => {
+  const target = e.target as HTMLImageElement
+  if (!target) {return}
   
-  try {
-    const date = new Date(dateTime)
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch (e) {
-    return dateTime
-  }
+  // 直接设置为占位图
+  target.src = DEFAULT_PLACEHOLDER
 }
 
 /**
- * 格式化日期
- * @param date 日期字符串
- * @returns 格式化后的字符串
+ * 审核状态文本映射
+ * @param status 状态代码
+ * @returns 状态描述文本
  */
-export function formatDate(date?: string): string {
-  if (!date) {
-    return '-'
+export const getAuditStatusText = (status: string | number): string => {
+  const statusMap: Record<string, string> = {
+    '0': '待审核',
+    '1': '已发布',
+    '2': '审核不通过'
   }
-  
-  try {
-    const d = new Date(date)
-    return d.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
-  } catch (e) {
-    return date
-  }
+  return statusMap[status] || '未知状态'
 }
-
-/**
- * 获取当前登录用户 ID
- * @returns 用户 ID
- */
-export function getCurrentUserId(): number | null {
-  const userId = toolUtil.storageGet('userId')
-  return userId ? Number(userId) : null
-}
-
-/**
- * 获取当前登录用户信息
- * @returns 用户信息
- */
-export function getCurrentUserInfo(): { id?: number; username?: string; avatar?: string } {
-  return {
-    id: getCurrentUserId() || undefined,
-    username: toolUtil.storageGet('userName'),
-    avatar: toolUtil.storageGet('avatar')
-  }
-}
-
-// ... existing code ...
-
-/**
- * 获取完整 URL
- * @param path 相对路径或完整 URL
- * @returns 完整的 URL
- */
-export function getFullUrl(path?: string): string {
-  if (!path) return ''
-
-  // 如果已经是完整 URL，直接返回
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path
-  }
-
-  // 否则拼接基础 URL
-  const baseUrl = process.env.VUE_APP_BASE_API || ''
-  return `${baseUrl}${path}`
-}
-
-

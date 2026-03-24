@@ -384,11 +384,11 @@ import type { SelectOption } from 'naive-ui'
 const message = useMessage()
 
 const props = defineProps<{
-  modelValue?: string
+  modelValue?: object
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
+  'update:modelValue': [value: object]
 }>()
 
 const currentHeading = ref('paragraph')
@@ -456,8 +456,13 @@ const editor = useEditor({
     })
   ],
   onUpdate: ({ editor }) => {
-    const html = editor.getHTML()
-    emit('update:modelValue', html)
+    const json = editor.getJSON()
+    // console.log('=== 编辑器内容更新 ===')
+    // console.log('JSON 格式:', JSON.stringify(json, null, 2))
+    // console.log('HTML 格式:', editor.getHTML())
+    // console.log('文本内容:', editor.getText())
+    // console.log('是否为空:', editor.isEmpty)
+    emit('update:modelValue', json)
     if (editor.isActive('heading', { level: 2 })) {
       currentHeading.value = 'h2'
     } else if (editor.isActive('heading', { level: 3 })) {
@@ -478,8 +483,8 @@ const editor = useEditor({
   }
 })
 
-watch(() => props.modelValue, (newVal) => {
-  if (editor.value && newVal !== editor.value.getHTML()) {
+watch(() => props.modelValue, (newVal : object) => {
+  if (editor.value && newVal !== editor.value.getJSON()) {
     editor.value.commands.setContent(newVal)
   }
 }, { immediate: true })

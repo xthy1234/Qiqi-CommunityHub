@@ -66,150 +66,132 @@
     <!-- 文章内容 -->
     <div
       v-else-if="article"
-      class="article-content"
+      class="article-layout"
     >
-      <!-- 文章头部 -->
-      <div class="article-header">
-        <h1 class="article-title">
-          {{ article.title }}
-        </h1>
+      <!-- 主内容区 -->
+      <div class="article-main">
+        <div class="article-content">
+          <!-- 文章头部 -->
+          <div class="article-header">
+            <h1 class="article-title">
+              {{ article.title }}
+            </h1>
 
-        <div class="article-meta">
-          <div class="meta-item">
-            <UserAvatarLink
-              :user-id="article.authorId"
-              :nickname="article.authorNickname || '匿名用户'"
-              :avatar="article.authorAvatar"
-              :size="40"
+            <div class="article-meta">
+              <div class="meta-item">
+                <UserAvatarLink
+                  :user-id="article.authorId"
+                  :nickname="article.authorNickname || '匿名用户'"
+                  :avatar="article.authorAvatar"
+                  :size="40"
+                />
+              </div>
+              <div class="meta-item">
+                <Icon
+                  icon="ri:time-line"
+                  width="16"
+                />
+                <span>{{ formatDate(article.publishTime || article.createTime) }}</span>
+              </div>
+              <div class="meta-item">
+                <Icon
+                  icon="ri:eye-line"
+                  width="16"
+                />
+                <span>{{ article.viewCount || 0 }} 阅读</span>
+              </div>
+              <div class="meta-item">
+                <Icon
+                  icon="ri:star-line"
+                  width="16"
+                />
+                <span>{{ article.favoriteCount || 0 }} 收藏</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 封面图 -->
+          <div
+            v-if="article.coverUrl"
+            class="cover-image-wrapper"
+          >
+            <n-image
+              :src="getCoverImageUrl()"
+              object-fit="cover"
+              class="cover-image"
+              @error="handleCoverError"
             />
           </div>
-          <div class="meta-item">
-            <Icon
-              icon="ri:time-line"
-              width="16"
-            />
-            <span>{{ formatDate(article.publishTime || article.createTime) }}</span>
+
+          <!-- 分类标签 -->
+          <div class="category-tag">
+            <n-tag type="info">
+              {{ article.categoryName || article.categoryStrName || '未分类' }}
+            </n-tag>
           </div>
-          <div class="meta-item">
-            <Icon
-              icon="ri:eye-line"
-              width="16"
-            />
-            <span>{{ article.viewCount || 0 }} 阅读</span>
-          </div>
-          <div class="meta-item">
-            <Icon
-              icon="ri:star-line"
-              width="16"
-            />
-            <span>{{ article.favoriteCount || 0 }} 收藏</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- 封面图 -->
-      <div
-        v-if="article.coverUrl"
-        class="cover-image-wrapper"
-      >
-        <n-image
-          :src="getCoverImageUrl()"
-          object-fit="cover"
-          class="cover-image"
-          @error="handleCoverError"
-        />
-      </div>
-
-      <!-- 分类标签 -->
-      <div class="category-tag">
-        <n-tag type="info">
-          {{ article.categoryName || article.categoryStrName || '未分类' }}
-        </n-tag>
-      </div>
-
-      <!-- 编辑按钮（仅作者可见） -->
-      <div
-        v-if="isCurrentUser"
-        class="edit-button-wrapper"
-      >
-        <n-button
-          type="primary"
-          @click="editArticle"
-        >
-          <template #icon>
-            <Icon
-              icon="ri:edit-line"
-              width="18"
-            />
-          </template>
-          编辑此文章
-        </n-button>
-      </div>
-
-      <!-- 文章内容 -->
-      <div
-        class="article-content-body"
-        v-html="article.content"
-      />
-
-      <!-- 附件 -->
-      <div
-        v-if="article.attachment"
-        class="attachment-section"
-      >
-        <div class="attachment-title">
-          <Icon
-            icon="ri:file-line"
-            width="18"
+          <!-- 文章内容 - 使用只读编辑器 -->
+          <div
+            v-if="contentHtml"
+            class="article-content-body"
+            v-html="contentHtml"
           />
-          <span>附件</span>
+
+          <!-- 附件 -->
+          <div
+            v-if="article.attachment"
+            class="attachment-section"
+          >
+            <div class="attachment-title">
+              <Icon
+                icon="ri:file-line"
+                width="18"
+              />
+              <span>附件</span>
+            </div>
+            <n-button
+              type="primary"
+              text
+              @click="downloadAttachment"
+            >
+              下载附件
+            </n-button>
+          </div>
+
+          <!-- 互动操作区 -->
+          <ArticleInteractionBar
+            v-if="article?.id"
+            :article-id="article.id"
+            :like-count="article.likeCount"
+            :favorite-count="article.favoriteCount"
+            @update="handleInteractionUpdate"
+          />
+
+          <!-- 评论区 -->
+          <CommentSection
+            v-if="article?.id"
+            :article-id="article.id"
+            :current-user-id="currentUserId"
+            :user-avatar="currentUserAvatar"
+            :is-admin="isAdmin"
+            :article-author-id="article.authorId"
+            @update="handleCommentUpdate"
+          />
         </div>
-        <n-button
-          type="primary"
-          text
-          @click="downloadAttachment"
-        >
-          下载附件
-        </n-button>
       </div>
 
-      <!-- 互动操作区 -->
-      <ArticleInteractionBar
-        v-if="article?.id"
-        :article-id="article.id"
-        :like-count="article.likeCount"
-        :favorite-count="article.favoriteCount"
-        @update="handleInteractionUpdate"
-      />
-
-      <!-- 审核状态（仅管理员可见） -->
-      <div
-        v-if="article.auditStatus && article.auditStatus !== '1'"
-        class="audit-status"
-      >
-        <n-alert
-          :type="article.auditStatus === '2' ? 'error' : 'warning'"
-          :closable="false"
-        >
-          {{ getAuditStatusText(article.auditStatus) }}
-        </n-alert>
-        <div
-          v-if="article.auditReply"
-          class="audit-reply"
-        >
-          <strong>审核回复：</strong>{{ article.auditReply }}
-        </div>
-      </div>
-
-      <!-- 评论区 -->
-      <CommentSection
-        v-if="article?.id"
-        :article-id="article.id"
-        :current-user-id="currentUserId"
-        :user-avatar="currentUserAvatar"
-        :is-admin="isAdmin"
-        :article-author-id="article.authorId"
-        @update="handleCommentUpdate"
+      <!-- 右侧边栏组件 -->
+      <ArticleSidebar
+        :is-author="isCurrentUser"
+        :article="article"
+        :edit-mode="editMode"
+        :pending-suggestions-count="pendingSuggestionsCount"
+        :contributors="contributors"
+        @edit="editArticle"
+        @suggest="submitSuggestion"
+        @versions="viewVersionHistory"
+        @review-suggestions="reviewSuggestions"
+        @update:editMode="handleEditModeUpdate"
       />
     </div>
 
@@ -230,18 +212,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { getCurrentInstance } from 'vue'
-import { Icon } from '@iconify/vue'
-import { getAvatarUrl, formatDate, getAuditStatusText } from '@/utils/userUtils'
+import {computed, getCurrentInstance, onMounted, ref, watch} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {Icon} from '@iconify/vue'
+import {formatDate, getAuditStatusText, getAvatarUrl} from '@/utils/userUtils'
 import {Article, articleAPI} from '@/api/article'
-import { useGlobalProperties } from '@/utils/globalProperties'
+import {useGlobalProperties} from '@/utils/globalProperties'
 import ArticleInteractionBar from '@/components/article/ArticleInteractionBar.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
-import { NSkeleton, NImage, NTag, NButton, NAlert, NEmpty } from 'naive-ui'
+import ArticleSidebar from '@/components/article/ArticleSidebar.vue'
+import {NEmpty, NImage, NSkeleton, NTag} from 'naive-ui'
 import PageHeader from '@/components/common/PageHeader.vue'
+import {generateHTML} from '@tiptap/core'
+import StarterKit from '@tiptap/starter-kit'
+import Image from '@tiptap/extension-image'
+import Link from '@tiptap/extension-link'
+import TextAlign from '@tiptap/extension-text-align'
+import Underline from '@tiptap/extension-underline'
+import Color from '@tiptap/extension-color'
+import Highlight from '@tiptap/extension-highlight'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import {all, createLowlight} from 'lowlight'
 
 // 获取全局上下文
 const appContext = useGlobalProperties()
@@ -249,6 +241,7 @@ const route = useRoute()
 const router = useRouter()
 const instance = getCurrentInstance()
 const $message = instance?.appContext.config.globalProperties.$message
+
 // 响应式数据
 const loading = ref<boolean>(true)
 const article = ref<Article | null>(null)
@@ -256,9 +249,56 @@ const isCurrentUser = ref<boolean>(false)
 const currentUserAvatar = ref<string>('')
 const currentUserId = ref<string | number>('')
 const isAdmin = ref<boolean>(false)
+const contentHtml = ref<string>('')
+const editMode = ref<number>(0)
+const pendingSuggestionsCount = ref<number>(0)
+const contributors = ref<any[]>([])
 
 // 计算属性
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
+
+const lowlight = createLowlight(all)
+
+// Tiptap 扩展配置（用于生成 HTML）
+const extensions = [
+  StarterKit.configure({
+    heading: {
+      levels: [2, 3]
+    },
+    codeBlock: false,
+    link: false,
+    underline: false
+  }),
+  Image.configure({}),
+  Link.configure({}),
+  TextAlign.configure({
+    types: ['heading', 'paragraph']
+  }),
+  Underline,
+  Color,
+  Highlight,
+  CodeBlockLowlight.configure({
+    lowlight
+  })
+]
+
+/**
+ * 将 JSON 内容转换为 HTML
+ */
+const convertJsonToHtml = (content: object) => {
+  try {
+    if (!content) {
+      return ''
+    }
+
+    // 如果是字符串，尝试解析为 JSON
+    // 使用 Tiptap 的 generateHTML 将 JSON 转为 HTML
+    return generateHTML(content, extensions)
+  } catch (error) {
+    console.error('转换文章内容失败:', error)
+    return ''
+  }
+}
 
 /**
  * 获取封面图片 URL
@@ -298,6 +338,14 @@ const loadArticleDetail = async () => {
     const response = await articleAPI.getById(id)
     article.value = response.data.data
 
+    // 设置编辑模式
+    editMode.value = article.value?.editMode || 0
+
+    // 转换 JSON 内容为 HTML
+    if (article.value?.content) {
+      contentHtml.value = convertJsonToHtml(article.value.content)
+    }
+
     // 设置全局变量，供分享组件使用
     if (article.value) {
       window.detailArticleData = {
@@ -314,6 +362,14 @@ const loadArticleDetail = async () => {
     const userId = appContext?.$toolUtil?.storageGet('userid')
     isCurrentUser.value = article.value ? String(article.value.authorId) === String(userId) : false
 
+    // 加载待审核建议数量（仅作者）
+    if (isCurrentUser.value) {
+      loadPendingSuggestionsCount()
+    }
+
+    // 加载贡献者列表
+    loadContributors()
+
   } catch (error) {
     console.error('加载文章失败:', error)
     $message?.error('加载文章失败')
@@ -323,6 +379,79 @@ const loadArticleDetail = async () => {
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * 加载待审核建议数量
+ */
+const loadPendingSuggestionsCount = async () => {
+  try {
+    // TODO: 调用 API 获取该文章的待审核建议数量
+    // const response = await articleSuggestionAPI.getList(article.value!.id, { status: 0, page: 1, limit: 1 })
+    // pendingSuggestionsCount.value = response.data.data?.total || 0
+    pendingSuggestionsCount.value = 0 // 临时值
+  } catch (error) {
+    console.error('加载待审核数量失败:', error)
+  }
+}
+
+/**
+ * 加载贡献者列表
+ */
+const loadContributors = async () => {
+  try {
+    // TODO: 调用 API 获取贡献者列表
+    // const response = await articleAPI.getContributors(article.value!.id)
+    // contributors.value = response.data.data?.list || []
+    contributors.value = [] // 临时值
+  } catch (error) {
+    console.error('加载贡献者失败:', error)
+  }
+}
+
+/**
+ * 处理编辑模式更新
+ */
+const handleEditModeUpdate = async (key: number) => {
+  try {
+    // TODO: 调用 API 更新编辑模式
+    // await articleAPI.updateEditMode(article.value!.id, { editMode: key })
+
+    editMode.value = key
+    $message?.success('编辑模式已更新')
+
+    // 刷新页面
+    setTimeout(() => {
+      location.reload()
+    }, 500)
+  } catch (error) {
+    console.error('更新编辑模式失败:', error)
+    $message?.error('更新编辑模式失败')
+  }
+}
+
+/**
+ * 查看历史版本
+ */
+const viewVersionHistory = () => {
+  if (!article.value?.id) {return}
+  router.push(`/index/article/versions?articleId=${article.value.id}`)
+}
+
+/**
+ * 审核建议
+ */
+const reviewSuggestions = () => {
+  if (!article.value?.id) {return}
+  router.push(`/index/article/suggestions?articleId=${article.value.id}&status=0`)
+}
+
+/**
+ * 提交修改建议
+ */
+const submitSuggestion = () => {
+  if (!article.value?.id) {return}
+  router.push(`/index/article/${article.value.id}/suggest`)
 }
 
 /**
@@ -460,9 +589,23 @@ onMounted(() => {
   gap: 20px;
 }
 
-.article-content {
-  max-width: 900px;
+.article-layout {
+  max-width: 1400px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.article-main {
+  min-width: 0;
+}
+
+.article-content {
   background: #fff;
   border-radius: 12px;
   padding: 30px;
@@ -647,23 +790,6 @@ onMounted(() => {
       color: #E6A23C;
     }
   }
-}
-
-.audit-status {
-  margin-top: 30px;
-
-  .audit-reply {
-    margin-top: 10px;
-    padding: 10px;
-    background: #fef0f0;
-    border-radius: 4px;
-    color: #666;
-  }
-}
-
-.edit-button-wrapper {
-  margin: 20px 0;
-  text-align: right;
 }
 
 @media (max-width: 768px) {

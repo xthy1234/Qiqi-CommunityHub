@@ -109,8 +109,7 @@ router.beforeEach((to: any, from: any, next: any) => {
   
   // 🔍 调试日志：当前 token 状态
   const token = localStorage.getItem('Token')
-  console.log('🔑 [路由守卫] Token 存在:', !!token, '값:', token ? token.substring(0, 20) + '...' : 'null')
-  
+
   if (!whiteList.includes(to.path)) {
     // 除登录/注册外的所有页面都需要登录
     if (!token) {

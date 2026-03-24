@@ -109,12 +109,42 @@ import { articleAPI, type Article } from '@/api/article'
 import CoverUpload from '@/components/upload/CoverUpload.vue'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 import PageContainer from "@/components/common/PageContainer.vue";
+import { generateHTML, generateJSON } from '@tiptap/core'
+import StarterKit from '@tiptap/starter-kit'
+import Image from '@tiptap/extension-image'
+import Link from '@tiptap/extension-link'
+import TextAlign from '@tiptap/extension-text-align'
+import Underline from '@tiptap/extension-underline'
 
 const appContext = useGlobalProperties()
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
+
+// 将 HTML 转换为 Tiptap JSON 格式的辅助函数
+const htmlToContentJson = (html: string) => {
+  const extensions = [
+    StarterKit.configure({
+      heading: { levels: [2, 3] },
+      codeBlock: false,
+      link: false,
+      underline: false
+    }),
+    Image,
+    Link,
+    TextAlign,
+    Underline
+  ]
+
+  try {
+    const json = generateJSON(html, extensions)
+    return json
+  } catch (error) {
+    console.error('HTML 转 JSON 失败:', error)
+    return { type: 'doc', content: [] }
+  }
+}
 
 const formRef = ref<any>(null)
 const isEdit = ref(false)
@@ -128,9 +158,17 @@ const formData = reactive({
   title: '',
   categoryId: '',
   coverUrl: '',
-  content: '',
+  content: { type: 'doc', content: [] },
   publishTime: undefined as string | undefined | null
 })
+
+// 监听文章内容变化
+watch(() => formData.content, (newVal:object) => {
+  // console.log('=== formData.content 变化 ===')
+  // console.log('新值:', JSON.stringify(newVal, null, 2))
+  // console.log('类型:', typeof newVal)
+  // console.log('是否为对象:', typeof newVal === 'object')
+}, { deep: true })
 
 const categorySelectOptions = computed(() => {
   return categoryOptions.value.map((cat: any) => ({
@@ -147,9 +185,7 @@ const rules: FormRules = {
   categoryId: [
     { required: true, message: '请选择文章分类', trigger: 'change' }
   ],
-  content: [
-    { required: true, message: '请输入文章内容', trigger: 'blur' }
-  ]
+  content: []
 }
 
 const navigateToHome = () => {
@@ -170,7 +206,7 @@ const handleCancel = () => {
 }
 
 // 监听路由变化，清理草稿缓存
-watch(() => route.fullPath, (newPath, oldPath) => {
+watch(() => route.fullPath, (newPath: string, oldPath: string) => {
   if (newPath !== oldPath) {
     // 路由变化时，清理当前草稿 ID 缓存
     appContext?.$toolUtil?.storageRemove('currentDraftId')
@@ -182,15 +218,26 @@ onUnmounted(() => {
   appContext?.$toolUtil?.storageRemove('currentDraftId')
 })
 
-const handleSaveDraft = async () => {  try {
-    await formRef.value?.validate()
-  } catch (errors) {
-    console.error('验证失败:', errors)
+const handleSaveDraft = async ()  =>  {
+  if (!formData.title) {
+    message.warning('请输入文章标题')
     return
   }
 
-  if (!formData.title || !formData.content || !formData.categoryId) {
-    message.warning('请填写标题、内容和分类')
+  if (!formData.categoryId) {
+    message.warning('请选择文章分类')
+    return
+  }
+
+  // 检查内容是否为空
+  const isEmptyContent = !formData.content ||
+    !formData.content.content ||
+    formData.content.content.length === 0 ||
+    (formData.content.content.length === 1 &&
+     !formData.content.content[0]?.content)
+
+  if (isEmptyContent) {
+    message.warning('请输入文章内容')
     return
   }
 
@@ -251,28 +298,59 @@ const handleSaveDraft = async () => {  try {
 }
 
 const handleSubmit = async () => {
+  console.log('=== 点击立即发布 ===')
+  console.log('formData:', JSON.stringify(formData, null, 2))
+
   try {
     await formRef.value?.validate()
+    console.log('表单验证通过')
   } catch (errors) {
+    console.error('表单验证失败:', errors)
+    message.warning('请填写完整的表单信息')
+    return
+  }
+
+  // 手动检查内容是否为空
+  const isEmptyContent = !formData.content ||
+    !formData.content.content ||
+    formData.content.content.length === 0 ||
+    (formData.content.content.length === 1 &&
+     !formData.content.content[0]?.content)
+
+  if (isEmptyContent) {
+    message.warning('请输入文章内容')
     return
   }
 
   try {
     submitting.value = true
+    console.log('开始提交...')
 
     const url = isEdit.value ? `/articles/${route.query.id}` : '/articles'
     const method = isEdit.value ? 'put' : 'post'
 
+    console.log('请求 URL:', url)
+    console.log('请求方法:', method)
+    console.log('请求数据:', JSON.stringify(formData, null, 2))
+
     const response = await appContext?.$http[method](url, formData)
 
-    message.success(isEdit.value ? '修改成功' : '发布成功')
+    console.log('响应数据:', response)
 
-    setTimeout(() => {
-      router.push('/index/articleList')
-    }, 500)
+    if (response.data.code === 0 || response.data.success) {
+      message.success(isEdit.value ? '修改成功' : '发布成功')
+
+      setTimeout(() => {
+        router.push('/index/articleList')
+      }, 500)
+    } else {
+      message.error(response.data.message || (isEdit.value ? '修改失败' : '发布失败'))
+    }
   } catch (error) {
     console.error('提交失败:', error)
-    message.error(isEdit.value ? '修改失败' : '发布失败')
+    console.error('错误详情:', error.response?.data || error.message)
+    const errorMsg = error.response?.data?.message || error.message || (isEdit.value ? '修改失败' : '发布失败')
+    message.error(errorMsg)
   } finally {
     submitting.value = false
   }
@@ -295,12 +373,19 @@ const loadArticleDetail = async () => {
     const data = response.data.data
 
     if (data) {
+      // 判断 content 是 HTML 还是 JSON 格式
+      let contentJson = data.content
+      if (typeof data.content === 'string') {
+        // 如果是 HTML 字符串，转换为 Tiptap JSON 格式
+        contentJson = htmlToContentJson(data.content)
+      }
+
       Object.assign(formData, {
         title: data.title || '',
-        categoryId: String(data.categoryId) || '',  // 确保是字符串
+        categoryId: String(data.categoryId) || '',
         coverUrl: data.coverUrl || '',
-        content: data.content || '',
-        publishTime: data.publishTime || null  // 使用 null 而不是空字符串
+        content: contentJson,
+        publishTime: data.publishTime || null
       })
     }
   } catch (error) {
@@ -322,12 +407,19 @@ const loadDraftDetail = async () => {
       draftId.value = data.id || id
       isDraftMode.value = true
 
+      // 判断 content 是 HTML 还是 JSON 格式
+      let contentJson = data.content
+      if (typeof data.content === 'string') {
+        // 如果是 HTML 字符串，转换为 Tiptap JSON 格式
+        contentJson = htmlToContentJson(data.content)
+      }
+
       Object.assign(formData, {
         title: data.title || '',
-        categoryId: String(data.categoryId) || '',  // 确保是字符串
+        categoryId: String(data.categoryId) || '',
         coverUrl: data.coverUrl || '',
-        content: data.content || '',
-        publishTime: data.publishTime || null  // 使用 null 而不是空字符串
+        content: contentJson,
+        publishTime: data.publishTime || null
       })
     }
   } catch (error) {

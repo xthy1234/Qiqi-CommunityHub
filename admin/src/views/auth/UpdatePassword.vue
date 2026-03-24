@@ -3,58 +3,59 @@
   <div class="password-page-container">
     <div class="app-contain">
       <!-- 密码修改表单 -->
-      <el-form
+      <n-form
         class="password-form"
         ref="passwordFormRef"
         :model="passwordForm"
-        label-width="120px"
+        label-placement="left"
+        label-width="100px"
         :rules="validationRules"
       >
         <!-- 当前密码输入框 -->
-        <el-form-item label="当前密码" prop="currentPassword">
-          <el-input
+        <n-form-item label="当前密码" path="currentPassword">
+          <n-input
             class="form-input"
-            v-model="passwordForm.currentPassword"
+            v-model:value="passwordForm.currentPassword"
             type="password"
-            show-password
+            show-password-on="click"
             placeholder="请输入当前密码"
           />
-        </el-form-item>
+        </n-form-item>
 
         <!-- 新密码输入框 -->
-        <el-form-item label="新密码" prop="newPassword">
-          <el-input
+        <n-form-item label="新密码" path="newPassword">
+          <n-input
             class="form-input"
-            v-model="passwordForm.newPassword"
+            v-model:value="passwordForm.newPassword"
             type="password"
-            show-password
+            show-password-on="click"
             placeholder="请输入新密码"
           />
-        </el-form-item>
+        </n-form-item>
 
         <!-- 确认新密码输入框 -->
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input
+        <n-form-item label="确认密码" path="confirmPassword">
+          <n-input
             class="form-input"
-            v-model="passwordForm.confirmPassword"
+            v-model:value="passwordForm.confirmPassword"
             type="password"
-            show-password
+            show-password-on="click"
             placeholder="请再次输入新密码"
           />
-        </el-form-item>
+        </n-form-item>
 
         <!-- 提交按钮区域 -->
         <div class="form-button-container">
-          <el-button
+          <n-button
             class="submit-button"
             type="primary"
             @click="handleSubmit"
             :loading="isSubmitting"
           >
             {{ isSubmitting ? '提交中...' : '保存' }}
-          </el-button>
+          </n-button>
         </div>
-      </el-form>
+      </n-form>
     </div>
   </div>
 </template>
@@ -64,9 +65,11 @@ import {
   ref,
   reactive,
   getCurrentInstance,
-  onMounted
+  onMounted,
+  h
 } from 'vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormInst, FormRule } from 'naive-ui'
+import { NForm, NFormItem, NInput, NButton } from 'naive-ui'
 
 // 类型定义
 interface PasswordForm {
@@ -95,11 +98,11 @@ const passwordForm = ref<PasswordForm>({
 
 const currentUser = ref<UserInfo>({})
 const sessionTableName = ref<string>('')
-const passwordFormRef = ref<FormInstance | null>(null)
+const passwordFormRef = ref<FormInst | null>(null)
 const isSubmitting = ref<boolean>(false)
 
 // 表单验证规则
-const validationRules = reactive<FormRules>({
+const validationRules = reactive<FormRule>({
   currentPassword: [
     {
       required: true,
@@ -195,7 +198,7 @@ const resetForm = (): void => {
     newPassword: '',
     confirmPassword: ''
   }
-  passwordFormRef.value?.resetFields()
+  passwordFormRef.value?.restoreValidation()
 }
 
 /**
@@ -260,57 +263,28 @@ onMounted(() => {
   /**
    * 表单项样式
    */
-  :deep(.el-form-item) {
+  :deep(.n-form-item) {
     margin: 0 0 25px 0;
     background: none;
-    display: flex;
+  }
 
-    /**
-     * 表单项内容区域
-     */
-    .el-form-item__content {
-      display: flex;
-      width: calc(100% - 120px);
-      justify-content: flex-start;
-      align-items: center;
-      flex-wrap: wrap;
+  /**
+   * 表单输入框样式
+   */
+  .form-input {
+    border: 2px solid #e1e5ee;
+    border-radius: 6px;
+    padding: 0 15px;
+    background: #ffffff;
+    width: 100%;
+    line-height: 44px;
+    box-sizing: border-box;
+    height: 44px;
+    transition: all 0.3s ease;
 
-      /**
-       * 表单输入框样式
-       */
-      .form-input {
-        border: 2px solid #e1e5ee;
-        border-radius: 6px;
-        padding: 0 15px;
-        background: #ffffff;
-        width: 100%;
-        line-height: 44px;
-        box-sizing: border-box;
-        min-width: 280px;
-        height: 44px;
-        transition: all 0.3s ease;
-
-        &:focus-within {
-          border-color: #409eff;
-          box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
-        }
-
-        /**
-         * 移除输入框默认样式
-         */
-        :deep(.el-input__wrapper) {
-          border: none;
-          box-shadow: none;
-          background: none;
-          border-radius: 0;
-          height: 100%;
-          padding: 0;
-        }
-
-        :deep(.is-focus) {
-          box-shadow: none !important;
-        }
-      }
+    &:focus-within {
+      border-color: #409eff;
+      box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
     }
   }
 
@@ -363,15 +337,8 @@ onMounted(() => {
   .password-form {
     padding: 30px 20px;
 
-    :deep(.el-form-item) {
-      .el-form-item__content {
-        width: 100%;
-        margin-left: 0;
-
-        .form-input {
-          min-width: 100%;
-        }
-      }
+    :deep(.n-form-item) {
+      width: 100%;
     }
   }
 }

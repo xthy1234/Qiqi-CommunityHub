@@ -1,14 +1,17 @@
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { createDiscreteApi } from 'naive-ui'
 import menu from './menu'
 import CryptoJS from 'crypto-js'
+
+const { message, notification, dialog } = createDiscreteApi(['message', 'notification', 'dialog'])
 
 // 定义密钥和向量（可根据实际配置提取到环境变量）
 const KEY = '1234567890123456'
 const IV = 'abcdefghijklmnop'
 
 interface ToolUtil {
-	message(msg: string, type: 'success' | 'warning' | 'info' | 'error', close?: () => void): void
-	notify(title: string, msg: string, type?: 'success' | 'warning' | 'info' | 'error', close?: () => void): void
+	message(msg: string, type?: 'success' | 'warning' | 'info' | 'error', duration?: number): void
+	notify(title: string, msg: string, type?: 'success' | 'warning' | 'info' | 'error'): void
+	confirm(title: string, content: string): Promise<void>
 	storageSet(key: string, value: string): void
 	storageGet(key: string): string
 	storageGetObj<T = any>(key: string): T | null
@@ -21,41 +24,47 @@ interface ToolUtil {
 	isNumber(s: string): boolean
 	isIntNumer(s: string): boolean
 	checkIdCard(idcard: string): boolean
-	isAuth(tableName: string, key: string): boolean
+
 	getCurDateTime(): string
 	getCurDate(): string
 	encryptDes(message: string): string
 	decryptDes(ciphertext: string): string
 	encryptAes(msg: string): string
 	decryptAes(msg: string): string
+	hasAuth(routePath: string, actionType?: string): boolean
 }
 
 const toolUtil: ToolUtil = {
-	// 提示语
-	message(msg, type, close?) {
-		ElMessage({
-			message: msg,
-			type: type,
-			duration: 2500,
-			onClose() {
-				if (close) {
-					close()
-				}
-			}
+	// 消息提示
+	message(msg, type = 'info', duration = 2500) {
+		message[type](msg, {
+			duration: duration / 1000
 		})
 	},
 
-	// 右部提示语
-	notify(title, msg, type = 'success', close?) {
-		ElNotification({
+	// 通知
+	notify(title, msg, type = 'success') {
+		notification[type]( {
 			title: title,
-			message: msg,
-			type: type,
-			onClose() {
-				if (close) {
-					close()
+			duration: 3
+		})
+	},
+
+	// 确认对话框
+	async confirm(title, content) {
+		return new Promise((resolve, reject) => {
+			dialog.warning({
+				title: title,
+				content: content,
+				positiveText: '确定',
+				negativeText: '取消',
+				onPositiveClick: () => {
+					resolve()
+				},
+				onNegativeClick: () => {
+					reject(new Error('用户取消'))
 				}
-			}
+			})
 		})
 	},
 
@@ -79,8 +88,13 @@ const toolUtil: ToolUtil = {
 	storageClear() {
 		localStorage.removeItem('Token')
 		localStorage.removeItem('role')
-		localStorage.removeItem('sessionTable')
-		localStorage.removeItem('adminName')
+		localStorage.removeItem('frontSessionTable')
+		localStorage.removeItem('nickname')
+		localStorage.removeItem('avatar')
+		localStorage.removeItem('userid')
+		localStorage.removeItem('roleId')
+		localStorage.removeItem('UserInfo')
+		localStorage.removeItem('menus')
 	},
 
 	/**
@@ -134,61 +148,56 @@ const toolUtil: ToolUtil = {
 	},
 
 	/**
-	 * 是否有权限
-	 * @param tableName 表名（可能包含跳转类型，如 "tiezi/list"）
-	 * @param key 按钮权限标识
+	 * 是否有权限访问指定路由
+	 * @param routePath 路由路径，如 '/articleList' 或 '/index/articleList'
+	 * @param actionType 操作类型（可选），如 'add', 'edit', 'delete', 'query'
 	 */
-	isAuth(tableName: string, key: string): boolean {
-		let role = toolUtil.storageGet('role')
-		if (!role) {
-			role = '管理员'
-		}
+	hasAuth(routePath: string, actionType?: string) {
+		const roleId = toolUtil.storageGet('roleId')
 		const menus = menu.list()
 		
-		// 添加类型检查确保 menus 存在且为数组
-		if (Array.isArray(menus) && menus.length > 0) {
-			for (let i = 0; i < menus.length; i++) {
-				// 添加类型检查确保 roleName 存在
-				if (menus[i]?.roleName === role) {
-					// 添加类型检查确保 backMenu 存在且为数组
-					const backMenu = menus[i]?.backMenu
-					if (Array.isArray(backMenu) && backMenu.length > 0) {
-						for (let j = 0; j < backMenu.length; j++) {
-							// 添加类型检查确保 child 存在且为数组
-							const child = backMenu[j]?.child
-							if (Array.isArray(child) && child.length > 0) {
-								for (let k = 0; k < child.length; k++) {
-									const currentItem = child[k]
-									// 添加类型检查确保必要属性存在
-									if (!currentItem?.tableName || !currentItem?.buttons) {
-										continue
-									}
-									
-									if (tableName.split('/').length > 1) {
-										// 处理带跳转类型的表名
-										if (tableName.split('/')[0] === currentItem.tableName &&
-											tableName.split('/')[1] === currentItem.menuJump) {
-											const buttons = currentItem.buttons.join(',')
-											return buttons.indexOf(key) !== -1 || false
-										}
-									} else {
-										// 处理普通表名
-										if (tableName === 'orders' && currentItem.tableName === 'orders' && !currentItem.menuJump) {
-											const buttons = currentItem.buttons.join(',')
-											return buttons.indexOf(key) !== -1 || false
-										}
-										if (tableName !== 'orders' && tableName === currentItem.tableName) {
-											const buttons = currentItem.buttons.join(',')
-											return buttons.indexOf(key) !== -1 || false
-										}
-									}
-								}
-							}
+		// 如果没有菜单数据，默认允许访问（或可根据需求改为拒绝）
+		if (!menus || menus.length === 0) {
+			return true
+		}
+		
+		// 遍历所有角色的菜单
+		for (const roleMenu of menus) {
+			const backMenu = roleMenu?.backMenu
+			if (!Array.isArray(backMenu) || backMenu.length === 0) {
+				continue
+			}
+			
+			// 遍历所有一级菜单
+			for (const level1Menu of backMenu) {
+				const child = level1Menu?.child
+				if (!Array.isArray(child) || child.length === 0) {
+					continue
+				}
+				
+				// 遍历二级菜单项
+				for (const menuItem of child) {
+					if (!menuItem) {continue}
+					
+					// 检查路由路径是否匹配
+					const menuJump = menuItem.menuJump || ''
+					if (menuJump && menuJump.includes(routePath)) {
+						// 如果没有指定操作类型，直接返回有权限
+						if (!actionType) {
+							return true
+						}
+						
+						// 检查按钮权限
+						const buttons = menuItem.buttons || []
+						if (buttons.includes(actionType)) {
+							return true
 						}
 					}
 				}
 			}
 		}
+		
+		// 如果都没有匹配，返回无权限
 		return false
 	},
 

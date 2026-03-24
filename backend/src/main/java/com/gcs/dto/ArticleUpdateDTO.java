@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 帖子更新请求对象
  */
@@ -25,10 +27,13 @@ public class ArticleUpdateDTO {
     @NotNull(message = "分类 ID 不能为空")
     @Schema(description = "内容分类 ID", required = true, example = "1")
     private Long categoryId;
-    
-    @Schema(description = "内容详情", example = "这是帖子的具体内容...")
-    private String content;
-    
+
+    @Schema(description = "内容详情")
+    private Map<String, Object> content;
+
+    @Schema(description = "扩展信息 (JSON格式)")
+    private Map<String, Object> extra;
+
     @Schema(description = "附件 URL", example = "http://example.com/attachment.zip")
     private String attachment;
 }

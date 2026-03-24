@@ -42,6 +42,19 @@ import com.gcs.utils.R;
 import com.gcs.utils.MPUtil;
 import com.gcs.vo.ArticleSearchVO;
 
+import com.gcs.dto.SuggestionSubmitDTO;
+import com.gcs.dto.SuggestionReviewDTO;
+import com.gcs.entity.ArticleEditSuggestion;
+import com.gcs.entity.ArticleVersion;
+import com.gcs.enums.EditMode;
+import com.gcs.service.ArticleVersionService;
+import com.gcs.service.ArticleContributorService;
+import com.gcs.service.ArticleEditSuggestionService;
+import com.gcs.vo.ArticleVersionVO;
+import com.gcs.vo.VersionCompareResultVO;
+import com.gcs.vo.ArticleSuggestionVO;
+import com.gcs.vo.ContributorVO;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -65,6 +78,15 @@ public class ArticleController {
 
     @Autowired
    private InteractionService favoriteService;
+
+    @Autowired
+    private ArticleVersionService articleVersionService;
+
+    @Autowired
+    private ArticleContributorService articleContributorService;
+
+    @Autowired
+    private ArticleEditSuggestionService articleEditSuggestionService;
 
     /**
      * 获取文章分页列表（通用接口）
@@ -792,7 +814,345 @@ public class ArticleController {
         return userIdStr != null ? Long.parseLong(userIdStr) : null;
     }
 
-    /**
+
+
+
+
+
+
+
+
+
+    // ... existing code ...
+
+
+// ==================== 版本控制相关接口 ====================
+
+/**
+ * 获取文章版本列表
+ */
+@Operation(summary = "获取文章版本列表", description = "查询文章的所有历史版本")
+@GetMapping("/{articleId}/versions")
+public R getVersionList(@PathVariable Long articleId,
+                        @RequestParam(defaultValue = "1") Integer page,
+                        @RequestParam(defaultValue = "10") Integer limit) {
+    try {
+        List<ArticleVersion> versions = articleVersionService.getVersionHistory(articleId);
+
+        List<ArticleVersionVO> voList = versions.stream()
+                .map(this::convertToVersionVO)
+                .collect(Collectors.toList());
+
+        return R.ok().put("data", voList);
+    } catch (Exception e) {
+        log.error("获取版本列表失败，articleId: {}", articleId, e);
+        return R.error("获取版本列表失败");
+    }
+}
+
+/**
+ * 获取指定版本详情
+ */
+@Operation(summary = "获取指定版本详情", description = "查询文章的某个历史版本详细信息")
+@GetMapping("/{articleId}/versions/{version}")
+public R getVersionDetail(@PathVariable Long articleId,
+                          @PathVariable Integer version) {
+    try {
+        ArticleVersion versionEntity = articleVersionService.getVersionDetail(articleId, version);
+        if (versionEntity == null) {
+            return R.error("版本不存在");
+        }
+
+        ArticleVersionVO vo = convertToVersionVO(versionEntity);
+        return R.ok().put("data", vo);
+    } catch (Exception e) {
+        log.error("获取版本详情失败，articleId: {}, version: {}", articleId, version, e);
+        return R.error("获取版本详情失败");
+    }
+}
+
+
+/**
+ * 回滚到指定版本
+ */
+@Operation(summary = "回滚到指定版本", description = "将文章内容回滚到某个历史版本")
+@PostMapping("/{articleId}/versions/{version}/rollback")
+@Transactional
+public R rollbackToVersion(@PathVariable Long articleId,
+                           @PathVariable Integer version,
+                           HttpServletRequest request) {
+    try {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return R.error("请先登录");
+        }
+
+        // 验证权限（只有作者或管理员可以回滚）
+        Article article = articleService.getById(articleId);
+        if (article == null) {
+            return R.error("文章不存在");
+        }
+
+        boolean isAdmin = checkIsAdmin(currentUserId);
+        if (!isAdmin && !article.getAuthorId().equals(currentUserId)) {
+            return R.error("无权限执行回滚操作");
+        }
+
+        articleVersionService.rollbackToVersion(articleId, version, currentUserId);
+
+        return R.ok("回滚成功");
+    } catch (IllegalArgumentException e) {
+        log.error("回滚失败：{}", e.getMessage(), e);
+        return R.error(e.getMessage());
+    } catch (Exception e) {
+        log.error("回滚失败，articleId: {}", articleId, e);
+        return R.error("回滚失败");
+    }
+}
+
+// ==================== 协作管理相关接口 ====================
+
+/**
+ * 修改文章编辑模式
+ */
+@Operation(summary = "修改文章编辑模式", description = "设置文章的编辑模式（仅作者可编辑/所有人可建议）")
+@PutMapping("/{articleId}/edit-mode")
+public R updateEditMode(@PathVariable Long articleId,
+                        @RequestParam Integer editMode,
+                        HttpServletRequest request) {
+    try {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return R.error("请先登录");
+        }
+
+        Article article = articleService.getById(articleId);
+        if (article == null) {
+            return R.error("文章不存在");
+        }
+
+        // 验证权限（只有作者可以修改编辑模式）
+        if (!article.getAuthorId().equals(currentUserId)) {
+            return R.error("无权限修改编辑模式");
+        }
+
+        // 验证编辑模式合法性
+        try {
+            EditMode mode = EditMode.valueOfCode(editMode);
+        } catch (IllegalArgumentException e) {
+            return R.error("无效的编辑模式");
+        }
+
+        article.setEditMode(editMode);
+        articleService.updateById(article);
+
+        return R.ok("编辑模式更新成功");
+    } catch (Exception e) {
+        log.error("修改编辑模式失败，articleId: {}", articleId, e);
+        return R.error("修改编辑模式失败");
+    }
+}
+
+/**
+ * 提交修改建议
+ */
+@Operation(summary = "提交修改建议", description = "对文章提交修改建议（需文章开启协作模式）")
+@PostMapping("/{articleId}/suggestions")
+@Transactional
+public R submitSuggestion(@PathVariable Long articleId,
+                          @Valid @RequestBody SuggestionSubmitDTO dto,
+                          HttpServletRequest request) {
+    try {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return R.error("请先登录");
+        }
+
+        Article article = articleService.getById(articleId);
+        if (article == null) {
+            return R.error("文章不存在");
+        }
+
+        // 检查编辑模式
+        if (article.getEditMode() == null || article.getEditMode() != EditMode.ALL_SUGGEST.getCode()) {
+            return R.error("该文章未开启协作编辑模式");
+        }
+
+        // 不允许作者给自己提建议
+        if (article.getAuthorId().equals(currentUserId)) {
+            return R.error("作者无需向自己提交建议");
+        }
+
+        articleEditSuggestionService.submitSuggestion(
+                articleId, currentUserId, dto.getTitle(), dto.getContent(), dto.getChangeSummary());
+
+        return R.ok("建议提交成功，等待作者审核");
+    } catch (IllegalArgumentException e) {
+        log.error("提交建议失败：{}", e.getMessage(), e);
+        return R.error(e.getMessage());
+    } catch (Exception e) {
+        log.error("提交建议失败，articleId: {}", articleId, e);
+        return R.error("提交建议失败");
+    }
+}
+
+/**
+ * 获取建议列表
+ */
+@Operation(summary = "获取建议列表", description = "查询文章的修改建议列表（分页）")
+@GetMapping("/{articleId}/suggestions")
+public R getSuggestions(@PathVariable Long articleId,
+                        @RequestParam(required = false) Integer status,
+                        @RequestParam(defaultValue = "1") Integer page,
+                        @RequestParam(defaultValue = "10") Integer limit) {
+    try {
+        var suggestionPage = articleEditSuggestionService.getSuggestions(
+                articleId, status, page, limit);
+
+        List<ArticleSuggestionVO> voList = suggestionPage.getRecords().stream()
+                .map(this::convertToSuggestionVO)
+                .collect(Collectors.toList());
+
+        PageUtils pageUtils = new PageUtils(suggestionPage);
+        pageUtils.setList(voList);
+
+        return R.ok().put("data", pageUtils);
+    } catch (Exception e) {
+        log.error("获取建议列表失败，articleId: {}", articleId, e);
+        return R.error("获取建议列表失败");
+    }
+}
+
+/**
+ * 获取建议详情
+ */
+@Operation(summary = "获取建议详情", description = "查询单个修改建议的详细信息")
+@GetMapping("/{articleId}/suggestions/{suggestionId}")
+public R getSuggestionDetail(@PathVariable Long articleId,
+                             @PathVariable Long suggestionId) {
+    try {
+        ArticleEditSuggestion suggestion = articleEditSuggestionService.getSuggestionDetail(suggestionId);
+
+        ArticleSuggestionVO vo = convertToSuggestionVO(suggestion);
+        return R.ok().put("data", vo);
+    } catch (IllegalArgumentException e) {
+        log.error("获取建议详情失败：{}", e.getMessage(), e);
+        return R.error(e.getMessage());
+    } catch (Exception e) {
+        log.error("获取建议详情失败，suggestionId: {}", suggestionId, e);
+        return R.error("获取建议详情失败");
+    }
+}
+
+/**
+ * 审核建议
+ */
+@Operation(summary = "审核建议", description = "作者审核修改建议（通过/拒绝）")
+@PutMapping("/{articleId}/suggestions/{suggestionId}")
+@Transactional
+public R reviewSuggestion(@PathVariable Long articleId,
+                          @PathVariable Long suggestionId,
+                          @Valid @RequestBody SuggestionReviewDTO dto,
+                          HttpServletRequest request) {
+    try {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return R.error("请先登录");
+        }
+
+        Article article = articleService.getById(articleId);
+        if (article == null) {
+            return R.error("文章不存在");
+        }
+
+        // 验证权限（只有作者可以审核）
+        if (!article.getAuthorId().equals(currentUserId)) {
+            return R.error("无权限审核建议");
+        }
+
+        articleEditSuggestionService.reviewSuggestion(
+                suggestionId, currentUserId, dto.getApproved(), dto.getReason());
+
+        String message = dto.getApproved() ? "建议已通过" : "建议已拒绝";
+        return R.ok(message);
+    } catch (IllegalArgumentException e) {
+        log.error("审核失败：{}", e.getMessage(), e);
+        return R.error(e.getMessage());
+    } catch (Exception e) {
+        log.error("审核失败，suggestionId: {}", suggestionId, e);
+        return R.error("审核失败");
+    }
+}
+
+/**
+ * 获取贡献者列表
+ */
+@Operation(summary = "获取贡献者列表", description = "查询文章的所有贡献者及其贡献行数")
+@GetMapping("/{articleId}/contributors")
+public R getContributors(@PathVariable Long articleId) {
+    try {
+        List<Map<String, Object>> contributors = articleContributorService.getContributors(articleId);
+        return R.ok().put("data", contributors);
+    } catch (Exception e) {
+        log.error("获取贡献者列表失败，articleId: {}", articleId, e);
+        return R.error("获取贡献者列表失败");
+    }
+}
+
+// ==================== 辅助方法 ====================
+
+private ArticleVersionVO convertToVersionVO(ArticleVersion version) {
+    ArticleVersionVO vo = new ArticleVersionVO();
+    vo.setId(version.getId());
+    vo.setArticleId(version.getArticleId());
+    vo.setVersion(version.getVersion());
+    vo.setTitle(version.getTitle());
+    vo.setChangeSummary(version.getChangeSummary());
+    vo.setOperatorId(version.getOperatorId());
+    vo.setCreateTime(version.getCreateTime());
+    return vo;
+}
+
+private ArticleSuggestionVO convertToSuggestionVO(ArticleEditSuggestion suggestion) {
+    ArticleSuggestionVO vo = new ArticleSuggestionVO();
+    vo.setId(suggestion.getId());
+    vo.setArticleId(suggestion.getArticleId());
+    vo.setProposerId(suggestion.getProposerId());
+    vo.setTitle(suggestion.getTitle());
+    vo.setChangeSummary(suggestion.getChangeSummary());
+    vo.setStatus(suggestion.getStatus());
+    vo.setCreateTime(suggestion.getCreateTime());
+    vo.setReviewTime(suggestion.getReviewTime());
+    vo.setReviewerId(suggestion.getReviewerId());
+
+    // 如果有 extra 信息，添加到 VO
+    if (suggestion.getExtra() != null) {
+        Integer addedLines = (Integer) suggestion.getExtra().get("addedLines");
+        Integer removedLines = (Integer) suggestion.getExtra().get("removedLines");
+        if (addedLines != null) vo.setAddedLines(addedLines);
+        if (removedLines != null) vo.setRemovedLines(removedLines);
+    }
+
+    return vo;
+}
+
+// ... existing code ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
      * 将 ArticleView 转换为 ArticleVO（包含联表查询的分类名、作者信息）
      */
     private ArticleVO convertArticleViewToVO(ArticleView articleView) {

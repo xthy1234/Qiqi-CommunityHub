@@ -150,7 +150,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             throw new RuntimeException("用户不存在");
         }
 
-        if (!(user.getRoleId() == 1L)) {
+        if (!(user.getRoleId() == 2L)) {
             throw new RuntimeException("无管理员权限");
         }
 
@@ -158,8 +158,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             throw new RuntimeException("密码错误");
         }
 
-        //启用才报错？
-        if (user.getStatus() != null && user.getStatus() == CommonStatus.ENABLED) {
+        if (user.getStatus() != null && user.getStatus() == CommonStatus.DISABLED) {
             throw new RuntimeException("账户已被禁用");
         }
 

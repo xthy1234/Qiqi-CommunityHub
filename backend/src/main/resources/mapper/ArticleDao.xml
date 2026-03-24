@@ -10,7 +10,8 @@
         <result property="coverUrl" column="cover_url"/>
         <result property="attachment" column="attachment"/>
         <result property="categoryId" column="category_id"/>
-        <result property="content" column="content"/>
+        <result property="content" column="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="extra" column="extra" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result property="authorId" column="author_id"/>
         <result property="likeCount" column="like_count"/>
         <result property="dislikeCount" column="dislike_count"/>
@@ -30,7 +31,8 @@
         <result property="coverUrl" column="cover_url"/>
         <result property="attachment" column="attachment"/>
         <result property="categoryId" column="category_id"/>
-        <result property="content" column="content"/>
+        <result property="content" column="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="extra" column="extra" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result property="authorId" column="author_id"/>
         <result property="likeCount" column="like_count"/>
         <result property="dislikeCount" column="dislike_count"/>
@@ -187,9 +189,11 @@
             u.nickname as authorNickname,
             u.avatar as authorAvatar,
             CASE
-                WHEN LENGTH(a.content) > 200
-                THEN SUBSTRING(a.content, 1, 200) || '...'
-                ELSE a.content
+                WHEN jsonb_typeof(a.content) = 'string'
+                THEN LEFT(a.content#>>'{}', 200) || '...'
+                WHEN jsonb_typeof(a.content) = 'object'
+                THEN LEFT(COALESCE(a.content->>'text', a.content->>'content', ''), 200) || '...'
+                ELSE ''
             END as contentSummary,
             a.like_count as likeCount,
             a.dislike_count as dislikeCount,

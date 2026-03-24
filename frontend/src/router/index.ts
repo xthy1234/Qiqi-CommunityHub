@@ -15,6 +15,10 @@ import ArticleDetailView from '@/views/article/detail.vue'
 import ArticleEditorView from '@/views/article/edit.vue'
 import ArticleDraftView from '@/views/article/draftList.vue'
 import FavoriteListView from '@/views/article/favoriteList.vue'
+import SuggestionReviewListView from '@/views/article/SuggestionReviewList.vue'
+import VersionListView from '@/views/article/VersionList.vue'
+import SuggestionEditorView from '@/views/article/SuggestionEditor.vue'
+import MySuggestionsView from '@/views/article/MySuggestions.vue'
 
 // 用户相关页面 - 已精简，只保留个人中心相关页面
 import UserRegisterView from '../views/auth/register.vue'
@@ -82,7 +86,50 @@ const routes: Array<RouteRecordRaw> = [
         component: ArticleDraftView,
         meta: { title: '草稿箱' }
       },
-
+      // 待审核建议列表（作者专用）
+      {
+        path: 'article/suggestions',
+        component: SuggestionReviewListView,
+        meta: { title: '待审核建议' }
+      },
+      {
+        path: 'index/article/suggestions',
+        component: SuggestionReviewListView,
+        meta: { title: '待审核建议' }
+      },
+      // 版本历史列表
+      {
+        path: 'article/versions',
+        component: VersionListView,
+        meta: { title: '版本历史' }
+      },
+      {
+        path: 'index/article/versions',
+        component: VersionListView,
+        meta: { title: '版本历史' }
+      },
+      // 提交修改建议
+      {
+        path: 'article/:articleId/suggest',
+        component: SuggestionEditorView,
+        meta: { title: '提交修改建议' }
+      },
+      {
+        path: 'index/article/:articleId/suggest',
+        component: SuggestionEditorView,
+        meta: { title: '提交修改建议' }
+      },
+      // 我的建议列表（查看自己提交的建议）
+      {
+        path: 'my-suggestions',
+        component: MySuggestionsView,
+        meta: { title: '我的建议' }
+      },
+      {
+        path: 'index/my-suggestions',
+        component: MySuggestionsView,
+        meta: { title: '我的建议' }
+      },
       // 个人信息展示
       {
         path: 'user/profile',

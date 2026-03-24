@@ -329,7 +329,7 @@ onMounted(() => {
         setTimeout(() => {
           if (readonlyEditor && !readonlyEditor.isDestroyed) {
 
-            readonlyEditor.commands.setContent(contentJson, false)
+            readonlyEditor.commands.setContent(contentJson)
           }
         }, 0)
       }
