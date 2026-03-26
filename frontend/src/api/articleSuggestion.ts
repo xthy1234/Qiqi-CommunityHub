@@ -34,14 +34,14 @@ export interface ReviewSuggestionParams {
  * 文章编辑建议 API 类
  */
 export class ArticleSuggestionAPI {
-  private endpoint = '/suggestions'
+  private endpoint = '/articles/suggestions'
   
   /**
    * 获取当前用户收到的修改建议列表（作为作者）
    * @param params 查询参数（status, page, limit）
    */
   getMyReceivedSuggestions(params?: any) {
-    return http.get(`${this.endpoint}/received`, { params })
+    return http.get(`${this.endpoint}/received-by-me`, { params })
   }
   
   /**
@@ -49,7 +49,7 @@ export class ArticleSuggestionAPI {
    * @param params 查询参数（status, page, limit）
    */
   getMySuggestions(params?: any) {
-    return http.get(`${this.endpoint}/my`, { params })
+    return http.get(`${this.endpoint}/proposed-by-me`, { params })
   }
   
   /**

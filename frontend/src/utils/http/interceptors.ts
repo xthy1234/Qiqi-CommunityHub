@@ -2,10 +2,11 @@
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import toolUtil from '@/utils/toolUtil'
 import router from '@/router'
-import { getCurrentInstance } from 'vue'
+import { createDiscreteApi } from 'naive-ui'
 import type { ApiResponse } from './types'
-const instance = getCurrentInstance()
-const $message = instance?.appContext.config.globalProperties.$message
+
+const { message, dialog } = createDiscreteApi(['message', 'dialog'])
+
 /**
  * 设置请求拦截器 - 自动添加 Token
  */
@@ -64,7 +65,9 @@ function handleUnauthorizedAccess(response: AxiosResponse<ApiResponse>): void {
   toolUtil.storageSet('redirectPath', window.history.state.current)
   
   // 显示错误提示
-    $message.error(response.data.msg)
+  if (response.data && response.data.msg) {
+    message.error(response.data.msg)
+  }
   
   // 跳转到登录页
   router.push('/login')
@@ -74,7 +77,11 @@ function handleUnauthorizedAccess(response: AxiosResponse<ApiResponse>): void {
  * 处理业务逻辑异常
  */
 function handleBusinessException(response: AxiosResponse<ApiResponse>): void {
-    $message.error(response.data.msg)
+    if (response.data && response.data.msg) {
+        message.error(response.data.msg)
+    } else {
+        message.error('请求失败')
+    }
 }
 
 /**

@@ -1,4 +1,3 @@
-NEW_FILE_CODE
 // src/types/global.d.ts
 
 /**

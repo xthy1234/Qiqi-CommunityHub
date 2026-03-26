@@ -35,7 +35,13 @@ import {
   NDialogProvider,
   NDropdown,
   NRadio,
-  NRadioGroup
+  NRadioGroup,
+  NTabs,
+  NTabPane,
+  NSkeleton,
+  NDescriptions,
+  NDescriptionsItem,
+  NBadge
 } from "naive-ui"
 
 // 地图组件初始化
@@ -93,6 +99,12 @@ app.component('NDialogProvider', NDialogProvider)
 app.component('NDropdown', NDropdown)
 app.component('NRadio', NRadio)
 app.component('NRadioGroup', NRadioGroup)
+app.component('NTabs', NTabs)
+app.component('NTabPane', NTabPane)
+app.component('NSkeleton', NSkeleton)
+app.component('NDescriptions', NDescriptions)
+app.component('NDescriptionsItem', NDescriptionsItem)
+app.component('NBadge', NBadge)
 
 // 初始化地图服务 - 使用环境变量或默认值
 try {

@@ -11,14 +11,20 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum NotificationType {
-    REPLY(1, "回复"),
+    COMMENT(1, "文章被评论"),
     LIKE(2, "点赞"),
     FOLLOW(3, "关注"),
-    PRIVATE_MESSAGE(4, "私聊消息"),
-    CIRCLE_UPDATE(5, "圈子更新"),
-    CIRCLE_CHAT_AT(6, "圈子聊天@"),
-    SUGGESTION_SUBMIT(7, "提交建议"),
-    SUGGESTION_REVIEW(8, "建议审核结果");
+    REPLY(4, "评论被回复"),
+    ARTICLE_AUDIT(5, "文章审核结果"),
+    CIRCLE_INVITE(6, "邀请进入圈子"),
+    CIRCLE_REMOVED(7, "被移出圈子"),
+    CIRCLE_JOIN(8, "圈子申请加入"),
+    MEMBER_JOIN(9, "圈子有新成员加入"),
+    MEMBER_QUIT(10, "圈子成员退出"),
+    MEMBER_REMOVED(11, "圈子成员被移出"),
+    SUGGESTION_SUBMIT(12, "有人为你的文章提交修改建议"),
+    SUGGESTION_REVIEW(13, "建议审核结果"),
+    SYSTEM_MESSAGE(14, "系统通知");
 
     private final Integer code;
     private final String description;

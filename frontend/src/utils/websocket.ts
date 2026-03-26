@@ -379,6 +379,18 @@ class WebSocketManager {
         destination: `/topic/circles/*/messages`,
         description: '圈子消息',
         handler: (data: any) => this.dispatchMessage('CIRCLE_CHAT_MESSAGE', data)
+      },
+      {
+        messageType: 'NOTIFICATION',
+        destination: `/user/${userId}/queue/notification`,
+        description: '系统通知',
+        handler: (data: any) => this.dispatchMessage('NOTIFICATION', data)
+      },
+      {
+        messageType: 'NOTIFICATION_READ_UPDATE',
+        destination: `/user/${userId}/queue/notification`,
+        description: '通知已读更新',
+        handler: (data: any) => this.dispatchMessage('NOTIFICATION_READ_UPDATE', data)
       }
     ]
 
@@ -649,9 +661,9 @@ class WebSocketManager {
 
   /**
    * 注册消息处理器（兼容旧接口）
-   * @param type 消息类型：CHAT_MESSAGE | MESSAGE_STATUS | MESSAGE_RECALL | MESSAGE_DELETE | USER_ONLINE_STATUS | USER_LIST_UPDATE | CIRCLE_CHAT_MESSAGE | CIRCLE_CHAT_MESSAGE_DELETE
+   * @param type 消息类型：CHAT_MESSAGE | MESSAGE_STATUS | MESSAGE_RECALL | MESSAGE_DELETE | USER_ONLINE_STATUS | USER_LIST_UPDATE | CIRCLE_CHAT_MESSAGE | CIRCLE_CHAT_MESSAGE_DELETE | NOTIFICATION | NOTIFICATION_READ_UPDATE
    */
-  on(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE', handler: (data: any) => void): () => void {
+  on(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE' | 'NOTIFICATION' | 'NOTIFICATION_READ_UPDATE', handler: (data: any) => void): () => void {
     if (!this.messageHandlers.has(type)) {
       this.messageHandlers.set(type, new Set())
     }
@@ -667,7 +679,7 @@ class WebSocketManager {
   /**
    * 移除消息处理器
    */
-  offMessage(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE', handler: (data: any) => void): void {
+  offMessage(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE' | 'NOTIFICATION' | 'NOTIFICATION_READ_UPDATE', handler: (data: any) => void): void {
     const handlers = this.messageHandlers.get(type)
     if (handlers) {
       handlers.delete(handler)

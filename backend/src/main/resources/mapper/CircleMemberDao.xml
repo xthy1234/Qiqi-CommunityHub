@@ -15,33 +15,57 @@
 
     <!-- 查询用户在圈子中的角色 -->
     <select id="getUserRoleInCircle" resultType="java.lang.Integer">
-        SELECT role FROM circle_member 
-        WHERE circle_id = #{circleId} AND user_id = #{userId} AND status = 0
+        SELECT role FROM circle_member
+        WHERE circle_id = #{circleId} AND user_id = #{userId}
+        AND status = 0
+    </select>
+
+    <!-- 查询圈子的所有成员 ID -->
+    <select id="selectMemberIds" resultType="java.lang.Long">
+        SELECT user_id FROM circle_member
+        WHERE circle_id = #{circleId}
+        AND status = 0
+    </select>
+
+    <!-- 查询圈子的管理员和圈主 ID 列表 -->
+    <select id="getAdminAndOwnerIds" resultType="java.lang.Long">
+        SELECT user_id FROM circle_member
+        WHERE circle_id = #{circleId}
+        AND role IN (1, 2)
+        AND status = 0
+    </select>
+
+    <!-- 查询圈主 ID 列表 -->
+    <select id="getOwners" resultType="java.lang.Long">
+        SELECT user_id FROM circle_member
+        WHERE circle_id = #{circleId}
+        AND role = 2
+        AND status = 0
     </select>
 
     <!-- 查询圈子成员数量 -->
     <select id="getMemberCount" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM circle_member 
+        SELECT COUNT(*) FROM circle_member
         WHERE circle_id = #{circleId} AND status = 0
     </select>
 
     <!-- 查询用户加入的所有圈子 ID -->
     <select id="getJoinedCircleIds" resultType="java.lang.Long">
-        SELECT circle_id FROM circle_member 
+        SELECT circle_id FROM circle_member
         WHERE user_id = #{userId} AND status = 0
     </select>
 
     <!-- 检查用户是否是圈子成员 -->
     <select id="isMember" resultType="java.lang.Boolean">
         SELECT EXISTS(
-            SELECT 1 FROM circle_member 
+            SELECT 1 FROM circle_member
             WHERE circle_id = #{circleId} AND user_id = #{userId} AND status = 0
         )
     </select>
 
     <!-- 查询圈子成员列表 -->
     <select id="selectMemberList" resultMap="circleMemberMap">
-        SELECT * FROM circle_member 
+        SELECT * FROM circle_member
         WHERE circle_id = #{circleId} AND status = 0
         <if test="role != null">
             AND role = #{role}

@@ -65,4 +65,45 @@
           AND status = 0
     </select>
 
+    <select id="selectByProposerId" resultMap="articleEditSuggestionMap">
+        SELECT
+            id,
+            article_id,
+            proposer_id,
+            title,
+            content,
+            change_summary,
+            status,
+            create_time,
+            review_time,
+            reviewer_id
+        FROM article_edit_suggestion
+        WHERE proposer_id = #{proposerId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByAuthorId" resultMap="articleEditSuggestionMap">
+        SELECT
+            es.id,
+            es.article_id,
+            es.proposer_id,
+            es.title,
+            es.content,
+            es.change_summary,
+            es.status,
+            es.create_time,
+            es.review_time,
+            es.reviewer_id
+        FROM article_edit_suggestion es
+        INNER JOIN article a ON es.article_id = a.id
+        WHERE a.author_id = #{authorId}
+        <if test="status != null">
+            AND es.status = #{status}
+        </if>
+        ORDER BY es.create_time DESC
+    </select>
+
 </mapper>

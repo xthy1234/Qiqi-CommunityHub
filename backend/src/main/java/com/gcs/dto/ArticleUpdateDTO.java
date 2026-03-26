@@ -31,7 +31,7 @@ public class ArticleUpdateDTO {
     @Schema(description = "内容详情")
     private Map<String, Object> content;
 
-    @Schema(description = "扩展信息 (JSON格式)")
+    @Schema(description = "扩展信息 (JSON 格式)")
     private Map<String, Object> extra;
 
     @Schema(description = "附件 URL", example = "http://example.com/attachment.zip")

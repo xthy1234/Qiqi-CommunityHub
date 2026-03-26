@@ -54,14 +54,14 @@ public class ArticleVO implements Serializable {
     @Schema(description = "点击次数", example = "500")
     private Integer viewCount;
     
-    @Schema(description = "发布时间", example = "2026-01-01")
+    @Schema(description = "发布时间（审核通过后自动生成）", example = "2026-01-01")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd")
     private Date publishTime;
     
     @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿)", example = "1")
-    private AuditStatus auditStatus;
+    private Integer auditStatus;
     
-    @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
+    @Schema(description = "创建时间（系统自动生成）", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
 }

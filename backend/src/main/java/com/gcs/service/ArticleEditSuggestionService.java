@@ -60,4 +60,28 @@ public interface ArticleEditSuggestionService extends IService<ArticleEditSugges
      * @return 待审核数量
      */
     Integer countPendingSuggestions(Long articleId);
+
+    /**
+     * 获取用户提出的建议列表（分页）
+     *
+     * @param proposerId 建议者 ID
+     * @param status 状态（null 表示全部）
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 建议列表
+     */
+    IPage<ArticleEditSuggestion> getSuggestionsByProposer(Long proposerId, Integer status,
+                                                          Integer page, Integer limit);
+
+    /**
+     * 获取用户的文章收到的建议列表（分页）
+     *
+     * @param authorId 文章作者 ID
+     * @param status 状态（null 表示全部）
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 建议列表
+     */
+    IPage<ArticleEditSuggestion> getSuggestionsByAuthor(Long authorId, Integer status,
+                                                        Integer page, Integer limit);
 }

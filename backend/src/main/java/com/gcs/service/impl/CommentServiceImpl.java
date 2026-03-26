@@ -3,14 +3,23 @@ package com.gcs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.gcs.dao.ArticleDao;
 import com.gcs.dao.CommentDao;
+import com.gcs.dao.UserDao;
 import com.gcs.entity.Article;
 import com.gcs.entity.Comment;
+import com.gcs.entity.Notification;
+import com.gcs.entity.User;
 import com.gcs.entity.view.CommentView;
+import com.gcs.enums.NotificationType;
 import com.gcs.service.ArticleService;
 import com.gcs.service.CommentService;
+import com.gcs.service.NotificationService;
+import com.gcs.service.UserService;
+import com.gcs.utils.NotificationBuilder;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
+import com.gcs.vo.UserSimpleVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +48,18 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
 
     @Autowired
     private ArticleService articleService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private NotificationService notificationService;
+    
+    @Autowired
+    private ArticleDao articleDao;
+    
+    @Autowired
+    private UserDao userDao;
 
     /**
      * 分页查询评论列表
@@ -125,6 +146,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         // 如果是保存成功且是一级评论（parentId 为 null），则更新文章的评论数
         if (result && comment.getParentId() == null) {
             updateArticleCommentCount(comment.getContentId(), 1);
+            
+            sendCommentNotification(comment);
         }
         
         return result;
@@ -377,7 +400,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         }
         
         try {
-            Article article = articleService.getById(contentId);
+            Article article = articleDao.selectById(contentId);
             if (article != null) {
                 Integer currentCount = article.getCommentCount();
                 if (currentCount == null) {
@@ -389,6 +412,61 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             }
         } catch (Exception e) {
             log.error("更新文章评论数失败，contentId: {}", contentId, e);
+            // 不抛出异常，避免影响评论创建
+        }
+    }
+    
+    /**
+     * 发送评论通知给文章作者
+     */
+    private void sendCommentNotification(Comment comment) {
+        try {
+            // 查询文章信息
+            Article article = articleDao.selectById(comment.getContentId());
+            if (article == null) {
+                log.warn("文章不存在，无法发送通知，articleId: {}", comment.getContentId());
+                return;
+            }
+            
+            // 如果评论者就是文章作者，不需要通知自己
+            if (article.getAuthorId().equals(comment.getUserId())) {
+                return;
+            }
+            
+            // 构建评论者信息
+            User commenter = userDao.selectById(comment.getUserId());
+            if (commenter == null) {
+                log.warn("评论用户不存在，userId: {}", comment.getUserId());
+                return;
+            }
+            
+            UserSimpleVO commenterVO = new UserSimpleVO();
+            commenterVO.setId(commenter.getId());
+            commenterVO.setNickname(commenter.getNickname());
+            commenterVO.setAvatar(commenter.getAvatar());
+            commenterVO.setLastOnlineTime(commenter.getLastOnlineTime());
+            
+            // 构建 extra 数据
+            Map<String, Object> extra = NotificationBuilder.buildCommentNotification(
+                comment.getContentId(),
+                comment.getId(),
+                commenterVO,
+                comment.getContent()
+            );
+            
+            // 创建通知
+            notificationService.createNotification(
+                article.getAuthorId(),
+                NotificationType.COMMENT.getCode(),
+                comment.getId(),
+                null,
+                extra
+            );
+            
+            log.info("发送评论通知成功，articleId: {}, authorId: {}", comment.getContentId(), article.getAuthorId());
+            
+        } catch (Exception e) {
+            log.error("发送评论通知失败，commentId: {}", comment.getId(), e);
             // 不抛出异常，避免影响评论创建
         }
     }

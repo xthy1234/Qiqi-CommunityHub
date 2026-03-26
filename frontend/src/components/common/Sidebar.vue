@@ -138,9 +138,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { h } from 'vue'
 import { useRouter } from 'vue-router'
-import { NMenu, type MenuOption } from 'naive-ui'
+import {NMenu, type MenuOption, useDialog} from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
+import { useNotificationStore } from '@/stores/notification'
+import { useChatStore } from '@/stores/chat'
+import { useCircleChatStore } from '@/stores/circleChat'
 
 interface MenuItem {
   menu: string
@@ -166,6 +169,10 @@ const userAvatarUrl = ref<string>('')
 const userNickname = ref<string>('')
 const userAccount = ref<string>('')
 const pendingCount = ref<number>(0)
+const notificationUnreadCount = ref<number>(0)
+const chatUnreadCount = ref<number>(0)
+const circleChatUnreadCount = ref<number>(0)
+const dialog = useDialog()
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -234,20 +241,30 @@ const menuOptions = computed<MenuOption[]>(() => {
       label: '消息',
       key: 'message',
       icon: renderIcon('ri:mail-line'),
+      extra: ((chatUnreadCount.value || 0) + (circleChatUnreadCount.value || 0)) > 0 ? renderBadge((chatUnreadCount.value || 0) + (circleChatUnreadCount.value || 0)) : undefined,
       children: [
         {
           label: '私聊',
           key: 'message-chat',
           icon: renderIcon('ri:chat-1-line'),
+          extra: (chatUnreadCount.value || 0) > 0 ? renderBadge(chatUnreadCount.value || 0) : undefined,
           click: () => navigateToRoute('/index/chat')
         },
         {
           label: '圈子',
           key: 'message-circle',
           icon: renderIcon('ri:user-group-line'),
+          extra: (circleChatUnreadCount.value || 0) > 0 ? renderBadge(circleChatUnreadCount.value || 0) : undefined,
           click: () => navigateToRoute('/index/circle-chat')
         }
       ]
+    },
+    {
+      label: '通知',
+      key: 'notification',
+      icon: renderIcon('ri:notification-badge-line'),
+      extra: notificationUnreadCount.value > 0 ? renderBadge(notificationUnreadCount.value) : undefined,
+      click: () => navigateToRoute('/index/notifications')
     },
     {
       label: '创作',
@@ -265,6 +282,20 @@ const menuOptions = computed<MenuOption[]>(() => {
           key: 'publish-draft',
           icon: renderIcon('ri:file-list-line'),
           click: () => navigateToRoute('/index/article/draftList')
+        }
+      ]
+    },
+
+    {
+      label: '协作',
+      key: 'collaboration',
+      icon: renderIcon('ri:team-line'),
+      children: [
+        {
+          label: '我的建议',
+          key: 'my-suggestions',
+          icon: renderIcon('ri:edit-circle-line'),
+          click: () => navigateToMySuggestions()
         },
         {
           label: '待审建议',
@@ -272,31 +303,6 @@ const menuOptions = computed<MenuOption[]>(() => {
           icon: renderIcon('ri:review-line'),
           click: () => navigateToSuggestions(),
           extra: pendingCount.value > 0 ? renderBadge(pendingCount.value) : undefined
-        }
-      ]
-    },
-    {
-      label: '我的建议',
-      key: 'my-suggestions',
-      icon: renderIcon('ri:edit-circle-line'),
-      click: () => navigateToMySuggestions()
-    },
-    {
-      label: '协作',
-      key: 'collaboration',
-      icon: renderIcon('ri:team-line'),
-      children: [
-        {
-          label: '版本管理',
-          key: 'collab-versions',
-          icon: renderIcon('ri:git-commit-line'),
-          click: () => navigateToVersions()
-        },
-        {
-          label: '贡献者',
-          key: 'collab-contributors',
-          icon: renderIcon('ri:award-line'),
-          click: () => navigateToContributors()
         }
       ]
     }
@@ -424,6 +430,30 @@ const handleMenuSelect = (key: string, item: MenuOption) => {
 const handleExpandedChange = (keys: string[]) => {
   expandedKeys.value = keys
 }
+
+// 监听聊天未读数变化
+watch(() => {
+  const chatStore = useChatStore()
+  return chatStore.unreadCount
+}, (newCount: number) => {
+  chatUnreadCount.value = newCount
+}, { immediate: true })
+
+// 监听圈子聊天未读数变化
+watch(() => {
+  const circleChatStore = useCircleChatStore()
+  return circleChatStore.totalUnreadCount
+}, (newCount: number) => {
+  circleChatUnreadCount.value = newCount
+}, { immediate: true })
+
+// 监听通知未读数变化（实时更新角标）
+watch(() => {
+  const notificationStore = useNotificationStore()
+  return notificationStore.unreadCount
+}, (newCount :number) => {
+  notificationUnreadCount.value = newCount
+}, { immediate: true })
 
 const navigateToRoute = (path: string): void => {
   if (!path) {return}
@@ -558,6 +588,8 @@ const loadUserInfo = (): void => {
 
   // 加载待审核建议数量
   loadPendingSuggestionsCount()
+  // 加载未读通知数量
+  loadNotificationUnreadCount()
 }
 
 const loadPendingSuggestionsCount = async (): Promise<void> => {
@@ -568,6 +600,35 @@ const loadPendingSuggestionsCount = async (): Promise<void> => {
     pendingCount.value = 0 // 临时值，实际应该调用 API
   } catch (error) {
     console.error('加载待审核数量失败:', error)
+  }
+}
+
+const loadNotificationUnreadCount = async (): Promise<void> => {
+  try {
+    const notificationStore = useNotificationStore()
+    await notificationStore.loadUnreadCount()
+    notificationUnreadCount.value = notificationStore.unreadCount
+  } catch (error) {
+    console.error('加载未读通知数量失败:', error)
+  }
+}
+
+const loadChatUnreadCount = async (): Promise<void> => {
+  try {
+    const chatStore = useChatStore()
+    await chatStore.loadConversations()
+    chatUnreadCount.value = chatStore.unreadCount
+  } catch (error) {
+    console.error('加载私聊未读数量失败:', error)
+  }
+}
+
+const loadCircleChatUnreadCount = async (): Promise<void> => {
+  try {
+    const circleChatStore = useCircleChatStore()
+    circleChatUnreadCount.value = circleChatStore.totalUnreadCount
+  } catch (error) {
+    console.error('加载圈子聊天未读数量失败:', error)
   }
 }
 
@@ -584,6 +645,18 @@ const getFullUrl = (path: string, baseUrl?: string): string => {
 
 onMounted(() => {
   initializeComponent()
+
+  // 初始化通知 Store
+  const notificationStore = useNotificationStore()
+  // 如果已建立 WebSocket 连接，订阅通知队列
+  if ((window as any).stompClient) {
+    notificationStore.initWebSocketSubscription((window as any).stompClient)
+  }
+
+  // 加载私聊未读数量
+  loadChatUnreadCount()
+  // 加载圈子聊天未读数量
+  loadCircleChatUnreadCount()
 })
 
 const emit = defineEmits<{

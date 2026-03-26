@@ -254,7 +254,7 @@ class ApiService {
         /**
          * 批量审核文章
          */
-        batchAuditArticles: (data: { ids: number[]; status: string }) => {
+        batchAuditArticles: (data: { ids: number[]; status: number; reply?: string }) => {
             return httpClient.post<ApiResponse<any>>('/articles/batch-audit', data)
         },
 
@@ -284,6 +284,85 @@ class ApiService {
          */
         getStatsByTime: (xColumn: string, yColumn: string, timeType: string) => {
             return httpClient.get<ApiResponse<any[]>>(`/articles/stats/time/${xColumn}/${yColumn}/${timeType}`)
+        },
+
+        /**
+         * 按值统计
+         */
+        getStatsByValue: (xColumn: string, yColumn: string) => {
+            return httpClient.get<ApiResponse<any[]>>(`/articles/stats/value/${xColumn}/${yColumn}`)
+        },
+
+        /**
+         * 多列统计
+         */
+        getStatsMultiple: (xColumn: string, yColumns: string[]) => {
+            return httpClient.get<ApiResponse<any[]>>(`/articles/stats/value/multiple/${xColumn}`, {
+                params: { yColumns: yColumns.join(',') }
+            })
+        },
+
+        /**
+         * 搜索文章
+         */
+        searchArticles: (params: { keyword: string; categoryId?: number; startDate?: string; endDate?: string; limit?: number }) => {
+            return httpClient.get<ApiResponse<PageResponse<any>>>('/articles/search', { params })
+        },
+
+        /**
+         * 获取文章版本列表
+         */
+        getArticleVersions: (articleId: number, params?: PageParams) => {
+            return httpClient.get<ApiResponse<PageResponse<any>>>(`/articles/${articleId}/versions`, { params })
+        },
+
+        /**
+         * 获取指定版本详情
+         */
+        getArticleVersionDetail: (articleId: number, version: number) => {
+            return httpClient.get<ApiResponse<any>>(`/articles/${articleId}/versions/${version}`)
+        },
+
+        /**
+         * 回滚文章版本
+         */
+        rollbackArticleVersion: (articleId: number, version: number) => {
+            return httpClient.post<ApiResponse<any>>(`/articles/${articleId}/versions/${version}/rollback`)
+        },
+
+        /**
+         * 获取文章的修改建议列表
+         */
+        getArticleSuggestions: (articleId: number, params?: { status?: number }) => {
+            return httpClient.get<ApiResponse<any[]>>(`/articles/${articleId}/suggestions`, { params })
+        },
+
+        /**
+         * 获取建议详情
+         */
+        getSuggestionDetail: (articleId: number, suggestionId: number) => {
+            return httpClient.get<ApiResponse<any>>(`/articles/${articleId}/suggestions/${suggestionId}`)
+        },
+
+        /**
+         * 审核修改建议
+         */
+        auditSuggestion: (articleId: number, suggestionId: number, data: { approved: boolean; reason?: string }) => {
+            return httpClient.put<ApiResponse<any>>(`/articles/${articleId}/suggestions/${suggestionId}`, data)
+        },
+
+        /**
+         * 获取文章贡献者列表
+         */
+        getArticleContributors: (articleId: number) => {
+            return httpClient.get<ApiResponse<any[]>>(`/articles/${articleId}/contributors`)
+        },
+
+        /**
+         * 获取我收到的建议
+         */
+        getReceivedSuggestions: (params?: PageParams) => {
+            return httpClient.get<ApiResponse<PageResponse<any>>>('/articles/suggestions/received-by-me', { params })
         }
     }
 

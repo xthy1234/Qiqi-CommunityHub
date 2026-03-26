@@ -1,6 +1,7 @@
 package com.gcs.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import com.fasterxml.jackson.annotation.JsonFormat;
+
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -23,7 +25,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "通知实体")
-@TableName("notification")
+@TableName(value = "notification", autoResultMap = true)
 public class Notification implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -56,12 +58,14 @@ public class Notification implements Serializable {
      * 通知简要内容
      */
     @Schema(description = "通知简要内容")
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> content;
 
     /**
-     * 通知简要内容
+     * 通知额外内容
      */
     @Schema(description = "通知额外内容")
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> extra;
 
     /**

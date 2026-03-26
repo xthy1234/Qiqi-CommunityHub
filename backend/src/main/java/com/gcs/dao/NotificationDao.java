@@ -22,6 +22,20 @@ public interface NotificationDao extends BaseMapper<Notification> {
      */
     List<Notification> selectByUserId(@Param("userId") Long userId, 
                                       @Param("isRead") Boolean isRead);
+    
+    /**
+     * 分页查询用户的通知列表
+     *
+     * @param userId 用户 ID
+     * @param isRead 是否已读（null 表示全部）
+     * @param offset 偏移量
+     * @param limit 每页数量
+     * @return 通知列表
+     */
+    List<Notification> selectByUserIdPage(@Param("userId") Long userId,
+                                          @Param("isRead") Boolean isRead,
+                                          @Param("offset") Integer offset,
+                                          @Param("limit") Integer limit);
 
     /**
      * 统计用户未读通知数量

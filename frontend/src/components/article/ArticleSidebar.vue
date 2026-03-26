@@ -311,6 +311,7 @@ const emit = defineEmits<{
   (e: 'suggest'): void
   (e: 'versions'): void
   (e: 'review-suggestions'): void
+  (e: 'update:editMode', key: number): void
 }>()
 
 // 响应式数据

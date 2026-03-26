@@ -212,35 +212,55 @@
 </template>
 
 <script setup lang="ts">
-import {computed, getCurrentInstance, onMounted, ref, watch} from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import {useRoute, useRouter} from 'vue-router'
-import {Icon} from '@iconify/vue'
-import {formatDate, getAuditStatusText, getAvatarUrl} from '@/utils/userUtils'
-import {Article, articleAPI} from '@/api/article'
-import {useGlobalProperties} from '@/utils/globalProperties'
+import { useMessage, useDialog } from 'naive-ui'
+import { Icon } from '@iconify/vue'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import ArticleInteractionBar from '@/components/article/ArticleInteractionBar.vue'
+import ArticleSidebar from '@/components/article/ArticleSidebar.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
-import ArticleSidebar from '@/components/article/ArticleSidebar.vue'
-import {NEmpty, NImage, NSkeleton, NTag} from 'naive-ui'
-import PageHeader from '@/components/common/PageHeader.vue'
-import {generateHTML} from '@tiptap/core'
-import StarterKit from '@tiptap/starter-kit'
-import Image from '@tiptap/extension-image'
-import Link from '@tiptap/extension-link'
-import TextAlign from '@tiptap/extension-text-align'
-import Underline from '@tiptap/extension-underline'
-import Color from '@tiptap/extension-color'
-import Highlight from '@tiptap/extension-highlight'
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
-import {all, createLowlight} from 'lowlight'
+import { articleAPI, type Article } from '@/api/article'
+import { interactionAPI } from '@/api/interaction'
+import { getAvatarUrl } from '@/utils/userUtils'
+import { useGlobalProperties } from '@/utils/globalProperties'
+import {generateHTML} from "@tiptap/core"
+import StarterKit from "@tiptap/starter-kit"
+import Image from "@tiptap/extension-image"
+import Link from "@tiptap/extension-link"
 
-// 获取全局上下文
 const appContext = useGlobalProperties()
-const route = useRoute()
 const router = useRouter()
-const instance = getCurrentInstance()
-const $message = instance?.appContext.config.globalProperties.$message
+const route = useRoute()
+const dialog = useDialog()
+const message = useMessage()
+
+// 编辑器扩展配置 (避免重复)
+const extensions = [
+  StarterKit.configure({
+    link: false,
+  }),
+  Image,
+  Link.configure({
+    openOnClick: false,
+  }),
+]
+
+/**
+ * 格式化日期
+ */
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
 
 // 响应式数据
 const loading = ref<boolean>(true)
@@ -256,31 +276,6 @@ const contributors = ref<any[]>([])
 
 // 计算属性
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
-
-const lowlight = createLowlight(all)
-
-// Tiptap 扩展配置（用于生成 HTML）
-const extensions = [
-  StarterKit.configure({
-    heading: {
-      levels: [2, 3]
-    },
-    codeBlock: false,
-    link: false,
-    underline: false
-  }),
-  Image.configure({}),
-  Link.configure({}),
-  TextAlign.configure({
-    types: ['heading', 'paragraph']
-  }),
-  Underline,
-  Color,
-  Highlight,
-  CodeBlockLowlight.configure({
-    lowlight
-  })
-]
 
 /**
  * 将 JSON 内容转换为 HTML
@@ -372,7 +367,7 @@ const loadArticleDetail = async () => {
 
   } catch (error) {
     console.error('加载文章失败:', error)
-    $message?.error('加载文章失败')
+    message.error('加载文章失败')
     article.value = null
     // 清除全局变量
     window.detailArticleData = undefined
@@ -414,11 +409,11 @@ const loadContributors = async () => {
  */
 const handleEditModeUpdate = async (key: number) => {
   try {
-    // TODO: 调用 API 更新编辑模式
-    // await articleAPI.updateEditMode(article.value!.id, { editMode: key })
+    // 调用 API 更新编辑模式
+    await articleAPI.updateEditMode(article.value!.id, key)
 
     editMode.value = key
-    $message?.success('编辑模式已更新')
+    message.success('编辑模式已更新')
 
     // 刷新页面
     setTimeout(() => {
@@ -426,7 +421,7 @@ const handleEditModeUpdate = async (key: number) => {
     }, 500)
   } catch (error) {
     console.error('更新编辑模式失败:', error)
-    $message?.error('更新编辑模式失败')
+    message.error('更新编辑模式失败')
   }
 }
 
@@ -501,7 +496,7 @@ const downloadAttachment = () => {
   link.download = fileName
   link.click()
 
-  $message?.success('开始下载附件')
+  message.success('开始下载附件')
 }
 
 /**

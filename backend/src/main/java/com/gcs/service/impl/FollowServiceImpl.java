@@ -8,9 +8,16 @@ import com.gcs.dao.FollowDao;
 import com.gcs.entity.Follow;
 import com.gcs.enums.CommonStatus;
 import com.gcs.service.FollowService;
+import com.gcs.service.NotificationService;
+import com.gcs.dao.UserDao;
+import com.gcs.entity.User;
+import com.gcs.enums.NotificationType;
+import com.gcs.utils.NotificationBuilder;
 import com.gcs.utils.PageUtils;
 import com.gcs.vo.FollowUserVO;
+import com.gcs.vo.UserSimpleVO;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +31,12 @@ import java.util.Map;
  */
 @Service("followService")
 public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements FollowService {
+
+    @Autowired
+    private NotificationService notificationService;
+    
+    @Autowired
+    private UserDao userDao;
 
     @Override
     @Transactional
@@ -52,12 +65,26 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
                 follow.setStatus(CommonStatus.ENABLED);
                 follow.setCreateTime(LocalDateTime.now());
                 follow.setUpdateTime(LocalDateTime.now());
-                return this.save(follow);
+                boolean result = this.save(follow);
+                
+                if (result) {
+                    // 📢 发送关注通知
+                    sendFollowNotification(followerId, followingId);
+                }
+                
+                return result;
             } else if (follow.getStatus() == CommonStatus.DISABLED) {
                 // 已取消关注，重新关注
                 follow.setStatus(CommonStatus.ENABLED);
                 follow.setUpdateTime(LocalDateTime.now());
-                return this.updateById(follow);
+                boolean result = this.updateById(follow);
+                
+                if (result) {
+                    // 📢 发送关注通知
+                    sendFollowNotification(followerId, followingId);
+                }
+                
+                return result;
             } else {
                 // 已经关注，无需操作
                 return true;
@@ -73,6 +100,44 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
             return true;
         } else {
             throw new RuntimeException("无效的操作类型");
+        }
+    }
+    
+    /**
+     * 发送关注通知
+     */
+    private void sendFollowNotification(Long followerId, Long followingId) {
+        try {
+            // 获取关注者信息
+            User follower = userDao.selectById(followerId);
+            if (follower == null) {
+//                log.warn("关注者不存在，userId: {}", String.valueOf() followerId);
+                return;
+            }
+            
+            UserSimpleVO followerVO = new UserSimpleVO();
+            followerVO.setId(follower.getId());
+            followerVO.setNickname(follower.getNickname());
+            followerVO.setAvatar(follower.getAvatar());
+            followerVO.setLastOnlineTime(follower.getLastOnlineTime());
+            
+            // 构建 extra 数据
+            Map<String, Object> extra = NotificationBuilder.buildFollowNotification(followerVO);
+            
+            // 创建通知
+            notificationService.createNotification(
+                followingId,
+                NotificationType.FOLLOW.getCode(),
+                followerId,
+                null,
+                extra
+            );
+            
+//            log.info("发送关注通知成功，followerId: {}, followingId: {}", followerId, followingId);
+            
+        } catch (Exception e) {
+//            log.error("发送关注通知失败，followerId: {}, followingId: {}", followerId, followingId, e);
+            // 不抛出异常，避免影响关注操作
         }
     }
 

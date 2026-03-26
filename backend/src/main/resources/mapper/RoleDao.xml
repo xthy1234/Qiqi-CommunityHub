@@ -41,15 +41,9 @@
         FROM role r
         <where>
             1=1
+
             <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
-                <choose>
-                    <when test="ew.sqlSegment.startsWith('role.')">
-                        AND ${ew.sqlSegment.replace('role.', 'r.')}
-                    </when>
-                    <otherwise>
-                        AND ${ew.sqlSegment}
-                    </otherwise>
-                </choose>
+                AND ${ew.sqlSegment.replace('role.', 'r.')}
             </if>
         </where>
         ORDER BY r.create_time DESC
@@ -76,14 +70,7 @@
         <where>
             1=1
             <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
-                <choose>
-                    <when test="ew.sqlSegment.startsWith('role.')">
-                        AND ${ew.sqlSegment.replace('role.', 'r.')}
-                    </when>
-                    <otherwise>
-                        AND ${ew.sqlSegment}
-                    </otherwise>
-                </choose>
+                AND ${ew.sqlSegment.replace('role.', 'r.')}
             </if>
         </where>
     </select>

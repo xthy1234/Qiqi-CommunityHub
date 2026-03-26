@@ -34,6 +34,26 @@
         ORDER BY create_time DESC
     </select>
 
+    <!-- 分页查询用户的通知列表 -->
+    <select id="selectByUserIdPage" resultMap="notificationMap">
+        SELECT
+            id,
+            user_id,
+            type,
+            source_id,
+            content,
+            extra,
+            is_read,
+            create_time
+        FROM notification
+        WHERE user_id = #{userId}
+        <if test="isRead != null">
+            AND is_read = #{isRead}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
     <!-- 统计用户未读通知数量 -->
     <select id="countUnread" resultType="java.lang.Integer">
         SELECT COUNT(*)

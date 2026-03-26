@@ -58,4 +58,19 @@ public interface CircleMemberDao extends BaseMapper<CircleMember> {
      * @return 影响行数
      */
     int updateLastReadTime(@Param("userId") Long userId, @Param("circleId") Long circleId);
+    
+    /**
+     * 查询圈子的所有成员 ID
+     */
+    List<Long> selectMemberIds(@Param("circleId") Long circleId);
+    
+    /**
+     * 查询圈子的管理员和圈主 ID 列表
+     */
+    List<Long> getAdminAndOwnerIds(@Param("circleId") Long circleId);
+    
+    /**
+     * 查询圈主 ID 列表
+     */
+    List<Long> getOwners(@Param("circleId") Long circleId);
 }

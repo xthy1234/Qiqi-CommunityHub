@@ -38,4 +38,24 @@ public interface ArticleEditSuggestionDao extends BaseMapper<ArticleEditSuggesti
      * @return 待审核数量
      */
     Integer countPendingSuggestions(@Param("articleId") Long articleId);
+
+    /**
+     * 查询用户提出的建议列表（按创建时间降序）
+     *
+     * @param proposerId 建议者 ID
+     * @param status 状态（可选）
+     * @return 建议列表
+     */
+    List<ArticleEditSuggestion> selectByProposerId(@Param("proposerId") Long proposerId,
+                                                   @Param("status") Integer status);
+
+    /**
+     * 查询用户的文章收到的建议列表（按创建时间降序）
+     *
+     * @param authorId 文章作者 ID
+     * @param status 状态（可选）
+     * @return 建议列表
+     */
+    List<ArticleEditSuggestion> selectByAuthorId(@Param("authorId") Long authorId,
+                                                 @Param("status") Integer status);
 }

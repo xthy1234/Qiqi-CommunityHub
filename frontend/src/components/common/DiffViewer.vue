@@ -21,10 +21,9 @@
           <Icon :icon="sourceIcon" width="16" />
           <span>{{ sourceTitle }}</span>
         </div>
-        <div
-          class="diff-content"
-          v-html="originalHtml"
-        ></div>
+        <div class="diff-text-content">
+          {{ sourceText }}
+        </div>
       </div>
 
       <div class="diff-divider"></div>
@@ -34,10 +33,9 @@
           <Icon :icon="targetIcon" width="16" />
           <span>{{ targetTitle }}</span>
         </div>
-        <div
-          class="diff-content"
-          v-html="modifiedHtml"
-        ></div>
+        <div class="diff-text-content">
+          {{ targetText }}
+        </div>
       </div>
     </div>
 
@@ -60,15 +58,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { NTag } from 'naive-ui'
-import { 
-  calculateDiff, 
-  renderDiffHtml, 
-  jsonToReadableText,
-  countDiffLines 
-} from '@/utils/articleDiff'
+import * as jsondiffpatch from 'jsondiffpatch'
+import { format } from 'jsondiffpatch/formatters/html'
 
 const props = withDefaults(defineProps<{
   sourceContent?: object
@@ -94,44 +88,97 @@ const props = withDefaults(defineProps<{
   showStats: true
 })
 
-const originalHtml = ref('')
-const modifiedHtml = ref('')
 const stats = ref({ added: 0, deleted: 0 })
+const delta = ref<any>(null)
 
-// 计算并渲染差异
-const computeAndRenderDiff = () => {
-  if (!props.sourceContent || !props.targetContent) {
-    originalHtml.value = '<p style="color: #999;">无内容</p>'
-    modifiedHtml.value = '<p style="color: #999;">无内容</p>'
+// 从 TipTap JSON 格式提取纯文本
+const extractTextFromDoc = (doc: any): string => {
+  if (!doc || !doc.content) return ''
+
+  const texts: string[] = []
+
+  const traverse = (node: any) => {
+    if (node.type === 'text' && node.text) {
+      texts.push(node.text)
+    } else if (node.content && Array.isArray(node.content)) {
+      node.content.forEach(traverse)
+    }
+  }
+
+  doc.content.forEach(traverse)
+  return texts.join('\n')
+}
+
+// 计算原文和修改后的文本
+const sourceText = computed(() => {
+  if (!props.sourceContent) return ''
+  return extractTextFromDoc(props.sourceContent)
+})
+
+const targetText = computed(() => {
+  if (!props.targetContent) return ''
+  return extractTextFromDoc(props.targetContent)
+})
+
+// 统计差异行数
+const countDiffLines = () => {
+  if (!delta.value) {
     stats.value = { added: 0, deleted: 0 }
     return
   }
 
-  try {
-    // 转换为可读文本
-    const sourceText = jsonToReadableText(props.sourceContent)
-    const targetText = jsonToReadableText(props.targetContent)
+  let added = 0
+  let deleted = 0
 
-    // 计算差异
-    const delta = calculateDiff(sourceText, targetText)
+  const traverse = (obj: any) => {
+    if (Array.isArray(obj) && obj.length === 2) {
+      // [oldValue, newValue]
+      const [oldVal, newVal] = obj
 
-    // 渲染 HTML
-    originalHtml.value = renderDiffHtml(delta, 'source')
-    modifiedHtml.value = renderDiffHtml(delta, 'target')
+      if (typeof oldVal === 'string') {
+        const oldLines = oldVal.split('\n').filter(l => l.trim()).length
+        if (oldLines > 0) deleted += oldLines
+      }
 
-    // 统计行数
-    const diffStats = countDiffLines(delta)
-    stats.value = diffStats
-  } catch (error) {
-    console.error('差异计算失败:', error)
-    originalHtml.value = '<p style="color: #f00;">差异计算失败</p>'
-    modifiedHtml.value = '<p style="color: #f00;">差异计算失败</p>'
+      if (typeof newVal === 'string') {
+        const newLines = newVal.split('\n').filter(l => l.trim()).length
+        if (newLines > 0) added += newLines
+      }
+    } else if (typeof obj === 'object' && obj !== null) {
+      Object.values(obj).forEach(traverse)
+    }
   }
+
+  traverse(delta.value)
+  stats.value = { added, deleted }
 }
 
+// 监听 source 和 target 的变化，计算差异
 watch(() => [props.sourceContent, props.targetContent], () => {
-  computeAndRenderDiff()
+  if (!props.sourceContent || !props.targetContent) {
+    stats.value = { added: 0, deleted: 0 }
+    delta.value = null
+    return
+  }
+
+  try {
+    // 计算差异
+    delta.value = jsondiffpatch.diff(props.sourceContent, props.targetContent)
+
+    if (!delta.value) {
+      // 无差异
+      stats.value = { added: 0, deleted: 0 }
+      return
+    }
+
+    // 统计行数
+    countDiffLines()
+  } catch (error) {
+    console.error('差异计算失败:', error)
+    stats.value = { added: 0, deleted: 0 }
+  }
 }, { immediate: true, deep: true })
+
 </script>
 
 <style lang="scss" scoped>
@@ -200,30 +247,7 @@ watch(() => [props.sourceContent, props.targetContent], () => {
       font-size: 13px;
       line-height: 1.8;
       color: #303133;
-
-      :deep(ins) {
-        background: #e6ffed;
-        color: #24292e;
-        text-decoration: none;
-        padding: 2px 6px;
-        border-radius: 4px;
-        display: inline-block;
-        margin: 2px 0;
-      }
-
-      :deep(del) {
-        background: #ffeef0;
-        color: #cb2431;
-        text-decoration: line-through;
-        padding: 2px 6px;
-        border-radius: 4px;
-        display: inline-block;
-        margin: 2px 0;
-      }
-
-      :deep(span) {
-        color: #606266;
-      }
+      white-space: pre-wrap;
     }
   }
 

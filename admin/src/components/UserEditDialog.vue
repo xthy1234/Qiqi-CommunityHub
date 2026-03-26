@@ -250,7 +250,7 @@ watch(() => props.visible, (val: boolean) => {
 
 const fetchRoles = async () => {
   try {
-    const response = await apiService.role.getAllRoles() as ApiResponse<any[]>
+    const response = await apiService.role.getAllRoles()
     if (response.data.code === 0 || response.data.code === 200) {
       roleOptions.value = (response.data.data || []).map((role: any) => ({
         label: role.roleName,

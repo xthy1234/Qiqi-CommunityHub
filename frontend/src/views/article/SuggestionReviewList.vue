@@ -426,7 +426,9 @@ const loadSuggestions = async () => {
   try {
     const params = {
       page: pagination.page,
-      limit: pagination.limit
+      limit: pagination.limit,
+      status: 0,
+      keyword: ''
     }
     
     if (currentStatus.value !== 'all') {

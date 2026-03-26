@@ -213,6 +213,16 @@ export class ArticleAPI {
   getPublishedById(id: number | string) {
     return http.get(`${this.publishedEndpoint}/${id}`)
   }
+
+  /**
+   * 更新文章编辑模式
+   * 接口：PUT /articles/{articleId}/edit-mode?editMode=0|1
+   */
+  updateEditMode(id: number | string, editMode: number) {
+    return http.put(`${this.endpoint}/${id}/edit-mode`, null, {
+      params: { editMode }
+    })
+  }
 }
 
 // 导出单例

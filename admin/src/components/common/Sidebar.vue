@@ -158,6 +158,12 @@ const menuOptions = computed<MenuOption[]>(() => {
       click: () => navigateToRoute('/users')
     },
     {
+      label: '文章管理',
+      key: 'articles',
+      icon: renderIcon('ri:article-line'),
+      click: () => navigateToRoute('/articles')
+    },
+    {
       label: '评论管理',
       key: 'comments',
       icon: renderIcon('ri:chat-3-line'),

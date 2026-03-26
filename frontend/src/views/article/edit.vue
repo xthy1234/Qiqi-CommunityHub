@@ -55,22 +55,6 @@
         <RichTextEditor v-model="formData.content" />
       </n-form-item>
 
-      <!-- 发布时间（可选） -->
-      <n-form-item
-        label="发布时间"
-        path="publishTime"
-      >
-        <n-date-picker
-          v-model:value="formData.publishTime"
-          type="datetime"
-          placeholder="选择发布时间"
-          format="yyyy-MM-dd HH:mm:ss"
-          value-format="yyyy-MM-dd HH:mm:ss"
-          style="width: 100%"
-          clearable
-          :default-value="null"
-        />
-      </n-form-item>
 
       <!-- 操作按钮 -->
       <div class="form-actions">
@@ -158,16 +142,12 @@ const formData = reactive({
   title: '',
   categoryId: '',
   coverUrl: '',
-  content: { type: 'doc', content: [] },
-  publishTime: undefined as string | undefined | null
+  content: { type: 'doc', content: [] }
 })
 
 // 监听文章内容变化
 watch(() => formData.content, (newVal:object) => {
-  // console.log('=== formData.content 变化 ===')
-  // console.log('新值:', JSON.stringify(newVal, null, 2))
-  // console.log('类型:', typeof newVal)
-  // console.log('是否为对象:', typeof newVal === 'object')
+
 }, { deep: true })
 
 const categorySelectOptions = computed(() => {
@@ -384,8 +364,7 @@ const loadArticleDetail = async () => {
         title: data.title || '',
         categoryId: String(data.categoryId) || '',
         coverUrl: data.coverUrl || '',
-        content: contentJson,
-        publishTime: data.publishTime || null
+        content: contentJson
       })
     }
   } catch (error) {
@@ -418,8 +397,7 @@ const loadDraftDetail = async () => {
         title: data.title || '',
         categoryId: String(data.categoryId) || '',
         coverUrl: data.coverUrl || '',
-        content: contentJson,
-        publishTime: data.publishTime || null
+        content: contentJson
       })
     }
   } catch (error) {

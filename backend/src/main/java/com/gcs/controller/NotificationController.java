@@ -179,6 +179,18 @@ public class NotificationController {
         vo.setType(notification.getType());
         vo.setSourceId(notification.getSourceId());
         vo.setContent(notification.getContent());
+        
+        // 🔍 添加调试日志
+        log.info("🔄 [转换 VO] notificationId: {}, extra: {}", notification.getId(), notification.getExtra());
+        if (notification.getExtra() instanceof Map) {
+            Map<?, ?> extraMap = (Map<?, ?>) notification.getExtra();
+            log.info("   - extra 是 Map，包含 keys: {}", extraMap.keySet());
+            Object liker = extraMap.get("liker");
+            if (liker instanceof Map) {
+                log.info("   - liker 信息：{}", liker);
+            }
+        }
+        
         vo.setExtra(notification.getExtra());
         vo.setIsRead(notification.getIsRead());
         vo.setCreateTime(notification.getCreateTime());
@@ -195,10 +207,6 @@ public class NotificationController {
     }
 
     private Long getCurrentUserId(HttpServletRequest request) {
-        String userIdStr = (String) request.getSession().getAttribute("userId");
-        if (userIdStr == null) {
-            return null;
-        }
-        return Long.parseLong(userIdStr);
+        return (Long) request.getSession().getAttribute("userId");
     }
 }

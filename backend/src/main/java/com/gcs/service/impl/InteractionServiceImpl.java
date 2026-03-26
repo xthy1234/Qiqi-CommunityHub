@@ -27,6 +27,16 @@ import com.gcs.service.InteractionService;
 import com.gcs.entity.view.InteractionView;
 import com.gcs.service.ArticleService;
 import com.gcs.service.CommentService;
+import com.gcs.service.NotificationService;
+import com.gcs.dao.ArticleDao;
+import com.gcs.dao.CommentDao;
+import com.gcs.dao.UserDao;
+import com.gcs.entity.Article;
+import com.gcs.entity.Comment;
+import com.gcs.entity.User;
+import com.gcs.enums.NotificationType;
+import com.gcs.utils.NotificationBuilder;
+import com.gcs.vo.UserSimpleVO;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -47,6 +57,18 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
 
     @Autowired
     private CommentService commentService;
+    
+    @Autowired
+    private NotificationService notificationService;
+    
+    @Autowired
+    private ArticleDao articleDao;
+    
+    @Autowired
+    private CommentDao commentDao;
+    
+    @Autowired
+    private UserDao userDao;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -120,7 +142,7 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
                             // 状态从无效变为有效，增加相应的计数
                             updateContentLikeCount(existing.getContentId(), existing.getTableName(), 
                                                  existing.getActionType(), +1);
-                            
+
                             log.info("重新激活互动记录：userId={}, contentId={}, actionType={}", 
                                     interaction.getUserId(), interaction.getContentId(), interaction.getActionType());
                         }
@@ -141,6 +163,8 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
             // 新创建的有效记录，增加相应的计数
             updateContentLikeCount(interaction.getContentId(), interaction.getTableName(), 
                                  interaction.getActionType(), +1);
+
+            sendLikeNotification(interaction);
             
             log.info("创建新的互动记录：userId={}, contentId={}, actionType={}", 
                     interaction.getUserId(), interaction.getContentId(), interaction.getActionType());
@@ -428,6 +452,96 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
         }
         if (interaction.getTableName()==null) {
             throw new IllegalArgumentException("表名不能为空");
+        }
+    }
+    
+    /**
+     * 发送点赞通知
+     */
+    private void sendLikeNotification(Interaction interaction) {
+        try {
+            // 只处理点赞操作
+            if (interaction.getActionType() != InteractionActionType.LIKE) {
+                return;
+            }
+            
+            Long targetUserId = null;
+            UserSimpleVO likerVO = null;
+            
+            // 获取点赞者信息
+            User liker = userDao.selectById(interaction.getUserId());
+            if (liker == null) {
+                log.warn("点赞用户不存在，userId: {}", interaction.getUserId());
+                return;
+            }
+            
+            likerVO = new UserSimpleVO();
+            likerVO.setId(liker.getId());
+            likerVO.setNickname(liker.getNickname());
+            likerVO.setAvatar(liker.getAvatar());
+            likerVO.setLastOnlineTime(liker.getLastOnlineTime());
+            
+            // 根据内容类型确定通知对象
+            if (interaction.getTableName() == com.gcs.enums.ContentType.ARTICLE) {
+                // 点赞文章
+                Article article = articleDao.selectById(interaction.getContentId());
+                if (article == null || article.getAuthorId().equals(interaction.getUserId())) {
+                    return; // 文章不存在或点赞自己，不发送通知
+                }
+                
+                targetUserId = article.getAuthorId();
+                
+                Map<String, Object> extra = NotificationBuilder.buildLikeNotification(
+                    "article",
+                    interaction.getContentId(),
+                    null,
+                    likerVO
+                );
+                
+                notificationService.createNotification(
+                    targetUserId,
+                    NotificationType.LIKE.getCode(),
+                    interaction.getId(),
+                    null,
+                    extra
+                );
+                
+                log.info("发送文章点赞通知，articleId: {}, authorId: {}", interaction.getContentId(), targetUserId);
+                
+            } else if (interaction.getTableName() == com.gcs.enums.ContentType.COMMENT) {
+                // 点赞评论
+                Comment comment = commentDao.selectById(interaction.getContentId());
+                if (comment == null || comment.getUserId().equals(interaction.getUserId())) {
+                    return; // 评论不存在或点赞自己，不发送通知
+                }
+                
+                targetUserId = comment.getUserId();
+                
+                // 需要找到评论所属的文章 ID
+                Article article = articleDao.selectById(comment.getContentId());
+                Long articleId = article != null ? article.getId() : null;
+                
+                Map<String, Object> extra = NotificationBuilder.buildLikeNotification(
+                    "comment",
+                    articleId,
+                    interaction.getContentId(),
+                    likerVO
+                );
+                
+                notificationService.createNotification(
+                    targetUserId,
+                    NotificationType.LIKE.getCode(),
+                    interaction.getId(),
+                    null,
+                    extra
+                );
+                
+                log.info("发送评论点赞通知，commentId: {}, authorId: {}", interaction.getContentId(), targetUserId);
+            }
+            
+        } catch (Exception e) {
+            log.error("发送点赞通知失败，interactionId: {}", interaction.getId(), e);
+            // 不抛出异常，避免影响互动记录创建
         }
     }
 }

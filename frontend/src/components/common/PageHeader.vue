@@ -33,7 +33,7 @@ import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 
 const props = withDefaults(defineProps<{
-  title: string
+  title?: string
   showBack?: boolean
   showHeader?: boolean
   backText?: string

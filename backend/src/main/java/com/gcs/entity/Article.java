@@ -90,9 +90,9 @@ public class Article implements Serializable {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> extra;
     /**
-     * 发布时间
+     * 发布时间（仅在审核通过时填充）
      */
-    @Schema(description = "发布时间", example = "2026-01-01")
+    @Schema(description = "发布时间（审核通过后自动生成）", example = "2026-01-01")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date publishTime;
@@ -154,18 +154,18 @@ public class Article implements Serializable {
     private Boolean deleted = false;
     
     /**
-     * 创建时间
+     * 创建时间（系统自动生成）
      */
-    @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
+    @Schema(description = "创建时间（系统自动生成）", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 更新时间（系统自动生成）
      */
-    @Schema(description = "更新时间", example = "2026-01-01 12:00:00")
+    @Schema(description = "更新时间（系统自动生成）", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(fill = FieldFill.INSERT_UPDATE)

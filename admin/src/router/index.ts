@@ -58,6 +58,12 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/comment/list.vue'),
         meta: { title: '评论管理' }
       },
+      // 文章管理
+      {
+        path: 'articles',
+        component: () => import('@/views/article/list.vue'),
+        meta: { title: '文章管理' }
+      },
       // 个人中心
       {
         path: 'profile',

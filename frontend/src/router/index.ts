@@ -41,6 +41,9 @@ import ChatView from '@/views/message/chat.vue'
 import CircleChatView from '@/views/circle-chat/circle-chat.vue'
 import CircleEditorView from '@/views/circle/CircleEditor.vue'
 
+// 通知中心
+import NotificationsView from '@/views/notification/Notifications.vue'
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
@@ -231,6 +234,19 @@ const routes: Array<RouteRecordRaw> = [
         path: 'index/chat/:userId',
         component: ChatView,
         meta: { title: '私信聊天' }
+      },
+
+      // 通知中心
+      {
+        path: 'notifications',
+        component: NotificationsView,
+        meta: { title: '通知中心' }
+      },
+      // 兼容带 /index 前缀的通知中心路径
+      {
+        path: 'index/notifications',
+        component: NotificationsView,
+        meta: { title: '通知中心' }
       },
 
       // 圈子聊天

@@ -58,9 +58,9 @@
           <div class="editor-container">
             <RichTextEditor
               ref="editorRef"
-              v-model:content="formData.content"
+              v-model="formData.content"
               :editable="true"
-              :placeholder="请基于原文内容进行修改"
+              placeholder="请基于原文内容进行修改"
               height="500px"
             />
           </div>
@@ -121,6 +121,10 @@ import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 import DiffViewer from '@/components/common/DiffViewer.vue'
 import { articleAPI } from '@/api/article'
 import { articleSuggestionAPI } from '@/api/articleSuggestion'
+import {
+  NAlert, NTag, NForm, NFormItem, NInput, NButton, NSpace,
+  NCollapse, NCollapseItem
+} from 'naive-ui'
 
 const router = useRouter()
 const route = useRoute()
@@ -133,11 +137,12 @@ const submitting = ref(false)
 const articleInfo = ref<any>(null)
 const originalContent = ref<object>({})
 
+
 // 表单数据
 const formData = reactive({
   title: '',
   changeSummary: '',
-  content: {} as object
+  content: { type: 'doc', content: [] } as object
 })
 
 // 表单验证规则
@@ -151,7 +156,19 @@ const formRules: FormRules = {
 
 // 是否有修改
 const hasChanges = computed(() => {
-  return JSON.stringify(originalContent.value) !== JSON.stringify(formData.content)
+  const originalJson = JSON.stringify(originalContent.value)
+  const currentJson = JSON.stringify(formData.content)
+  const isDifferent = originalJson !== currentJson
+
+  console.log('🔍 原文内容:', originalContent.value)
+  console.log('🔍 当前内容:', formData.content)
+  console.log('🔍 JSON 对比:', {
+    originalLength: originalJson.length,
+    currentLength: currentJson.length,
+    isDifferent
+  })
+
+  return isDifferent
 })
 
 /**
@@ -159,23 +176,33 @@ const hasChanges = computed(() => {
  */
 const loadArticleContent = async () => {
   const articleId = route.params.articleId as string
-  
+  console.log('🔍 路由参数类型:', typeof route.params.articleId)
+  console.log('🔍 路由参数值:', route.params.articleId)
+  console.log('🔍 转换后的 articleId:', articleId)
+
   if (!articleId) {
     message.error('缺少文章 ID 参数')
+    console.error('❌ articleId 为空:', articleId)
     return
   }
 
   try {
+    console.log('✅ 开始调用 API 获取文章:', articleId)
     const response = await articleAPI.getById(articleId)
+    console.log('✅ API 响应:', response)
     articleInfo.value = response.data.data
     
     // 保存原始内容用于对比
-    originalContent.value = response.data.data.content || {}
+    const originalData = response.data.data.content || { type: 'doc', content: [] }
+    originalContent.value = originalData
     
-    // 加载内容为编辑器初始值
-    formData.content = JSON.parse(JSON.stringify(originalContent.value))
+    // 加载内容为编辑器初始值（深拷贝）
+    formData.content = JSON.parse(JSON.stringify(originalData))
+
+    console.log('✅ 文章加载成功:', articleInfo.value?.title)
+    console.log('✅ 文章内容:', formData.content)
   } catch (error) {
-    console.error('加载文章内容失败:', error)
+    console.error('❌ 加载文章内容失败:', error)
     message.error('加载文章内容失败')
   }
 }
@@ -195,6 +222,18 @@ const handleSubmit = async () => {
     
     if (!articleId) {
       message.error('缺少文章 ID 参数')
+      return
+    }
+
+    // 手动检查内容是否为空（解决 Tiptap 内容变化不触发验证的问题）
+    const isEmptyContent = !formData.content ||
+      !formData.content.content ||
+      formData.content.content.length === 0 ||
+      (formData.content.content.length === 1 &&
+       !formData.content.content[0]?.content)
+
+    if (isEmptyContent) {
+      message.warning('请输入文章内容')
       return
     }
 
@@ -229,7 +268,7 @@ const handleSubmit = async () => {
  * 取消操作
  */
 const handleCancel = () => {
-  const articleId = route.params.articleId as string
+  const articleId = route.query.articleId as string
   if (articleId) {
     router.push(`/index/articleDetail?id=${articleId}`)
   } else {

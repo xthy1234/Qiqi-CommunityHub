@@ -77,7 +77,10 @@ interface ApiResponse<T = any> {
 
 interface PageResponse<T> {
   list: T[]
-  total: number
+  totalCount: number
+  pageSize: number
+  totalPage: number
+  currPage: number
 }
 
 interface UserItem {
@@ -169,16 +172,17 @@ const columns: DataTableColumns = [
     title: '性别',
     key: 'gender',
     width: 80,
-    render: (row, index) => {
-      const rowData = row as UserItem
+    render: (row) => {
+      const rowData = row as unknown as UserItem
       const genderMap: Record<number, string> = {
         0: '保密',
         1: '男',
         2: '女'
       }
       return h(NTag, {
-        type: 'info',
-        content: genderMap[rowData.gender] || '未知'
+        type: 'info'
+      }, {
+        default: () => genderMap[rowData.gender] || '未知'
       })
     }
   },
@@ -186,11 +190,12 @@ const columns: DataTableColumns = [
     title: '角色',
     key: 'roleName',
     width: 120,
-    render: (row, index) => {
-      const rowData = row as UserItem
+    render: (row) => {
+      const rowData = row as unknown as UserItem
       return h(NTag, {
-        type: rowData.roleName === '管理员' ? 'success' : 'info',
-        content: rowData.roleName || '普通用户'
+        type: rowData.roleName === '管理员' ? 'success' : 'info'
+      }, {
+        default: () => rowData.roleName
       })
     }
   },
@@ -198,11 +203,12 @@ const columns: DataTableColumns = [
     title: '状态',
     key: 'status',
     width: 100,
-    render: (row, index) => {
-      const rowData = row as UserItem
+    render: (row) => {
+      const rowData = row as unknown as UserItem
       return h(NTag, {
-        type: rowData.status === 'ENABLED' ? 'success' : 'error',
-        content: rowData.status === 'ENABLED' ? '启用' : '禁用'
+        type: rowData.status === 'ENABLED' ? 'success' : 'error'
+      }, {
+        default: () => rowData.status === 'ENABLED' ? '启用' : '禁用'
       })
     }
   },
@@ -219,8 +225,8 @@ const columns: DataTableColumns = [
     key: 'actions',
     width: 200,
     fixed: 'right',
-    render: (row, index) => {
-      const rowData = row as UserItem
+    render: (row) => {
+      const rowData = row as unknown as UserItem
       return h(NSpace, {}, {
         default: () => [
           h(NButton, {
@@ -254,13 +260,12 @@ const loadData = async () => {
       ...searchForm.value
     }
 
-    const response = await apiService.user.getUserList(params) as ApiResponse<PageResponse<UserItem>>
+    const response = await apiService.user.getUserList(params)
 
     if (response.data.code === 0 || response.data.code === 200) {
-      tableData.value = response.data.data?.list || []
-      pagination.itemCount = response.data.data?.total || 0
+      tableData.value = response.data.data.list || []
+      pagination.itemCount = response.data.data.totalCount || 0
     } else if (response.data.code === 401) {
-      // 未授权，跳转到登录页
       message.error('请先登录')
       setTimeout(() => {
         router.push('/login')
@@ -270,7 +275,6 @@ const loadData = async () => {
     }
   } catch (error: any) {
     console.error('获取用户列表失败:', error)
-    // 如果是 401 错误，跳转到登录页
     if (error.response?.status === 401) {
       message.error('请先登录')
       setTimeout(() => {

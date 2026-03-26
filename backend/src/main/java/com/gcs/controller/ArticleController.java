@@ -279,36 +279,32 @@ public class ArticleController {
             return R.error("获取详情失败");
         }
     }
-    
+
     /**
      * 创建文章草稿（简化版，只需要标题和内容，必须登录）
      */
     @Operation(summary = "创建文章草稿", description = "创建草稿文章，只需要标题和内容，其他信息可后续完善。需要登录后使用。")
     @PostMapping("/draft")
-    public R createDraft(@Valid @RequestBody ArticleDraftDTO draftDTO, 
-                        HttpServletRequest request) {
+    public R createDraft(@Valid @RequestBody ArticleDraftDTO draftDTO,
+                         HttpServletRequest request) {
         try {
             // 从 Session 获取作者 ID（必须登录）
             String authorIdStr = getSessionAttribute(request, "userId");
             if (authorIdStr == null) {
                 return R.error("请先登录后再发布文章");
             }
-            
+
             Article article = convertToEntityFromDraft(draftDTO);
-            
+
             // 设置作者 ID
             article.setAuthorId(Long.parseLong(authorIdStr));
-            
+
             prepareArticleForSave(article);
             // 设置为待审核状态（0）
             article.setAuditStatus(AuditStatus.PENDING);
-            // 设置默认发布时间为当前时间
-            if (article.getPublishTime() == null) {
-                article.setPublishTime(new Date());
-            }
-            
+
             articleService.save(article);
-            
+
             log.info("草稿创建成功，ID: {}, 作者 ID: {}", article.getId(), article.getAuthorId());
             return R.ok().put("id", article.getId());
         } catch (Exception e) {
@@ -316,6 +312,7 @@ public class ArticleController {
             return R.error("创建草稿失败：" + e.getMessage());
         }
     }
+
 
     /**
      * 更新文章草稿（完善草稿信息）
@@ -364,28 +361,28 @@ public class ArticleController {
     @PostMapping("/draft/{id}/submit")
     @Transactional
     public R submitDraft(@PathVariable("id") Long id,
-                        HttpServletRequest request) {
+                         HttpServletRequest request) {
         try {
             Article article = articleService.getById(id);
             if (article == null) {
                 return R.error("文章不存在");
             }
-            
+
             // 验证作者权限
             String authorIdStr = getSessionAttribute(request, "userId");
             if (authorIdStr == null || !article.getAuthorId().equals(Long.parseLong(authorIdStr))) {
                 return R.error("无权限操作此文章");
             }
-            
+
             // 检查是否已提交过
             if (article.getAuditStatus() != null && article.getAuditStatus() != AuditStatus.PENDING) {
                 return R.error("文章已审核，无法重复提交");
             }
-            
+
             // 设置为待审核状态
             article.setAuditStatus(AuditStatus.PENDING);
             articleService.updateById(article);
-            
+
             log.info("草稿提交审核成功，ID: {}", id);
             return R.ok();
         } catch (Exception e) {
@@ -393,6 +390,75 @@ public class ArticleController {
             return R.error("提交审核失败");
         }
     }
+
+
+    /**
+     * 创建文章
+     */
+    @PostMapping
+    public R createArticle(@Valid @RequestBody ArticleCreateDTO createDTO,
+                           HttpServletRequest request) {
+        try {
+            // 从 Session 获取作者 ID（必须登录）
+            String authorIdStr = getSessionAttribute(request, "userId");
+            if (authorIdStr == null) {
+                return R.error("请先登录后再发布文章");
+            }
+
+            Article article = convertToEntity(createDTO);
+
+            // 设置作者 ID
+            article.setAuthorId(Long.parseLong(authorIdStr));
+
+            prepareArticleForSave(article);
+
+            articleService.save(article);
+
+            log.info("文章创建成功，ID: {}, 作者 ID: {}", article.getId(), article.getAuthorId());
+            return R.ok().put("id", article.getId());
+        } catch (Exception e) {
+            log.error("保存帖子失败", e);
+            return R.error("保存失败");
+        }
+    }
+
+
+    /**
+     * 批量审核帖子
+     */
+    @PostMapping("/batch-audit")
+    @Transactional
+    public R batchAudit(@RequestBody Long[] ids,
+                        @RequestParam Integer status,
+                        @RequestParam(required = false) String reply) {
+        try {
+            AuditStatus auditStatus = AuditStatus.valueOf(status);
+
+            List<Article> articles = new ArrayList<>();
+            for (Long id : ids) {
+                Article article = articleService.getById(id);
+                if (article != null) {
+                    article.setAuditStatus(auditStatus);
+                    article.setAuditReply(reply);
+
+                    // 审核通过时，如果 publishTime 为空，则设置为当前时间
+                    if (auditStatus == AuditStatus.APPROVED && article.getPublishTime() == null) {
+                        article.setPublishTime(new Date());
+                    }
+
+                    articles.add(article);
+                }
+            }
+            articleService.updateBatchById(articles);
+            return R.ok();
+        } catch (Exception e) {
+            log.error("批量审核失败", e);
+            return R.error("审核失败");
+        }
+    }
+
+
+
 
     /**
      * 根据 ID 获取草稿详情
@@ -418,40 +484,6 @@ public class ArticleController {
         } catch (Exception e) {
             log.error("获取草稿详情失败，ID: {}", id, e);
             return R.error("获取详情失败");
-        }
-    }
-
-    /**
-     * 创建文章
-     */
-    @PostMapping
-    public R createArticle(@Valid @RequestBody ArticleCreateDTO createDTO, 
-                         HttpServletRequest request) {
-        try {
-            // 从 Session 获取作者 ID（必须登录）
-            String authorIdStr = getSessionAttribute(request, "userId");
-            if (authorIdStr == null) {
-                return R.error("请先登录后再发布文章");
-            }
-            
-            Article article = convertToEntity(createDTO);
-            
-            // 设置作者 ID
-            article.setAuthorId(Long.parseLong(authorIdStr));
-            
-            prepareArticleForSave(article);
-            // 设置默认发布时间为当前时间
-            if (article.getPublishTime() == null) {
-                article.setPublishTime(new Date());
-            }
-            
-            articleService.save(article);
-            
-            log.info("文章创建成功，ID: {}, 作者 ID: {}", article.getId(), article.getAuthorId());
-            return R.ok().put("id", article.getId());
-        } catch (Exception e) {
-            log.error("保存帖子失败", e);
-            return R.error("保存失败");
         }
     }
 
@@ -501,35 +533,6 @@ public class ArticleController {
             return R.error("修改失败");
         }
     }
-
-    /**
-     * 批量审核帖子
-     */
-    @PostMapping("/batch-audit")
-    @Transactional
-    public R batchAudit(@RequestBody Long[] ids, 
-                        @RequestParam Integer status,
-                        @RequestParam(required = false) String reply) {
-        try {
-            AuditStatus auditStatus = AuditStatus.valueOf(status);
-
-            List<Article> articles = new ArrayList<>();
-            for (Long id : ids) {
-                Article article = articleService.getById(id);
-                if (article != null) {
-                    article.setAuditStatus(auditStatus);
-                    article.setAuditReply(reply);
-                    articles.add(article);
-                }
-            }
-            articleService.updateBatchById(articles);
-            return R.ok();
-        } catch (Exception e) {
-            log.error("批量审核失败", e);
-            return R.error("审核失败");
-        }
-    }
-
     /**
      * 批量删除文章（统一接口）
      * 自动判断每篇文章的状态和权限
@@ -818,14 +821,6 @@ public class ArticleController {
 
 
 
-
-
-
-
-
-    // ... existing code ...
-
-
 // ==================== 版本控制相关接口 ====================
 
 /**
@@ -1099,6 +1094,85 @@ public R getContributors(@PathVariable Long articleId) {
     }
 }
 
+
+
+    /**
+     * 获取我提出的建议列表
+     */
+    @Operation(summary = "获取我提出的建议列表", description = "查询当前用户向所有文章提出的修改建议（分页）")
+    @GetMapping("/suggestions/proposed-by-me")
+    public R getSuggestionsProposedByMe(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            HttpServletRequest request) {
+        try {
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+
+            var suggestionPage = articleEditSuggestionService.getSuggestionsByProposer(
+                    currentUserId, status, page, limit);
+
+            List<ArticleSuggestionVO> voList = suggestionPage.getRecords().stream()
+                    .map(this::convertToSuggestionVO)
+                    .collect(Collectors.toList());
+
+            PageUtils pageUtils = new PageUtils(suggestionPage);
+            pageUtils.setList(voList);
+
+            return R.ok().put("data", pageUtils);
+        } catch (Exception e) {
+            log.error("获取我提出的建议列表失败", e);
+            return R.error("获取建议列表失败");
+        }
+    }
+
+    /**
+     * 获取我的文章收到的建议列表
+     */
+    @Operation(summary = "获取我的文章收到的建议列表", description = "查询当前用户的文章收到的所有修改建议（分页）")
+    @GetMapping("/suggestions/received-by-me")
+    public R getSuggestionsReceivedByMe(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            HttpServletRequest request) {
+        try {
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+
+            var suggestionPage = articleEditSuggestionService.getSuggestionsByAuthor(
+                    currentUserId, status, page, limit);
+
+            List<ArticleSuggestionVO> voList = suggestionPage.getRecords().stream()
+                    .map(this::convertToSuggestionVO)
+                    .collect(Collectors.toList());
+
+            PageUtils pageUtils = new PageUtils(suggestionPage);
+            pageUtils.setList(voList);
+
+            return R.ok().put("data", pageUtils);
+        } catch (Exception e) {
+            log.error("获取我的文章收到的建议列表失败", e);
+            return R.error("获取建议列表失败");
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 // ==================== 辅助方法 ====================
 
 private ArticleVersionVO convertToVersionVO(ArticleVersion version) {
@@ -1136,7 +1210,7 @@ private ArticleSuggestionVO convertToSuggestionVO(ArticleEditSuggestion suggesti
     return vo;
 }
 
-// ... existing code ...
+
 
 
 
@@ -1173,7 +1247,7 @@ private ArticleSuggestionVO convertToSuggestionVO(ArticleEditSuggestion suggesti
         // 如果 publishTime 为空，则使用 createTime
         vo.setPublishTime(articleView.getPublishTime() != null ? articleView.getPublishTime() : java.util.Date.from(articleView.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
         
-        vo.setAuditStatus(articleView.getAuditStatus());
+        vo.setAuditStatus(articleView.getAuditStatus().getCode());
         vo.setCreateTime(articleView.getCreateTime());
         return vo;
     }
@@ -1205,7 +1279,7 @@ private ArticleSuggestionVO convertToSuggestionVO(ArticleEditSuggestion suggesti
         // 如果 publishTime 为空，则使用 createTime
         vo.setPublishTime(article.getPublishTime() != null ? article.getPublishTime() : java.util.Date.from(article.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
         
-        vo.setAuditStatus(article.getAuditStatus());
+        vo.setAuditStatus(article.getAuditStatus().getCode());
         vo.setCreateTime(article.getCreateTime());
         return vo;
     }
@@ -1249,16 +1323,19 @@ private ArticleSuggestionVO convertToSuggestionVO(ArticleEditSuggestion suggesti
        vo.setLikeCount(article.getLikeCount());
        vo.setDislikeCount(article.getDislikeCount());
        vo.setViewCount(article.getViewCount());
-       
-       // 如果 publishTime 为空，则使用 createTime
+       vo.setShareCount(article.getShareCount());
+       vo.setCommentCount(article.getCommentCount());
+
+      // 如果 publishTime 为空，则使用 createTime
        vo.setPublishTime(article.getPublishTime() != null ? article.getPublishTime() : java.util.Date.from(article.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
        
-       vo.setAuditStatus(article.getAuditStatus());
+       vo.setAuditStatus(article.getAuditStatus().getCode());
        vo.setCreateTime(article.getCreateTime());
        vo.setContent(article.getContent());
        vo.setAttachment(article.getAttachment());
        vo.setFavoriteCount(article.getFavoriteCount());
        vo.setAuditReply(article.getAuditReply());
+       vo.setEditMode(article.getEditMode());
        if (article.getUpdateTime() != null) {
            vo.setUpdateTime(article.getUpdateTime().toString());
        }
@@ -1324,6 +1401,14 @@ private ArticleSuggestionVO convertToSuggestionVO(ArticleEditSuggestion suggesti
         // 确保 publish_time 有值
         if (article.getPublishTime() == null) {
             article.setPublishTime(new Date());
+        }
+        if (article.getEditMode() == null) {
+            article.setEditMode(0);
+        }
+
+        // 如果 auditReply 为空，初始化为空字符串
+        if (article.getAuditReply() == null) {
+            article.setAuditReply("");
         }
     }
 

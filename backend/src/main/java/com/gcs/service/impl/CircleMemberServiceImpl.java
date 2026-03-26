@@ -9,7 +9,13 @@ import com.gcs.entity.CircleMember;
 import com.gcs.entity.User;
 import com.gcs.enums.CommonStatus;
 import com.gcs.service.CircleMemberService;
+import com.gcs.service.NotificationService;
+import com.gcs.dao.CircleDao;
+import com.gcs.entity.Circle;
+import com.gcs.enums.NotificationType;
+import com.gcs.utils.NotificationBuilder;
 import com.gcs.vo.CircleMemberVO;
+import com.gcs.vo.UserSimpleVO;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.enums.CircleMemberRole;
@@ -41,6 +47,12 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
 
     @Autowired
     private UserDao userDao;
+    
+    @Autowired
+    private NotificationService notificationService;
+    
+    @Autowired
+    private CircleDao circleDao;
 
     @Override
     @Transactional
@@ -61,6 +73,9 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
 
             this.save(member);
             log.info("用户{}加入圈子{}", userId, circleId);
+            
+            // 📢 发送通知给新成员（欢迎）和其他成员
+            sendMemberJoinNotifications(circleId, userId, role);
         } catch (Exception e) {
             log.error("添加圈子成员失败，circleId: {}, userId: {}", circleId, userId, e);
             throw new RuntimeException("添加成员失败：" + e.getMessage());
@@ -71,12 +86,19 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
     @Transactional
     public void removeMember(Long circleId, Long userId) {
         try {
+            // 先查询成员信息，用于发送通知
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
                     .eq(CircleMember::getUserId, userId);
-
+            CircleMember member = this.getOne(queryWrapper);
+            
             this.remove(queryWrapper);
             log.info("用户{}被移除出圈子{}", userId, circleId);
+            
+            // 📢 发送被移出圈子的通知
+            if (member != null) {
+                sendCircleRemovedNotification(circleId, userId);
+            }
         } catch (Exception e) {
             log.error("移除圈子成员失败，circleId: {}, userId: {}", circleId, userId, e);
             throw new RuntimeException("移除成员失败：" + e.getMessage());
@@ -259,6 +281,9 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             this.updateById(member);
 
             log.info("用户{}退出圈子{}", userId, circleId);
+            
+            // 📢 发送成员退出通知给圈主和管理员
+            sendMemberQuitNotification(circleId, userId);
         } catch (Exception e) {
             log.error("退出圈子失败，circleId: {}, userId: {}", circleId, userId, e);
             throw new RuntimeException("退出圈子失败：" + e.getMessage());
@@ -304,6 +329,162 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             case 1: return "管理员";
             case 2: return "圈主";
             default: return "未知";
+        }
+    }
+    
+    /**
+     * 发送新成员加入通知给圈主和管理员
+     */
+    private void sendMemberJoinNotifications(Long circleId, Long newMemberId, Integer role) {
+        try {
+            // 查询圈子信息
+            Circle circle = circleDao.selectById(circleId);
+            if (circle == null) {
+                log.warn("圈子不存在，circleId: {}", circleId);
+                return;
+            }
+            
+            // 查询新成员信息
+            User newMember = userDao.selectById(newMemberId);
+            if (newMember == null) {
+                log.warn("新成员不存在，userId: {}", newMemberId);
+                return;
+            }
+            
+            UserSimpleVO newMemberVO = new UserSimpleVO();
+            newMemberVO.setId(newMember.getId());
+            newMemberVO.setNickname(newMember.getNickname());
+            newMemberVO.setAvatar(newMember.getAvatar());
+            newMemberVO.setLastOnlineTime(newMember.getLastOnlineTime());
+            
+            // 查询圈主和管理员
+            List<Long> adminIds = circleMemberDao.getAdminAndOwnerIds(circleId);
+            
+            for (Long adminId : adminIds) {
+                // 不通知自己
+                if (adminId.equals(newMemberId)) {
+                    continue;
+                }
+                
+                Map<String, Object> extra = NotificationBuilder.buildMemberJoinNotification(
+                    circleId,
+                    circle.getName(),
+                    newMemberVO
+                );
+                
+                notificationService.createNotification(
+                    adminId,
+                    NotificationType.MEMBER_JOIN.getCode(),
+                    circleId,
+                    null,
+                    extra
+                );
+            }
+            
+            log.info("发送新成员加入通知，circleId: {}, newMemberId: {}", circleId, newMemberId);
+            
+        } catch (Exception e) {
+            log.error("发送新成员加入通知失败，circleId: {}, memberId: {}", circleId, newMemberId, e);
+        }
+    }
+    
+    /**
+     * 发送被移出圈子的通知
+     */
+    private void sendCircleRemovedNotification(Long circleId, Long removedUserId) {
+        try {
+            // 查询圈子信息
+            Circle circle = circleDao.selectById(circleId);
+            if (circle == null) {
+                log.warn("圈子不存在，circleId: {}", circleId);
+                return;
+            }
+            
+            // 查询操作人（当前登录用户，这里需要根据实际情况获取）
+            // 暂时设置为圈主
+            List<Long> owners = circleMemberDao.getOwners(circleId);
+            Long operatorId = owners.isEmpty() ? null : owners.get(0);
+            
+            UserSimpleVO operatorVO = null;
+            if (operatorId != null) {
+                User operator = userDao.selectById(operatorId);
+                if (operator != null) {
+                    operatorVO = new UserSimpleVO();
+                    operatorVO.setId(operator.getId());
+                    operatorVO.setNickname(operator.getNickname());
+                    operatorVO.setAvatar(operator.getAvatar());
+                    operatorVO.setLastOnlineTime(operator.getLastOnlineTime());
+                }
+            }
+            
+            Map<String, Object> extra = NotificationBuilder.buildCircleRemovedNotification(
+                circleId,
+                circle.getName(),
+                operatorVO
+            );
+            
+            notificationService.createNotification(
+                removedUserId,
+                NotificationType.CIRCLE_REMOVED.getCode(),
+                circleId,
+                null,
+                extra
+            );
+            
+            log.info("发送被移出圈子通知，circleId: {}, removedUserId: {}", circleId, removedUserId);
+            
+        } catch (Exception e) {
+            log.error("发送被移出圈子通知失败，circleId: {}, userId: {}", circleId, removedUserId, e);
+        }
+    }
+    
+    /**
+     * 发送成员退出通知给圈主
+     */
+    private void sendMemberQuitNotification(Long circleId, Long quitterId) {
+        try {
+            // 查询圈子信息
+            Circle circle = circleDao.selectById(circleId);
+            if (circle == null) {
+                log.warn("圈子不存在，circleId: {}", circleId);
+                return;
+            }
+            
+            // 查询退出者信息
+            User quitter = userDao.selectById(quitterId);
+            if (quitter == null) {
+                log.warn("退出者不存在，userId: {}", quitterId);
+                return;
+            }
+            
+            UserSimpleVO quitterVO = new UserSimpleVO();
+            quitterVO.setId(quitter.getId());
+            quitterVO.setNickname(quitter.getNickname());
+            quitterVO.setAvatar(quitter.getAvatar());
+            quitterVO.setLastOnlineTime(quitter.getLastOnlineTime());
+            
+            // 通知圈主
+            List<Long> ownerIds = circleMemberDao.getOwners(circleId);
+            for (Long ownerId : ownerIds) {
+                Map<String, Object> extra = NotificationBuilder.buildMemberQuitNotification(
+                    circleId,
+                    circle.getName(),
+                    quitterVO
+                );
+                
+                notificationService.createNotification(
+                    ownerId,
+                    NotificationType.MEMBER_QUIT.getCode(),
+                    circleId,
+                    null,
+                    extra
+                );
+            }
+            
+            log.info("发送成员退出通知，circleId: {}, quitterId: {}", circleId, quitterId);
+            
+        } catch (Exception e) {
+            log.error("发送成员退出通知失败，circleId: {}, userId: {}", circleId, quitterId, e);
         }
     }
 }
