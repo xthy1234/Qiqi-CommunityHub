@@ -20,7 +20,7 @@ public class ArticleDetailVO extends ArticleVO {
     @Schema(description = "内容详情")
     private Map<String, Object> content;
 
-    @Schema(description = "扩展信息 (JSON格式)")
+    @Schema(description = "扩展信息 (JSON 格式)")
     private Map<String, Object> extra;
 
     @Schema(description = "附件 URL", example = "http://example.com/attachment.zip")
@@ -40,6 +40,12 @@ public class ArticleDetailVO extends ArticleVO {
 
     @Schema(description = "更新时间", example = "2026-01-01 12:00:00")
     private String updateTime;
+
+    @Schema(description = "是否已点赞", example = "true")
+    private Boolean isLiked;
+
+    @Schema(description = "是否已收藏", example = "true")
+    private Boolean isFavorited;
 
     @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿)", example = "1")
     private Integer auditStatus;

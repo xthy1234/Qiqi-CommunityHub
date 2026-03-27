@@ -30,7 +30,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "帖子实体")
-@TableName("article")
+@TableName(value = "article", autoResultMap = true)
 public class Article implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -83,12 +83,20 @@ public class Article implements Serializable {
     @Schema(description = "内容详情", example = "这是帖子的具体内容...")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> content;
+    
     /**
-     * 扩展信息 (JSON格式)
+     * 文章当前的版本号
      */
-    @Schema(description = "扩展信息 (JSON格式)")
+    @Schema(description = "版本号", example = "1")
+    private Integer version;
+    
+    /**
+     * 扩展信息 (JSON 格式)
+     */
+    @Schema(description = "扩展信息 (JSON 格式)")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> extra;
+
     /**
      * 发布时间（仅在审核通过时填充）
      */
@@ -152,8 +160,11 @@ public class Article implements Serializable {
     @Schema(description = "逻辑删除标志", example = "false")
     @TableLogic
     private Boolean deleted = false;
-    
-    /**
+
+    @Schema(description = "是否存在草稿", example = "false")
+    private Boolean draftExists;
+
+ /**
      * 创建时间（系统自动生成）
      */
     @Schema(description = "创建时间（系统自动生成）", example = "2026-01-01 12:00:00")

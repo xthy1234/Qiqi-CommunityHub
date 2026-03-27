@@ -44,7 +44,6 @@ export interface Article {
  */
 export class ArticleAPI {
   private endpoint = '/articles'
-  private draftEndpoint = '/articles/draft'
   private publishedEndpoint = '/articles/published'
   
   /**
@@ -110,59 +109,6 @@ export class ArticleAPI {
    */
   batchDelete(ids: number[]) {
     return http.post(`${this.endpoint}/batch-delete`, ids)
-  }
-  
-  /**
-   * 创建草稿
-   */
-  createDraft(data: Partial<Article>) {
-    return http.post(this.draftEndpoint, data)
-  }
-  
-  /**
-   * 更新草稿
-   */
-  updateDraft(id: number | string, data: Partial<Article>) {
-    return http.put(`${this.draftEndpoint}/${id}`, data)
-  }
-  
-  /**
-   * 提交草稿审核
-   */
-  submitDraft(id: number | string) {
-    return http.post(`${this.draftEndpoint}/${id}/submit`)
-  }
-  
-  /**
-   * 获取我的草稿列表
-   * 接口：GET /articles/draft/my
-   */
-  getMyDrafts(params?: any) {
-    return http.get(`${this.endpoint}`, { params })
-  }
-  
-  /**
-   * 获取草稿详情
-   */
-  getDraftById(id: number | string) {
-    return http.get(`${this.draftEndpoint}/${id}`)
-  }
-  
-  /**
-   * 删除草稿（仅作者本人可操作）
-   * 接口：DELETE /articles/draft/{id}
-   */
-  deleteDraft(id: number | string) {
-    return http.delete(`${this.draftEndpoint}/${id}`)
-  }
-  
-  /**
-   * 批量删除草稿
-   * 接口：POST /articles/draft/batch-delete
-   * 请求体：[id1, id2, id3]
-   */
-  batchDeleteDrafts(ids: number[]) {
-    return http.post(`${this.draftEndpoint}/batch-delete`, ids)
   }
 
   /**
@@ -237,12 +183,6 @@ export const deleteArticle = (id: number | string) => articleAPI.delete(id)
 export const likeArticle = (id: number | string) => articleAPI.like(id)
 export const batchAuditArticles = (data: { ids: number[], status: number | string, reply?: string }) => articleAPI.batchAudit(data)
 export const batchDeleteArticles = (ids: number[]) => articleAPI.batchDelete(ids)
-export const createDraft = (data: Partial<Article>) => articleAPI.createDraft(data)
-export const updateDraft = (id: number | string, data: Partial<Article>) => articleAPI.updateDraft(id, data)
-export const submitDraft = (id: number | string) => articleAPI.submitDraft(id)
-export const getMyDrafts = (params?: any) => articleAPI.getMyDrafts(params)
-export const getDraftById = (id: number | string) => articleAPI.getDraftById(id)
-export const deleteDraft = (id: number | string) => articleAPI.deleteDraft(id)
 export const getPublishedArticleById = (id: number | string) => articleAPI.getPublishedById(id)
 export const searchArticles = (params?: any) => articleAPI.searchArticles(params)
 export const getArticleCount = (params?: any) => articleAPI.getCount(params)

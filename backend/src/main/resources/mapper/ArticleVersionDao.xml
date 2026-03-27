@@ -60,4 +60,21 @@
           AND is_deleted = false
     </select>
 
+    <!-- 获取最大主版本号 -->
+    <select id="selectMaxMajorVersion" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(major_version), 0)
+        FROM article_version
+        WHERE article_id = #{articleId}
+          AND is_deleted = false
+    </select>
+
+    <!-- 获取指定主版本下的最大次版本号 -->
+    <select id="selectMaxMinorVersion" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(minor_version), 0)
+        FROM article_version
+        WHERE article_id = #{articleId}
+          AND major_version = #{majorVersion}
+          AND is_deleted = false
+    </select>
+
 </mapper>

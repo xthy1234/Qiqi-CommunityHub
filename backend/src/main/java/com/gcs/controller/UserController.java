@@ -6,10 +6,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.List;
 
+import com.gcs.converter.UserConverter;
+import com.gcs.converter.UserRegisterConverter;
 import com.gcs.dto.*;
 import com.gcs.entity.Role;
 import com.gcs.enums.CommonStatus;
 import com.gcs.service.RoleService;
+import com.gcs.service.impl.UserServiceImpl;
+import com.gcs.utils.RequestUtils;
 import com.gcs.vo.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -27,6 +31,7 @@ import com.gcs.service.TokenService;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
 import com.gcs.utils.MPUtil;
+import com.gcs.utils.*;
 import com.gcs.vo.UserPublicProfileVO;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,12 +61,24 @@ public class UserController {
     
     private final RoleService roleService;
     
+    private final UserConverter userConverter;
+    
+    private final UserRegisterConverter userRegisterConverter;
     @Autowired
-    public UserController(UserService userService, TokenService tokenService, RoleService roleService) {
+    private SessionUtils sessionUtils;
+
+    @Autowired
+    public UserController(UserService userService, TokenService tokenService, RoleService roleService, 
+                         UserConverter userConverter, UserRegisterConverter userRegisterConverter) {
         this.userService = userService;
         this.tokenService = tokenService;
         this.roleService = roleService;
+        this.userConverter = userConverter;
+        this.userRegisterConverter = userRegisterConverter;
     }
+
+    @Autowired
+    private RequestUtils requestUtils;
 
     /**
      * 注册用户
@@ -70,29 +87,23 @@ public class UserController {
     @PostMapping("/register")
     public R register(@Valid @RequestBody UserRegisterDTO registerDTO) {
         try {
-            User user = convertToRegisterUser(registerDTO);
+            User user = userRegisterConverter.toEntity(registerDTO);
             
-            // 检查账号是否存在
             if (userService.getUserByAccount(user.getAccount()) != null) {
                 return R.error("账号已被注册");
             }
             
-            // 检查手机号是否被使用
             if (StringUtils.hasText(user.getPhone()) && userService.getUserByPhone(user.getPhone()) != null) {
                 return R.error("手机号已被使用");
             }
             
-            // 检查邮箱是否被使用
             if (StringUtils.hasText(user.getEmail()) && userService.getUserByEmail(user.getEmail()) != null) {
                 return R.error("邮箱已被使用");
             }
             
-            // 加密密码
             user.setPassword(user.getPassword());
-            
-            // 设置默认值
-            user.setRoleId(1L); // 普通用户角色
-            user.setStatus(CommonStatus.ENABLED); // 默认启用
+            user.setRoleId(1L);
+            user.setStatus(CommonStatus.ENABLED);
             
             userService.createUser(user);
             
@@ -111,15 +122,13 @@ public class UserController {
         try {
             User user = new User();
             user.setAccount(adminRegisterDTO.getAccount());
-            //测试的时候密码先不加密
             user.setPassword(adminRegisterDTO.getPassword());
             user.setNickname(adminRegisterDTO.getNickname());
             user.setAvatar(adminRegisterDTO.getAvatar());
             user.setPhone(adminRegisterDTO.getPhone());
             user.setEmail(adminRegisterDTO.getEmail());
-            user.setStatus(CommonStatus.ENABLED); // 默认启用
+            user.setStatus(CommonStatus.ENABLED);
             
-            // 检查账号是否存在
             if (userService.getUserByAccount(user.getAccount()) != null) {
                 return R.error("账号已被注册");
             }
@@ -152,15 +161,15 @@ public class UserController {
                 return R.error("账号或密码不能为空");
             }
             
-            String loginIp = getClientIpAddress(request);
+            String loginIp = requestUtils.getClientIpAddress(request);
             User user = userService.loginUser(loginDTO.getAccount(), loginDTO.getPassword(), loginIp);
             
-            String token = tokenService.generateToken(user.getId(), user.getAccount(), user.getRoleId(), loginIp, getUserAgent(request));
+            String token = tokenService.generateToken(user.getId(), user.getAccount(), user.getRoleId(), loginIp, requestUtils.getUserAgent(request));
             
             // 构建登录响应
             UserLoginVO loginVO = new UserLoginVO();
             loginVO.setToken(token);
-            loginVO.setUser(convertToDetailVO(user));
+            loginVO.setUser(userConverter.toDetailVO(user));
             
             return R.ok("登录成功").put("data", loginVO);
         } catch (Exception e) {
@@ -189,8 +198,8 @@ public class UserController {
             }
             
             User user = userService.adminLogin(loginDTO.getAccount(), loginDTO.getPassword());
-            String clientIp = getClientIpAddress(request);
-            String userAgent = getUserAgent(request);
+            String clientIp = requestUtils.getClientIpAddress(request);
+            String userAgent = requestUtils.getUserAgent(request);
             
             String token = tokenService.generateToken(
                 user.getId(), 
@@ -200,10 +209,9 @@ public class UserController {
                 userAgent
             );
             
-            // 构建登录响应
             UserLoginVO loginVO = new UserLoginVO();
             loginVO.setToken(token);
-            loginVO.setUser(convertToDetailVO(user));
+            loginVO.setUser(userConverter.toDetailVO(user)); // 使用注入的 converter
             
             return R.ok().put("data", loginVO);
         } catch (Exception e) {
@@ -223,7 +231,7 @@ public class UserController {
     })
     public R logout(@Parameter(hidden = true) HttpServletRequest request) {
         try {
-            request.getSession().invalidate();
+            sessionUtils.invalidateSession(request);
             return R.ok("退出成功");
         } catch (Exception e) {
             log.error("用户退出失败", e);
@@ -248,7 +256,7 @@ public class UserController {
             }
             
             User user = userService.getById(userId);
-            UserDetailVO vo = convertToDetailVO(user);
+            UserDetailVO vo = userConverter.toDetailVO(user); // 使用注入的 converter
             return R.ok().put("data", vo);
         } catch (Exception e) {
             log.error("获取当前用户信息失败", e);
@@ -273,13 +281,9 @@ public class UserController {
             PageUtils page = userService.queryPage(params, 
                 MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(queryWrapper, user), params), params));
             
-            // 将 User 转换为 UserVO
-            List<UserVO> voList = ((List<User>) page.getList())
-                .stream()
-                .map(this::convertToVO)
-                .collect(Collectors.toList());
+            List<User> userList = (List<User>) page.getList();
+            List<UserVO> voList = userConverter.toVOList(userList);
             
-            // 批量查询角色信息并设置到 VO 中
             if (!voList.isEmpty()) {
                 List<Long> roleIds = voList.stream()
                     .map(UserVO::getRoleId)
@@ -311,11 +315,6 @@ public class UserController {
     
     /**
      * 获取用户详情/公开主页信息
-     * 
-     * @param id 用户ID
-     * @param detail 是否获取详细信息（仅自己访问时有效）
-     * @param request HTTP 请求
-     * @return 用户信息（公开信息或详细信息）
      */
     @GetMapping("/{id}")
     @IgnoreAuth
@@ -326,36 +325,31 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "获取失败")
     })
     public R getUserProfile(
-        @Parameter(description = "用户ID", required = true) @PathVariable("id") Long id,
+        @Parameter(description = "用户 ID", required = true) @PathVariable("id") Long id,
         @Parameter(description = "是否获取详细信息（仅自己访问时有效，默认 false）") 
         @RequestParam(defaultValue = "false") Boolean detail,
         HttpServletRequest request) {
         try {
-            // 获取当前登录用户ID
-            Long currentUserId = null;
-            String userIdStr = getSessionAttribute(request, "userId");
-            if (userIdStr != null) {
-                currentUserId = Long.parseLong(userIdStr);
-            }
-            
-            // 判断是否是访问自己的主页
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             boolean isSelf = currentUserId != null && currentUserId.equals(id);
             
             if (isSelf && detail) {
-                // 访问自己的主页且要求详细信息
                 User user = userService.getById(id);
                 if (user == null) {
                     return R.error("用户不存在");
                 }
                 
-                UserDetailVO vo = convertToDetailVO(user);
+                UserDetailVO vo = userConverter.toDetailVO(user);
                 return R.ok().put("data", vo);
             } else {
-                // 访问别人的主页，或访问自己但只需要公开信息
-                UserPublicProfileVO profileVO = userService.getPublicProfile(id, currentUserId);
-                if (profileVO == null) {
+                // ✅ Service 返回 Entity
+                User user = userService.getById(id);
+                if (user == null) {
                     return R.error("用户不存在");
                 }
+                
+                // ✅ Controller 调用 Service 方法构建公开主页 VO（包含统计数据）
+                UserPublicProfileVO profileVO = ((UserServiceImpl) userService).buildPublicProfileVO(user, currentUserId);
                 
                 return R.ok().put("data", profileVO);
             }
@@ -365,15 +359,6 @@ public class UserController {
         }
     }
 
-
-    private Long getCurrentUserId(HttpServletRequest request) {
-        String userIdStr = getSessionAttribute(request, "userId");
-        return userIdStr != null ? Long.parseLong(userIdStr) : null;
-    }
-    private String getSessionAttribute(HttpServletRequest request, String attributeName) {
-        Object attribute = request.getSession().getAttribute(attributeName);
-        return attribute != null ? attribute.toString() : null;
-    }
     /**
      * 创建用户（后台管理使用）
      */
@@ -383,23 +368,23 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "创建成功"),
         @ApiResponse(responseCode = "400", description = "创建失败")
     })
-  public R createUser(
+    public R createUser(
         @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserRegisterDTO registerDTO,
         @Parameter(description = "角色 ID", required = true) @RequestParam Long roleId) {
         try {
-            User user = convertToRegisterUser(registerDTO);
-           user.setRoleId(roleId);
-           boolean result = userService.createUser(user);
-           if (result) {
-               return R.ok("用户创建成功");
-           } else {
-               return R.error("创建失败");
-           }
-       } catch (Exception e) {
-           log.error("创建用户失败，账号：{}", registerDTO.getAccount(), e);
-           return R.error(e.getMessage());
-       }
-   }
+            User user = userConverter.toEntity(registerDTO);
+            user.setRoleId(roleId);
+            boolean result = userService.createUser(user);
+            if (result) {
+                return R.ok("用户创建成功");
+            } else {
+                return R.error("创建失败");
+            }
+        } catch (Exception e) {
+            log.error("创建用户失败，账号：{}", registerDTO.getAccount(), e);
+            return R.error(e.getMessage());
+        }
+    }
 
     /**
      * 更新用户信息
@@ -420,13 +405,11 @@ public class UserController {
                 return R.error("用户不存在");
             }
             
-            // 如果前端没有传 status，保持原有的 status
             if (updateDTO.getStatus() == null) {
                 updateDTO.setStatus(user.getStatus());
             }
             
-            // 使用转换器更新实体
-            convertToUpdateEntity(updateDTO, user);
+            userConverter.updateEntity(updateDTO, user);
             boolean result = userService.updateUser(user);
             if (result) {
                 return R.ok("更新成功");
@@ -458,8 +441,7 @@ public class UserController {
                 return R.error("用户不存在");
             }
             
-            // 使用转换器更新实体
-            convertToUpdateEntity(updateDTO, user);
+            userConverter.updateEntity(updateDTO, user);
             boolean result = userService.updateUser(user);
             if (result) {
                 return R.ok("更新成功");
@@ -711,7 +693,7 @@ public class UserController {
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
             // 尝试获取当前登录用户 ID（可选）
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             PageUtils page = userService.getUserPublicList(params, currentUserId);
             return R.ok().put("data", page);
@@ -721,180 +703,4 @@ public class UserController {
         }
     }
 
-    // ==================== 私有转换方法 ====================
-    
-    /**
-     * 将 User 转换为 UserVO
-     */
-    private UserVO convertToVO(User user) {
-        UserVO vo = new UserVO();
-        vo.setId(user.getId());
-        vo.setAccount(user.getAccount());
-        vo.setNickname(user.getNickname());
-        vo.setAvatar(user.getAvatar());
-        vo.setGender(user.getGender());
-        vo.setPhone(user.getPhone());
-        vo.setEmail(user.getEmail());
-        vo.setRoleId(user.getRoleId());
-        vo.setBirthday(user.getBirthday());
-        vo.setSignature(user.getSignature());
-        vo.setStatus(user.getStatus());
-        vo.setCreateTime(user.getCreateTime());
-        return vo;
-    }
-    
-    /**
-     * 将 User 转换为 UserDetailVO
-     */
-    private UserDetailVO convertToDetailVO(User user) {
-        UserDetailVO vo = new UserDetailVO();
-        vo.setId(user.getId());
-        vo.setAccount(user.getAccount());
-        vo.setNickname(user.getNickname());
-        vo.setAvatar(user.getAvatar());
-        vo.setGender(user.getGender());
-        vo.setPhone(user.getPhone());
-        vo.setEmail(user.getEmail());
-        vo.setRoleId(user.getRoleId());
-        vo.setBirthday(user.getBirthday());
-        vo.setSignature(user.getSignature());
-        vo.setStatus(user.getStatus());
-        vo.setCreateTime(user.getCreateTime());
-        vo.setUpdateTime(user.getUpdateTime());
-        vo.setLastLoginTime(user.getLastLoginTime());
-        vo.setLastLoginIp(user.getLastLoginIp());
-        return vo;
-    }
-    
-    /**
-     * 将 User 转换为 UserProfileVO
-     */
-    private UserProfileVO convertToProfileVO(User user) {
-        UserProfileVO vo = new UserProfileVO();
-        vo.setId(user.getId());
-        vo.setAccount(user.getAccount());
-        vo.setNickname(user.getNickname());
-        vo.setAvatar(user.getAvatar());
-        vo.setGender(user.getGender());
-        vo.setSignature(user.getSignature());
-        vo.setRoleId(user.getRoleId());
-        return vo;
-    }
-    
-    /**
-     * 将 UserRegisterDTO 转换为 User
-     */
-  private User convertToRegisterUser(UserRegisterDTO dto) {
-       User user = new User();
-       user.setAccount(dto.getAccount());
-       user.setPassword(dto.getPassword()); // 实际应用中需要加密
-       
-       // 处理昵称：如果为空则尝试与账号名一致
-       if (dto.getNickname() == null || dto.getNickname().trim().isEmpty()) {
-           // 从邮箱中提取用户名部分作为昵称
-           String accountPrefix = dto.getAccount().split("@")[0];
-           user.setNickname(accountPrefix);
-       } else {
-           user.setNickname(dto.getNickname());
-       }
-       
-       // 处理头像：如果为空则使用默认头像
-       if (dto.getAvatar() == null || dto.getAvatar().trim().isEmpty()) {
-           user.setAvatar("http://localhost:8080/server/upload/default_avatar.jpg");
-       } else {
-           user.setAvatar(dto.getAvatar());
-       }
-       
-       // 处理邮箱：不填的话设置为 null
-       if (dto.getEmail() == null || dto.getEmail().trim().isEmpty()) {
-           user.setEmail(null);
-       } else {
-           user.setEmail(dto.getEmail());
-       }
-       
-       user.setPhone(dto.getPhone());
-       user.setStatus(CommonStatus.ENABLED); // 默认启用
-       user.setRoleId(1L); // 默认为普通用户角色
-       return user;
-   }
-
-    /**
-     * 将 AdminRegisterDTO 转换为 User
-     */
-  private User convertToAdminRegisterUser(AdminRegisterDTO dto) {
-       User user = new User();
-       user.setAccount(dto.getAccount());
-       user.setPassword(dto.getPassword()); // 实际应用中需要加密
-       
-       // 处理昵称：如果为空则尝试与账号名一致
-       if (dto.getNickname() == null || dto.getNickname().trim().isEmpty()) {
-           // 从邮箱中提取用户名部分作为昵称
-           String accountPrefix = dto.getAccount().split("@")[0];
-           user.setNickname(accountPrefix);
-       } else {
-           user.setNickname(dto.getNickname());
-       }
-       
-       // 处理头像：如果为空则使用默认头像
-       if (dto.getAvatar() == null || dto.getAvatar().trim().isEmpty()) {
-           user.setAvatar("http://localhost:8080/server/upload/default_avatar.jpg");
-       } else {
-           user.setAvatar(dto.getAvatar());
-       }
-       
-       // 处理邮箱：不填的话设置为 null
-       if (dto.getEmail() == null || dto.getEmail().trim().isEmpty()) {
-           user.setEmail(null);
-       } else {
-           user.setEmail(dto.getEmail());
-       }
-       
-       user.setPhone(dto.getPhone());
-       user.setStatus(CommonStatus.ENABLED); // 默认启用
-       user.setRoleId(2L); // 默认为管理员角色
-       return user;
-   }
-
-    /**
-     * 将 UserUpdateDTO 转换为 User（更新）
-     */
-    private void convertToUpdateEntity(UserUpdateDTO dto, User user) {
-        user.setNickname(dto.getNickname());
-        user.setAvatar(dto.getAvatar());
-        user.setGender(dto.getGender());
-        user.setPhone(dto.getPhone());
-        user.setEmail(dto.getEmail());
-        user.setRoleId(dto.getRoleId());
-        user.setBirthday(dto.getBirthday());
-        user.setSignature(dto.getSignature());
-        if (dto.getStatus() != null) {
-            user.setStatus(dto.getStatus());
-        }
-    }
-
-    // ==================== 原有辅助方法 ====================
-
-    /**
-     * 获取客户端 IP 地址
-     */
-    private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
-            return xRealIp;
-        }
-        
-        return request.getRemoteAddr();
-    }
-
-    /**
-     * 获取用户代理信息
-     */
-    private String getUserAgent(HttpServletRequest request) {
-        return request.getHeader("User-Agent");
-    }
 }

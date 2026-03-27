@@ -15,10 +15,11 @@ import ArticleDetailView from '@/views/article/detail.vue'
 import ArticleEditorView from '@/views/article/edit.vue'
 import ArticleDraftView from '@/views/article/draftList.vue'
 import FavoriteListView from '@/views/article/favoriteList.vue'
-import SuggestionReviewListView from '@/views/article/SuggestionReviewList.vue'
+import SuggestionReviewListView from '@/views/cooperation/SuggestionReviewList.vue'
 import VersionListView from '@/views/article/VersionList.vue'
-import SuggestionEditorView from '@/views/article/SuggestionEditor.vue'
-import MySuggestionsView from '@/views/article/MySuggestions.vue'
+import SuggestionEditorView from '@/views/cooperation/SuggestionEditor.vue'
+import MySuggestionsView from '@/views/cooperation/MySuggestions.vue'
+import SuggestionReviewDetailView from '@/views/cooperation/SuggestionReviewDetail.vue'
 
 // 用户相关页面 - 已精简，只保留个人中心相关页面
 import UserRegisterView from '../views/auth/register.vue'
@@ -132,6 +133,17 @@ const routes: Array<RouteRecordRaw> = [
         path: 'index/my-suggestions',
         component: MySuggestionsView,
         meta: { title: '我的建议' }
+      },
+      // 审核建议详情页（独立页面）
+      {
+        path: 'suggestion/:id',
+        component: SuggestionReviewDetailView,
+        meta: { title: '审核建议详情' }
+      },
+      {
+        path: 'index/suggestion/:id',
+        component: SuggestionReviewDetailView,
+        meta: { title: '审核建议详情' }
       },
       // 个人信息展示
       {

@@ -4,14 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 /**
- * 文章建议 VO
+ * 文章修改建议列表 VO
+ * 用于展示建议列表，包含基本信息
  */
 @Data
-@Schema(description = "文章修改建议视图对象")
-public class ArticleSuggestionVO {
+@Schema(description = "文章修改建议列表视图对象")
+public class ArticleSuggestionSimpleVO {
 
     @Schema(description = "建议 ID", example = "1")
     private Long id;
@@ -25,12 +25,6 @@ public class ArticleSuggestionVO {
     @Schema(description = "文章封面图", example = "http://example.com/cover.jpg")
     private String articleCoverUrl;
 
-    @Schema(description = "文章原始内容（JSONB）")
-    private Map<String, Object> originalContent;
-
-    @Schema(description = "建议者 ID", example = "2")
-    private Long proposerId;
-
     @Schema(description = "建议者信息")
     private UserSimpleVO proposer;
 
@@ -40,36 +34,21 @@ public class ArticleSuggestionVO {
     @Schema(description = "建议基于的文章版本号", example = "1")
     private Integer version;
 
-    @Schema(description = "建议内容（JSONB 全量）")
-    private Map<String, Object> content;
-
-    @Schema(description = "修改摘要", example = "重新组织了段落")
+    @Schema(description = "修改摘要/说明", example = "重新组织了段落，优化了代码示例")
     private String changeSummary;
 
     @Schema(description = "状态（0-待审核，1-已通过，2-已拒绝）", example = "0")
     private Integer status;
 
-    @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
+    @Schema(description = "建议提交时间", example = "2026-01-01 12:00:00")
     private LocalDateTime createTime;
 
-    @Schema(description = "审核时间", example = "2026-01-01 12:00:00")
+    @Schema(description = "审核时间", example = "2026-01-01 14:30:00")
     private LocalDateTime reviewTime;
-
-    @Schema(description = "审核人 ID", example = "1")
-    private Long reviewerId;
 
     @Schema(description = "审核人信息")
     private UserSimpleVO reviewer;
 
     @Schema(description = "应用后的版本号（审核通过后填充）", example = "2")
     private Integer appliedVersion;
-
-    @Schema(description = "新增行数", example = "15")
-    private Integer addedLines;
-
-    @Schema(description = "删除行数", example = "10")
-    private Integer removedLines;
-
-    @Schema(description = "额外信息（用于对比等）")
-    private Map<String, Object> extra;
 }

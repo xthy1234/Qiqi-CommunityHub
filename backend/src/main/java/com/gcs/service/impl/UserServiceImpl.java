@@ -289,6 +289,33 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         return this.count(queryWrapper) == 0;
     }
 
+    @Override
+    public PageUtils getUserPublicList(Map<String, Object> params, Long currentUserId) {
+        // ✅ 获取分页参数
+        Integer page = (Integer) params.getOrDefault("page", 1);
+        Integer limit = (Integer) params.getOrDefault("limit", 10);
+        String keyword = (String) params.get("keyword");
+        
+        // ✅ 构建查询条件（只查询公开可见的用户）
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getStatus, CommonStatus.ENABLED); // 只查询启用状态的用户
+        
+        // ✅ 关键词搜索（昵称或签名）
+        if (StringUtils.hasText(keyword)) {
+            queryWrapper.and(wrapper -> 
+                wrapper.like(User::getNickname, keyword)
+                       .or()
+                       .like(User::getSignature, keyword)
+            );
+        }
+        
+        // ✅ 执行分页查询
+        IPage<User> userPage = new Query<User>(params).getPage();
+        IPage<User> resultPage = this.page(userPage, queryWrapper);
+        
+        return new PageUtils(resultPage);
+    }
+
 
     @Override
     public boolean isNicknameUnique(String nickname, Long excludeUserId) {
@@ -487,124 +514,25 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         }
     }
 
-    /**
-     * 获取用户公开主页信息
-     */
     @Override
-    public UserPublicProfileVO getPublicProfile(Long userId, Long currentUserId) {
-        // 查询用户基本信息
-        User user = this.getById(userId);
-        if (user == null) {
-            return null;
-        }
-
-        // 构建公开信息 VO
-        UserPublicProfileVO profileVO = new UserPublicProfileVO();
-        profileVO.setId(user.getId());
-        profileVO.setNickname(user.getNickname());
-        profileVO.setAvatar(user.getAvatar());
-        profileVO.setGender(user.getGender());
-        profileVO.setSignature(user.getSignature());
-
-        // 统计粉丝数量（查询该用户的 following_id，即谁关注了 TA）
-        if (followService != null) {
-            Integer followerCount = followService.countFollowers(userId);
-            profileVO.setFollowerCount(followerCount != null ? followerCount : 0);
-
-            // 统计关注数量（查询该用户的 follower_id，即 TA 关注了谁）
-            Integer followingCount = followService.countFollowing(userId);
-            profileVO.setFollowingCount(followingCount != null ? followingCount : 0);
-
-            // 判断当前用户是否已关注该用户
-            if (currentUserId != null && !currentUserId.equals(userId)) {
-                Boolean isFollowed = followService.isFollowing(currentUserId, userId);
-                profileVO.setIsFollowed(isFollowed);
-            } else {
-                profileVO.setIsFollowed(false);
-            }
-        } else {
-            // 如果关注服务不可用，设置为默认值
-            profileVO.setFollowerCount(0);
-            profileVO.setFollowingCount(0);
-            profileVO.setIsFollowed(false);
-        }
-
-        // 统计文章数量
-        if (articleService != null) {
-            try {
-                // 查询该用户的已发布文章数量
-                LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
-                queryWrapper.eq(Article::getAuthorId, userId);
-                // 只统计已发布的文章（审核通过的）
-                queryWrapper.eq(Article::getAuditStatus, AuditStatus.APPROVED);
-                Long articleCount = articleService.count(queryWrapper);
-                profileVO.setArticleCount(articleCount != null ? articleCount.intValue() : 0);
-            } catch (Exception e) {
-                log.warn("统计文章数量失败，userId: {}", userId, e);
-                profileVO.setArticleCount(0);
-            }
-        } else {
-            profileVO.setArticleCount(0);
-        }
-
-        return profileVO;
+    public User getPublicProfile(Long userId, Long currentUserId) {
+        // ✅ Service 只负责返回 Entity
+        return getById(userId);
     }
-
-    @Override
-    public PageUtils getUserPublicList(Map<String, Object> params, Long currentUserId) {
-        try {
-            int page = Integer.parseInt(params.getOrDefault("page", "1").toString());
-            int limit = Integer.parseInt(params.getOrDefault("limit", "20").toString());
-            String keyword = (String) params.get("keyword");
-            
-            // 构建查询条件
-            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("status", CommonStatus.ENABLED.getCode()); // 只查询正常状态的用户
-            
-            // 关键词搜索（昵称或签名）
-            if (keyword != null && !keyword.trim().isEmpty()) {
-                queryWrapper.and(wrapper -> 
-                    wrapper.like("nickname", keyword)
-                           .or()
-                           .like("signature", keyword)
-                );
-            }
-            
-            // 排除自己（可选）
-            if (currentUserId != null) {
-                queryWrapper.ne("id", currentUserId);
-            }
-            
-            // 按活跃度排序（可以改为最后登录时间）
-            queryWrapper.orderByDesc("last_login_time");
-            
-            // 分页查询
-            IPage<User> userPage = new Page<>(page, limit);
-            IPage<User> resultPage = this.page(userPage, queryWrapper);
-            
-            // 转换为公开信息 VO
-            List<UserPublicProfileVO> voList = resultPage.getRecords().stream()
-                .map(this::convertToPublicProfileVO)
-                .collect(Collectors.toList());
-            
-            PageUtils pageUtils = new PageUtils(voList, resultPage.getTotal(), limit, page);
-            log.info("获取用户公开列表成功，keyword={}, total={}", keyword, resultPage.getTotal());
-            
-            return pageUtils;
-        } catch (Exception e) {
-            log.error("获取用户公开列表失败", e);
-            throw new RuntimeException("获取用户列表失败：" + e.getMessage());
-        }
-    }
-
+    
     /**
-     * 将 User 转换为 UserPublicProfileVO
+     * 构建用户公开主页 VO（包含统计数据和关注状态）
+     * 
+     * @param user 用户实体
+     * @param currentUserId 当前登录用户 ID（用于判断关注状态）
+     * @return 用户公开主页 VO
      */
-    private UserPublicProfileVO convertToPublicProfileVO(User user) {
+    public UserPublicProfileVO buildPublicProfileVO(User user, Long currentUserId) {
         if (user == null) {
             return null;
         }
         
+        // ✅ 使用 Converter 转换基础字段
         UserPublicProfileVO vo = new UserPublicProfileVO();
         vo.setId(user.getId());
         vo.setNickname(user.getNickname());
@@ -613,12 +541,28 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         vo.setSignature(user.getSignature());
         vo.setBirthday(user.getBirthday());
         
-        // 不返回敏感信息
-        // vo.setAccount(null);
-        // vo.setPhone(null);
-        // vo.setEmail(null);
-        // vo.setRoleId(null);
-        // vo.setStatus(null);
+        // ✅ 补充业务字段：粉丝数、关注数、文章数
+        Integer followerCount = followService != null ? followService.countFollowers(user.getId()) : 0;
+        Integer followingCount = followService != null ? followService.countFollowing(user.getId()) : 0;
+        
+        // ✅ 修复类型转换问题：count() 返回 long，需要转为 Integer
+        Long articleCountLong = articleService != null ? 
+            articleService.count(new LambdaQueryWrapper<Article>()
+                .eq(Article::getAuthorId, user.getId())
+                .eq(Article::getAuditStatus, AuditStatus.APPROVED.getCode())) : 0L;
+        Integer articleCount = articleCountLong.intValue();
+        
+        vo.setFollowerCount(followerCount);
+        vo.setFollowingCount(followingCount);
+        vo.setArticleCount(articleCount);
+        
+        // ✅ 补充业务字段：是否已关注（仅登录后）
+        if (currentUserId != null && !currentUserId.equals(user.getId())) {
+            Boolean isFollowed = followService != null ? followService.isFollowing(currentUserId, user.getId()) : false;
+            vo.setIsFollowed(isFollowed);
+        } else {
+            vo.setIsFollowed(false); // 自己访问自己或未登录时显示 false
+        }
         
         return vo;
     }

@@ -153,7 +153,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, h, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useMessage, useDialog, NTag, NButton, NCheckbox } from 'naive-ui'
+import { useMessage, useDialog, NTag, NButton, NCheckbox, NDataTable } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import DiffViewer from '@/components/common/DiffViewer.vue'
@@ -242,14 +242,16 @@ const columns = computed(() => [
     }
   },
   {
-    title: '修改人',
+    title: '操作人',
     key: 'operatorName',
     width: 120,
     render: (row: ArticleVersion) => {
+      // 优先使用 operator.nickname，其次使用 operatorName，最后显示"系统"
+      const operatorName = row.operator?.nickname || row.operatorName || '系统'
       return h(
         'span',
         { style: { color: '#666' } },
-        { default: () => row.operatorName || '系统' }
+        { default: () => operatorName }
       )
     }
   },
@@ -312,7 +314,8 @@ const loadVersions = async () => {
     })
     
     const data = response.data.data
-    versions.value = data.list || []
+    // 兼容两种返回格式：数组或包含 list 属性的对象
+    versions.value = Array.isArray(data) ? data : (data.list || [])
     filteredVersions.value = [...versions.value]
   } catch (error) {
     console.error('加载版本列表失败:', error)
@@ -370,12 +373,15 @@ const viewVersionDetail = async (row: ArticleVersion) => {
     const response = await articleVersionAPI.getById(row.articleId, row.version)
     const versionData = response.data.data
 
+    // 获取操作人名称
+    const operatorName = versionData.operator?.nickname || versionData.operatorName || '系统'
+
     dialog.info({
       title: `版本 ${row.version} 详情`,
       content: () => h('div', { style: { marginTop: '12px' } }, [
         h('p', {}, [`标题：${versionData.title}`]),
         h('p', { style: { marginTop: '8px' } }, [`修改摘要：${versionData.changeSummary || '无'}`]),
-        h('p', { style: { marginTop: '8px' } }, [`修改人：${versionData.operatorName || '系统'}`]),
+        h('p', { style: { marginTop: '8px' } }, [`操作人：${operatorName}`]),
         h('p', { style: { marginTop: '8px' } }, [`修改时间：${formatDate(versionData.createTime)}`])
       ]),
       positiveText: '关闭',

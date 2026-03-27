@@ -47,6 +47,16 @@ public class ArticleVersion implements Serializable {
     @Schema(description = "版本号", example = "1")
     private Integer version;
 
+    // 新增字段
+    @Schema(description = "版本类型（0-小版本，1-大版本）", example = "0")
+    private Integer versionType;
+
+    @Schema(description = "主版本号", example = "2")
+    private Integer majorVersion;
+
+    @Schema(description = "次版本号", example = "3")
+    private Integer minorVersion;
+
     /**
      * 标题
      */
@@ -59,6 +69,14 @@ public class ArticleVersion implements Serializable {
     @Schema(description = "内容详情（JSONB 全量快照）")
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> content;
+
+
+    /**
+     * 额外内容
+     */
+    @Schema(description = "内容详情（JSONB 全量快照）")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extra;
 
     /**
      * 修改摘要

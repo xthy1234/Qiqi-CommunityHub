@@ -68,6 +68,12 @@ public class ArticleEditSuggestion implements Serializable {
     private Map<String, Object> extra;
 
     /**
+     * 建议提出时基于的版本号
+     */
+    @Schema(description = "基于的版本号", example = "1")
+    private Integer version;
+
+    /**
      * 修改摘要
      */
     @Schema(description = "修改摘要", example = "重新组织了段落")

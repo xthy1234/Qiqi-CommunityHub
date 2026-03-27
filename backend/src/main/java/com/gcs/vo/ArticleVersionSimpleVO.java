@@ -4,15 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 /**
- * 文章版本详细 VO
- * 用于版本详情展示和版本对比
+ * 文章版本简略 VO
+ * 用于版本历史列表展示
  */
 @Data
-@Schema(description = "文章版本详细视图对象")
-public class ArticleVersionVO {
+@Schema(description = "文章版本简略视图对象")
+public class ArticleVersionSimpleVO {
 
     @Schema(description = "版本 ID", example = "1")
     private Long id;
@@ -26,12 +25,6 @@ public class ArticleVersionVO {
     @Schema(description = "文章标题", example = "Java 并发编程指南")
     private String title;
 
-    @Schema(description = "内容详情（JSONB 全量快照）")
-    private Map<String, Object> content;
-
-    @Schema(description = "额外信息")
-    private Map<String, Object> extra;
-
     @Schema(description = "修改摘要", example = "优化了线程池示例代码")
     private String changeSummary;
 
@@ -43,20 +36,4 @@ public class ArticleVersionVO {
 
     @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
     private LocalDateTime createTime;
-
-    @Schema(description = "是否当前最新版本", example = "true")
-    private Boolean isLatest;
-
-    @Schema(description = "版本类型（0-小版本，1-大版本）", example = "0")
-    private Integer versionType;
-
-    @Schema(description = "主版本号", example = "2")
-    private Integer majorVersion;
-
-    @Schema(description = "次版本号", example = "3")
-    private Integer minorVersion;
-
-    @Schema(description = "格式化版本号", example = "2.3")
-    private String formattedVersion;
-
 }

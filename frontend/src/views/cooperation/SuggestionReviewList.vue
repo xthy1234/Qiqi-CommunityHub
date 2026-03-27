@@ -1,7 +1,8 @@
 <template>
   <PageContainer
-    header-title="我的建议"
+    header-title="修改建议审核"
     :show-back="true"
+    @back="goBack"
   >
     <!-- 加载状态 -->
     <div
@@ -20,16 +21,23 @@
       class="empty-container"
     >
       <n-empty 
-        description="您还没有提交过修改建议"
+        description="暂无修改建议"
         size="large"
       >
         <template #extra>
-          <n-button
-            type="primary"
-            @click="goToArticleList"
-          >
-            去浏览文章
-          </n-button>
+          <n-space>
+            <n-button
+              type="primary"
+              @click="goBack"
+            >
+              返回首页
+            </n-button>
+            <n-button
+              @click="loadSuggestions"
+            >
+              刷新列表
+            </n-button>
+          </n-space>
         </template>
       </n-empty>
     </div>
@@ -48,13 +56,17 @@
           @update:value="handleStatusChange"
         >
           <n-tab-pane
-            name="all"
-            tab="全部"
-          />
-          <n-tab-pane
             name="0"
             tab="待审核"
-          />
+          >
+            <n-badge
+              :value="pendingCount"
+              :show="pendingCount > 0"
+              :max="99"
+            >
+              <span></span>
+            </n-badge>
+          </n-tab-pane>
           <n-tab-pane
             name="1"
             tab="已通过"
@@ -63,11 +75,15 @@
             name="2"
             tab="已拒绝"
           />
+          <n-tab-pane
+            name="all"
+            tab="全部"
+          />
         </n-tabs>
 
         <n-input
           v-model:value="searchKeyword"
-          placeholder="搜索文章标题"
+          placeholder="搜索文章标题或提议者"
           clearable
           style="width: 300px;"
           @input="handleSearch"
@@ -85,7 +101,7 @@
           :key="item.id"
           class="suggestion-card"
           hoverable
-          @click="viewDetail(item)"
+          @click="goToDetail(item)"
         >
           <div class="card-header">
             <div class="title-section">
@@ -98,6 +114,17 @@
               >
                 {{ getStatusText(item.status) }}
               </n-tag>
+            </div>
+            
+            <div class="proposer-info">
+              <UserAvatarLink
+                v-if="item.proposerId"
+                :user-id="item.proposerId"
+                :nickname="item.proposer?.nickname || '匿名用户'"
+                :avatar="item.proposer?.avatar"
+                :size="32"
+              />
+              <span class="proposer-name">{{ item.proposer?.nickname || '匿名用户' }}</span>
             </div>
           </div>
 
@@ -116,7 +143,7 @@
                   icon="ri:time-line"
                   width="14"
                 />
-                提交于 {{ formatDate(item.createTime) }}
+                {{ formatDate(item.createTime) }}
               </span>
               <span
                 v-if="item.reviewTime"
@@ -126,26 +153,42 @@
                   icon="ri:shield-check-line"
                   width="14"
                 />
-                {{ item.status === 1 ? '已通过' : '已拒绝' }}
-              </span>
-              <span
-                v-if="item.rejectReason && item.status === 2"
-                class="meta-item reject-reason"
-              >
-                理由：{{ item.rejectReason }}
+                {{ formatDate(item.reviewTime) }}
               </span>
             </div>
           </div>
 
           <div class="card-actions">
             <n-button
+              v-if="item.status === 0"
+              type="primary"
               size="small"
-              @click.stop="viewDetail(item)"
+              @click.stop="goToReview(item)"
+            >
+              <template #icon>
+                <Icon icon="ri:checkbox-circle-line" />
+              </template>
+              审核
+            </n-button>
+            <n-button
+              size="small"
+              @click.stop="goToDetail(item)"
             >
               <template #icon>
                 <Icon icon="ri:eye-line" />
               </template>
               详情
+            </n-button>
+            <n-button
+              v-if="item.status === 0"
+              type="error"
+              size="small"
+              @click.stop="confirmDelete(item)"
+            >
+              <template #icon>
+                <Icon icon="ri:delete-bin-line" />
+              </template>
+              删除
             </n-button>
           </div>
         </n-card>
@@ -169,104 +212,45 @@
       </div>
     </div>
 
-    <!-- 详情查看对话框 -->
-    <n-modal
-      v-model:show="detailModalVisible"
-      preset="dialog"
-      :title="currentSuggestion?.title || '建议详情'"
-      :style="{ width: '1000px', maxWidth: '95vw' }"
-      :closable="true"
-    >
-      <div class="detail-content">
-        <div class="detail-header">
-          <n-descriptions
-            bordered
-            :column="2"
-          >
-            <n-descriptions-item label="文章标题">
-              {{ currentSuggestion?.articleTitle || `文章 ID: ${currentSuggestion?.articleId}` }}
-            </n-descriptions-item>
-            <n-descriptions-item label="提交时间">
-              {{ formatDate(currentSuggestion?.createTime) }}
-            </n-descriptions-item>
-            <n-descriptions-item
-              v-if="currentSuggestion?.reviewTime"
-              label="审核时间"
-            >
-              {{ formatDate(currentSuggestion?.reviewTime) }}
-            </n-descriptions-item>
-            <n-descriptions-item label="修改说明">
-              {{ currentSuggestion?.changeSummary || '无' }}
-            </n-descriptions-item>
-            <n-descriptions-item
-              v-if="currentSuggestion?.rejectReason"
-              label="拒绝理由"
-            >
-              {{ currentSuggestion?.rejectReason }}
-            </n-descriptions-item>
-            <n-descriptions-item label="审核结果">
-              <n-tag
-                :type="getStatusType(currentSuggestion?.status)"
-                size="small"
-              >
-                {{ getStatusText(currentSuggestion?.status) }}
-              </n-tag>
-            </n-descriptions-item>
-          </n-descriptions>
-        </div>
-
-        <div class="detail-body">
-          <h4 class="section-title">内容差异对比</h4>
-          <DiffViewer
-            :source-content="currentArticleContent"
-            :target-content="currentSuggestionContent"
-            source-title="原文内容"
-            target-title="您的修改建议"
-            :show-stats="true"
-          />
-        </div>
-      </div>
-      
-      <template #action>
-        <n-button @click="detailModalVisible = false">
-          关闭
-        </n-button>
-      </template>
-    </n-modal>
+    <!-- 返回文章详情页或上一页 -->
+    <template #back>
+      <n-button
+        type="primary"
+        @click="goBack"
+      >
+        返回
+      </n-button>
+    </template>
   </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useMessage } from 'naive-ui'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useMessage, useDialog } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
-import DiffViewer from '@/components/common/DiffViewer.vue'
+import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
+import TextDiffViewer from '@/components/common/TextDiffViewer.vue'
 import { articleSuggestionAPI, type ArticleEditSuggestion } from '@/api/articleSuggestion'
 import { articleAPI } from '@/api/article'
 
 const router = useRouter()
+const route = useRoute()
 const message = useMessage()
+const dialog = useDialog()
 
 // 响应式数据
 const loading = ref(false)
 const suggestions = ref<ArticleEditSuggestion[]>([])
-const currentStatus = ref<string>('all')
+const currentStatus = ref<string>('0')
+const pendingCount = ref(0)
 const searchKeyword = ref('')
 const pagination = reactive({
   page: 1,
   limit: 20,
   total: 0
 })
-
-// 模态框相关
-const detailModalVisible = ref(false)
-const currentSuggestion = ref<ArticleEditSuggestion | null>(null)
-
-// 内容数据
-const currentArticleContent = ref<object>({})
-const currentSuggestionContent = ref<object>({})
 
 /**
  * 加载建议列表
@@ -276,7 +260,9 @@ const loadSuggestions = async () => {
   try {
     const params = {
       page: pagination.page,
-      limit: pagination.limit
+      limit: pagination.limit,
+      status: 0,
+      keyword: ''
     }
     
     if (currentStatus.value !== 'all') {
@@ -287,12 +273,25 @@ const loadSuggestions = async () => {
       params.keyword = searchKeyword.value
     }
 
-    // 调用获取"我提交的建议"接口
-    const response = await articleSuggestionAPI.getMySuggestions(params)
+    // 调用获取"我收到的建议"接口
+    const response = await articleSuggestionAPI.getMyReceivedSuggestions(params)
     const data = response.data.data
     
-    suggestions.value = data.list || []
+    suggestions.value = data.records || []
     pagination.total = data.total || 0
+    
+    // 统计待审核数量
+    if (currentStatus.value === '0') {
+      pendingCount.value = pagination.total
+    } else {
+      // 单独查询待审核数量
+      const pendingResponse = await articleSuggestionAPI.getMyReceivedSuggestions({ 
+        status: 0, 
+        page: 1, 
+        limit: 1 
+      })
+      pendingCount.value = pendingResponse.data.data?.total || 0
+    }
   } catch (error) {
     console.error('加载建议列表失败:', error)
     message.error('加载建议列表失败')
@@ -302,28 +301,51 @@ const loadSuggestions = async () => {
 }
 
 /**
- * 查看详情
+ * 跳转到详情页
  */
-const viewDetail = async (item: ArticleEditSuggestion) => {
-  currentSuggestion.value = item
-  
-  try {
-    const detailResponse = await articleSuggestionAPI.getById(item.id)
-    const suggestionData = detailResponse.data.data
-    
-    // 获取文章内容用于对比
-    const articleResponse = await articleAPI.getById(item.articleId)
-    const articleData = articleResponse.data.data
-    
-    // 保存内容用于对比
-    currentArticleContent.value = articleData.content || {}
-    currentSuggestionContent.value = suggestionData.content || {}
-    
-    detailModalVisible.value = true
-  } catch (error) {
-    console.error('加载详情失败:', error)
-    message.error('加载详情失败')
-  }
+const goToDetail = (item: ArticleEditSuggestion) => {
+  router.push({
+    path: `/index/suggestion/${item.id}`,
+    query: {
+      mode: 'view',
+      articleId: item.articleId
+    }
+  })
+}
+
+/**
+ * 提交审核
+ */
+const goToReview = (item: ArticleEditSuggestion) => {
+  router.push({
+    path: `/index/suggestion/${item.id}`,
+    query: {
+      mode: 'review',
+      articleId: item.articleId
+    }
+  })
+}
+
+/**
+ * 确认删除
+ */
+const confirmDelete = (item: ArticleEditSuggestion) => {
+  dialog.warning({
+    title: '删除建议',
+    content: '确定要删除这条修改建议吗？此操作不可恢复。',
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await articleSuggestionAPI.delete(item.id)
+        message.success('删除成功')
+        loadSuggestions()
+      } catch (error) {
+        console.error('删除失败:', error)
+        message.error('删除失败')
+      }
+    }
+  })
 }
 
 /**
@@ -359,8 +381,7 @@ const handlePageSizeChange = (pageSize: number) => {
 /**
  * 获取状态类型
  */
-const getStatusType = (status?: number) => {
-  if (status === undefined) return 'default'
+const getStatusType = (status: number) => {
   const map = {
     0: 'warning',
     1: 'success',
@@ -372,8 +393,7 @@ const getStatusType = (status?: number) => {
 /**
  * 获取状态文本
  */
-const getStatusText = (status?: number) => {
-  if (status === undefined) return '未知'
+const getStatusText = (status: number) => {
   const map = {
     0: '待审核',
     1: '已通过',
@@ -397,17 +417,21 @@ const formatDate = (dateStr?: string) => {
 }
 
 /**
- * 返回上一页
+ * 返回文章详情页或上一页
  */
 const goBack = () => {
-  router.back()
-}
+  const articleId = route.query.articleId as string
 
-/**
- * 前往文章列表
- */
-const goToArticleList = () => {
-  router.push('/index/articleList')
+  if (articleId) {
+    // 优先返回文章详情页
+    router.push({
+      path: '/index/articleDetail',
+      query: { id: articleId }
+    })
+  } else {
+    // 如果没有文章 ID，返回上一页（如从侧边栏菜单进入）
+    router.back()
+  }
 }
 
 onMounted(() => {
@@ -441,7 +465,7 @@ onMounted(() => {
   .suggestion-cards {
     display: grid;
     gap: 20px;
-    grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(650px, 1fr));
     
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
@@ -480,6 +504,17 @@ onMounted(() => {
           max-width: 400px;
         }
       }
+
+      .proposer-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .proposer-name {
+          font-size: 14px;
+          color: #666;
+        }
+      }
     }
 
     .card-body {
@@ -499,7 +534,6 @@ onMounted(() => {
 
       .meta-info {
         display: flex;
-        flex-wrap: wrap;
         gap: 16px;
         font-size: 13px;
         color: #999;
@@ -508,12 +542,6 @@ onMounted(() => {
           display: flex;
           align-items: center;
           gap: 4px;
-          
-          &.reject-reason {
-            color: #f00;
-            width: 100%;
-            margin-top: 8px;
-          }
         }
       }
     }
@@ -534,18 +562,11 @@ onMounted(() => {
   }
 }
 
-.detail-content {
-  .detail-header {
-    margin-bottom: 20px;
-  }
-
-  .detail-body {
-    .section-title {
-      margin: 20px 0 12px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #606266;
-    }
-  }
+.on-empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
 }
 </style>

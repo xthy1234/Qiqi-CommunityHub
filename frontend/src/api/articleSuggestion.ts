@@ -8,17 +8,28 @@ export interface ArticleEditSuggestion {
   id: number
   articleId: number
   articleTitle?: string  // 文章标题（用于列表展示）
+  articleCoverUrl?: string  // 文章封面 URL
   proposerId: number
-  proposerName?: string
-  proposerAvatar?: string
+  proposer?: {
+    id: number
+    nickname: string
+    avatar?: string
+    lastOnlineTime?: string
+  }
   title: string
-  content: object  // TipTap JSON 格式
+  content: object  // TipTap JSON 格式（修改后的内容）
+  originalContent?: object  // TipTap JSON 格式（原始内容）
   changeSummary?: string
   status: 0 | 1 | 2  // 0-待审核，1-已通过，2-已拒绝
   createTime: string
   reviewTime?: string
   reviewerId?: number
-  reviewerName?: string
+  reviewer?: {
+    id: number
+    nickname: string
+    avatar?: string
+    lastOnlineTime?: string
+  }
   rejectReason?: string  // 拒绝理由
 }
 
@@ -58,7 +69,7 @@ export class ArticleSuggestionAPI {
    * @param params 查询参数（status, page, limit）
    */
   getList(articleId: number | string, params?: any) {
-    return http.get(`${this.endpoint}/article/${articleId}`, { params })
+    return http.get(`${this.endpoint}/${articleId}`, { params })
   }
   
   /**
@@ -66,7 +77,7 @@ export class ArticleSuggestionAPI {
    * @param suggestionId 建议 ID
    */
   getById(suggestionId: number | string) {
-    return http.get(`${this.endpoint}/${suggestionId}`)
+    return http.get(`${this.endpoint}/${suggestionId}/detail`)
   }
   
   /**
@@ -75,7 +86,7 @@ export class ArticleSuggestionAPI {
    * @param data 建议内容
    */
   create(articleId: number | string, data: Partial<ArticleEditSuggestion>) {
-    return http.post(`${this.endpoint}/article/${articleId}`, data)
+    return http.post(`${this.endpoint}/${articleId}`, data)
   }
   
   /**
@@ -84,7 +95,7 @@ export class ArticleSuggestionAPI {
    * @param data 审核结果
    */
   review(suggestionId: number | string, data: ReviewSuggestionParams) {
-    return http.put(`${this.endpoint}/${suggestionId}`, data)
+    return http.put(`${this.endpoint}/${suggestionId}/review`, data)
   }
   
   /**

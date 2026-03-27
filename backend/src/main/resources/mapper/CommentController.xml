@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gcs.dao.ArticleDraftDao">
+
+    <resultMap id="draftResultMap" type="com.gcs.entity.ArticleDraft" autoMapping="true">
+        <id column="id" property="id"/>
+        <result column="article_id" property="articleId"/>
+        <result column="user_id" property="userId"/>
+        <result column="content" property="content" 
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="extra" property="extra"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="title" property="title"/>
+        <result column="change_summary" property="changeSummary"/>
+        <result column="auto_saved_at" property="autoSavedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByArticleAndUser" resultMap="draftResultMap">
+        SELECT * FROM article_draft 
+        WHERE article_id = #{articleId} AND user_id = #{userId}
+    </select>
+
+    <select id="existsByArticleAndUser" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM article_draft 
+                      WHERE article_id = #{articleId} AND user_id = #{userId})
+    </select>
+</mapper>

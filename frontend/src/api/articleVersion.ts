@@ -1,6 +1,16 @@
 import http from '@/utils/http'
 
 /**
+ * 用户信息接口
+ */
+export interface UserInfo {
+  id: number
+  nickname: string
+  avatar?: string
+  lastOnlineTime?: string
+}
+
+/**
  * 文章版本接口
  */
 export interface ArticleVersion {
@@ -11,6 +21,7 @@ export interface ArticleVersion {
   changeSummary?: string
   operatorId?: number
   operatorName?: string
+  operator?: UserInfo  // 操作人详情
   createTime: string
   content?: object  // TipTap JSON 格式
 }

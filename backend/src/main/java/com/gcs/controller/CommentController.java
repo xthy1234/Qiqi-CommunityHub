@@ -16,6 +16,7 @@ import com.gcs.service.CommentService;
 import com.gcs.service.InteractionService;
 import com.gcs.service.UserService;
 
+import com.gcs.utils.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -29,9 +30,6 @@ import com.gcs.dto.CommentCreateDTO;
 import com.gcs.dto.CommentUpdateDTO;
 import com.gcs.dto.CommentReplyDTO;
 
-import com.gcs.utils.PageUtils;
-import com.gcs.utils.R;
-import com.gcs.utils.MPUtil;
 import com.gcs.vo.CommentVO;
 import com.gcs.vo.CommentDetailVO;
 import com.gcs.vo.CommentTreeVO;
@@ -69,6 +67,15 @@ public class CommentController {
 
     @Autowired
     private InteractionService interactionService;
+    
+    @Autowired
+    private SessionUtils sessionUtils;
+    
+    @Autowired
+    private AuthUtils authUtils;
+    
+    @Autowired
+    private InteractionUtils interactionUtils;
 
     /**
      * 获取评论分页列表
@@ -211,16 +218,11 @@ public class CommentController {
             List<CommentView> commentTree = commentService.getCommentTree(contentId);
             
             // 获取当前登录用户 ID（如果已登录）
-            Long currentUserId = null;
-            String userIdStr = getSessionAttribute(request, "userId");
-            if (userIdStr != null) {
-                currentUserId = Long.parseLong(userIdStr);
-            }
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             // 将 CommentView 转换为 CommentTreeVO
-            Long finalCurrentUserId = currentUserId;
             List<CommentTreeVO> treeVOList = commentTree.stream()
-                .map(commentView -> convertViewToTreeVO(commentView, finalCurrentUserId))
+                .map(commentView -> convertViewToTreeVO(commentView, currentUserId))
                 .collect(Collectors.toList());
             
             return R.ok().put("data", treeVOList);
@@ -253,18 +255,13 @@ public class CommentController {
 
             PageUtils pageUtils = commentService.getCommentTreePage(contentId, params);
             
-            // 获取当前登录用户ID（如果已登录）
-            Long currentUserId = null;
-            String userIdStr = getSessionAttribute(request, "userId");
-            if (userIdStr != null) {
-                currentUserId = Long.parseLong(userIdStr);
-            }
+            // 获取当前登录用户 ID（如果已登录）
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             // 将 CommentView 转换为 CommentTreeVO
-            Long finalCurrentUserId = currentUserId;
             List<CommentTreeVO> treeVOList = ((List<CommentView>) pageUtils.getList())
                 .stream()
-                .map(commentView -> convertViewToTreeVO(commentView, finalCurrentUserId))
+                .map(commentView -> convertViewToTreeVO(commentView, currentUserId))
                 .collect(Collectors.toList());
             
             // 重新构建返回数据
@@ -312,7 +309,7 @@ public class CommentController {
         HttpServletRequest request) {
         try {
             // 从 Session 获取用户 ID（必须登录）
-            String userIdStr = getSessionAttribute(request, "userId");
+            String userIdStr = sessionUtils.getSessionAttribute(request, "userId");
             if (userIdStr == null) {
                 return R.error("请先登录后再发表评论");
             }
@@ -348,7 +345,7 @@ public class CommentController {
         HttpServletRequest request) {
         try {
             // 从 Session 获取用户 ID（必须登录）
-            String userIdStr = getSessionAttribute(request, "userId");
+            String userIdStr = sessionUtils.getSessionAttribute(request, "userId");
             if (userIdStr == null) {
                 return R.error("请先登录后再回复评论");
             }
@@ -480,12 +477,10 @@ public class CommentController {
         HttpServletRequest request) {
         try {
             // 获取当前用户信息
-            String userIdStr = getSessionAttribute(request, "userId");
-            if (userIdStr == null) {
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
                 return R.error("请先登录");
             }
-            
-            Long currentUserId = Long.parseLong(userIdStr);
             
             // 查询评论信息
             Comment comment = commentService.getById(id);
@@ -494,7 +489,7 @@ public class CommentController {
             }
             
             // 判断是否为管理员
-            boolean isAdmin = checkIsAdmin(currentUserId);
+            boolean isAdmin = authUtils.isAdmin(currentUserId);
             
             // 判断是否为文章作者
             boolean isArticleAuthor = false;
@@ -542,15 +537,13 @@ public class CommentController {
             }
             
             // 获取当前用户信息
-            String userIdStr = getSessionAttribute(request, "userId");
-            if (userIdStr == null) {
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
                 return R.error("请先登录");
             }
             
-            Long currentUserId = Long.parseLong(userIdStr);
-            
             // 判断是否为管理员
-            boolean isAdmin = checkIsAdmin(currentUserId);
+            boolean isAdmin = authUtils.isAdmin(currentUserId);
             
             // 如果不是管理员，需要逐个验证权限
             if (!isAdmin) {
@@ -591,38 +584,6 @@ public class CommentController {
         } catch (Exception e) {
             log.error("批量删除评论失败", e);
             return R.error("删除失败");
-        }
-    }
-    
-    // ==================== 私有辅助方法 ====================
-    
-    /**
-     * 获取会话属性
-     */
-    private String getSessionAttribute(HttpServletRequest request, String attributeName) {
-        Object attribute = request.getSession().getAttribute(attributeName);
-        return attribute != null ? attribute.toString() : null;
-    }
-    
-    /**
-     * 检查用户是否为管理员
-     */
-    private boolean checkIsAdmin(Long userId) {
-        try {
-            User user = userService.getById(userId);
-            if (user == null) {
-                return false;
-            }
-            
-            // 通过 roleId 判断（假设 roleId=1 为管理员）
-            if (user.getRoleId() != null && user.getRoleId() == 1L) {
-                return true;
-            }
-            
-            return false;
-        } catch (Exception e) {
-            log.error("检查管理员权限失败，userId: {}", userId, e);
-            return false;
         }
     }
     
@@ -704,8 +665,8 @@ public class CommentController {
         
         // 查询当前用户的互动状态
         if (currentUserId != null) {
-            Boolean isLiked = checkUserInteraction(currentUserId, view.getId(), InteractionActionType.LIKE);
-            Boolean isDisliked = checkUserInteraction(currentUserId, view.getId(), InteractionActionType.DISLIKE);
+            Boolean isLiked = interactionUtils.hasLiked(currentUserId, view.getId(), ContentType.COMMENT);
+            Boolean isDisliked = interactionUtils.hasDisliked(currentUserId, view.getId(), ContentType.COMMENT);
             vo.setIsLiked(isLiked);
             vo.setIsDisliked(isDisliked);
             log.debug("设置互动状态：commentId={}, isLiked={}, isDisliked={}", view.getId(), isLiked, isDisliked);
@@ -763,23 +724,4 @@ public class CommentController {
             comment.setStatus(dto.getStatus());
         }
     }
-    
-    /**
-     * 检查用户是否对评论有特定互动
-     */
-    private boolean checkUserInteraction(Long userId, Long commentId, InteractionActionType actionType) {
-        try {
-            // ✅ 传递 tableName 参数（评论的互动）
-            boolean result = interactionService.hasValidInteraction(
-                userId, commentId, actionType, ContentType.COMMENT);
-            log.debug("检查用户互动状态：userId={}, commentId={}, actionType={}, result={}", 
-                    userId, commentId, actionType, result);
-            return result;
-        } catch (Exception e) {
-            log.warn("检查用户互动状态失败，userId: {}, commentId: {}, actionType: {}", 
-                    userId, commentId, actionType, e);
-            return false;
-        }
-    }
-
 }

@@ -104,12 +104,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { NMessageProvider, useMessage, NButton, NInput, NSelect, NPagination, NImage, NTag, NCheckbox, NModal, NSkeleton } from 'naive-ui'
 import { Icon } from '@iconify/vue'
-import { handleImageError, getFullUrl } from '@/utils/userUtils'
 import { articleAPI } from '@/api/article'
 import ArticleGridList from '@/components/article/ArticleGridList.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DraftCard from '@/components/editor/DraftCard.vue'
+import { draftAPI } from '@/api/draft'
+
+
+
 
 interface DraftItem {
   id: number | string
@@ -149,7 +152,7 @@ const showSubmitModal = ref(false)
 const showDeleteModal = ref(false)
 const currentOperatingItem = ref<DraftItem | null>(null)
 
-const isSelectAll = computed({
+const isSelectAll = computed<boolean>({
   get: () => draftList.value.length > 0 && draftList.value.every(item => item.isSelected),
   set: (value: boolean) => {
     draftList.value.forEach(item => {
@@ -208,22 +211,17 @@ const fetchDraftList = async (): Promise<void> => {
   isLoading.value = true
 
   try {
-    const params: any = {
-      ...pagination.value,
-      type: 'draft'  // 添加 type 参数，指定获取草稿
-    }
+    const response = await draftAPI.getMyDrafts({
+      page: pagination.value.page,
+      limit: pagination.value.limit
+    })
 
-    if (searchCriteria.value.title && searchCriteria.value.title.trim()) {
-      params.title = `%${searchCriteria.value.title.trim()}%`
-    }
-
-    const response = await articleAPI.getList(params)
-
-    draftList.value = (response.data.data?.list || []).map((item: DraftItem) => ({
+    const data = response.data.data || response.data
+    draftList.value = (data.list || []).map((item: DraftItem) => ({
       ...item,
       isSelected: false
     }))
-    totalCount.value = Number(response.data.data?.total || 0)
+    totalCount.value = Number(data.total || 0)
 
   } catch (error) {
     console.error('获取草稿列表失败:', error)
@@ -274,21 +272,29 @@ const handleDeleteBatch = (): void => {
   showDeleteModal.value = true
 }
 
-// 确认提交审核
+
 const confirmSubmit = async () => {
   try {
     if (currentOperatingItem.value) {
-      // 单个提交
-      const response = await articleAPI.submitDraft(currentOperatingItem.value.id)
-      if (response.data.code === 200 || response.data.success) {
+      const draftId = currentOperatingItem.value.id
+      const response = await draftAPI.publishDraft(draftId, {
+        isMajor: false,
+        changeSummary: ''
+      })
+
+      if (response.data.code === 200 || response.data.msg) {
         message.success('提交审核成功')
         fetchDraftList()
       } else {
-        message.error(response.data.message || '提交审核失败')
+        message.error(response.data.msg || '提交审核失败')
       }
     } else {
-      // 批量提交
-      const promises = selectedDrafts.value.map(id => articleAPI.submitDraft(id))
+      const promises = selectedDrafts.value.map(id =>
+        draftAPI.publishDraft(id, {
+          isMajor: false,
+          changeSummary: ''
+        })
+      )
       await Promise.all(promises)
       message.success('批量提交审核成功')
       selectedDrafts.value = []
@@ -307,23 +313,27 @@ const confirmSubmit = async () => {
 const confirmDelete = async () => {
   try {
     if (currentOperatingItem.value) {
-      // 单个删除
-      const response = await articleAPI.deleteDraft(currentOperatingItem.value.id)
-      if (response.data.code === 200 || response.data.success) {
+      const draftId = currentOperatingItem.value.id
+      const response = await draftAPI.deleteDraft(draftId)
+
+      if (response.data.code === 200 || response.data.msg) {
         message.success('删除成功')
         fetchDraftList()
       } else {
-        message.error(response.data.message || '删除失败')
+        message.error(response.data.msg || '删除失败')
       }
     } else {
-      // 批量删除
-      const response = await articleAPI.batchDeleteDrafts(selectedDrafts.value as number[])
-      if (response.data.code === 200 || response.data.success) {
+      const promises = selectedDrafts.value.map(id => draftAPI.deleteDraft(id))
+      const results = await Promise.all(promises)
+
+      const allSuccess = results.every(r => r.data.code === 200 || r.data.msg)
+
+      if (allSuccess) {
         message.success('批量删除成功')
         selectedDrafts.value = []
         fetchDraftList()
       } else {
-        message.error(response.data.message || '批量删除失败')
+        message.error('批量删除失败')
       }
     }
   } catch (error: any) {

@@ -68,7 +68,7 @@
 
         <!-- 差异预览 -->
         <n-form-item
-          v-if="hasChanges"
+          v-if="hasChanges && originalContent && formData.content"
           label="修改预览"
         >
           <n-collapse :default-expanded-names="['diff']">
@@ -76,11 +76,11 @@
               title="查看修改差异"
               name="diff"
             >
-              <DiffViewer
-                :source-content="originalContent"
-                :target-content="formData.content"
-                source-title="原文内容"
-                target-title="修改后内容"
+              <TextDiffViewer
+                :source="originalContent"
+                :target="formData.content"
+                source-label="原文内容"
+                target-label="修改后内容"
                 :show-header="false"
                 :show-stats="true"
               />
@@ -118,7 +118,7 @@ import { useMessage, FormInst, FormRules } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
-import DiffViewer from '@/components/common/DiffViewer.vue'
+import TextDiffViewer from '@/components/common/TextDiffViewer.vue'
 import { articleAPI } from '@/api/article'
 import { articleSuggestionAPI } from '@/api/articleSuggestion'
 import {
@@ -146,27 +146,72 @@ const formData = reactive({
 })
 
 // 表单验证规则
-const formRules: FormRules = {
-  content: {
-    required: true,
-    message: '请填写修改内容',
-    trigger: 'blur'
+const formRules: FormRules = {}
+
+/**
+ * 手动验证内容是否为空
+ */
+const validateContent = (): boolean => {
+  if (!formData.content) {
+    message.warning('请输入文章内容')
+    return false
   }
+
+  const doc = formData.content as any
+
+  // 检查是否有有效的内容节点
+  if (!doc.content || doc.content.length === 0) {
+    message.warning('请输入文章内容')
+    return false
+  }
+
+  // 检查是否只有一个空的段落节点
+  if (doc.content.length === 1 &&
+      doc.content[0]?.type === 'paragraph' &&
+      (!doc.content[0].content || doc.content[0].content.length === 0)) {
+    message.warning('请输入文章内容')
+    return false
+  }
+
+  // 检查所有文本内容是否为空
+  const hasText = doc.content.some((node: any) => {
+    if (node.type === 'text' && node.text?.trim()) {
+      return true
+    }
+    if (node.content && Array.isArray(node.content)) {
+      return node.content.some((child: any) =>
+        child.type === 'text' && child.text?.trim()
+      )
+    }
+    return false
+  })
+
+  if (!hasText) {
+    message.warning('请输入文章内容')
+    return false
+  }
+
+  return true
 }
 
 // 是否有修改
 const hasChanges = computed(() => {
+  // 【安全检查】确保数据已加载
+  if (!originalContent.value || !formData.content) {
+    return false
+  }
+
   const originalJson = JSON.stringify(originalContent.value)
   const currentJson = JSON.stringify(formData.content)
   const isDifferent = originalJson !== currentJson
 
-  console.log('🔍 原文内容:', originalContent.value)
-  console.log('🔍 当前内容:', formData.content)
-  console.log('🔍 JSON 对比:', {
-    originalLength: originalJson.length,
-    currentLength: currentJson.length,
-    isDifferent
-  })
+  // console.log('🔍 原文内容:', originalContent.value)
+  // console.log('🔍 当前内容:', formData.content)
+  // console.log('🔍 JSON 对比:', {
+  //   originalLength: originalJson.length,
+  //   currentLength: currentJson.length,
+  //   isDifferent
+  // })
 
   return isDifferent
 })
@@ -226,14 +271,7 @@ const handleSubmit = async () => {
     }
 
     // 手动检查内容是否为空（解决 Tiptap 内容变化不触发验证的问题）
-    const isEmptyContent = !formData.content ||
-      !formData.content.content ||
-      formData.content.content.length === 0 ||
-      (formData.content.content.length === 1 &&
-       !formData.content.content[0]?.content)
-
-    if (isEmptyContent) {
-      message.warning('请输入文章内容')
+    if (!validateContent()) {
       return
     }
 

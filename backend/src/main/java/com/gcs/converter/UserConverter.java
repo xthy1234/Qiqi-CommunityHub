@@ -7,8 +7,10 @@ import com.gcs.entity.User;
 import com.gcs.vo.UserVO;
 import com.gcs.vo.UserDetailVO;
 import com.gcs.vo.UserProfileVO;
+import com.gcs.vo.UserPublicProfileVO;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.factory.Mappers;
@@ -23,14 +25,14 @@ public interface UserConverter {
     
     UserConverter INSTANCE = Mappers.getMapper(UserConverter.class);
     
-    // DTO to Entity
+    // ==================== DTO to Entity ====================
     User toEntity(UserDTO dto);
     
     User toEntity(UserRegisterDTO dto);
     
     User toEntity(UserUpdateDTO dto);
     
-    // Entity to VO - 使用 Named 注解明确方法名
+    // ==================== Entity to VO ====================
     @Named("toVO")
     UserVO toVO(User entity);
     
@@ -40,7 +42,10 @@ public interface UserConverter {
     @Named("toProfileVO")
     UserProfileVO toProfileVO(User entity);
     
-    // List conversion - 明确指定使用的方法
+    @Named("toPublicProfileVO")
+    UserPublicProfileVO toPublicProfileVO(User entity);
+    
+    // ==================== List conversion ====================
     @IterableMapping(qualifiedByName = "toVO")
     List<UserVO> toVOList(List<User> entities);
     
@@ -50,6 +55,9 @@ public interface UserConverter {
     @IterableMapping(qualifiedByName = "toProfileVO")
     List<UserProfileVO> toProfileVOList(List<User> entities);
     
-    // Update existing entity
+    @IterableMapping(qualifiedByName = "toPublicProfileVO")
+    List<UserPublicProfileVO> toPublicProfileVOList(List<User> entities);
+    
+    // ==================== Update existing entity ====================
     void updateEntity(UserUpdateDTO dto, @MappingTarget User entity);
 }

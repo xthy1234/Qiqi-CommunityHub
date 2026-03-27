@@ -3,6 +3,8 @@ package com.gcs.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.gcs.entity.ArticleEditSuggestion;
+import com.gcs.vo.ArticleSuggestionVO;
+import com.gcs.vo.ArticleSuggestionSimpleVO;
 
 import java.util.Map;
 
@@ -84,4 +86,48 @@ public interface ArticleEditSuggestionService extends IService<ArticleEditSugges
      */
     IPage<ArticleEditSuggestion> getSuggestionsByAuthor(Long authorId, Integer status,
                                                         Integer page, Integer limit);
+
+    /**
+     * 获取建议列表（分页，包含完整 VO）
+     *
+     * @param articleId 文章 ID
+     * @param status 状态（null 表示全部）
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 建议列表 VO（分页）
+     */
+    IPage<ArticleSuggestionSimpleVO> getSuggestionsWithDetails(Long articleId, Integer status,
+                                                               Integer page, Integer limit);
+
+    /**
+     * 获取建议详情（包含完整 VO）
+     *
+     * @param suggestionId 建议 ID
+     * @return 建议详细 VO（包含文章信息、用户信息等）
+     */
+    ArticleSuggestionVO getSuggestionDetailWithVo(Long suggestionId);
+
+    /**
+     * 获取用户提出的建议列表（分页，包含完整 VO）
+     *
+     * @param proposerId 建议者 ID
+     * @param status 状态（null 表示全部）
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 建议列表 VO（分页）
+     */
+    IPage<ArticleSuggestionSimpleVO> getMySuggestionsWithDetails(Long proposerId, Integer status,
+                                                                 Integer page, Integer limit);
+
+    /**
+     * 获取用户的文章收到的建议列表（分页，包含完整 VO）
+     *
+     * @param authorId 文章作者 ID
+     * @param status 状态（null 表示全部）
+     * @param page 页码
+     * @param limit 每页数量
+     * @return 建议列表 VO（分页）
+     */
+    IPage<ArticleSuggestionSimpleVO> getReceivedSuggestionsWithDetails(Long authorId, Integer status,
+                                                                       Integer page, Integer limit);
 }

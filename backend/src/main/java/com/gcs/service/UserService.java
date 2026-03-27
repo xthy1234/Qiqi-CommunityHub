@@ -229,10 +229,10 @@ public interface UserService extends IService<User> {
     /**
      * 获取用户公开主页信息
      *
-     * @param userId 用户ID
-     * @param currentUserId 当前登录用户ID（可选，用于判断关注状态）
+     * @param userId 用户 ID
+     * @param currentUserId 当前登录用户 ID（可选，用于判断关注状态）
      * @return 用户公开主页信息
      */
-    UserPublicProfileVO getPublicProfile(Long userId, Long currentUserId);
+    User getPublicProfile(Long userId, Long currentUserId);
 }
 

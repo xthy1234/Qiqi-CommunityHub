@@ -38,4 +38,22 @@ public interface ArticleVersionDao extends BaseMapper<ArticleVersion> {
      * @return 最大版本号
      */
     Integer getMaxVersion(@Param("articleId") Long articleId);
+
+    /**
+     * 获取最大主版本号
+     *
+     * @param articleId 文章 ID
+     * @return 最大主版本号
+     */
+    Integer selectMaxMajorVersion(@Param("articleId") Long articleId);
+
+    /**
+     * 获取指定主版本下的最大次版本号
+     *
+     * @param articleId 文章 ID
+     * @param majorVersion 主版本号
+     * @return 最大次版本号
+     */
+    Integer selectMaxMinorVersion(@Param("articleId") Long articleId, 
+                                  @Param("majorVersion") Integer majorVersion);
 }

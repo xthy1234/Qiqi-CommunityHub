@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.gcs.entity.Article;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.utils.PageUtils;
+import com.gcs.vo.ArticleDetailVO;
 import com.gcs.vo.ArticleSearchVO;
 
 import java.util.List;
@@ -99,4 +100,20 @@ public interface ArticleService extends IService<Article> {
      * @return 搜索结果列表（按相关度排序）
      */
     List<ArticleSearchVO> searchByFullText(Map<String, Object> params);
+    
+    /**
+     * 获取文章详情（返回 Entity，由 Controller 转换为 VO）
+     * @param id 文章 ID
+     * @return 文章实体（可能是 ArticleView）
+     */
+    Article getArticleDetail(Long id);
+
+    void insertArticle(Article article);
+
+    /**
+     * 保存文章（创建小版本）
+     */
+    void saveWithMinorVersion(Long articleId, Long userId, String title,
+                              Map<String, Object> content, String changeSummary);
+
 }
