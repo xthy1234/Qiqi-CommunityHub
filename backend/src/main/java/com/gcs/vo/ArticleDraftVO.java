@@ -28,15 +28,21 @@ public class ArticleDraftVO {
     @Schema(description = "草稿标题")
     private String title;
     
+    @Schema(description = "封面图片 URL")
+    private String coverUrl;
+    
+    @Schema(description = "内容分类 ID")
+    private Long categoryId;
+    
     @Schema(description = "修改摘要")
     private String changeSummary;
     
     @Schema(description = "最后自动保存时间")
-    private LocalDateTime autoSavedAt;
+    private LocalDateTime autoSaveTime;
     
     @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
+    private LocalDateTime createTime;
     
     @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
+    private LocalDateTime updateTime;
 }

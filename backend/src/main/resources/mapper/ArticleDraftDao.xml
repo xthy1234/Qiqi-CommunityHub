@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gcs.dao.ArticleDraftDao">
+
+    <resultMap id="BaseResultMap" type="com.gcs.entity.ArticleDraft">
+        <id column="id" property="id"/>
+        <result column="article_id" property="articleId"/>
+        <result column="user_id" property="userId"/>
+        <result column="title" property="title"/>
+        <result column="cover_url" property="coverUrl"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="content" property="content"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="extra" property="extra"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="change_summary" property="changeSummary"/>
+        <result column="auto_save_time" property="autoSaveTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 根据文章 ID 和用户 ID 查询草稿 -->
+    <select id="selectByArticleAndUser" resultMap="BaseResultMap">
+        SELECT *
+        FROM article_draft
+        WHERE article_id = #{articleId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 检查是否存在草稿 -->
+    <select id="existsByArticleAndUser" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM article_draft
+        WHERE article_id = #{articleId}
+          AND user_id = #{userId}
+    </select>
+
+    <!-- 查询用户的所有草稿（分页） -->
+    <select id="selectDraftsByUserId" resultMap="BaseResultMap">
+        SELECT *
+        FROM article_draft
+        WHERE user_id = #{userId}
+        ORDER BY auto_save_time DESC
+    </select>
+
+</mapper>

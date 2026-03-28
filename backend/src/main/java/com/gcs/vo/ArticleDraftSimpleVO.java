@@ -21,6 +21,12 @@ public class ArticleDraftSimpleVO {
     @Schema(description = "草稿标题")
     private String title;
     
+    @Schema(description = "封面图片 URL")
+    private String coverUrl;
+    
+    @Schema(description = "内容分类 ID")
+    private Long categoryId;
+    
     @Schema(description = "最后自动保存时间")
     private LocalDateTime autoSavedAt;
     

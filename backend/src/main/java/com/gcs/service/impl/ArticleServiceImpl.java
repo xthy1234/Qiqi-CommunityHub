@@ -8,6 +8,7 @@ import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.gcs.entity.ArticleVersion;
 import com.gcs.enums.AuditStatus;
 import com.gcs.vo.ArticleDetailVO;
 import org.springframework.stereotype.Service;
@@ -148,10 +149,18 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
         // 2️⃣ 更新文章内容
         article.setTitle(title);
         article.setContent(content);
-//        article.setUpdateTime(LocalDateTime.now());
+        
+        // ✅ 新增：更新 currentVersion（从版本表获取最新版本号）
+        List<ArticleVersion> versions = articleVersionService.getVersionHistory(articleId);
+        if (versions != null && !versions.isEmpty()) {
+            ArticleVersion latestVersion = versions.get(0);
+            article.setCurrentVersion(latestVersion.getVersion());
+        }
+        
         this.updateById(article);
 
-        log.info("保存文章并创建小版本，articleId: {}", articleId);
+        log.info("保存文章并创建小版本，articleId: {}, newVersion: {}", 
+                articleId, article.getCurrentVersion());
     }
 
 }

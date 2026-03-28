@@ -12,9 +12,12 @@ public interface ArticleDraftService extends IService<ArticleDraft> {
      * @param articleId 文章 ID（可为空，表示新文章）
      * @param title 标题
      * @param content 内容
+     * @param coverUrl 封面图片 URL（可选）
+     * @param categoryId 分类 ID（可选）
      * @return 草稿 ID
      */
-    Long createDraft(Long userId, Long articleId, String title, Map<String, Object> content);
+    Long createDraft(Long userId, Long articleId, String title, Map<String, Object> content, 
+                     String coverUrl, Long categoryId);
     
     /**
      * 自动保存草稿

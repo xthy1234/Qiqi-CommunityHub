@@ -241,13 +241,17 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         article.setTitle(targetVersion.getTitle());
         article.setContent(targetVersion.getContent());
 
+        // ✅ 新增：设置回滚到的目标版本号
+        article.setCurrentVersion(version);
+
         // 更新文章表
         articleDao.updateById(article);
 
         // 创建回滚后的新版本
         createVersion(article, operatorId, changeSummary);
 
-        log.info("文章回滚成功，articleId: {}, targetVersion: {}", articleId, version);
+        log.info("文章回滚成功，articleId: {}, targetVersion: {}, newCurrentVersion: {}", 
+                articleId, version, article.getCurrentVersion());
     }
 
     @Override

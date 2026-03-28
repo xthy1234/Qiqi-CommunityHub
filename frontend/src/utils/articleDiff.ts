@@ -85,11 +85,7 @@ export const jsonToReadableText = (content: object): string => {
     
     // 使用换行符连接所有段落
     const result = paragraphs.join('\n')
-    console.log('📝 jsonToReadableText 结果:', {
-      paragraphs,
-      result,
-      length: result.length
-    })
+
     return result
   } catch (error) {
     console.error('JSON 转文本失败:', error)

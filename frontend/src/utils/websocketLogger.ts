@@ -64,9 +64,9 @@ class WebSocketLogger {
     const formatted = this.formatMessage(level, message)
     
     if (this.config.enableColors && color) {
-      console.log(`%c${formatted}`, color, data || '')
+
     } else {
-      console.log(formatted, data || '')
+
     }
   }
 

@@ -22,6 +22,12 @@ public class ArticleVersionSimpleVO {
     @Schema(description = "版本号", example = "1")
     private Integer version;
 
+    @Schema(description = "主版本号", example = "2")
+    private Integer majorVersion;
+
+    @Schema(description = "次版本号", example = "3")
+    private Integer minorVersion;
+
     @Schema(description = "文章标题", example = "Java 并发编程指南")
     private String title;
 

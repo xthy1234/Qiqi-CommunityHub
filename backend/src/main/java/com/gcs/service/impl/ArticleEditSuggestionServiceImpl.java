@@ -82,7 +82,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         suggestion.setStatus(SuggestionStatus.PENDING.getCode());
         
         // ✅ 记录建议是基于哪个版本提出的
-        Integer currentVersion = article.getVersion() != null ? article.getVersion() : 0;
+        Integer currentVersion = article.getCurrentVersion() != null ? article.getCurrentVersion() : 0;
         suggestion.setVersion(currentVersion);
         
         // ✅ 初始化 extra 信息
@@ -230,7 +230,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
                                                  Long operatorId) {
         try {
             // 1️⃣ 获取当前版本号并 +1
-            Integer currentVersion = article.getVersion() != null ? article.getVersion() : 0;
+            Integer currentVersion = article.getCurrentVersion() != null ? article.getCurrentVersion() : 0;
             Integer newVersion = currentVersion + 1;
             
             // 2️⃣ 创建文章新版本（保存快照）
@@ -242,7 +242,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             
             // 3️⃣ 更新文章的当前内容为建议的内容
             article.setContent(suggestion.getContent());
-            article.setVersion(newVersion);  // 更新文章版本号
+            article.setCurrentVersion(newVersion);  // 更新文章版本号
             article.setUpdateTime(LocalDateTime.now());
             articleDao.updateById(article);
             

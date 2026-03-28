@@ -221,9 +221,9 @@ const hasChanges = computed(() => {
  */
 const loadArticleContent = async () => {
   const articleId = route.params.articleId as string
-  console.log('🔍 路由参数类型:', typeof route.params.articleId)
-  console.log('🔍 路由参数值:', route.params.articleId)
-  console.log('🔍 转换后的 articleId:', articleId)
+
+
+
 
   if (!articleId) {
     message.error('缺少文章 ID 参数')
@@ -232,9 +232,9 @@ const loadArticleContent = async () => {
   }
 
   try {
-    console.log('✅ 开始调用 API 获取文章:', articleId)
+
     const response = await articleAPI.getById(articleId)
-    console.log('✅ API 响应:', response)
+
     articleInfo.value = response.data.data
     
     // 保存原始内容用于对比
@@ -244,8 +244,7 @@ const loadArticleContent = async () => {
     // 加载内容为编辑器初始值（深拷贝）
     formData.content = JSON.parse(JSON.stringify(originalData))
 
-    console.log('✅ 文章加载成功:', articleInfo.value?.title)
-    console.log('✅ 文章内容:', formData.content)
+
   } catch (error) {
     console.error('❌ 加载文章内容失败:', error)
     message.error('加载文章内容失败')

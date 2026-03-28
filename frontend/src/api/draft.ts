@@ -48,16 +48,37 @@ export interface CreateDraftResponse {
   hasDraft: boolean
 }
 
+export interface AutoSaveDraftRequest {
+  title?: string
+  content?: object
+  coverUrl?: string
+  categoryId?: number | string
+}
+
+export interface SaveDraftRequest {
+  title?: string
+  content?: object
+  coverUrl?: string
+  categoryId?: number | string
+  changeSummary?: string
+}
+
 export interface SaveDraftResponse {
   version: number
   majorVersion: number
   minorVersion: number
   versionDisplay: string
+  title?: string
+  content?: object
+  coverUrl?: string
+  categoryId?: number | string
 }
 
 export interface PublishDraftRequest {
-  isMajor?: boolean
+  versionType?: number // 0=小版本，1=大版本
   changeSummary?: string
+  coverUrl?: string
+  categoryId?: number | string
 }
 
 export interface PublishDraftResponse {
@@ -66,6 +87,7 @@ export interface PublishDraftResponse {
   majorVersion: number
   minorVersion: number
   versionDisplay: string
+  versionType?: number
 }
 
 /**
@@ -98,9 +120,9 @@ export class DraftAPI {
    * 自动保存草稿
    * PUT /api/articles/drafts/{draftId}
    * @param draftId 草稿 ID
-   * @param data 草稿内容 { content, title, extra? }
+   * @param data 草稿内容 { title, content, coverUrl?, categoryId? }
    */
-  autoSaveDraft(draftId: number | string, data: { content: object, title?: string, extra?: object }) {
+  autoSaveDraft(draftId: number | string, data: AutoSaveDraftRequest) {
     return http.put(`${this.endpoint}/${draftId}`, data)
   }
   
@@ -108,9 +130,9 @@ export class DraftAPI {
    * 手动保存（创建小版本）
    * POST /api/articles/drafts/{draftId}/save
    * @param draftId 草稿 ID
-   * @param data 请求参数 { changeSummary? }
+   * @param data 请求参数 { title?, content?, coverUrl?, categoryId?, changeSummary? }
    */
-  saveDraft(draftId: number | string, data?: { changeSummary?: string }) {
+  saveDraft(draftId: number | string, data?: SaveDraftRequest) {
     return http.post<SaveDraftResponse>(`${this.endpoint}/${draftId}/save`, data)
   }
   
@@ -118,7 +140,7 @@ export class DraftAPI {
    * 发布文章
    * POST /api/articles/drafts/{draftId}/publish
    * @param draftId 草稿 ID
-   * @param data 请求参数 { isMajor?, changeSummary? }
+   * @param data 请求参数 { versionType?, changeSummary? }
    */
   publishDraft(draftId: number | string, data: PublishDraftRequest) {
     return http.post<PublishDraftResponse>(`${this.endpoint}/${draftId}/publish`, data)

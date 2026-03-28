@@ -60,6 +60,15 @@ public class ArticleVO implements Serializable {
     
     @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿)", example = "1")
     private Integer auditStatus;
+
+    @Schema(description = "当前版本号（用于回滚、版本对比）", example = "5")
+    private Integer currentVersion;
+
+    @Schema(description = "主版本号", example = "2")
+    private Integer majorVersion;
+
+    @Schema(description = "次版本号", example = "3")
+    private Integer minorVersion;
     
     @Schema(description = "创建时间（系统自动生成）", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")

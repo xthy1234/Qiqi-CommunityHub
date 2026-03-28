@@ -22,12 +22,16 @@ public class ArticleDraftServiceImpl extends ServiceImpl<ArticleDraftDao, Articl
     
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createDraft(Long userId, Long articleId, String title, Map<String, Object> content) {
+    public Long createDraft(Long userId, Long articleId, String title, Map<String, Object> content, 
+                            String coverUrl, Long categoryId) {
         ArticleDraft draft = new ArticleDraft();
         draft.setUserId(userId);
         draft.setArticleId(articleId);
         draft.setTitle(title != null ? title : "未命名草稿");
         draft.setContent(content != null ? content : new HashMap<>());
+        draft.setExtra(new HashMap<>()); // ✅ 提供默认空 Map，避免 null
+        draft.setCoverUrl(coverUrl);
+        draft.setCategoryId(categoryId);
         draft.setAutoSaveTime(LocalDateTime.now());
         
         baseMapper.insert(draft);
@@ -42,7 +46,7 @@ public class ArticleDraftServiceImpl extends ServiceImpl<ArticleDraftDao, Articl
         
         if (draft == null) {
             // 如果草稿不存在，创建新草稿（兼容旧逻辑）
-            createDraft(userId, articleId, title, content);
+            createDraft(userId, articleId, title, content, null, null);
         } else {
             // 更新草稿
             draft.setContent(content);

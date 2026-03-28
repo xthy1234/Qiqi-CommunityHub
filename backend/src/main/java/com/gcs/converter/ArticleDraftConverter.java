@@ -12,7 +12,8 @@ public interface ArticleDraftConverter {
     ArticleDraftConverter INSTANCE = Mappers.getMapper(ArticleDraftConverter.class);
     
     @Mapping(target = "author", ignore = true)
-    @Mapping(source = "createTime", target = "createdAt")
-    @Mapping(source = "updateTime", target = "updatedAt")
+    @Mapping(source = "createTime", target = "createTime")
+    @Mapping(source = "updateTime", target = "updateTime")
+    @Mapping(source = "autoSaveTime", target = "autoSaveTime")
     ArticleDraftVO toVO(ArticleDraft entity);
 }

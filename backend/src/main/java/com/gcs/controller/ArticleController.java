@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gcs.annotation.IgnoreAuth;
 import com.gcs.converter.ArticleConverter;
+import com.gcs.entity.ArticleVersion;
 import com.gcs.entity.User;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.enums.AuditStatus;
@@ -62,16 +63,16 @@ import lombok.extern.slf4j.Slf4j;
 public class ArticleController {
     
     @Autowired
-   private ArticleService articleService;
+    private ArticleService articleService;
+    
+    @Autowired
+    private ArticleVersionService articleVersionService;
 
     @Autowired
    private UserService userService;
 
     @Autowired
    private InteractionService favoriteService;
-
-    @Autowired
-    private ArticleVersionService articleVersionService;
 
     @Autowired
     private ArticleContributorService articleContributorService;
@@ -276,6 +277,21 @@ public class ArticleController {
 
             Boolean isFavorited = checkIsFavorited(currentUserId, id);
             vo.setIsFavorited(isFavorited != null && isFavorited);
+            
+            // ✅ 新增：从 article 实体获取 currentVersion
+            vo.setCurrentVersion(article.getCurrentVersion());
+            
+            // ✅ 查询最新版本并设置 majorVersion、minorVersion
+            List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
+            if (versions != null && !versions.isEmpty()) {
+                ArticleVersion latestVersion = versions.get(0);
+                vo.setMajorVersion(latestVersion.getMajorVersion());
+                vo.setMinorVersion(latestVersion.getMinorVersion());
+            } else {
+                // 如果没有版本记录，默认为 1.0
+                vo.setMajorVersion(1);
+                vo.setMinorVersion(0);
+            }
 
             return R.ok().put("data", vo);
         } catch (Exception e) {
@@ -308,6 +324,10 @@ public class ArticleController {
             ArticleDetailVO vo = articleConverter.toDetailVO(
                     articleService.getArticleDetail(article.getId())
             );
+            
+            // ✅ 新增：查询最新版本并设置版本号（新文章第一个版本为 1.0）
+            vo.setMajorVersion(1);
+            vo.setMinorVersion(0);
 
             return R.ok("发布成功").put("data", vo);
         } catch (Exception e) {
@@ -363,6 +383,7 @@ public class ArticleController {
     })
     @PutMapping("/{id}")
     @Transactional
+    @Deprecated
     public R update(@PathVariable("id") Long id, @Valid @RequestBody ArticleUpdateDTO updateDTO,
                     HttpServletRequest request) {
         try {
@@ -390,6 +411,18 @@ public class ArticleController {
             ArticleDetailVO vo = articleConverter.toDetailVO(
                     articleService.getArticleDetail(id)
             );
+            
+            // ✅ 新增：查询最新版本并设置版本号
+            List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
+            if (versions != null && !versions.isEmpty()) {
+                ArticleVersion latestVersion = versions.get(0);
+                vo.setMajorVersion(latestVersion.getMajorVersion());
+                vo.setMinorVersion(latestVersion.getMinorVersion());
+            } else {
+                // 如果没有版本记录，默认为 1.0
+                vo.setMajorVersion(1);
+                vo.setMinorVersion(0);
+            }
 
             return R.ok("更新成功").put("data", vo);
         } catch (Exception e) {

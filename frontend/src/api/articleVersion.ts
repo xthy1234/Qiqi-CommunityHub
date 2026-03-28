@@ -21,9 +21,11 @@ export interface ArticleVersion {
   changeSummary?: string
   operatorId?: number
   operatorName?: string
-  operator?: UserInfo  // 操作人详情
+  operator?: UserInfo
   createTime: string
-  content?: object  // TipTap JSON 格式
+  content?: object
+  majorVersion: number
+  minorVersion: number
 }
 
 /**

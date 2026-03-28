@@ -156,7 +156,7 @@ class WebSocketManager {
    * 重置用户 ID（用于用户登出场景）
    */
   public resetUserId(): void {
-    console.log('🔄 [WebSocket] 重置用户 ID')
+
     this.currentUserId = null
     this.lastKnownUserId = null
   }
@@ -166,7 +166,7 @@ class WebSocketManager {
    */
   public updateUserId(userId: number): void {
     if (userId !== this.currentUserId) {
-      console.log('🔄 [WebSocket] 更新用户 ID:', this.currentUserId, '->', userId)
+
       this.currentUserId = userId
       this.lastKnownUserId = userId
       
@@ -813,11 +813,11 @@ export async function ensureConnected(url?: string): Promise<void> {
   const ws = getOrCreateWebSocket(url)
   
   if (!ws.isConnected()) {
-    console.log('🔄 [WebSocket] WebSocket 未连接，正在连接...')
+
     await ws.connect()
-    console.log('✅ [WebSocket] WebSocket连接成功')
+
   } else {
-    console.log('✅ [WebSocket] WebSocket 已连接')
+
   }
 }
 

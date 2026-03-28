@@ -80,7 +80,7 @@
       <n-data-table
         :columns="columns"
         :data="filteredVersions"
-        :row-key="(row) => row.id"
+        :row-key="(row :any) => row.id"
         :pagination="paginationConfig"
         :single-line="false"
         striped
@@ -173,6 +173,8 @@ const selectedVersions = ref<number[]>([])
 const searchKeyword = ref('')
 const rollingBack = ref(false)
 const targetRollbackVersion = ref<number>(0)
+const targetRollbackMajorVersion = ref<number>(1)
+const targetRollbackMinorVersion = ref<number>(0)
 const rollbackTargetArticleId = ref<number>(0)
 
 // 模态框
@@ -183,6 +185,10 @@ const rollbackModalVisible = ref(false)
 const compareData = reactive({
   sourceVersion: 0,
   targetVersion: 0,
+  sourceMajorVersion: 1,
+  sourceMinorVersion: 0,
+  targetMajorVersion: 1,
+  targetMinorVersion: 0,
   sourceContent: {} as object,
   targetContent: {} as object,
   sourceTime: '',
@@ -211,6 +217,7 @@ const columns = computed(() => [
     key: 'version',
     width: 100,
     render: (row: ArticleVersion) => {
+      const versionDisplay = `${row.majorVersion || 1}.${row.minorVersion || row.version}`
       return h(
         NTag,
         {
@@ -218,7 +225,7 @@ const columns = computed(() => [
           size: 'small',
           bordered: false
         },
-        { default: () => `v${row.version}` }
+        { default: () => `${versionDisplay}` }
       )
     }
   },
@@ -352,7 +359,11 @@ const openCompareDialog = async () => {
     ])
 
     compareData.sourceVersion = sourceVersion.version
+    compareData.sourceMajorVersion = sourceVersion.majorVersion || 1
+    compareData.sourceMinorVersion = sourceVersion.minorVersion || sourceVersion.version
     compareData.targetVersion = targetVersion.version
+    compareData.targetMajorVersion = targetVersion.majorVersion || 1
+    compareData.targetMinorVersion = targetVersion.minorVersion || targetVersion.version
     compareData.sourceContent = detail1.data.data.content || {}
     compareData.targetContent = detail2.data.data.content || {}
     compareData.sourceTime = sourceVersion.createTime
@@ -375,9 +386,10 @@ const viewVersionDetail = async (row: ArticleVersion) => {
 
     // 获取操作人名称
     const operatorName = versionData.operator?.nickname || versionData.operatorName || '系统'
+    const versionDisplay = `${versionData.majorVersion || 1}.${versionData.minorVersion || row.version}`
 
     dialog.info({
-      title: `版本 ${row.version} 详情`,
+      title: `版本 ${versionDisplay} 详情`,
       content: () => h('div', { style: { marginTop: '12px' } }, [
         h('p', {}, [`标题：${versionData.title}`]),
         h('p', { style: { marginTop: '8px' } }, [`修改摘要：${versionData.changeSummary || '无'}`]),
@@ -398,11 +410,15 @@ const viewVersionDetail = async (row: ArticleVersion) => {
  */
 const confirmRollbackAction = (row: ArticleVersion) => {
   targetRollbackVersion.value = row.version
+  targetRollbackMajorVersion.value = row.majorVersion || 1
+  targetRollbackMinorVersion.value = row.minorVersion || row.version
   rollbackTargetArticleId.value = row.articleId
+
+  const versionDisplay = `${row.majorVersion || 1}.${row.minorVersion || row.version}`
 
   dialog.warning({
     title: '版本回滚',
-    content: `确定要回滚到版本 ${row.version} 吗？此操作将创建一个新版本，当前内容会被覆盖。`,
+    content: `确定要回滚到版本 ${versionDisplay} 吗？此操作将创建一个新版本，当前内容会被覆盖。`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: () => {

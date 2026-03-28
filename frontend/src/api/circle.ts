@@ -30,7 +30,7 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
         const wsManager = initWebSocket()
         wsManager.connect()
           .then(() => {
-            console.log('✅ [圈子聊天] WebSocket 初始化成功')
+
             resolve()
           })
           .catch((error) => {
@@ -47,7 +47,7 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
       
       ws.connect()
         .then(() => {
-          console.log('✅ [圈子聊天] WebSocket 重连成功')
+
           resolve()
         })
         .catch((error) => {

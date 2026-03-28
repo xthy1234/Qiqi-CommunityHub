@@ -3,8 +3,11 @@ package com.gcs.converter;
 import com.gcs.entity.ArticleVersion;
 import com.gcs.vo.ArticleVersionSimpleVO;
 import com.gcs.vo.ArticleVersionVO;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
 /**
@@ -43,9 +46,16 @@ public interface ArticleVersionConverter {
      */
     java.util.List<ArticleVersionVO> toDetailVOList(java.util.List<ArticleVersion> entities);
 
-    // 在转换方法中添加格式化版本号
-    private String formatVersion(Integer major, Integer minor) {
-        return major + "." + minor;
+    // ==================== 自定义映射逻辑 ====================
+    
+    /**
+     * 在转换完成后设置格式化版本号
+     */
+    @AfterMapping
+    default void setFormattedVersion(ArticleVersion source, @MappingTarget ArticleVersionVO target) {
+        if (source.getMajorVersion() != null && source.getMinorVersion() != null) {
+            target.setFormattedVersion(source.getMajorVersion() + "." + source.getMinorVersion());
+        }
     }
 
 }

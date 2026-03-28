@@ -88,7 +88,7 @@ public class Article implements Serializable {
      * 文章当前的版本号
      */
     @Schema(description = "版本号", example = "1")
-    private Integer version;
+    private Integer currentVersion;
     
     /**
      * 扩展信息 (JSON 格式)

@@ -28,7 +28,14 @@ public class ArticleDraft implements Serializable {
     
     @Schema(description = "草稿作者 ID", example = "1")
     private Long userId;
-    
+
+    @Schema(description = "封面图片 URL", example = "http://example.com/cover.jpg")
+    private String coverUrl;
+
+    @Schema(description = "内容分类 ID", example = "1")
+    private Long categoryId;
+
+
     @TableField(typeHandler = JacksonTypeHandler.class)
     @Schema(description = "草稿内容（JSONB）")
     private Map<String, Object> content;

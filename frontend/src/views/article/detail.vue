@@ -107,6 +107,13 @@
                 />
                 <span>{{ article.favoriteCount || 0 }} 收藏</span>
               </div>
+              <div class="meta-item">
+                <Icon
+                  icon="ri:version-line"
+                  width="16"
+                />
+                <span>版本 {{ article.majorVersion || 1 }}.{{ article.minorVersion || 0 }}</span>
+              </div>
             </div>
           </div>
 
@@ -348,7 +355,8 @@ const loadArticleDetail = async () => {
         coverUrl: getCoverImageUrl(),
         authorNickname: article.value.authorNickname,
         publishTime: article.value.publishTime,
-        id: article.value.id
+        id: article.value.id,
+        version: `${article.value.majorVersion || 1}.${article.value.minorVersion || 0}`
       }
 
     }

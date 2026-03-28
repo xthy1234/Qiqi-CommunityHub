@@ -4,16 +4,19 @@
 <mapper namespace="com.gcs.dao.ArticleVersionDao">
 
     <!-- 文章版本结果映射 -->
-    <resultMap type="com.gcs.entity.ArticleVersion" id="articleVersionMap">
-        <result property="id" column="id"/>
-        <result property="articleId" column="article_id"/>
-        <result property="version" column="version"/>
-        <result property="title" column="title"/>
-        <result property="content" column="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
-        <result property="changeSummary" column="change_summary"/>
-        <result property="operatorId" column="operator_id"/>
-        <result property="createTime" column="create_time"/>
-        <result property="isDeleted" column="is_deleted"/>
+    <resultMap id="articleVersionMap" type="com.gcs.entity.ArticleVersion">
+        <id column="id" property="id"/>
+        <result column="article_id" property="articleId"/>
+        <result column="version" property="version"/>
+        <result column="version_type" property="versionType"/>
+        <result column="major_version" property="majorVersion"/>
+        <result column="minor_version" property="minorVersion"/>
+        <result column="title" property="title"/>
+        <result column="content"  property="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="change_summary" property="changeSummary"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="is_deleted" property="isDeleted"/>
     </resultMap>
 
     <!-- 查询文章的版本列表 -->
@@ -22,6 +25,9 @@
             id,
             article_id,
             version,
+            version_type,
+            major_version,
+            minor_version,
             title,
             content,
             change_summary,
@@ -40,6 +46,9 @@
             id,
             article_id,
             version,
+            version_type,
+            major_version,
+            minor_version,
             title,
             content,
             change_summary,

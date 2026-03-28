@@ -2,6 +2,7 @@ package com.gcs.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gcs.annotation.IgnoreAuth;
+import com.gcs.converter.ArticleConverter;
 import com.gcs.converter.ArticleDraftConverter;
 import com.gcs.dto.ArticleDraftDTO;
 import com.gcs.entity.Article;
@@ -16,6 +17,7 @@ import com.gcs.utils.AuthUtils;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
 import com.gcs.utils.SessionUtils;
+import com.gcs.vo.ArticleDetailVO;
 import com.gcs.vo.ArticleDraftSimpleVO;
 import com.gcs.vo.ArticleDraftVO;
 import com.gcs.vo.UserSimpleVO;
@@ -54,6 +56,9 @@ public class ArticleDraftController {
 
     @Autowired
     private ArticleDraftConverter articleDraftConverter;
+    
+    @Autowired
+    private ArticleConverter articleConverter;  // ✅ 新增：添加 articleConverter 注入
 
     @Autowired
     private SessionUtils sessionUtils;
@@ -74,9 +79,11 @@ public class ArticleDraftController {
             }
 
             // 提取参数
-            Long articleId = data != null ? (Long) data.get("articleId") : null;
+            Long articleId = data != null ? convertToLong(data.get("articleId")) : null;
             String title = data != null ? (String) data.get("title") : "未命名草稿";
             Map<String, Object> content = data != null ? (Map<String, Object>) data.get("content") : new HashMap<>();
+            String coverUrl = data != null ? (String) data.get("coverUrl") : null;
+            Long categoryId = data != null ? convertToLong(data.get("categoryId")) : null;
 
             // ✅ 无论是否编辑已有文章，都先检查是否存在草稿
             if (articleId != null) {
@@ -100,6 +107,13 @@ public class ArticleDraftController {
                             existingDraft.getId(), articleId, currentUserId);
                     return R.ok().put("data", result);
                 }
+                
+                // ✅ 新增：如果没有草稿，使用文章内容初始化草稿
+                title = article.getTitle() != null ? article.getTitle() : "未命名草稿";
+                content = article.getContent() != null ? article.getContent() : new HashMap<>();
+                coverUrl = article.getCoverUrl();
+                categoryId = article.getCategoryId();
+                
             } else {
                 // 2. 新建文章：限制每个用户只能有一个未关联文章的草稿
                 List<ArticleDraft> newArticleDrafts = articleDraftService.getBaseMapper()
@@ -120,7 +134,7 @@ public class ArticleDraftController {
             }
 
             // 创建新草稿
-            Long draftId = articleDraftService.createDraft(currentUserId, articleId, title, content);
+            Long draftId = articleDraftService.createDraft(currentUserId, articleId, title, content, coverUrl, categoryId);
 
             Map<String, Object> result = new HashMap<>();
             result.put("draftId", draftId);
@@ -225,6 +239,10 @@ public class ArticleDraftController {
             Map<String, Object> content = (Map<String, Object>) saveData.get("content");
             String title = (String) saveData.get("title");
             Map<String, Object> extra = (Map<String, Object>) saveData.get("extra");
+            
+            // ✅ 修复：使用 convertToLong 处理 categoryId 的类型转换
+            String coverUrl = (String) saveData.get("coverUrl");
+            Long categoryId = convertToLong(saveData.get("categoryId"));
 
             if (content == null) {
                 return R.error("内容不能为空");
@@ -234,6 +252,8 @@ public class ArticleDraftController {
             draft.setContent(content);
             draft.setTitle(title);
             draft.setExtra(extra);
+            draft.setCoverUrl(coverUrl);
+            draft.setCategoryId(categoryId);
             draft.setAutoSaveTime(LocalDateTime.now());
             articleDraftService.updateById(draft);
 
@@ -280,8 +300,11 @@ public class ArticleDraftController {
                 article.setTitle(draft.getTitle());
                 article.setContent(draft.getContent());
                 article.setExtra(draft.getExtra());
+                article.setCoverUrl(draft.getCoverUrl());
+                article.setCategoryId(draft.getCategoryId());
                 article.setAuditStatus(AuditStatus.PENDING); // 待审核
                 article.setPublishTime(null); // 发布后设置为当前时间
+                article.setCurrentVersion(1); // ✅ 初始化版本号为 1
                 
                 articleService.save(article);
                 articleId = article.getId();
@@ -305,25 +328,50 @@ public class ArticleDraftController {
                 if (draft.getExtra() != null) {
                     article.setExtra(draft.getExtra());
                 }
+                if (draft.getCoverUrl() != null) {
+                    article.setCoverUrl(draft.getCoverUrl());
+                }
+                if (draft.getCategoryId() != null) {
+                    article.setCategoryId(draft.getCategoryId());
+                }
+                
+                // ✅ 新增：更新 currentVersion（从版本表获取最新版本号）
+                List<ArticleVersion> versions = articleVersionService.getVersionHistory(articleId);
+                if (versions != null && !versions.isEmpty()) {
+                    ArticleVersion latestVersion = versions.get(0);
+                    article.setCurrentVersion(latestVersion.getVersion());
+                }
+                
                 articleService.updateById(article);
                 
-                log.info("更新文章成功，articleId: {}", articleId);
+                log.info("更新文章成功，articleId: {}, newVersion: {}", 
+                        articleId, article.getCurrentVersion());
             }
 
-            // 创建版本记录
+            // ✅ 新增：提取 versionType 参数
             String changeSummary = publishData != null ? (String) publishData.get("changeSummary") : draft.getChangeSummary();
-            Boolean isMajor = publishData != null && (Boolean) publishData.get("isMajor");
+            Integer versionType = publishData != null ? 
+                (publishData.get("versionType") instanceof Integer ? 
+                    (Integer) publishData.get("versionType") : 
+                    Integer.parseInt(publishData.get("versionType").toString())) : null;
             
+            // ✅ 根据 versionType 决定创建大版本还是小版本
+            // versionType: 0=小版本，1=大版本，null=自动判断
             Integer version;
-            if (isMajor != null && isMajor) {
-                version = articleVersionService.createMajorVersion(article, currentUserId, changeSummary);
-            } else {
-                // 如果是新文章，创建第一个版本（默认为大版本 1.0）
-                if (articleId == draft.getArticleId()) {
-                    version = articleVersionService.createMinorVersion(article, currentUserId, changeSummary);
-                } else {
-                    // 新文章第一个版本设为大版本
+            if (versionType != null) {
+                if (versionType == 1) {
+                    // 创建大版本
                     version = articleVersionService.createMajorVersion(article, currentUserId, changeSummary);
+                } else {
+                    // 创建小版本
+                    version = articleVersionService.createMinorVersion(article, currentUserId, changeSummary);
+                }
+            } else {
+                // 自动判断：新文章第一个版本设为大版本，其他为小版本
+                if (draft.getArticleId() == null) {
+                    version = articleVersionService.createMajorVersion(article, currentUserId, changeSummary);
+                } else {
+                    version = articleVersionService.createMinorVersion(article, currentUserId, changeSummary);
                 }
             }
 
@@ -339,7 +387,26 @@ public class ArticleDraftController {
                 result.put("majorVersion", versionEntity.getMajorVersion());
                 result.put("minorVersion", versionEntity.getMinorVersion());
                 result.put("versionDisplay", versionEntity.getMajorVersion() + "." + versionEntity.getMinorVersion());
+                result.put("versionType", versionEntity.getVersionType());
             }
+            
+            // ✅ 新增：获取文章详情并设置版本号
+            Article articleDetail = articleService.getArticleDetail(articleId);
+            ArticleDetailVO articleVO = articleConverter.toDetailVO(articleDetail);
+            
+            // 手动查询并设置版本号
+            List<ArticleVersion> versions = articleVersionService.getVersionHistory(articleId);
+            if (versions != null && !versions.isEmpty()) {
+                ArticleVersion latestVersion = versions.get(0);
+                articleVO.setMajorVersion(latestVersion.getMajorVersion());
+                articleVO.setMinorVersion(latestVersion.getMinorVersion());
+            } else {
+                // 如果没有版本记录，默认为 1.0
+                articleVO.setMajorVersion(1);
+                articleVO.setMinorVersion(0);
+            }
+            
+            result.put("article", articleVO);
 
             return R.ok("发布成功").put("data", result);
         } catch (Exception e) {
@@ -351,12 +418,12 @@ public class ArticleDraftController {
     /**
      * 保存为草稿（不发布）
      */
-    @Operation(summary = "保存草稿（不发布）", description = "手动保存草稿，创建小版本但不改变文章状态")
+    @Operation(summary = "保存草稿（不发布）", description = "手动保存草稿到数据库（不创建版本，不发布）")
     @PostMapping("/{draftId}/save")
     @Transactional(rollbackFor = Exception.class)
     public R saveDraft(
             @PathVariable("draftId") Long draftId,
-            @RequestBody(required = false) Map<String, Object> saveData,
+            @RequestBody Map<String, Object> saveData,
             HttpServletRequest request) {
         try {
             Long currentUserId = sessionUtils.getCurrentUserId(request);
@@ -374,50 +441,34 @@ public class ArticleDraftController {
                 return R.error("无权限保存此草稿");
             }
 
-            // 如果有 articleId，创建小版本并更新文章
-            if (draft.getArticleId() != null) {
-                Article article = articleService.getById(draft.getArticleId());
-                if (article == null) {
-                    return R.error("文章不存在");
-                }
-                
-                if (!authUtils.isOwner(draft.getArticleId(), article.getAuthorId(), currentUserId)) {
-                    return R.error("无权限修改此文章");
-                }
-                
-                // 更新文章
-                article.setTitle(draft.getTitle());
-                article.setContent(draft.getContent());
-                if (draft.getExtra() != null) {
-                    article.setExtra(draft.getExtra());
-                }
-                articleService.updateById(article);
-                
-                // 创建小版本
-                String changeSummary = saveData != null ? (String) saveData.get("changeSummary") : null;
-                Integer version = articleVersionService.createMinorVersion(article, currentUserId, changeSummary);
-                
-                log.info("保存草稿成功，articleId: {}, version: {}", draft.getArticleId(), version);
-                
-                Map<String, Object> result = new HashMap<>();
-                result.put("version", version);
-                
-                return R.ok("保存成功").put("data", result);
-            } else {
-                // 没有 articleId，仅更新草稿
-                String title = saveData != null ? (String) saveData.get("title") : draft.getTitle();
-                Map<String, Object> content = saveData != null ? (Map<String, Object>) saveData.get("content") : draft.getContent();
-                Map<String, Object> extra = saveData != null ? (Map<String, Object>) saveData.get("extra") : draft.getExtra();
-                
-                draft.setTitle(title);
-                draft.setContent(content);
-                draft.setExtra(extra);
-                draft.setAutoSaveTime(LocalDateTime.now());
-                articleDraftService.updateById(draft);
-                
-                log.info("保存草稿成功（未发布），draftId: {}", draftId);
-                return R.ok("保存成功");
+            // ✅ 提取数据（为 null 时使用草稿原值）
+            String title = saveData.get("title") != null ? 
+                (String) saveData.get("title") : draft.getTitle();
+            Map<String, Object> content = saveData.get("content") != null ? 
+                (Map<String, Object>) saveData.get("content") : draft.getContent();
+            Map<String, Object> extra = saveData.get("extra") != null ? 
+                (Map<String, Object>) saveData.get("extra") : draft.getExtra();
+            String coverUrl = saveData.get("coverUrl") != null ? 
+                (String) saveData.get("coverUrl") : draft.getCoverUrl();
+            Long categoryId = saveData.get("categoryId") != null ? 
+                convertToLong(saveData.get("categoryId")) : draft.getCategoryId();
+            
+            if (content == null) {
+                return R.error("内容不能为空");
             }
+
+            // 更新草稿
+            draft.setTitle(title);
+            draft.setContent(content);
+            draft.setExtra(extra);
+            draft.setCoverUrl(coverUrl);
+            draft.setCategoryId(categoryId);
+            draft.setAutoSaveTime(LocalDateTime.now());
+            articleDraftService.updateById(draft);
+            
+            log.info("保存草稿成功，draftId: {}", draftId);
+            return R.ok("保存成功");
+            
         } catch (Exception e) {
             log.error("保存草稿失败，draftId: {}", draftId, e);
             return R.error("保存失败");
@@ -494,6 +545,29 @@ public class ArticleDraftController {
         } catch (Exception e) {
             log.error("获取草稿列表失败，userId: {}", sessionUtils.getCurrentUserId(request), e);
             return R.error("查询失败");
+        }
+    }
+
+    /**
+     * 辅助方法：将 Object 转换为 Long（兼容 Integer、String、Long）
+     */
+    private Long convertToLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        if (value instanceof Integer) {
+            return ((Integer) value).longValue();
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }

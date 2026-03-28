@@ -30,7 +30,7 @@ public class VersionCompareResultVO {
         private Integer version;
 
         @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
-        private LocalDateTime createdAt;
+        private LocalDateTime createTime;
 
         @Schema(description = "操作人 ID", example = "1")
         private Long operatorId;

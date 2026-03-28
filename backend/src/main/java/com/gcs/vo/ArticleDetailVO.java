@@ -52,4 +52,10 @@ public class ArticleDetailVO extends ArticleVO {
 
     @Schema(description = "分享次数", example = "15")
     private Integer shareCount = 0;
+
+    @Schema(description = "主版本号", example = "2")
+    private Integer majorVersion;
+
+    @Schema(description = "次版本号", example = "3")
+    private Integer minorVersion;
 }
