@@ -1,28 +1,10 @@
-<template>
-  <div class="text-diff-viewer">
-    <div v-if="showHeader" class="diff-header">
-      <div class="version-info">
-        <span class="label">{{ sourceLabel }}</span>
-        <span v-if="sourceTime" class="time">{{ sourceTime }}</span>
-      </div>
-      <div class="version-info">
-        <span class="label">{{ targetLabel }}</span>
-        <span v-if="targetTime" class="time">{{ targetTime }}</span>
-      </div>
-    </div>
-
-    <div v-if="diffHtml" class="diff-html" v-html="diffHtml"></div>
-    <div v-else-if="loading" class="loading">计算差异中...</div>
-    <div v-else class="no-diff">无差异</div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import * as Diff from 'diff'
 import { html as Diff2Html } from 'diff2html'
 import 'diff2html/bundles/css/diff2html.min.css'
 import { tiptapToText } from '@/utils/tiptapToText'
+import { NResult } from 'naive-ui'
 
 const props = withDefaults(defineProps<{
   source?: any
@@ -40,12 +22,15 @@ const props = withDefaults(defineProps<{
 
 const diffHtml = ref('')
 const loading = ref(false)
+const hasDiff = ref(true)
 
 const generateDiff = () => {
+
 
   if (!props.source || !props.target) {
     console.warn('[TextDiffViewer] 警告：source 或 target 为空!')
     diffHtml.value = ''
+    hasDiff.value = false
     return
   }
 
@@ -55,8 +40,22 @@ const generateDiff = () => {
     const sourceText = tiptapToText(props.source)
     const targetText = tiptapToText(props.target)
 
+    // 检查是否完全相同
+    if (sourceText === targetText) {
+
+      hasDiff.value = false
+      diffHtml.value = ''
+      loading.value = false
+      return
+    }
+
+    // 使用相同的文件名前缀，避免显示 RENAMED
+    // 只在文件头标签中显示版本差异
+    const fileName = '文章内容'
+
     const patch = Diff.createTwoFilesPatch(
-      'source.txt', 'target.txt',
+      `(${props.sourceLabel})`,
+      `(${props.targetLabel})`,
       sourceText, targetText,
       props.sourceLabel, props.targetLabel,
       { context: 3 }
@@ -69,9 +68,13 @@ const generateDiff = () => {
       renderNothingWhenEmpty: true
     })
 
+    hasDiff.value = true
+
+
   } catch (error) {
     console.error('生成差异失败', error)
     diffHtml.value = '<div class="error">差异生成失败</div>'
+    hasDiff.value = false
   } finally {
     loading.value = false
   }
@@ -79,6 +82,33 @@ const generateDiff = () => {
 
 watch(() => [props.source, props.target], generateDiff, { deep: true, immediate: true })
 </script>
+
+<template>
+  <div class="text-diff-viewer">
+    <div v-if="showHeader" class="diff-header">
+      <div class="version-info">
+        <span class="label">{{ sourceLabel }}</span>
+        <span v-if="sourceTime" class="time">{{ sourceTime }}</span>
+      </div>
+      <div class="version-info">
+        <span class="label">{{ targetLabel }}</span>
+        <span v-if="targetTime" class="time">{{ targetTime }}</span>
+      </div>
+    </div>
+
+    <div v-if="loading" class="loading">计算差异中...</div>
+    <div v-else-if="!hasDiff" class="no-diff">
+      <n-result
+        status="success"
+        title="无差异"
+        description="这两个版本的内容完全相同"
+        size="small"
+      />
+    </div>
+    <div v-else-if="diffHtml" class="diff-html" v-html="diffHtml"></div>
+    <div v-else class="no-diff">无差异</div>
+  </div>
+</template>
 
 <style scoped>
 .text-diff-viewer {

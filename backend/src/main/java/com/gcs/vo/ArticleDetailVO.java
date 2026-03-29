@@ -58,4 +58,8 @@ public class ArticleDetailVO extends ArticleVO {
 
     @Schema(description = "次版本号", example = "3")
     private Integer minorVersion;
+
+    @Schema(description = "当前版本号（全局版本 ID）", example = "5")
+    private Integer currentVersion;
+
 }

@@ -205,14 +205,6 @@ const hasChanges = computed(() => {
   const currentJson = JSON.stringify(formData.content)
   const isDifferent = originalJson !== currentJson
 
-  // console.log('🔍 原文内容:', originalContent.value)
-  // console.log('🔍 当前内容:', formData.content)
-  // console.log('🔍 JSON 对比:', {
-  //   originalLength: originalJson.length,
-  //   currentLength: currentJson.length,
-  //   isDifferent
-  // })
-
   return isDifferent
 })
 
@@ -221,9 +213,6 @@ const hasChanges = computed(() => {
  */
 const loadArticleContent = async () => {
   const articleId = route.params.articleId as string
-
-
-
 
   if (!articleId) {
     message.error('缺少文章 ID 参数')

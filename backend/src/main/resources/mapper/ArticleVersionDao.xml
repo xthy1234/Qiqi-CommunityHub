@@ -15,6 +15,7 @@
         <result column="content"  property="content" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result column="change_summary" property="changeSummary"/>
         <result column="operator_id" property="operatorId"/>
+        <result column="contributor_id" property="contributorId"/>
         <result column="create_time" property="createTime"/>
         <result column="is_deleted" property="isDeleted"/>
     </resultMap>
@@ -32,6 +33,7 @@
             content,
             change_summary,
             operator_id,
+            contributor_id,
             create_time,
             is_deleted
         FROM article_version
@@ -53,6 +55,7 @@
             content,
             change_summary,
             operator_id,
+            contributor_id,
             create_time,
             is_deleted
         FROM article_version

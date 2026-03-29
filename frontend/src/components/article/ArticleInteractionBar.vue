@@ -164,6 +164,7 @@ declare global {
       authorNickname?: string
       publishTime?: string | null
       id: number | string
+      version: string
     }
   }
 }

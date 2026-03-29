@@ -5,8 +5,6 @@ import com.gcs.entity.Article;
 import com.gcs.entity.ArticleVersion;
 import com.gcs.vo.ArticleVersionSimpleVO;
 import com.gcs.vo.ArticleVersionVO;
-import com.gcs.vo.ArticleVersionSimpleVO;
-import com.gcs.vo.ArticleVersionVO;
 
 import java.util.List;
 import java.util.Map;
@@ -101,11 +99,39 @@ public interface ArticleVersionService extends IService<ArticleVersion> {
     Integer createMajorVersion(Article article, Long operatorId, String changeSummary);
 
     /**
+     * 创建小版本（指定贡献者）
+     * @param article 文章内容
+     * @param operatorId 操作人 ID
+     * @param changeSummary 修改摘要
+     * @param contributorId 实际贡献者 ID
+     * @return 版本号
+     */
+    Integer createMinorVersion(Article article, Long operatorId, String changeSummary, Long contributorId);
+
+    /**
+     * 创建大版本（指定贡献者）
+     * @param article 文章内容
+     * @param operatorId 操作人 ID
+     * @param changeSummary 修改摘要
+     * @param contributorId 实际贡献者 ID
+     * @return 版本号
+     */
+    Integer createMajorVersion(Article article, Long operatorId, String changeSummary, Long contributorId);
+
+    /**
      * 计算下一个版本号
      * @param articleId 文章 ID
      * @param isMajor 是否为大版本
      * @return [majorVersion, minorVersion]
      */
     int[] calculateNextVersion(Long articleId, boolean isMajor);
+
+    /**
+     * 删除指定版本（软删除，仅管理员可用）
+     * @param articleId 文章 ID
+     * @param version 版本号
+     * @param operatorId 操作人 ID（管理员）
+     */
+    void deleteVersion(Long articleId, Integer version, Long operatorId);
 
 }

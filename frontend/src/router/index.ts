@@ -20,6 +20,7 @@ import VersionListView from '@/views/article/VersionList.vue'
 import SuggestionEditorView from '@/views/cooperation/SuggestionEditor.vue'
 import MySuggestionsView from '@/views/cooperation/MySuggestions.vue'
 import SuggestionReviewDetailView from '@/views/cooperation/SuggestionReviewDetail.vue'
+import VersionDetailView from '@/views/article/versionDetail.vue'
 
 // 用户相关页面 - 已精简，只保留个人中心相关页面
 import UserRegisterView from '../views/auth/register.vue'
@@ -111,6 +112,17 @@ const routes: Array<RouteRecordRaw> = [
         path: 'index/article/versions',
         component: VersionListView,
         meta: { title: '版本历史' }
+      },
+      // 版本详情（新增）
+      {
+        path: 'article/:articleId/version/:version',
+        component: VersionDetailView,
+        meta: { title: '版本详情' }
+      },
+      {
+        path: 'index/article/:articleId/version/:version',
+        component: VersionDetailView,
+        meta: { title: '版本详情' }
       },
       // 提交修改建议
       {

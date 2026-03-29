@@ -9,6 +9,11 @@
         <result property="articleId" column="article_id"/>
         <result property="userId" column="user_id"/>
         <result property="contributedLines" column="contributed_lines"/>
+        <result property="addedLines" column="added_lines"/>
+        <result property="modifiedLines" column="modified_lines"/>
+        <result property="deletedLines" column="deleted_lines"/>
+        <result property="lastContributedAt" column="last_contributed_at"/>
+        <result property="score" column="score"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
 
@@ -19,10 +24,15 @@
             article_id,
             user_id,
             contributed_lines,
-            create_time
+            added_lines,
+            modified_lines,
+            deleted_lines,
+            last_contributed_at,
+            create_time,
+            score
         FROM article_contributor
         WHERE article_id = #{articleId}
-        ORDER BY contributed_lines DESC, create_time ASC
+        ORDER BY score DESC, last_contributed_at ASC
     </select>
 
     <!-- 查询指定用户的贡献记录 -->
@@ -38,7 +48,7 @@
           AND user_id = #{userId}
     </select>
 
-    <!-- 更新贡献行数（累加） -->
+    <!-- 更新贡献行数（累加） - 弃用方法 -->
     <update id="addContributedLines">
         UPDATE article_contributor
         SET contributed_lines = contributed_lines + #{lines}

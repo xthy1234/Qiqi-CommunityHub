@@ -42,7 +42,7 @@
             </template>
             <div class="contributor-tooltip">
               <div class="tooltip-name">{{ option.nickname }}</div>
-              <div class="tooltip-lines">贡献 {{ option.contributedLines }} 行</div>
+              <div class="tooltip-score">贡献分： {{ option.score?.toFixed(1) }}</div>
             </div>
           </n-tooltip>
         </template>
@@ -87,7 +87,7 @@
                   <template #icon>
                     <Icon icon="ri:line-chart-line" />
                   </template>
-                  {{ contributor.contributedLines }} 行
+                  {{ contributor.addedLines }} 行
                 </n-tag>
                 <n-tag
                   type="info"
@@ -97,7 +97,7 @@
                   <template #icon>
                     <Icon icon="ri:award-line" />
                   </template>
-                  {{ contributor.contributionCount }} 次
+                  {{ contributor.score?.toFixed(1) }} 分
                 </n-tag>
               </div>
             </div>
@@ -130,8 +130,10 @@ interface Contributor {
   userId: number
   nickname: string
   avatar?: string
-  contributedLines: number
-  contributionCount: number
+  addedLines: number
+  modifiedLines: number
+  deletedLines: number
+  score: number
 }
 
 const props = withDefaults(defineProps<{
@@ -169,8 +171,10 @@ const avatarOptions = computed(() => {
     userId: c.userId,
     nickname: c.nickname,
     avatar: c.avatar,
-    contributedLines: c.contributedLines,
-    contributionCount: c.contributionCount
+    addedLines: c.addedLines,
+    modifiedLines: c.modifiedLines,
+    deletedLines: c.deletedLines,
+    score: c.score
   }))
 })
 
@@ -261,6 +265,12 @@ onMounted(() => {
   .tooltip-lines {
     font-size: 12px;
     color: #666;
+  }
+
+  .tooltip-score {
+    font-size: 12px;
+    color: #18a058;
+    font-weight: 600;
   }
 }
 </style>

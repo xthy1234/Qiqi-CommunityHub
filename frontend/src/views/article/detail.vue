@@ -237,6 +237,7 @@ import {generateHTML} from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import Link from "@tiptap/extension-link"
+import { articleContributorAPI } from '@/api/contributor'
 
 const appContext = useGlobalProperties()
 const router = useRouter()
@@ -279,7 +280,8 @@ const isAdmin = ref<boolean>(false)
 const contentHtml = ref<string>('')
 const editMode = ref<number>(0)
 const pendingSuggestionsCount = ref<number>(0)
-const contributors = ref<any[]>([])
+const contributors = ref([])
+const totalContributors = ref(0)
 
 // 计算属性
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
@@ -337,8 +339,13 @@ const loadArticleDetail = async () => {
       throw new Error('缺少文章 ID')
     }
 
+
     const response = await articleAPI.getById(id)
+
+
     article.value = response.data.data
+
+    // 获取当前版本号（后端已正常返回）
 
     // 设置编辑模式
     editMode.value = article.value?.editMode || 0
@@ -374,7 +381,7 @@ const loadArticleDetail = async () => {
     loadContributors()
 
   } catch (error) {
-    console.error('加载文章失败:', error)
+    console.error('❌ [加载文章失败] error:', error)
     message.error('加载文章失败')
     article.value = null
     // 清除全局变量
@@ -402,13 +409,21 @@ const loadPendingSuggestionsCount = async () => {
  * 加载贡献者列表
  */
 const loadContributors = async () => {
+  if (!article.value?.id) {
+    return
+  }
   try {
-    // TODO: 调用 API 获取贡献者列表
-    // const response = await articleAPI.getContributors(article.value!.id)
-    // contributors.value = response.data.data?.list || []
-    contributors.value = [] // 临时值
+    const response = await articleContributorAPI.getList(article.value?.id, {
+      limit: 5,
+      orderBy: 'score'
+    })
+
+    if (response.data.code === 0) {
+      contributors.value = response.data.data.list || response.data.data
+      totalContributors.value = response.data.data.total || contributors.value.length
+    }
   } catch (error) {
-    console.error('加载贡献者失败:', error)
+    console.error('加载贡献者列表失败:', error)
   }
 }
 
@@ -541,6 +556,7 @@ const getCurrentUserAvatar = () => {
 onMounted(() => {
   loadArticleDetail()
   getCurrentUserAvatar()
+  loadContributors()
 })
 </script>
 

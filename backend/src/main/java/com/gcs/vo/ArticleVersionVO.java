@@ -41,6 +41,12 @@ public class ArticleVersionVO {
     @Schema(description = "操作人信息")
     private UserSimpleVO operator;
 
+    @Schema(description = "实际贡献者 ID", example = "1")
+    private Long contributorId;
+
+    @Schema(description = "实际贡献者信息")
+    private UserSimpleVO contributor;
+
     @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
     private LocalDateTime createTime;
 
@@ -59,4 +65,6 @@ public class ArticleVersionVO {
     @Schema(description = "格式化版本号", example = "2.3")
     private String formattedVersion;
 
+    @Schema(description = "是否为当前版本", example = "true")
+    private Boolean isCurrent;
 }

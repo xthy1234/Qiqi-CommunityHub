@@ -43,37 +43,40 @@
       <!-- 头部操作栏 -->
       <div class="header-actions">
         <n-space>
-          <n-button
-            type="primary"
-            :disabled="selectedVersions.length !== 2"
-            @click="openCompareDialog"
-          >
-            <template #icon>
-              <Icon icon="ri:git-compare-line" />
-            </template>
-            对比选中版本
-          </n-button>
-          
-          <n-checkbox
-            :indeterminate="selectedVersions.length > 0 && selectedVersions.length < versions.length"
-            :checked="selectedVersions.length === versions.length"
-            @update:checked="handleSelectAll"
-          >
-            全选
-          </n-checkbox>
+          <!-- 版本类型筛选 -->
+          <n-select
+            v-model:value="versionTypeFilter"
+            :options="versionTypeOptions"
+            placeholder="版本类型"
+            clearable
+            style="width: 120px;"
+          />
         </n-space>
 
-        <n-input
-          v-model:value="searchKeyword"
-          placeholder="搜索版本号或修改摘要"
-          clearable
-          style="width: 300px;"
-          @input="handleSearch"
-        >
-          <template #prefix>
-            <Icon icon="ri:search-line" />
-          </template>
-        </n-input>
+        <n-space>
+          <!-- 快捷定位 -->
+          <n-button
+            size="small"
+            @click="scrollToLatest"
+          >
+            <template #icon>
+              <Icon icon="ri:arrow-up-line" />
+            </template>
+            回到最新
+          </n-button>
+
+          <n-input
+            v-model:value="searchKeyword"
+            placeholder="搜索版本号或修改摘要"
+            clearable
+            style="width: 300px;"
+            @input="handleSearch"
+          >
+            <template #prefix>
+              <Icon icon="ri:search-line" />
+            </template>
+          </n-input>
+        </n-space>
       </div>
 
       <!-- 版本表格 -->
@@ -87,35 +90,6 @@
       />
     </div>
 
-    <!-- 版本对比对话框 -->
-    <n-modal
-      v-model:show="compareModalVisible"
-      preset="dialog"
-      title="版本对比"
-      :style="{ width: '1200px', maxWidth: '95vw' }"
-      :closable="true"
-    >
-      <div class="compare-content">
-        <DiffViewer
-          :source-content="compareData.sourceContent"
-          :target-content="compareData.targetContent"
-          :source-label="`版本 ${compareData.sourceVersion}`"
-          :target-label="`版本 ${compareData.targetVersion}`"
-          :source-time="compareData.sourceTime"
-          :target-time="compareData.targetTime"
-          source-title="源版本内容"
-          target-title="目标版本内容"
-          :show-stats="true"
-        />
-      </div>
-      
-      <template #action>
-        <n-button @click="compareModalVisible = false">
-          关闭
-        </n-button>
-      </template>
-    </n-modal>
-
     <!-- 回滚确认对话框 -->
     <n-modal
       v-model:show="rollbackModalVisible"
@@ -128,7 +102,7 @@
         :title="`确认回滚到版本 ${targetRollbackVersion}?`"
         style="margin-bottom: 16px;"
       >
-        <p>回滚后将创建一个新的版本，当前内容将被覆盖。</p>
+        <p>回滚后将创建一个新的版本记录，文章内容将恢复到该版本。</p>
         <p style="margin-top: 8px; color: #f0a020;">此操作不可逆，请谨慎操作！</p>
       </n-alert>
       
@@ -153,13 +127,15 @@
 <script setup lang="ts">
 import { ref, reactive, computed, h, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useMessage, useDialog, NTag, NButton, NCheckbox, NDataTable } from 'naive-ui'
+import { useMessage, useDialog, NTag, NButton, NDataTable, NBadge } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
-import DiffViewer from '@/components/common/DiffViewer.vue'
-import { articleVersionAPI, type ArticleVersion } from '@/api/articleVersion'
+import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
+import { articleVersionAPI, type ArticleVersion, type UserInfo } from '@/api/articleVersion'
 import { articleAPI } from '@/api/article'
+import { useGlobalProperties } from '@/utils/globalProperties'
 
+const appContext = useGlobalProperties()
 const router = useRouter()
 const route = useRoute()
 const message = useMessage()
@@ -169,31 +145,24 @@ const dialog = useDialog()
 const loading = ref(false)
 const versions = ref<ArticleVersion[]>([])
 const filteredVersions = ref<ArticleVersion[]>([])
-const selectedVersions = ref<number[]>([])
 const searchKeyword = ref('')
+const versionTypeFilter = ref<'major' | 'minor' | ''>('')
 const rollingBack = ref(false)
 const targetRollbackVersion = ref<number>(0)
 const targetRollbackMajorVersion = ref<number>(1)
 const targetRollbackMinorVersion = ref<number>(0)
 const rollbackTargetArticleId = ref<number>(0)
+const currentUserId = ref<string | number>('')
+const articleAuthorId = ref<string | number>('')
 
 // 模态框
-const compareModalVisible = ref(false)
 const rollbackModalVisible = ref(false)
 
-// 对比数据
-const compareData = reactive({
-  sourceVersion: 0,
-  targetVersion: 0,
-  sourceMajorVersion: 1,
-  sourceMinorVersion: 0,
-  targetMajorVersion: 1,
-  targetMinorVersion: 0,
-  sourceContent: {} as object,
-  targetContent: {} as object,
-  sourceTime: '',
-  targetTime: ''
-})
+// 版本类型选项
+const versionTypeOptions = [
+  { label: '大版本', value: 'major' },
+  { label: '小版本', value: 'minor' }
+]
 
 // 分页配置
 const paginationConfig = computed(() => ({
@@ -208,25 +177,32 @@ const paginationConfig = computed(() => ({
  */
 const columns = computed(() => [
   {
-    type: 'selection',
-    disabled: (row: ArticleVersion) => row.version === 1, // 初始版本不可选
-    width: 50
-  },
-  {
     title: '版本号',
     key: 'version',
-    width: 100,
+    width: 120,
     render: (row: ArticleVersion) => {
-      const versionDisplay = `${row.majorVersion || 1}.${row.minorVersion || row.version}`
-      return h(
-        NTag,
-        {
-          type: row.version === 1 ? 'success' : 'info',
-          size: 'small',
-          bordered: false
-        },
-        { default: () => `${versionDisplay}` }
-      )
+      const versionDisplay = `${row.majorVersion ?? 1}.${row.minorVersion ?? row.version}`
+      const isCurrent = row.isCurrent === true
+      const isMajorVersion = (row.majorVersion ?? 1) > 1 && (row.minorVersion ?? 0) === 0
+
+      return h('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } }, [
+        h(
+          NTag,
+          {
+            type: row.version === 1 ? 'success' : isCurrent ? 'success' : isMajorVersion ? 'warning' : 'info',
+            size: 'small',
+            bordered: false
+          },
+          { default: () => versionDisplay }
+        ),
+        isCurrent && h(
+          NBadge,
+          {
+            type: 'success',
+            dot: true
+          }
+        )
+      ])
     }
   },
   {
@@ -241,25 +217,74 @@ const columns = computed(() => [
     ellipsis: { tooltip: true },
     minWidth: 200,
     render: (row: ArticleVersion) => {
-      return h(
-        'span',
-        { style: { color: '#666' } },
-        { default: () => row.changeSummary || '无摘要' }
-      )
+      const summary = row.changeSummary || '无摘要'
+      const isCurrent = row.isCurrent === true
+
+      return h('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } }, [
+        h(
+          'span',
+          { style: { color: isCurrent ? '#18a058' : '#666', fontWeight: isCurrent ? 'bold' : 'normal' } },
+          { default: () => summary }
+        ),
+        isCurrent && h(
+          NTag,
+          {
+            type: 'success',
+            size: 'small',
+            bordered: false
+          },
+          { default: () => '当前版本' }
+        )
+      ])
     }
   },
   {
     title: '操作人',
-    key: 'operatorName',
-    width: 120,
+    key: 'operator',
+    width: 180,
     render: (row: ArticleVersion) => {
-      // 优先使用 operator.nickname，其次使用 operatorName，最后显示"系统"
-      const operatorName = row.operator?.nickname || row.operatorName || '系统'
-      return h(
-        'span',
-        { style: { color: '#666' } },
-        { default: () => operatorName }
-      )
+      const operator = row.operator as UserInfo | undefined
+      const operatorName = operator?.nickname || row.operatorName || '系统'
+
+      return h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
+        h(
+          UserAvatarLink,
+          {
+            userId: operator?.id || row.operatorId || 0,
+            nickname: operatorName,
+            avatar: operator?.avatar,
+            size: 30,
+            showName: true
+          },
+          { default: () => null }
+        )
+      ])
+    }
+  },
+  {
+    title: '贡献者',
+    key: 'contributor',
+    width: 150,
+    render: (row: ArticleVersion) => {
+      const contributor = row.contributor as UserInfo | undefined
+
+      if (!contributor) {
+        return h('span', { style: { color: '#999' } }, { default: () => '-' })
+      }
+
+      return h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
+        h(
+          UserAvatarLink,
+          {
+            userId: contributor.id || row.contributorId || 0,
+            nickname: contributor.nickname,
+            avatar: contributor.avatar,
+            size: 30,
+            showName: true
+          },
+          { default: () => null }
+        )
+      ])
     }
   },
   {
@@ -275,6 +300,10 @@ const columns = computed(() => [
     width: 200,
     fixed: 'right',
     render: (row: ArticleVersion) => {
+      const isCurrent = row.isCurrent === true
+      // 权限判断：只有文章作者才能执行回滚操作
+      const canRollback = String(currentUserId.value) === String(articleAuthorId.value)
+
       return h('div', { style: { display: 'flex', gap: '8px' } }, [
         h(
           NButton,
@@ -292,10 +321,20 @@ const columns = computed(() => [
             size: 'small',
             type: 'error',
             ghost: true,
-            disabled: row.version === 1,
+            disabled: row.version === 1 || isCurrent || !canRollback,
             onClick: () => confirmRollbackAction(row)
           },
-          { default: () => '回滚' }
+          {
+            default: () => {
+              if (!canRollback) {
+                return '无权限'
+              }
+              if (isCurrent) {
+                return '已是最新版'
+              }
+              return '回滚'
+            }
+          }
         )
       ])
     }
@@ -310,22 +349,46 @@ const loadVersions = async () => {
   
   if (!articleId) {
     message.error('缺少文章 ID 参数')
+    console.error('❌ [加载版本列表] articleId 缺失')
     return
   }
 
+
   loading.value = true
   try {
+    // 先获取文章详情，得到作者 ID
+
+    const articleRes = await articleAPI.getById(articleId)
+    articleAuthorId.value = articleRes.data.data?.authorId || ''
+
+
+    // 获取当前登录用户 ID
+    currentUserId.value = appContext?.$toolUtil?.storageGet('userid') || ''
+
+
+    // 获取版本列表（后端已返回 isCurrent 字段，无需手动对比）
+
     const response = await articleVersionAPI.getList(articleId, {
       page: 1,
       limit: 100 // 获取更多版本
     })
-    
+
+
+
     const data = response.data.data
     // 兼容两种返回格式：数组或包含 list 属性的对象
     versions.value = Array.isArray(data) ? data : (data.list || [])
     filteredVersions.value = [...versions.value]
+
+
+
+    // 打印每个版本的信息
+    versions.value.forEach((v, index) => {
+
+    })
+
   } catch (error) {
-    console.error('加载版本列表失败:', error)
+    console.error('❌ [加载版本列表失败] error:', error)
     message.error('加载版本列表失败')
   } finally {
     loading.value = false
@@ -333,76 +396,11 @@ const loadVersions = async () => {
 }
 
 /**
- * 打开对比对话框
+ * 查看版本详情 - 跳转到独立页面
  */
-const openCompareDialog = async () => {
-  if (selectedVersions.value.length !== 2) {
-    message.warning('请选择两个版本进行对比')
-    return
-  }
-
-  const [id1, id2] = selectedVersions.value
-  const version1 = versions.value.find(v => v.id === id1)
-  const version2 = versions.value.find(v => v.id === id2)
-
-  if (!version1 || !version2) return
-
-  // 确保按版本号排序
-  const sourceVersion = version1.version < version2.version ? version1 : version2
-  const targetVersion = version1.version < version2.version ? version2 : version1
-
-  try {
-    // 获取两个版本的详情
-    const [detail1, detail2] = await Promise.all([
-      articleVersionAPI.getById(sourceVersion.articleId, sourceVersion.version),
-      articleVersionAPI.getById(targetVersion.articleId, targetVersion.version)
-    ])
-
-    compareData.sourceVersion = sourceVersion.version
-    compareData.sourceMajorVersion = sourceVersion.majorVersion || 1
-    compareData.sourceMinorVersion = sourceVersion.minorVersion || sourceVersion.version
-    compareData.targetVersion = targetVersion.version
-    compareData.targetMajorVersion = targetVersion.majorVersion || 1
-    compareData.targetMinorVersion = targetVersion.minorVersion || targetVersion.version
-    compareData.sourceContent = detail1.data.data.content || {}
-    compareData.targetContent = detail2.data.data.content || {}
-    compareData.sourceTime = sourceVersion.createTime
-    compareData.targetTime = targetVersion.createTime
-
-    compareModalVisible.value = true
-  } catch (error) {
-    console.error('加载版本详情失败:', error)
-    message.error('加载版本详情失败')
-  }
-}
-
-/**
- * 查看版本详情
- */
-const viewVersionDetail = async (row: ArticleVersion) => {
-  try {
-    const response = await articleVersionAPI.getById(row.articleId, row.version)
-    const versionData = response.data.data
-
-    // 获取操作人名称
-    const operatorName = versionData.operator?.nickname || versionData.operatorName || '系统'
-    const versionDisplay = `${versionData.majorVersion || 1}.${versionData.minorVersion || row.version}`
-
-    dialog.info({
-      title: `版本 ${versionDisplay} 详情`,
-      content: () => h('div', { style: { marginTop: '12px' } }, [
-        h('p', {}, [`标题：${versionData.title}`]),
-        h('p', { style: { marginTop: '8px' } }, [`修改摘要：${versionData.changeSummary || '无'}`]),
-        h('p', { style: { marginTop: '8px' } }, [`操作人：${operatorName}`]),
-        h('p', { style: { marginTop: '8px' } }, [`修改时间：${formatDate(versionData.createTime)}`])
-      ]),
-      positiveText: '关闭',
-      onPositiveClick: () => {}
-    })
-  } catch (error) {
-    console.error('加载版本详情失败:', error)
-    message.error('加载版本详情失败')
-  }
+const viewVersionDetail = (row: ArticleVersion) => {
+  const articleId = route.query.articleId as string
+  router.push(`/index/article/${articleId}/version/${row.version}`)
 }
 
 /**
@@ -410,15 +408,15 @@ const viewVersionDetail = async (row: ArticleVersion) => {
  */
 const confirmRollbackAction = (row: ArticleVersion) => {
   targetRollbackVersion.value = row.version
-  targetRollbackMajorVersion.value = row.majorVersion || 1
-  targetRollbackMinorVersion.value = row.minorVersion || row.version
+  targetRollbackMajorVersion.value = row.majorVersion ?? 1
+  targetRollbackMinorVersion.value = row.minorVersion ?? row.version
   rollbackTargetArticleId.value = row.articleId
 
-  const versionDisplay = `${row.majorVersion || 1}.${row.minorVersion || row.version}`
+  const versionDisplay = `${row.majorVersion ?? 1}.${row.minorVersion ?? row.version}`
 
   dialog.warning({
     title: '版本回滚',
-    content: `确定要回滚到版本 ${versionDisplay} 吗？此操作将创建一个新版本，当前内容会被覆盖。`,
+    content: `确定要回滚到版本 ${versionDisplay} 吗？\n\n此操作将基于该版本创建一个新版本，文章内容将恢复到此版本的状态。`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: () => {
@@ -433,15 +431,34 @@ const confirmRollbackAction = (row: ArticleVersion) => {
 const confirmRollback = async () => {
   rollingBack.value = true
   try {
-    await articleVersionAPI.rollback(rollbackTargetArticleId.value, targetRollbackVersion.value, {
+
+
+
+    const rollbackRes = await articleVersionAPI.rollback(rollbackTargetArticleId.value, targetRollbackVersion.value, {
       version: targetRollbackVersion.value
     })
 
-    message.success('回滚成功')
+
+
+    message.success('回滚成功，已创建新版本')
     rollbackModalVisible.value = false
-    loadVersions()
+
+    // 重要：回滚后必须重新加载版本列表和文章详情
+
+    await loadVersions()
+
+    // 通知文章详情页刷新数据（通过事件或路由跳转）
+    const articleId = route.query.articleId as string
+    if (articleId) {
+
+      // 返回文章详情页，让详情页重新加载最新数据
+      router.push({
+        path: '/index/articleDetail',
+        query: { id: articleId }
+      })
+    }
   } catch (error) {
-    console.error('回滚失败:', error)
+    console.error('❌ [回滚失败] error:', error)
     message.error('回滚失败，请重试')
   } finally {
     rollingBack.value = false
@@ -449,33 +466,54 @@ const confirmRollback = async () => {
 }
 
 /**
- * 处理全选
- */
-const handleSelectAll = (checked: boolean) => {
-  if (checked) {
-    // 排除初始版本
-    selectedVersions.value = versions.value
-      .filter(v => v.version !== 1)
-      .map(v => v.id)
-  } else {
-    selectedVersions.value = []
-  }
-}
-
-/**
- * 处理搜索
+ * 处理搜索和筛选
  */
 const handleSearch = () => {
-  if (!searchKeyword.value) {
-    filteredVersions.value = [...versions.value]
-  } else {
+  let result = [...versions.value]
+
+  // 搜索过滤
+  if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
-    filteredVersions.value = versions.value.filter(v => {
-      const versionMatch = String(v.version).includes(keyword)
+    result = result.filter(v => {
+      // 版本号搜索：同时搜索 version 字段和格式化后的版本号
+      const versionStr = String(v.version)
+      const formattedVersion = `${v.majorVersion ?? 1}.${v.minorVersion ?? v.version}`
+      const versionMatch = versionStr.includes(keyword) || formattedVersion.includes(keyword)
+
+      // 摘要搜索
       const summaryMatch = (v.changeSummary || '').toLowerCase().includes(keyword)
+
       return versionMatch || summaryMatch
     })
   }
+
+  // 版本类型过滤
+  if (versionTypeFilter.value) {
+    result = result.filter(v => {
+      if (versionTypeFilter.value === 'major') {
+        // 大版本：minorVersion 为 0
+        return (v.minorVersion ?? 0) === 0
+      } else if (versionTypeFilter.value === 'minor') {
+        // 小版本：minorVersion 不为 0
+        return (v.minorVersion ?? 0) !== 0
+      }
+      return true
+    })
+  }
+
+  filteredVersions.value = result
+}
+
+/**
+ * 快捷定位到最新版本
+ */
+const scrollToLatest = () => {
+  // 清空筛选条件
+  searchKeyword.value = ''
+  versionTypeFilter.value = ''
+  filteredVersions.value = [...versions.value]
+
+  message.success('已显示最新版本')
 }
 
 /**

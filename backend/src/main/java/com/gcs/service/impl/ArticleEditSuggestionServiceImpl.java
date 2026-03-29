@@ -18,6 +18,7 @@ import com.gcs.service.ArticleVersionService;
 import com.gcs.service.ArticleContributorService;
 import com.gcs.enums.NotificationType;
 import com.gcs.enums.SuggestionStatus;
+import com.gcs.utils.ContentDiffUtils;
 import com.gcs.utils.NotificationBuilder;
 import com.gcs.vo.UserSimpleVO;
 import com.gcs.vo.ArticleSuggestionVO;
@@ -61,6 +62,8 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
     
     @Autowired
     private ArticleSuggestionConverter articleSuggestionConverter;
+
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -229,15 +232,17 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
                                                  ArticleEditSuggestion suggestion, 
                                                  Long operatorId) {
         try {
-            // 1️⃣ 获取当前版本号并 +1
+            // 1️⃣ 获取当前版本号并 +1（用于 article.current_version）
             Integer currentVersion = article.getCurrentVersion() != null ? article.getCurrentVersion() : 0;
             Integer newVersion = currentVersion + 1;
             
-            // 2️⃣ 创建文章新版本（保存快照）
-            Integer versionNumber = articleVersionService.createVersion(
-                article,
-                operatorId,
-                "采纳修改建议 #" + suggestion.getId() + ": " + suggestion.getChangeSummary()
+            // 2️⃣ ✅ 使用带贡献者参数的 createMinorVersion，贡献者为建议提出者
+            String changeSummary = "采纳修改建议 #" + suggestion.getId() + ": " + suggestion.getChangeSummary();
+            Integer versionNumber = articleVersionService.createMinorVersion(
+                article, 
+                operatorId,           // 操作者（审核员/作者）
+                changeSummary,
+                suggestion.getProposerId()  // ✅ 贡献者为建议提出者
             );
             
             // 3️⃣ 更新文章的当前内容为建议的内容
@@ -255,8 +260,8 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             suggestion.setExtra(extra);
             baseMapper.updateById(suggestion);
             
-            log.info("✅ 已创建文章新版本 v{} 并应用建议，articleId: {}, suggestionId: {}", 
-                     newVersion, article.getId(), suggestion.getId());
+            log.info("✅ 已创建文章新版本 v{} 并应用建议，articleId: {}, suggestionId: {}, contributorId: {}", 
+                     newVersion, article.getId(), suggestion.getId(), suggestion.getProposerId());
             
         } catch (Exception e) {
             log.error("创建新版本失败，articleId: {}, suggestionId: {}", 
@@ -532,4 +537,43 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             log.error("发送审核结果通知失败，suggestionId: {}", suggestion.getId(), e);
         }
     }
+    /**
+     * 采纳建议时更新贡献者表
+     */
+    private void updateContributorAfterApproval(Article article,
+                                                ArticleEditSuggestion suggestion,
+                                                Long proposerId) {
+        try {
+            // 1. 计算差异
+            Map<String, Integer> diff = ContentDiffUtils.calculateDiff(
+                    article.getContent(),
+                    suggestion.getContent()
+            );
+
+            // 2. 更新贡献者表
+            articleContributorService.addDetailedContribution(
+                    article.getId(),
+                    proposerId,
+                    diff.get("added"),
+                    diff.get("modified"),
+                    diff.get("deleted")
+            );
+
+            // 3. 计算贡献分数（可选，用于日志）
+            double score = ContentDiffUtils.calculateScore(
+                    diff.get("added"),
+                    diff.get("modified"),
+                    diff.get("deleted")
+            );
+
+            log.info("更新贡献者成功，articleId: {}, proposerId: {}, added: {}, modified: {}, deleted: {}, score: {}",
+                    article.getId(), proposerId,
+                    diff.get("added"), diff.get("modified"), diff.get("deleted"),
+                    ContentDiffUtils.formatScore(score));
+        } catch (Exception e) {
+            log.error("更新贡献者失败", e);
+            // 不影响主流程
+        }
+    }
+
 }

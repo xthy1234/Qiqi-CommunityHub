@@ -38,8 +38,26 @@ public interface ArticleContributorDao extends BaseMapper<ArticleContributor> {
      * @param userId 用户 ID
      * @param lines 增加的行数
      * @return 影响行数
+     * @deprecated 使用 addDetailedContribution 替代
      */
+    @Deprecated
     int addContributedLines(@Param("articleId") Long articleId, 
                            @Param("userId") Long userId, 
                            @Param("lines") Integer lines);
+
+    /**
+     * 更新详细贡献行数（累加）
+     *
+     * @param articleId 文章 ID
+     * @param userId 用户 ID
+     * @param addedLines 新增行数
+     * @param modifiedLines 修改行数
+     * @param deletedLines 删除行数
+     * @return 影响行数
+     */
+    int addDetailedContribution(@Param("articleId") Long articleId,
+                                @Param("userId") Long userId,
+                                @Param("addedLines") Integer addedLines,
+                                @Param("modifiedLines") Integer modifiedLines,
+                                @Param("deletedLines") Integer deletedLines);
 }

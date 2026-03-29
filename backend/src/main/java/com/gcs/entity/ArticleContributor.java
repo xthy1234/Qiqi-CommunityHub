@@ -46,10 +46,37 @@ public class ArticleContributor implements Serializable {
     private Long userId;
 
     /**
-     * 贡献行数
+     * 贡献行数（弃用，仅保留兼容性）
      */
-    @Schema(description = "贡献行数", example = "50")
+    @Deprecated
+    @Schema(description = "贡献行数（已弃用）", example = "50")
     private Integer contributedLines;
+
+    /**
+     * 累计新增行数
+     */
+    @Schema(description = "累计新增行数", example = "100")
+    private Integer addedLines = 0;
+
+    /**
+     * 累计修改行数
+     */
+    @Schema(description = "累计修改行数", example = "50")
+    private Integer modifiedLines = 0;
+
+    /**
+     * 累计删除行数
+     */
+    @Schema(description = "累计删除行数", example = "20")
+    private Integer deletedLines = 0;
+
+    /**
+     * 最后贡献时间
+     */
+    @Schema(description = "最后贡献时间", example = "2026-01-01 12:00:00")
+    @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime lastContributedAt;
 
     /**
      * 创建时间
@@ -58,4 +85,11 @@ public class ArticleContributor implements Serializable {
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+
+    /**
+     * 贡献分数（计算字段，只读）
+     */
+    @Schema(description = "贡献分数", example = "125.00", accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY)
+    private java.math.BigDecimal score;
+
 }

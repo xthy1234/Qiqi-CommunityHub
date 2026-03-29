@@ -17,11 +17,25 @@ public interface ArticleContributorService extends IService<ArticleContributor> 
      * @param articleId 文章 ID
      * @param userId 用户 ID
      * @param lines 贡献行数
+     * @deprecated 使用 addDetailedContribution 替代
      */
+    @Deprecated
     void addContribution(Long articleId, Long userId, int lines);
 
     /**
-     * 获取贡献者列表（按贡献行数排序）
+     * 添加或更新详细贡献记录
+     *
+     * @param articleId 文章 ID
+     * @param userId 用户 ID
+     * @param addedLines 新增行数
+     * @param modifiedLines 修改行数
+     * @param deletedLines 删除行数
+     */
+    void addDetailedContribution(Long articleId, Long userId, 
+                                 Integer addedLines, Integer modifiedLines, Integer deletedLines);
+
+    /**
+     * 获取贡献者列表（按贡献分数排序）
      *
      * @param articleId 文章 ID
      * @return 贡献者列表（含用户信息）

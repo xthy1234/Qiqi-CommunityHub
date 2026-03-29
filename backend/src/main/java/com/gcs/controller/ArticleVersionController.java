@@ -164,7 +164,6 @@ public class ArticleVersionController {
         @ApiResponse(responseCode = "404", description = "文章或版本不存在")
     })
     @PostMapping("/{version}/rollback")
-    @Transactional
     public R rollbackToVersion(
         @Parameter(description = "文章 ID", example = "1", required = true) 
         @PathVariable Long articleId,
@@ -190,6 +189,7 @@ public class ArticleVersionController {
                 return R.error("无权限执行回滚操作");
             }
 
+            // ✅ 调用 Service 层处理事务
             articleVersionService.rollbackToVersion(articleId, version, currentUserId);
 
             return R.ok("回滚成功");
@@ -311,5 +311,51 @@ public class ArticleVersionController {
         }
     }
 
+    /**
+     * 删除指定版本（仅管理员可用）
+     */
+    @Operation(
+        summary = "删除文章版本（管理员专用）", 
+        description = "删除文章的某个历史版本（软删除，仅管理员权限）"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "删除成功"),
+        @ApiResponse(responseCode = "401", description = "未登录"),
+        @ApiResponse(responseCode = "403", description = "无权限"),
+        @ApiResponse(responseCode = "404", description = "版本不存在")
+    })
+    @DeleteMapping("/{version}")
+    public R deleteVersion(
+        @Parameter(description = "文章 ID", example = "1", required = true) 
+        @PathVariable Long articleId,
+        
+        @Parameter(description = "版本号", example = "1", required = true) 
+        @PathVariable Integer version,
+        
+        HttpServletRequest request) {
+        try {
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+
+            // ✅ 验证是否为管理员
+            boolean isAdmin = checkIsAdmin(currentUserId);
+            if (!isAdmin) {
+                return R.error("无权限执行此操作");
+            }
+
+            // ✅ 调用 Service 删除版本
+            articleVersionService.deleteVersion(articleId, version, currentUserId);
+
+            return R.ok("版本已删除");
+        } catch (IllegalArgumentException e) {
+            log.error("删除版本失败：{}", e.getMessage(), e);
+            return R.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("删除版本失败，articleId: {}, version: {}", articleId, version, e);
+            return R.error("删除失败");
+        }
+    }
 
 }

@@ -25,6 +25,9 @@ public interface ArticleVersionConverter {
      * 将 Entity 转换为简略 VO（用于列表展示）
      */
     @Mapping(target = "operator", ignore = true)
+    @Mapping(target = "contributor", ignore = true)
+    @Mapping(target = "isLatest", ignore = true)
+    @Mapping(target = "isCurrent", ignore = true)
     ArticleVersionSimpleVO toSimpleVO(ArticleVersion entity);
     
     /**
@@ -38,7 +41,9 @@ public interface ArticleVersionConverter {
      * 将 Entity 转换为详细 VO（用于详情页和对比）
      */
     @Mapping(target = "operator", ignore = true)
+    @Mapping(target = "contributor", ignore = true)
     @Mapping(target = "isLatest", ignore = true)
+    @Mapping(target = "isCurrent", ignore = true)
     ArticleVersionVO toDetailVO(ArticleVersion entity);
     
     /**

@@ -75,10 +75,6 @@ public class ArticleController {
    private InteractionService favoriteService;
 
     @Autowired
-    private ArticleContributorService articleContributorService;
-
-
-    @Autowired
     private ArticleConverter articleConverter;
 
     /**
@@ -281,16 +277,32 @@ public class ArticleController {
             // ✅ 新增：从 article 实体获取 currentVersion
             vo.setCurrentVersion(article.getCurrentVersion());
             
-            // ✅ 查询最新版本并设置 majorVersion、minorVersion
-            List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
-            if (versions != null && !versions.isEmpty()) {
-                ArticleVersion latestVersion = versions.get(0);
-                vo.setMajorVersion(latestVersion.getMajorVersion());
-                vo.setMinorVersion(latestVersion.getMinorVersion());
+            // ✅ 修复：查询 currentVersion 对应的版本，获取 majorVersion 和 minorVersion
+            if (article.getCurrentVersion() != null) {
+                ArticleVersion currentVersionEntity = articleVersionService.getVersionDetail(
+                    id, 
+                    article.getCurrentVersion()
+                );
+                if (currentVersionEntity != null) {
+                    vo.setMajorVersion(currentVersionEntity.getMajorVersion());
+                    vo.setMinorVersion(currentVersionEntity.getMinorVersion());
+                } else {
+                    // 如果找不到对应版本，默认为 1.0
+                    vo.setMajorVersion(1);
+                    vo.setMinorVersion(0);
+                }
             } else {
-                // 如果没有版本记录，默认为 1.0
-                vo.setMajorVersion(1);
-                vo.setMinorVersion(0);
+                // 如果 currentVersion 为 null，查询最新版本
+                List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
+                if (versions != null && !versions.isEmpty()) {
+                    ArticleVersion latestVersion = versions.get(0);
+                    vo.setMajorVersion(latestVersion.getMajorVersion());
+                    vo.setMinorVersion(latestVersion.getMinorVersion());
+                } else {
+                    // 如果没有版本记录，默认为 1.0
+                    vo.setMajorVersion(1);
+                    vo.setMinorVersion(0);
+                }
             }
 
             return R.ok().put("data", vo);

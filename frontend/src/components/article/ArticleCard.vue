@@ -1,4 +1,3 @@
-NEW_FILE_CODE
 <template>
   <n-card
     class="article-card-component"

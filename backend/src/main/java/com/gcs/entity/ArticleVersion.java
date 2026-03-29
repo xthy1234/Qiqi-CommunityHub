@@ -91,6 +91,12 @@ public class ArticleVersion implements Serializable {
     private Long operatorId;
 
     /**
+     * 实际贡献者 ID（可能是作者自己，也可能是建议提出者）
+     */
+    @Schema(description = "实际贡献者 ID", example = "1")
+    private Long contributorId;
+
+    /**
      * 创建时间
      */
     @Schema(description = "创建时间", example = "2026-01-01 12:00:00")

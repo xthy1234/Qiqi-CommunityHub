@@ -77,9 +77,18 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         // 查询版本历史
         List<ArticleVersion> versions = articleVersionDao.selectByArticleId(articleId);
         
+        // ✅ 获取当前版本号
+        Article article = articleDao.selectById(articleId);
+        Integer currentVersion = (article != null) ? article.getCurrentVersion() : null;
+        
         // ✅ 使用 Converter 转换为简略 VO
         List<ArticleVersionSimpleVO> voList = versions.stream()
-            .map(this::buildSimpleVO)
+            .map(version -> {
+                ArticleVersionSimpleVO simpleVO = buildSimpleVO(version);
+                // ✅ 设置 isCurrent
+                simpleVO.setIsCurrent(currentVersion != null && version.getVersion().equals(currentVersion));
+                return simpleVO;
+            })
             .collect(Collectors.toList());
         
         return voList;
@@ -93,8 +102,16 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             throw new IllegalArgumentException("版本不存在");
         }
         
+        // ✅ 获取当前版本号
+        Article article = articleDao.selectById(articleId);
+        Integer currentVersion = (article != null) ? article.getCurrentVersion() : null;
+        
         // ✅ 使用 Converter 构建详细 VO
-        return buildDetailVO(articleVersion, articleId);
+        ArticleVersionVO vo = buildDetailVO(articleVersion, articleId);
+        // ✅ 设置 isCurrent
+        vo.setIsCurrent(currentVersion != null && articleVersion.getVersion().equals(currentVersion));
+        
+        return vo;
     }
 
     @Override
@@ -172,6 +189,21 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             }
         }
         
+        // ✅ 第三步：补充贡献者信息
+        if (version.getContributorId() != null) {
+            User contributor = userDao.selectById(version.getContributorId());
+            if (contributor != null) {
+                UserSimpleVO contributorVO = buildUserSimpleVO(contributor);
+                vo.setContributor(contributorVO);
+            }
+        }
+        
+        // ✅ 第四步：判断是否为最新版本
+        Integer maxVersion = articleVersionDao.getMaxVersion(version.getArticleId());
+        vo.setIsLatest(version.getVersion().equals(maxVersion));
+        
+        // ⚠️ isCurrent 由调用方设置（因为需要 article 的 currentVersion）
+        
         return vo;
     }
 
@@ -195,9 +227,20 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             }
         }
         
-        // ✅ 第三步：判断是否为最新版本
+        // ✅ 第三步：补充贡献者信息
+        if (version.getContributorId() != null) {
+            User contributor = userDao.selectById(version.getContributorId());
+            if (contributor != null) {
+                UserSimpleVO contributorVO = buildUserSimpleVO(contributor);
+                vo.setContributor(contributorVO);
+            }
+        }
+        
+        // ✅ 第四步：判断是否为最新版本
         Integer maxVersion = articleVersionDao.getMaxVersion(articleId);
         vo.setIsLatest(version.getVersion().equals(maxVersion));
+        
+        // ⚠️ isCurrent 由调用方设置（因为需要 article 的 currentVersion）
         
         return vo;
     }
@@ -222,36 +265,44 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void rollbackToVersion(Long articleId, Integer version, Long operatorId) {
+        // 1️⃣ 查询目标版本
         ArticleVersion targetVersion = articleVersionDao.selectByVersion(articleId, version);
         if (targetVersion == null) {
             throw new IllegalArgumentException("版本不存在");
         }
 
-        // 获取当前文章
+        // 2️⃣ 获取当前文章和最新版本
         Article article = articleDao.selectById(articleId);
         if (article == null) {
             throw new IllegalArgumentException("文章不存在");
         }
+        
+        List<ArticleVersion> versions = getVersionHistory(articleId);
+        if (versions == null || versions.isEmpty()) {
+            throw new IllegalArgumentException("文章没有版本记录");
+        }
+        ArticleVersion latestVersion = versions.get(0);
+        
+        log.info("开始回滚，articleId: {}, 从版本 {} ({}.{}) 回滚到内容版本 {} ({}.{})", 
+                articleId, 
+                latestVersion.getVersion(), latestVersion.getMajorVersion(), latestVersion.getMinorVersion(),
+                targetVersion.getVersion(), targetVersion.getMajorVersion(), targetVersion.getMinorVersion());
 
-        // 保存当前版本作为回滚前的快照
-        String changeSummary = "回滚到版本 " + version;
-        createVersion(article, operatorId, "回滚前备份：" + changeSummary);
-
-        // 更新文章内容
+        // 3️⃣ 更新文章内容为目标版本的内容
         article.setTitle(targetVersion.getTitle());
         article.setContent(targetVersion.getContent());
-
-        // ✅ 新增：设置回滚到的目标版本号
-        article.setCurrentVersion(version);
-
-        // 更新文章表
+        
+        // 4️⃣ 使用 createMinorVersion 创建回滚版本
+        // ✅ createMinorVersion 会自动基于当前最大版本号计算，不会冲突
+        String changeSummary = "回滚到版本 " + targetVersion.getMajorVersion() + "." + targetVersion.getMinorVersion();
+        Integer rollbackVersion = createMinorVersion(article, operatorId, changeSummary);
+        
+        // 5️⃣ 更新文章的 currentVersion
+        article.setCurrentVersion(rollbackVersion);
         articleDao.updateById(article);
 
-        // 创建回滚后的新版本
-        createVersion(article, operatorId, changeSummary);
-
-        log.info("文章回滚成功，articleId: {}, targetVersion: {}, newCurrentVersion: {}", 
-                articleId, version, article.getCurrentVersion());
+        log.info("文章回滚成功，articleId: {}, 回滚目标：{}, 新版本号：{} (自动计算)", 
+                articleId, version, rollbackVersion);
     }
 
     @Override
@@ -274,6 +325,8 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         version.setMinorVersion(minorVersion);
         version.setChangeSummary(changeSummary);
         version.setOperatorId(operatorId);
+        // ✅ 默认贡献者为操作者（作者自己）
+        version.setContributorId(operatorId);
 
         baseMapper.insert(version);
 
@@ -303,11 +356,79 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         version.setMinorVersion(minorVersion);
         version.setChangeSummary(changeSummary);
         version.setOperatorId(operatorId);
+        // ✅ 默认贡献者为操作者（作者自己）
+        version.setContributorId(operatorId);
 
         baseMapper.insert(version);
 
         log.info("创建大版本成功，articleId: {}, version: {}.{}",
                 article.getId(), majorVersion, minorVersion);
+
+        return nextGlobalVersion;
+    }
+
+    /**
+     * 创建小版本（指定贡献者）
+     */
+    public Integer createMinorVersion(Article article, Long operatorId, String changeSummary, Long contributorId) {
+        // 计算新版本号
+        int[] versions = calculateNextVersion(article.getId(), false);
+        Integer majorVersion = versions[0];
+        Integer minorVersion = versions[1];
+
+        // 获取全局版本号（自增）
+        Integer nextGlobalVersion = articleVersionDao.getMaxVersion(article.getId()) + 1;
+
+        ArticleVersion version = new ArticleVersion();
+        version.setArticleId(article.getId());
+        version.setVersion(nextGlobalVersion);
+        version.setTitle(article.getTitle());
+        version.setContent(article.getContent());
+        version.setVersionType(0); // 小版本
+        version.setMajorVersion(majorVersion);
+        version.setMinorVersion(minorVersion);
+        version.setChangeSummary(changeSummary);
+        version.setOperatorId(operatorId);
+        // ✅ 设置实际贡献者
+        version.setContributorId(contributorId);
+
+        baseMapper.insert(version);
+
+        log.info("创建小版本成功，articleId: {}, version: {}.{}, contributorId: {}",
+                article.getId(), majorVersion, minorVersion, contributorId);
+
+        return nextGlobalVersion;
+    }
+
+    /**
+     * 创建大版本（指定贡献者）
+     */
+    public Integer createMajorVersion(Article article, Long operatorId, String changeSummary, Long contributorId) {
+        // 计算新版本号
+        int[] versions = calculateNextVersion(article.getId(), true);
+        Integer majorVersion = versions[0];
+        Integer minorVersion = versions[1];
+
+        // 获取全局版本号（自增）
+        Integer nextGlobalVersion = articleVersionDao.getMaxVersion(article.getId()) + 1;
+
+        ArticleVersion version = new ArticleVersion();
+        version.setArticleId(article.getId());
+        version.setVersion(nextGlobalVersion);
+        version.setTitle(article.getTitle());
+        version.setContent(article.getContent());
+        version.setVersionType(1); // 大版本
+        version.setMajorVersion(majorVersion);
+        version.setMinorVersion(minorVersion);
+        version.setChangeSummary(changeSummary);
+        version.setOperatorId(operatorId);
+        // ✅ 设置实际贡献者
+        version.setContributorId(contributorId);
+
+        baseMapper.insert(version);
+
+        log.info("创建大版本成功，articleId: {}, version: {}.{}, contributorId: {}",
+                article.getId(), majorVersion, minorVersion, contributorId);
 
         return nextGlobalVersion;
     }
@@ -329,6 +450,29 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
 
             return new int[]{currentMajor, newMinor};
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteVersion(Long articleId, Integer version, Long operatorId) {
+        // 1️⃣ 查询目标版本
+        ArticleVersion targetVersion = articleVersionDao.selectByVersion(articleId, version);
+        if (targetVersion == null) {
+            throw new IllegalArgumentException("版本不存在");
+        }
+
+        // 2️⃣ 检查是否为最新版本
+        Integer maxVersion = articleVersionDao.getMaxVersion(articleId);
+        if (version.equals(maxVersion)) {
+            throw new IllegalArgumentException("不能删除最新版本，请先回滚到其他版本");
+        }
+
+        // 3️⃣ 执行软删除
+        targetVersion.setIsDeleted(true);
+        baseMapper.updateById(targetVersion);
+
+        log.info("删除文章版本成功，articleId: {}, version: {}, operatorId: {}", 
+                articleId, version, operatorId);
     }
 
 }

@@ -334,18 +334,11 @@ public class ArticleDraftController {
                 if (draft.getCategoryId() != null) {
                     article.setCategoryId(draft.getCategoryId());
                 }
-                
-                // ✅ 新增：更新 currentVersion（从版本表获取最新版本号）
-                List<ArticleVersion> versions = articleVersionService.getVersionHistory(articleId);
-                if (versions != null && !versions.isEmpty()) {
-                    ArticleVersion latestVersion = versions.get(0);
-                    article.setCurrentVersion(latestVersion.getVersion());
-                }
-                
+
                 articleService.updateById(article);
                 
-                log.info("更新文章成功，articleId: {}, newVersion: {}", 
-                        articleId, article.getCurrentVersion());
+                log.info("更新文章成功，articleId: {}", articleId);
+
             }
 
             // ✅ 新增：提取 versionType 参数
@@ -375,6 +368,10 @@ public class ArticleDraftController {
                 }
             }
 
+            // ✅ 新增：创建版本后，更新 article.currentVersion 为最新版本号
+            article.setCurrentVersion(version);
+            articleService.updateById(article);
+
             // 删除草稿
             articleDraftService.deleteDraftById(draftId);
 
@@ -394,18 +391,12 @@ public class ArticleDraftController {
             Article articleDetail = articleService.getArticleDetail(articleId);
             ArticleDetailVO articleVO = articleConverter.toDetailVO(articleDetail);
             
-            // 手动查询并设置版本号
-            List<ArticleVersion> versions = articleVersionService.getVersionHistory(articleId);
-            if (versions != null && !versions.isEmpty()) {
-                ArticleVersion latestVersion = versions.get(0);
-                articleVO.setMajorVersion(latestVersion.getMajorVersion());
-                articleVO.setMinorVersion(latestVersion.getMinorVersion());
-            } else {
-                // 如果没有版本记录，默认为 1.0
-                articleVO.setMajorVersion(1);
-                articleVO.setMinorVersion(0);
+            // ✅ 使用刚创建的版本信息设置版本号
+            if (versionEntity != null) {
+                articleVO.setMajorVersion(versionEntity.getMajorVersion());
+                articleVO.setMinorVersion(versionEntity.getMinorVersion());
             }
-            
+
             result.put("article", articleVO);
 
             return R.ok("发布成功").put("data", result);

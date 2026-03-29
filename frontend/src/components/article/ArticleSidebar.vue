@@ -146,153 +146,54 @@
         </n-space>
       </n-card>
 
-      <!-- 贡献者列表 -->
+      <!-- 贡献者列表卡片 -->
       <n-card
         v-if="contributors.length > 0"
         class="sidebar-card"
         title="贡献者"
         size="small"
       >
-        <ContributorList
-          :contributors="contributors"
-          :show-title="false"
-          :max-show="5"
-          size="32"
-        />
+        <div class="contributors-preview">
+          <ContributorList
+            :contributors="contributors"
+            :show-title="false"
+            :max-show="5"
+            :size="32"
+          />
+
+          <n-button
+            v-if="totalContributors > 5"
+            text
+            block
+            @click="showContributorModal = true"
+            class="view-more-btn"
+          >
+            查看全部 {{ totalContributors }} 位贡献者
+            <template #icon>
+              <Icon icon="ri:arrow-right-line" width="16" />
+            </template>
+          </n-button>
+        </div>
       </n-card>
     </div>
 
-    <!-- 底部折叠工具栏（移动端） -->
-    <div class="mobile-toolbar">
-      <n-popover
-        v-model:show="showPopover"
-        trigger="manual"
-        placement="top"
-      >
-        <template #trigger>
-          <n-button
-            circle
-            strong
-            secondary
-            @click="togglePopover"
-          >
-            <template #icon>
-              <Icon
-                icon="ri:more-fill"
-                width="24"
-              />
-            </template>
-          </n-button>
-        </template>
-        
-        <div class="mobile-menu">
-          <!-- 作者操作 -->
-          <template v-if="isAuthor">
-            <n-button
-              text
-              block
-              @click="$emit('edit'); togglePopover()"
-            >
-              <template #icon>
-                <Icon
-                  icon="ri:edit-line"
-                  width="18"
-                />
-              </template>
-              编辑文章
-            </n-button>
-            
-            <n-divider style="margin: 8px 0" />
-            
-            <n-dropdown
-              v-model:value="editModeDropdown"
-              trigger="click"
-              :options="editModeOptions"
-              @select="handleEditModeSelect"
-            >
-              <n-button
-                text
-                block
-              >
-                <template #icon>
-                  <Icon
-                    icon="ri:settings-3-line"
-                    width="18"
-                  />
-                </template>
-                {{ editMode === 0 ? '仅自己可编辑' : '所有人可建议' }}
-              </n-button>
-            </n-dropdown>
-            
-            <n-divider style="margin: 8px 0" />
-            
-            <n-badge
-              :value="pendingSuggestionsCount"
-              :show="pendingSuggestionsCount > 0"
-              :max="99"
-            >
-              <n-button
-                text
-                block
-                @click="$emit('review-suggestions'); togglePopover()"
-              >
-                <template #icon>
-                  <Icon
-                    icon="ri:review-line"
-                    width="18"
-                  />
-                </template>
-                审核建议
-              </n-button>
-            </n-badge>
-          </template>
-          
-          <!-- 访客操作 -->
-          <template v-else-if="!isAuthor && article.editMode === 1">
-            <n-button
-              type="success"
-              text
-              block
-              @click="$emit('suggest'); togglePopover()"
-            >
-              <template #icon>
-                <Icon
-                  icon="ri:edit-circle-line"
-                  width="18"
-                />
-              </template>
-              建议修改
-            </n-button>
-            
-            <n-divider style="margin: 8px 0" />
-          </template>
-          
-          <!-- 通用操作 -->
-          <n-button
-            text
-            block
-            @click="$emit('versions'); togglePopover()"
-          >
-            <template #icon>
-              <Icon
-                icon="ri:git-commit-line"
-                width="18"
-              />
-            </template>
-            历史版本
-          </n-button>
-        </div>
-      </n-popover>
-    </div>
+    <!-- 贡献者列表弹窗 -->
+    <ContributorListModal
+      v-model:show="showContributorModal"
+      :article-id="articleId"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue'
+import {computed, ref, watch, onMounted} from 'vue'
 import {Icon} from '@iconify/vue'
 import {NAlert, NBadge, NButton, NCard, NDivider, NPopover, NSpace, NDropdown, type DropdownOption} from 'naive-ui'
 import ContributorList from '@/components/article/ContributorList.vue'
+import ContributorListModal from '@/components/article/ContributorListModal.vue'
 import {getAuditStatusText} from '@/utils/userUtils'
+import { articleContributorAPI, type Contributor } from '@/api/contributor'
+import { useRoute } from 'vue-router'
 
 // Props
 interface Props {
@@ -304,6 +205,33 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const route = useRoute()
+const showContributorModal = ref(false)
+const totalContributors = ref(0)
+
+// 获取文章 ID
+const articleId = computed(() => {
+  return route.query.id || props.article?.id
+})
+
+// 加载贡献者总数
+const loadTotalContributors = async () => {
+  if (!articleId.value) return
+
+  try {
+    const response = await articleContributorAPI.getCount(articleId.value)
+    if (response.data.code === 0) {
+      totalContributors.value = response.data.data
+    }
+  } catch (error) {
+    console.error('加载贡献者数量失败:', error)
+  }
+}
+
+onMounted(() => {
+  loadTotalContributors()
+})
 
 // Emits
 const emit = defineEmits<{
@@ -367,16 +295,14 @@ watch(() => props.editMode, ((newVal: number|string) => {
     }
   }
   
-  .audit-status-tip {
-    margin-top: 8px;
-    
-    .audit-reply-tip {
-      margin-top: 8px;
-      padding: 8px;
-      background: #fef0f0;
-      border-radius: 4px;
-      font-size: 12px;
-      color: #666;
+  .contributors-preview {
+    .view-more-btn {
+      margin-top: 12px;
+      color: #409EFF;
+
+      &:hover {
+        color: #66b1ff;
+      }
     }
   }
 }

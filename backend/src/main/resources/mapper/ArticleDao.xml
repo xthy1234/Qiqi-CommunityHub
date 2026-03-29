@@ -22,6 +22,7 @@
         <result property="viewCount" column="view_count"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
+        <result property="currentVersion" column="current_version"/>
     </resultMap>
 
     <!-- 文章视图结果映射 -->
@@ -46,6 +47,7 @@
         <result property="categoryName" column="category_name"/>
         <result property="authorAvatar" column="author_avatar"/>
         <result property="authorNickname" column="author_nickname"/>
+        <result property="currentVersion" column="current_version"/>
     </resultMap>
 
 <!--    &lt;!&ndash; 查询文章列表视图 &ndash;&gt;-->
@@ -98,6 +100,7 @@
             a.view_count,
             a.create_time,
             a.update_time,
+            a.current_version,
             c.category_name,
             u.avatar as author_avatar,
             u.nickname as author_nickname
@@ -132,6 +135,7 @@
             a.view_count,
            a.create_time,
             a.update_time,
+            a.current_version,
             c.category_name,
             u.avatar as author_avatar,
             u.nickname as author_nickname
@@ -166,6 +170,7 @@
             a.publish_time,
             a.comment_count,
             a.edit_mode,
+            a.current_version,
             a.create_time,
             a.update_time,
             c.category_name,
