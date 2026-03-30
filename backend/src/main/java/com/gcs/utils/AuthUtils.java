@@ -22,10 +22,10 @@ public class AuthUtils {
             if (user == null) {
                 return false;
             }
-            // 可配置的角色 ID
+
             return user.getRoleId() != null && user.getRoleId() == 2L;
         } catch (Exception e) {
-//            log.error("检查管理员权限失败，userId: {}", userId, e);
+
             return false;
         }
     }

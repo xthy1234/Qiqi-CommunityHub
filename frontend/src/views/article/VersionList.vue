@@ -127,6 +127,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, h, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, useDialog, NTag, NButton, NDataTable, NBadge } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
@@ -138,6 +139,8 @@ import { useGlobalProperties } from '@/utils/globalProperties'
 const appContext = useGlobalProperties()
 const router = useRouter()
 const route = useRoute()
+const { navigateWithBackUrl, returnAfterRollback, goBack } = useBackNavigation()
+
 const message = useMessage()
 const dialog = useDialog()
 
@@ -400,7 +403,10 @@ const loadVersions = async () => {
  */
 const viewVersionDetail = (row: ArticleVersion) => {
   const articleId = route.query.articleId as string
-  router.push(`/index/article/${articleId}/version/${row.version}`)
+
+  navigateWithBackUrl({
+    path: `/index/article/${articleId}/version/${row.version}`
+  })
 }
 
 /**
@@ -431,32 +437,20 @@ const confirmRollbackAction = (row: ArticleVersion) => {
 const confirmRollback = async () => {
   rollingBack.value = true
   try {
-
-
-
     const rollbackRes = await articleVersionAPI.rollback(rollbackTargetArticleId.value, targetRollbackVersion.value, {
       version: targetRollbackVersion.value
     })
 
-
-
     message.success('回滚成功，已创建新版本')
     rollbackModalVisible.value = false
 
-    // 重要：回滚后必须重新加载版本列表和文章详情
-
+    // 重新加载版本列表
     await loadVersions()
 
-    // 通知文章详情页刷新数据（通过事件或路由跳转）
+    // 使用工具类返回，自动处理返回逻辑（replace 模式）
     const articleId = route.query.articleId as string
-    if (articleId) {
+    await returnAfterRollback(router, route, articleId)
 
-      // 返回文章详情页，让详情页重新加载最新数据
-      router.push({
-        path: '/index/articleDetail',
-        query: { id: articleId }
-      })
-    }
   } catch (error) {
     console.error('❌ [回滚失败] error:', error)
     message.error('回滚失败，请重试')
@@ -532,19 +526,10 @@ const formatDate = (dateStr: string) => {
 /**
  * 返回文章详情页或上一页
  */
-const goBack = () => {
-  const articleId = route.query.articleId as string
-
-  if (articleId) {
-    // 优先返回文章详情页
-    router.push({
-      path: '/index/articleDetail',
-      query: { id: articleId }
-    })
-  } else {
-    // 如果没有文章 ID，返回上一页
-    router.back()
-  }
+const goBackHandler = () => {
+  goBack({
+    fallbackPath: '/index/articleDetail'
+  })
 }
 
 onMounted(() => {

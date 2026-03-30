@@ -87,26 +87,26 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     public boolean registerUser(User user) {
         validateUserForRegister(user);
         
-        // 检查账号唯一性
+
         if (!isAccountUnique(user.getAccount(), null)) {
             throw new RuntimeException("账号已存在");
         }
         
-        // 检查手机号唯一性
+
         if (StringUtils.hasText(user.getPhone()) && !isPhoneUnique(user.getPhone(), null)) {
             throw new RuntimeException("手机号已被使用");
         }
         
-        // 检查邮箱唯一性
+
         if (StringUtils.hasText(user.getEmail()) && !isEmailUnique(user.getEmail(), null)) {
             throw new RuntimeException("邮箱已被使用");
         }
 
-        // 设置默认值
+
         user.setCreateTime(LocalDateTime.now());
-        user.setStatus(CommonStatus.ENABLED); // 0 表示启用
+        user.setStatus(CommonStatus.ENABLED);
         if (user.getGender() == null) {
-            user.setGender(2); // 默认保密
+            user.setGender(2);
         }
         
         return this.save(user);
@@ -131,7 +131,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             throw new RuntimeException("账号已被禁用");
         }
 
-        // 更新最后登录信息
+
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(loginIp);
         baseMapper.updateLastLoginInfo(user.getId(), loginIp);
@@ -228,7 +228,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             throw new RuntimeException("账号不存在");
         }
 
-        user.setPassword("123456"); // 默认密码
+        user.setPassword("123456");
         user.setUpdateTime(LocalDateTime.now());
         
         return this.updateById(user);
@@ -291,16 +291,16 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
     @Override
     public PageUtils getUserPublicList(Map<String, Object> params, Long currentUserId) {
-        // ✅ 获取分页参数
-        Integer page = (Integer) params.getOrDefault("page", 1);
-        Integer limit = (Integer) params.getOrDefault("limit", 10);
+
+        Integer page = getIntegerParam(params, "page", 1);
+        Integer limit = getIntegerParam(params, "limit", 10);
         String keyword = (String) params.get("keyword");
         
-        // ✅ 构建查询条件（只查询公开可见的用户）
+
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getStatus, CommonStatus.ENABLED); // 只查询启用状态的用户
+        queryWrapper.eq(User::getStatus, CommonStatus.ENABLED);
         
-        // ✅ 关键词搜索（昵称或签名）
+
         if (StringUtils.hasText(keyword)) {
             queryWrapper.and(wrapper -> 
                 wrapper.like(User::getNickname, keyword)
@@ -309,13 +309,44 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             );
         }
         
-        // ✅ 执行分页查询
+
         IPage<User> userPage = new Query<User>(params).getPage();
         IPage<User> resultPage = this.page(userPage, queryWrapper);
         
         return new PageUtils(resultPage);
     }
 
+    /**
+     * 安全地从 Map 中获取 Integer 参数
+     * @param params 参数 Map
+     * @param key 参数名
+     * @param defaultValue 默认值
+     * @return 转换后的整数值
+     */
+    private Integer getIntegerParam(Map<String, Object> params, String key, Integer defaultValue) {
+        Object value = params.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        
+        return defaultValue;
+    }
 
     @Override
     public boolean isNicknameUnique(String nickname, Long excludeUserId) {
@@ -366,17 +397,17 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     public boolean createUser(User user) {
         validateUserForCreate(user);
         
-        // 检查账号唯一性
+
         if (!isAccountUnique(user.getAccount(), null)) {
             throw new RuntimeException("账号已存在");
         }
         
-        // 检查手机号唯一性
+
         if (StringUtils.hasText(user.getPhone()) && !isPhoneUnique(user.getPhone(), null)) {
             throw new RuntimeException("手机号已被使用");
         }
         
-        // 检查邮箱唯一性
+
         if (StringUtils.hasText(user.getEmail()) && !isEmailUnique(user.getEmail(), null)) {
             throw new RuntimeException("邮箱已被使用");
         }

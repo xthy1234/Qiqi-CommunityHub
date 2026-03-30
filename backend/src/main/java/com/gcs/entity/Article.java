@@ -182,9 +182,9 @@ public class Article implements Serializable {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
-    // 构造函数用于泛型转换（保留向后兼容）
+
     public <T> Article(T source) {
-        // 可以在这里实现属性复制逻辑
-        // 建议使用更现代的映射工具如MapStruct替代BeanUtils
+
+
     }
 }

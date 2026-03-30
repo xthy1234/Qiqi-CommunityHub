@@ -43,7 +43,7 @@ public class InteractionView extends Interaction implements Serializable {
      */
     public InteractionView(Interaction interaction) {
         if (interaction != null) {
-            // 手动复制属性，避免使用过时的BeanUtils
+
             this.setId(interaction.getId());
             this.setContentId(interaction.getContentId());
             this.setTableName(interaction.getTableName());

@@ -20,11 +20,11 @@ public class ContentDiffUtils {
      */
     public static Map<String, Integer> calculateDiff(Map<String, Object> oldContent, 
                                                       Map<String, Object> newContent) {
-        // 1. 将 TipTap JSON 转换为纯文本
+
         String oldText = convertToJsonString(oldContent);
         String newText = convertToJsonString(newContent);
 
-        // 2. 使用简化版 diff 算法
+
         return calculateSimpleDiff(oldText, newText);
     }
 
@@ -39,14 +39,14 @@ public class ContentDiffUtils {
     private static Map<String, Integer> calculateSimpleDiff(String oldText, String newText) {
         Map<String, Integer> result = new HashMap<>();
         
-        // 按行分割
+
         List<String> oldLines = splitIntoLines(oldText);
         List<String> newLines = splitIntoLines(newText);
 
-        // 使用 LCS（最长公共子序列）算法计算差异
+
         int[][] dp = new int[oldLines.size() + 1][newLines.size() + 1];
 
-        // 构建 DP 表
+
         for (int i = 1; i <= oldLines.size(); i++) {
             for (int j = 1; j <= newLines.size(); j++) {
                 if (oldLines.get(i - 1).equals(newLines.get(j - 1))) {
@@ -57,7 +57,7 @@ public class ContentDiffUtils {
             }
         }
 
-        // 回溯找出差异
+
         int added = 0;
         int deleted = 0;
         int i = oldLines.size();
@@ -65,22 +65,22 @@ public class ContentDiffUtils {
 
         while (i > 0 || j > 0) {
             if (i > 0 && j > 0 && oldLines.get(i - 1).equals(newLines.get(j - 1))) {
-                // 相同的行
+
                 i--;
                 j--;
             } else if (j > 0 && (i == 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-                // 新增的行
+
                 added++;
                 j--;
             } else if (i > 0 && (j == 0 || dp[i][j - 1] < dp[i - 1][j])) {
-                // 删除的行
+
                 deleted++;
                 i--;
             }
         }
 
         result.put("added", added);
-        result.put("modified", 0); // 简化版不统计修改
+        result.put("modified", 0);
         result.put("deleted", deleted);
 
         log.debug("差异计算完成：added={}, modified={}, deleted={}", added, 0, deleted);
@@ -120,13 +120,13 @@ public class ContentDiffUtils {
 
         String type = (String) node.get("type");
         
-        // 如果是文本节点，直接添加内容
+
         if ("text".equals(type)) {
             text.append(node.getOrDefault("text", ""));
             return;
         }
 
-        // 处理段落节点，添加换行
+
         if ("paragraph".equals(type)) {
             List<Map<String, Object>> children = getChildNodes(node);
             for (Map<String, Object> child : children) {
@@ -136,7 +136,7 @@ public class ContentDiffUtils {
             return;
         }
 
-        // 处理标题节点
+
         if ("heading".equals(type)) {
             List<Map<String, Object>> children = getChildNodes(node);
             for (Map<String, Object> child : children) {
@@ -146,7 +146,7 @@ public class ContentDiffUtils {
             return;
         }
 
-        // 处理列表项
+
         if ("listItem".equals(type) || "taskItem".equals(type)) {
             List<Map<String, Object>> children = getChildNodes(node);
             for (Map<String, Object> child : children) {
@@ -155,7 +155,7 @@ public class ContentDiffUtils {
             return;
         }
 
-        // 处理代码块
+
         if ("codeBlock".equals(type)) {
             List<Map<String, Object>> children = getChildNodes(node);
             for (Map<String, Object> child : children) {
@@ -165,7 +165,7 @@ public class ContentDiffUtils {
             return;
         }
 
-        // 处理引用块
+
         if ("blockquote".equals(type)) {
             List<Map<String, Object>> children = getChildNodes(node);
             for (Map<String, Object> child : children) {
@@ -174,7 +174,7 @@ public class ContentDiffUtils {
             return;
         }
 
-        // 递归处理所有子节点
+
         List<Map<String, Object>> children = getChildNodes(node);
         for (Map<String, Object> child : children) {
             convertNodeToText(child, text, depth + 1);
@@ -207,13 +207,13 @@ public class ContentDiffUtils {
             return new ArrayList<>();
         }
 
-        // 按换行符分割，并过滤空行
+
         String[] lines = text.split("\n");
         List<String> result = new ArrayList<>();
         
         for (String line : lines) {
             String trimmed = line.trim();
-            // 可以选择是否过滤空行
+
             if (!trimmed.isEmpty()) {
                 result.add(trimmed);
             }

@@ -55,39 +55,39 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
     @Transactional
     public CircleChatMessage sendMessage(Long circleId, Long senderId, Map<String, Object> contentJson, Integer msgType) {
         try {
-            // 1. 验证圈子是否存在且正常
+
             Circle circle = circleService.getById(circleId);
             if (circle == null || circle.getStatus() == CommonStatus.DISABLED) {
                 throw new RuntimeException("圈子不存在或已解散");
             }
 
-            // 2. 验证用户是否是圈子成员
+
             Boolean isMember = circleMemberDao.isMember(circleId, senderId);
             if (isMember == null || !isMember) {
                 throw new RuntimeException("只有圈子成员才能发送消息");
             }
 
-            // 3. 创建消息对象
+
             CircleChat chat = new CircleChat();
             chat.setCircleId(circleId);
             chat.setSenderId(senderId);
-            // 设置新的 JSON 内容字段
+
             chat.setContent(contentJson);
             chat.setMsgType(msgType != null ? msgType : 0);
-            chat.setStatus(0); // 默认未读
+            chat.setStatus(0);
             chat.setIsRecalled(false);
             chat.setCreateTime(LocalDateTime.now());
 
-            // 4. 保存消息
+
             this.save(chat);
             log.info("✅ 圈子消息已保存，messageId={}, circleId={}, senderId={}",
                     chat.getId(), circleId, senderId);
 
-            // 🔥 5. 更新发送者的 last_read_time（避免自己发送的消息显示为未读）
+
             circleMemberDao.updateLastReadTime(senderId, circleId);
             log.debug("✅ 已更新发送者的最后阅读时间：userId={}, circleId={}", senderId, circleId);
 
-            // 6. 转换为 WebSocket 消息对象
+
             return convertToWebSocketMessage(chat, senderId);
         } catch (Exception e) {
             log.error("发送圈子消息失败，circleId: {}, senderId: {}", circleId, senderId, e);
@@ -98,13 +98,13 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
     @Override
     public PageUtils getChatHistory(Long circleId, Long currentUserId, Map<String, Object> params) {
         try {
-            // 1. 验证权限：必须是圈子成员
+
             Boolean isMember = circleMemberDao.isMember(circleId, currentUserId);
             if (isMember == null || !isMember) {
                 throw new RuntimeException("无权查看聊天记录，非圈子成员");
             }
 
-            // 2. 分页查询
+
             IPage<CircleChat> chatPage = new Query<CircleChat>(params).getPage();
             LambdaQueryWrapper<CircleChat> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleChat::getCircleId, circleId)
@@ -112,7 +112,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
 
             IPage<CircleChat> resultPage = this.page(chatPage, queryWrapper);
 
-            // 在转换 VO 时，使用新的 contentJson 字段
+
             List<CircleChatMessageVO> voList = resultPage.getRecords().stream()
                     .map(chat -> convertToRestfulVO(chat, currentUserId))
                     .collect(Collectors.toList());
@@ -127,20 +127,20 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
     @Override
     public PageUtils getChatHistoryWithUserInfo(Long circleId, Long currentUserId, Map<String, Object> params) {
         try {
-            // 1. 验证权限：必须是圈子成员
+
             Boolean isMember = circleMemberDao.isMember(circleId, currentUserId);
             if (isMember == null || !isMember) {
                 throw new RuntimeException("无权查看聊天记录，非圈子成员");
             }
 
-            // 2. 🔥 使用 DAO 的自定义查询（包含已删除的消息）
+
             int page = Integer.parseInt(params.getOrDefault("page", "1").toString());
             int limit = Integer.parseInt(params.getOrDefault("limit", "20").toString());
             
-            // 直接查询所有消息（包括已删除的）
+
             List<CircleChat> allChats = circleChatDao.selectChatHistoryIncludeDeleted(circleId);
             
-            // 3. 转换为 VO 并填充用户信息
+
             List<CircleChatMessageVO> voList = new java.util.ArrayList<>();
             for (CircleChat chat : allChats) {
                 CircleChatMessageVO vo = convertToRestfulVO(chat, currentUserId);

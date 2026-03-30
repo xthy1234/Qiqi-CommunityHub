@@ -34,6 +34,13 @@
       </n-carousel>
     </n-card>
 
+    <!-- 每日签到组件 -->
+    <DailySignIn
+        v-if="isLoggedIn"
+        ref="signInRef"
+        @refresh="handleSignInRefresh"
+    />
+
     <!-- 热门文章列表 -->
     <ArticleGridList
       :articles="hotArticles"
@@ -60,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { NCarousel, NCarouselItem, NButton, NSkeleton } from 'naive-ui'
 import { useGlobalProperties } from '@/utils/globalProperties'
@@ -68,6 +75,7 @@ import { Icon } from '@iconify/vue'
 import { articleAPI } from '@/api/article'
 import ArticleGridList from '@/components/article/ArticleGridList.vue'
 import PageContainer from "@/components/common/PageContainer.vue";
+import DailySignIn from '@/components/common/DailySignIn.vue'
 
 interface ArticleItem {
   id: number | string
@@ -102,6 +110,13 @@ const hotArticles = ref<ArticleItem[]>([])
 const isLoadingCarousel = ref<boolean>(false)
 const isLoadingArticles = ref<boolean>(false)
 const baseUrl = appContext?.$config?.url || 'http://localhost:8080'
+const signInRef = ref<InstanceType<typeof DailySignIn> | null>(null)
+
+// 检查是否已登录
+const isLoggedIn = computed(() => {
+  const token = appContext?.$toolUtil?.storageGet('Token')
+  return !!token
+})
 
 const fetchCarouselImages = async (): Promise<void> => {
   isLoadingCarousel.value = true
@@ -196,6 +211,14 @@ const navigateToArticleDetail = (id: number | string): void => {
 
 const navigateToArticleList = (): void => {
   router.push('/index/articleList')
+}
+
+/**
+ * 签到刷新回调
+ */
+const handleSignInRefresh = () => {
+
+  // 可以在这里执行其他需要刷新的操作
 }
 
 onMounted(() => {

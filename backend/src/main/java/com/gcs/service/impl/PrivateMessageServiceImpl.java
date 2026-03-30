@@ -36,7 +36,7 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
     
     @Override
     public MessageSendResponseVO sendMessage(Long fromUserId, Long toUserId, Map<String, Object> content, Integer msgType) {
-        // 验证接收方用户是否存在（可选）
+
         
         PrivateMessage message = new PrivateMessage();
         message.setFromUserId(fromUserId);
@@ -62,7 +62,7 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageDao, Pr
         IPage<PrivateMessage> pageObj = new Page<>(page, limit);
         List<PrivateMessage> messages = privateMessageDao.selectChatHistory(pageObj, currentUserId, otherUserId);
         
-        // 将消息标记为已读（如果是接收到的消息）
+
         markMessagesAsRead(currentUserId, otherUserId);
         
         PageUtils pageUtils = new PageUtils(messages, pageObj.getTotal(), limit, page);

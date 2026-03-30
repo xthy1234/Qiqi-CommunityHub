@@ -44,7 +44,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
 
     @Override
     public Integer createVersion(Article article, Long operatorId, String changeSummary) {
-        // 获取下一个版本号
+
         Integer nextVersion = articleVersionDao.getMaxVersion(article.getId()) + 1;
 
         // 创建版本记录

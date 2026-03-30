@@ -80,7 +80,7 @@ public class SwiperServiceImpl extends ServiceImpl<SwiperDao, Swiper> implements
     @Override
     public Swiper selectView(Wrapper<Swiper> queryWrapper) {
         validateWrapper(queryWrapper);
-        // Swiper 是单表查询，使用 QueryWrapper 即可
+
         if (queryWrapper instanceof QueryWrapper) {
             return ((SwiperDao) baseMapper).selectView((QueryWrapper<Swiper>) queryWrapper);
         } else {

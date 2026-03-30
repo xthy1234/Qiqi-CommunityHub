@@ -1,5 +1,7 @@
 // vue.config.ts
 const path = require('path')
+const fs = require('fs')
+const https = require('https')
 
 // 路径解析函数
 function resolve(dir) {

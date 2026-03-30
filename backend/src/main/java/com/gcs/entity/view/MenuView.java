@@ -34,7 +34,7 @@ public class MenuView extends Menu implements Serializable {
      */
     public MenuView(Menu menu) {
         if (menu != null) {
-            // 手动复制属性，避免使用过时的 BeanUtils
+
             this.setId(menu.getId());
             this.setName(menu.getName());
             this.setComponent(menu.getComponent());

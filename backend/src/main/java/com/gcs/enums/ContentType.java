@@ -78,14 +78,14 @@ public enum ContentType {
             return null;
         }
         
-        // 先尝试精确匹配（包括大写枚举名）
+
         try {
             return valueOf(name.toUpperCase());
         } catch (IllegalArgumentException e) {
-            // 忽略，继续尝试按 code 匹配
+
         }
         
-        // 再尝试按 code 匹配（小写）
+
         for (ContentType type : values()) {
             if (type.getCode().equalsIgnoreCase(name)) {
                 return type;

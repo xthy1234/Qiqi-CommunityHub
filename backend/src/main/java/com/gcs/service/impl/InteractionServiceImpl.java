@@ -107,14 +107,14 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
     public boolean addInteraction(Interaction interaction) {
         validateInteractionForCreate(interaction);
         
-        // ✅ 第一步：如果是点赞或点踩，先取消相反的操作（无论是否存在相同记录）
+
         if (interaction.getActionType() == InteractionActionType.LIKE || 
             interaction.getActionType() == InteractionActionType.DISLIKE) {
             cancelOppositeAction(interaction.getUserId(), interaction.getContentId(), 
                                 interaction.getTableName(), interaction.getActionType());
         }
         
-        // ✅ 第二步：检查是否存在相同的互动记录（不限制 status，只要求 is_deleted=false）
+
         List<Interaction> existingList = baseMapper.selectByUserAndContentList(
             interaction.getUserId(), 
             interaction.getContentId(), 
@@ -123,15 +123,15 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
         );
         
         if (existingList != null && !existingList.isEmpty()) {
-            // 找到未删除的记录
+
             for (Interaction existing : existingList) {
                 if (!Boolean.TRUE.equals(existing.getIsDeleted())) {
-                    // 找到了相同条件的记录
+
                     if (existing.getStatus() == InteractionStatus.VALID) {
-                        // 已经是有效状态，说明已经点过了，不需要任何操作
+
                         log.info("互动记录已存在，跳过操作：userId={}, contentId={}, actionType={}", 
                                 interaction.getUserId(), interaction.getContentId(), interaction.getActionType());
-                        return true; // ✅ 返回成功，但不抛异常
+                        return true;
                     } else {
                         // 之前取消过（status=INVALID），现在重新激活（status 从 INVALID 变为 VALID）
                         existing.setStatus(InteractionStatus.VALID);

@@ -58,7 +58,6 @@
             width="20"
           />
           <span v-if="isExpanded">{{ sidebarLocked ? '点击收起' : '自动' }}</span>
-          <!--          <span v-else>点击展开</span>-->
         </div>
       </div>
 
@@ -128,6 +127,18 @@
           <div class="user-account">
             {{ userAccount || '点击登录' }}
           </div>
+          <!-- 积分显示 -->
+          <div
+            v-if="authToken && isExpanded"
+            class="user-points"
+            @click.stop="navigateToPoints"
+          >
+            <Icon
+              icon="ri:coin-line"
+              :size="14"
+            />
+            <span>{{ userPoints }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -144,6 +155,7 @@ import { useGlobalProperties } from '@/utils/globalProperties'
 import { useNotificationStore } from '@/stores/notification'
 import { useChatStore } from '@/stores/chat'
 import { useCircleChatStore } from '@/stores/circleChat'
+import { usePointsStore } from '@/stores/points'
 
 interface MenuItem {
   menu: string
@@ -172,6 +184,7 @@ const pendingCount = ref<number>(0)
 const notificationUnreadCount = ref<number>(0)
 const chatUnreadCount = ref<number>(0)
 const circleChatUnreadCount = ref<number>(0)
+const userPoints = ref<number>(0)
 const dialog = useDialog()
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null
@@ -475,6 +488,10 @@ const navigateToMySuggestions = (): void => {
   router.push('/index/my-suggestions')
 }
 
+const navigateToPoints = (): void => {
+  router.push('/index/user/profile?tab=points')
+}
+
 const navigateToVersions = (): void => {
   // 版本管理需要先选择文章，这里给出提示
   dialog.info({
@@ -590,6 +607,8 @@ const loadUserInfo = (): void => {
   loadPendingSuggestionsCount()
   // 加载未读通知数量
   loadNotificationUnreadCount()
+  // 加载用户积分
+  loadUserPoints()
 }
 
 const loadPendingSuggestionsCount = async (): Promise<void> => {
@@ -632,6 +651,28 @@ const loadCircleChatUnreadCount = async (): Promise<void> => {
   }
 }
 
+const loadUserPoints = async (): Promise<void> => {
+  try {
+    if (!authToken.value) {
+      userPoints.value = 0
+      return
+    }
+
+    const pointsStore = usePointsStore()
+
+    // 如果 Store 还没有加载过积分，则加载一次
+    if (pointsStore.points === 0 && !pointsStore.loading) {
+      await pointsStore.loadPointsInfo()
+    }
+
+    userPoints.value = pointsStore.points
+
+  } catch (error) {
+    console.error('加载积分失败:', error)
+    userPoints.value = 0
+  }
+}
+
 const getFullUrl = (path: string, baseUrl?: string): string => {
   if (!path) {return ''}
   if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -657,6 +698,11 @@ onMounted(() => {
   loadChatUnreadCount()
   // 加载圈子聊天未读数量
   loadCircleChatUnreadCount()
+
+  // 如果已登录，加载积分信息
+  if (authToken.value) {
+    loadUserPoints()
+  }
 })
 
 const emit = defineEmits<{
@@ -706,6 +752,18 @@ const handleManualToggle = (): void => {
 
   isExpanded.value = !isExpanded.value
 }
+
+// 监听登录状态变化，重新加载积分
+watch(authToken, (newVal: boolean) => {
+  if (newVal) {
+    loadUserPoints()
+  } else {
+    userPoints.value = 0
+    // 退出登录时重置积分状态
+    const pointsStore = usePointsStore()
+    pointsStore.resetPointsState()
+  }
+})
 
 </script>
 
@@ -934,6 +992,31 @@ const handleManualToggle = (): void => {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+          }
+
+          .user-points {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+            padding: 4px 8px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            width: fit-content;
+            cursor: pointer;
+            transition: all 0.3s;
+
+            &:hover {
+              transform: scale(1.05);
+              box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+            }
+
+            span {
+              line-height: 1;
+            }
           }
         }
       }

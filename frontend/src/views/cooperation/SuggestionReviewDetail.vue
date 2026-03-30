@@ -159,6 +159,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
@@ -168,6 +169,7 @@ import { articleSuggestionAPI, type ArticleEditSuggestion } from '@/api/articleS
 
 const router = useRouter()
 const route = useRoute()
+const { goBack: backNavigation } = useBackNavigation()
 const message = useMessage()
 
 // 响应式数据
@@ -236,7 +238,7 @@ const submitReview = async () => {
     message.success(reviewForm.status ? '已通过建议' : '已拒绝建议')
     
     // 审核后返回列表页
-    goBack()
+    backNavigation()
   } catch (error) {
     console.error('审核失败:', error)
     message.error('审核失败，请重试')
@@ -249,22 +251,9 @@ const submitReview = async () => {
  * 返回上一页或文章详情页
  */
 const goBack = () => {
-  const fromArticle = route.query.from as string
-  
-  if (fromArticle === 'article') {
-    // 从文章详情页进入的，返回文章详情页
-    const articleId = route.query.articleId as string
-    if (articleId) {
-      router.push({
-        path: '/index/articleDetail',
-        query: { id: articleId }
-      })
-      return
-    }
-  }
-  
-  // 默认返回上一页
-  router.back()
+  backNavigation({
+    fallbackPath: '/index/suggestion-review-list'
+  })
 }
 
 /**

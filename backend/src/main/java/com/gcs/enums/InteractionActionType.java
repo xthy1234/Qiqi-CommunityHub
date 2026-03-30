@@ -28,18 +28,18 @@ public enum InteractionActionType {
             return null;
         }
         
-        // 如果是数字，按 code 匹配
+
         if (value instanceof Integer) {
             return valueOf((Integer) value);
         }
         
-        // 如果是字符串，尝试按 code 或 name 匹配
+
         if (value instanceof String) {
             try {
                 Integer code = Integer.parseInt((String) value);
                 return valueOf(code);
             } catch (NumberFormatException e) {
-                // 尝试按名称匹配
+
                 for (InteractionActionType type : values()) {
                     if (type.name().equalsIgnoreCase((String) value)) {
                         return type;

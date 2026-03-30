@@ -47,7 +47,7 @@ public class ArticleVersion implements Serializable {
     @Schema(description = "版本号", example = "1")
     private Integer version;
 
-    // 新增字段
+
     @Schema(description = "版本类型（0-小版本，1-大版本）", example = "0")
     private Integer versionType;
 

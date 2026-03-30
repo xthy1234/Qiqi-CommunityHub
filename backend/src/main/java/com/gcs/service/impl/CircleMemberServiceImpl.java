@@ -58,7 +58,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
     @Transactional
     public void addMember(Long circleId, Long userId, Integer role) {
         try {
-            // 检查是否已是成员
+
             Boolean exists = circleMemberDao.isMember(circleId, userId);
             if (exists != null && exists) {
                 throw new RuntimeException("用户已是圈子成员");

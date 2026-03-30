@@ -69,7 +69,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
     @Transactional(rollbackFor = Exception.class)
     public void submitSuggestion(Long articleId, Long proposerId, String title,
                                 Map<String, Object> content, String changeSummary) {
-        // 检查文章是否存在
+
         Article article = articleDao.selectById(articleId);
         if (article == null) {
             throw new IllegalArgumentException("文章不存在");

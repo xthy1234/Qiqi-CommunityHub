@@ -21,10 +21,10 @@ public class JacksonConfig {
     public ObjectMapper objectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         
-        // 注册 JavaTime 模块
+
         JavaTimeModule javaTimeModule = new JavaTimeModule();
         
-        // 添加 LocalDateTime 的序列化器和反序列化器
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_TIME_PATTERN);
         javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(formatter));
         javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(formatter));

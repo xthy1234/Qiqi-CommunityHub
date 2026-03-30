@@ -25,8 +25,9 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import PageHeader from './PageHeader.vue'
+import { BackNavigationManager } from '@/utils/backNavigation'
 
 const props = withDefaults(defineProps<{
   headerTitle?: string
@@ -45,14 +46,11 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const route = useRoute()
 
 const handleBack = () => {
   emit('back')
-  if (props.backPath) {
-    router.push(props.backPath)
-  } else {
-    router.back()
-  }
+  BackNavigationManager.goBack(router, route, props.backPath)
 }
 </script>
 

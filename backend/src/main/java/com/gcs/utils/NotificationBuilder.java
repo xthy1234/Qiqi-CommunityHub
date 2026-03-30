@@ -32,7 +32,7 @@ public class NotificationBuilder {
     public static Map<String, Object> buildLikeNotification(String targetType, Long articleId, 
                                                            Long commentId, UserSimpleVO liker) {
         Map<String, Object> extra = new HashMap<>();
-        extra.put("targetType", targetType); // "article" 或 "comment"
+        extra.put("targetType", targetType);
         extra.put("articleId", articleId);
         if (commentId != null) {
             extra.put("commentId", commentId);
@@ -71,7 +71,7 @@ public class NotificationBuilder {
         Map<String, Object> extra = new HashMap<>();
         extra.put("articleId", articleId);
         extra.put("articleTitle", articleTitle);
-        extra.put("result", result); // "通过" 或 "拒绝"
+        extra.put("result", result);
         return extra;
     }
     
@@ -169,7 +169,7 @@ public class NotificationBuilder {
         Map<String, Object> extra = new HashMap<>();
         extra.put("articleId", articleId);
         extra.put("suggestionId", suggestionId);
-        extra.put("result", result); // "通过" 或 "拒绝"
+        extra.put("result", result);
         return extra;
     }
     
@@ -199,8 +199,8 @@ public class NotificationBuilder {
         map.put("id", user.getId());
         map.put("nickname", user.getNickname());
         map.put("avatar", user.getAvatar());
-        // 暂时不包含 lastOnlineTime，避免序列化问题
-        // map.put("lastOnlineTime", user.getLastOnlineTime());
+
+
         return map;
     }
 }

@@ -115,24 +115,24 @@ public class MenuServiceImpl extends ServiceImpl<MenuDao, Menu> implements MenuS
             return new ArrayList<>();
         }
         
-        // 步骤 1：从 role_menu 表中查询该角色拥有的所有菜单 ID
+
         List<Long> menuIds = baseMapper.selectMenuIdsByRoleIds(java.util.Arrays.asList(roleId));
         
         if (menuIds == null || menuIds.isEmpty()) {
             return new ArrayList<>();
         }
         
-        // 步骤 2：根据菜单 ID 列表查询菜单详情
+
         QueryWrapper<Menu> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("id", menuIds)
-                   .eq("status", 1) // 只查询启用的菜单
+                   .eq("status", 1)
                    .orderByAsc("sort")
                    .orderByDesc("create_time");
         
         return this.list(queryWrapper);
     }
 
-    // ==================== 私有验证方法 ====================
+
 
     private void validateParams(Map<String, Object> params) {
         if (CollectionUtils.isEmpty(params)) {

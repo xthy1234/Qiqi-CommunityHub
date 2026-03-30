@@ -43,7 +43,7 @@ public class ReportView extends Report implements Serializable {
      */
     public ReportView(Report report) {
         if (report != null) {
-            // 手动复制属性，避免使用过时的BeanUtils
+
             this.setId(report.getId());
             this.setContentTitle(report.getContentTitle());
             this.setContentCategory(report.getContentCategory());

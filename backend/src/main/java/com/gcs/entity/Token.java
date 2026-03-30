@@ -116,7 +116,7 @@ public class Token implements Serializable {
     private String deviceInfo;
 
 
-    // 构造函数（保持向后兼容）
+
     public Token(Long userid, String account, Long roleId, String token, Date expiratedtime) {
         this.userId = userid;
         this.account = account;

@@ -88,4 +88,12 @@ public interface UserDao extends BaseMapper<User> {
      * @return 相关用户 ID 列表
      */
     List<Long> selectRelatedUserIds(@Param("userId") Long userId);
+
+    /**
+     * 原子更新用户积分
+     * @param userId 用户 ID
+     * @param amount 变动金额（正数增加，负数减少）
+     * @return 更新的行数
+     */
+    int incrementPoints(@Param("userId") Long userId, @Param("amount") Integer amount);
 }

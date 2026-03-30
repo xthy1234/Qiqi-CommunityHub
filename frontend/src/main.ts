@@ -43,7 +43,8 @@ import {
   NDescriptionsItem,
   NBadge,
   NConfigProvider,
-  NDataTable
+  NDataTable,
+  NDataTableCell
 } from "naive-ui"
 
 // 地图组件初始化
@@ -109,6 +110,8 @@ app.component('NDescriptionsItem', NDescriptionsItem)
 app.component('NBadge', NBadge)
 app.component('NConfigProvider', NConfigProvider)
 app.component('NDataTable', NDataTable)
+app.component('NDataTableCell', NDataTableCell)
+
 // 初始化地图服务 - 使用环境变量或默认值
 try {
   const amapKey = process.env.VUE_APP_AMAP_KEY || 'your_amap_key_here'

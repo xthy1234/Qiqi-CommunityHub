@@ -49,7 +49,7 @@ public class CommentView extends Comment implements Serializable {
      */
     public CommentView(Comment comment) {
         if (comment != null) {
-            // 手动复制属性，避免使用过时的BeanUtils
+
             this.setId(comment.getId());
             this.setContentId(comment.getContentId());
             this.setUserId(comment.getUserId());

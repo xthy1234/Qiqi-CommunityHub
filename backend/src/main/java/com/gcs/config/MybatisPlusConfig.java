@@ -15,7 +15,7 @@ public class MybatisPlusConfig {
     @Bean
    public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        // ✅ 添加分页插件（必须）
+
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
         return interceptor;
     }

@@ -35,7 +35,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Notification createNotification(Long userId, Integer type, Long sourceId, Map<String, Object> content, Map<String, Object> extra) {
-        // ⚠️ content 参数已废弃，所有数据应通过 extra 传递
+
         if (content != null && !content.isEmpty()) {
             log.warn("⚠️ content 参数已废弃，请使用 extra 字段传递通知数据。userId: {}, type: {}", userId, type);
         }
@@ -44,9 +44,9 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
         notification.setUserId(userId);
         notification.setType(type);
         notification.setSourceId(sourceId);
-        // content 字段不再使用，设置为 null 或空 Map
+
         notification.setContent(null);
-        // ✅ 所有数据都存储在 extra 字段
+
         notification.setExtra(extra);
         notification.setIsRead(false);
 

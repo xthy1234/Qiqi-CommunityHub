@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gcs.dao.UserSignInDao">
+
+    <select id="selectByUserIdAndDate" resultType="com.gcs.entity.UserSignIn">
+        SELECT * FROM user_sign_in
+        WHERE user_id = #{userId}
+          AND sign_date = #{signDate}
+        LIMIT 1
+    </select>
+
+    <select id="selectLastSignIn" resultType="com.gcs.entity.UserSignIn">
+        SELECT * FROM user_sign_in
+        WHERE user_id = #{userId}
+        ORDER BY sign_date DESC, create_time DESC
+        LIMIT 1
+    </select>
+
+</mapper>

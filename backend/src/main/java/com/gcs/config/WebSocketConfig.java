@@ -45,21 +45,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // 设置客户端订阅消息的前缀（用于接收服务端推送）
+
         registry.enableSimpleBroker("/topic", "/queue", "/user");
-        // 设置客户端发送消息的前缀（即方法上的 @MessageMapping 会匹配此前缀）
+
         registry.setApplicationDestinationPrefixes("/app");
-        // 设置点对点消息前缀（默认是 /user）
+
         registry.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // 注册 WebSocket 端点，客户端通过此端点连接
+
         registry.addEndpoint("/ws")
-                .addInterceptors(handshakeInterceptor)  // 添加握手拦截器
-                .setAllowedOriginPatterns("*");   // 生产环境应限制具体域名
-//                .withSockJS();                    // 启用 SockJS 降级方案
+                .addInterceptors(handshakeInterceptor)
+                .setAllowedOriginPatterns("*");
+
     }
 
     @Override
@@ -67,7 +67,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registration.interceptors(channelInterceptor);
     }
     
-    // 👇 添加这个方法
+
     @Override
     public void configureClientOutboundChannel(ChannelRegistration registration) {
         registration.interceptors(stompOutboundInterceptor);

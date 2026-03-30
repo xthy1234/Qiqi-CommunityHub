@@ -56,7 +56,7 @@ public class InteractionUtils {
             return interactions.stream()
                 .anyMatch(i -> i.getContentId().equals(contentId));
         } catch (Exception e) {
-//            log.error("检查互动状态失败", e);
+
             return false;
         }
     }

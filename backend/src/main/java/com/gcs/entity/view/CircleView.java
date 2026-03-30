@@ -49,7 +49,7 @@ public class CircleView extends Circle implements Serializable {
      */
     public CircleView(Circle circle) {
         if (circle != null) {
-            // 手动复制属性
+
             this.setId(circle.getId());
             this.setName(circle.getName());
             this.setDescription(circle.getDescription());
@@ -60,7 +60,7 @@ public class CircleView extends Circle implements Serializable {
             this.setCreateTime(circle.getCreateTime());
             this.setUpdateTime(circle.getUpdateTime());
             
-            // 设置扩展字段
+
             this.typeDescription = getTypeDescription(circle.getType());
             this.statusDescription = getStatusDescription(circle.getStatus());
         }

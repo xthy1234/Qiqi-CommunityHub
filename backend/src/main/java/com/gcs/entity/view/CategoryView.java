@@ -38,7 +38,7 @@ public class CategoryView extends Category implements Serializable {
      */
     public CategoryView(Category category) {
         if (category != null) {
-            // 手动复制属性，避免使用过时的BeanUtils
+
             this.setId(category.getId());
             this.setCategoryName(category.getCategoryName());
             this.setDescription(category.getDescription());

@@ -64,7 +64,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
     @Transactional
     public Circle createCircle(CircleCreateDTO createDTO, Long userId) {
         try {
-            // 创建圈子
+
             Circle circle = new Circle();
             circle.setName(createDTO.getName());
             circle.setDescription(createDTO.getDescription());
@@ -75,7 +75,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
 
             this.save(circle);
 
-            // 自动成为圈主
+
             CircleMember member = new CircleMember();
             member.setCircleId(circle.getId());
             member.setUserId(userId);
@@ -100,8 +100,8 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
                 throw new RuntimeException("圈子不存在或已解散");
             }
 
-            // 检查权限：私密圈子只能成员查看
-            if (circle.getType() == 0) { // 0:私密圈子
+
+            if (circle.getType() == 0) {
                 Boolean isMember = circleMemberDao.isMember(circleId, currentUserId);
                 if (isMember == null || !isMember) {
                     throw new RuntimeException("无权查看该圈子");
@@ -117,17 +117,17 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             vo.setType(circle.getType());
             vo.setStatus(circle.getStatus());
 
-            // 获取圈主信息
+
             User owner = userDao.selectById(circle.getOwnerId());
             if (owner != null) {
                 vo.setOwnerNickname(owner.getNickname());
                 vo.setOwnerAvatar(owner.getAvatar());
             }
 
-            // 获取成员数量
+
             vo.setMemberCount(circleMemberDao.getMemberCount(circleId));
 
-            // 获取当前用户角色
+
             if (currentUserId != null) {
                 Integer userRole = circleMemberDao.getUserRoleInCircle(circleId, currentUserId);
                 vo.setCurrentUserRole(userRole);
@@ -159,7 +159,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
                 throw new RuntimeException("圈子不存在或已解散");
             }
 
-            // 检查权限：只有圈主或管理员可以更新
+
             if (!hasManagePermission(circleId, userId)) {
                 throw new RuntimeException("无权限更新圈子信息");
             }
@@ -194,15 +194,15 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
                 throw new RuntimeException("圈子不存在或已解散");
             }
 
-            // 只有圈主可以解散
+
             if (!circle.getOwnerId().equals(userId)) {
                 throw new RuntimeException("只有圈主可以解散圈子");
             }
 
-            circle.setStatus(CommonStatus.DISABLED); // 1:解散
+            circle.setStatus(CommonStatus.DISABLED);
             this.updateById(circle);
 
-            // 删除所有成员关系
+
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId);
             circleMemberService.remove(queryWrapper);
@@ -223,12 +223,12 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
                 throw new RuntimeException("圈子不存在或已解散");
             }
 
-            // 圈主不能退出
+
             if (circle.getOwnerId().equals(userId)) {
                 throw new RuntimeException("圈主不能退出圈子，请先转让或解散");
             }
 
-            // 删除成员关系
+
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
                     .eq(CircleMember::getUserId, userId);
@@ -246,7 +246,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
         try {
             IPage<Circle> circlePage = new Query<Circle>(params).getPage();
 
-            // 查询用户加入的所有圈子 ID
+
             List<Long> joinedCircleIds = circleMemberDao.getJoinedCircleIds(currentUserId);
 
             if (joinedCircleIds == null || joinedCircleIds.isEmpty()) {

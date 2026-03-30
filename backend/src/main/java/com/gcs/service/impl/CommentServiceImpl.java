@@ -1,40 +1,36 @@
 package com.gcs.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gcs.dao.ArticleDao;
 import com.gcs.dao.CommentDao;
 import com.gcs.dao.UserDao;
 import com.gcs.entity.Article;
 import com.gcs.entity.Comment;
-import com.gcs.entity.Notification;
 import com.gcs.entity.User;
 import com.gcs.entity.view.CommentView;
+import com.gcs.enums.CommentStatus;
 import com.gcs.enums.NotificationType;
-import com.gcs.service.ArticleService;
-import com.gcs.service.CommentService;
-import com.gcs.service.NotificationService;
-import com.gcs.service.UserService;
+import com.gcs.service.*;
 import com.gcs.utils.NotificationBuilder;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.vo.UserSimpleVO;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.gcs.enums.CommentStatus;
-
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * 评论服务实现类
@@ -54,6 +50,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
 
     @Autowired
     private NotificationService notificationService;
+    
+    @Autowired
+    private PointsService pointsService;
     
     @Autowired
     private ArticleDao articleDao;
@@ -130,24 +129,33 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
     public boolean createComment(Comment comment) {
         validateCommentForCreate(comment);
         
-        // 设置默认值
+
         comment.setCreateTime(LocalDateTime.now());
-        comment.setStatus(CommentStatus.SHOW); // 默认显示
+        comment.setStatus(CommentStatus.SHOW);
         if (comment.getLikeCount() == null) {
             comment.setLikeCount(0);
         }
-        // 如果 parentId 为 0，改为 null（表示一级评论）
+
         if (comment.getParentId() != null && comment.getParentId() == 0) {
             comment.setParentId(null);
         }
         
         boolean result = this.save(comment);
         
-        // 如果是保存成功且是一级评论（parentId 为 null），则更新文章的评论数
+
         if (result && comment.getParentId() == null) {
             updateArticleCommentCount(comment.getContentId(), 1);
             
             sendCommentNotification(comment);
+            
+
+            pointsService.addPoints(comment.getUserId(), "post_comment", comment.getId(), "发表评论");
+            
+
+            Article article = articleDao.selectById(comment.getContentId());
+            if (article != null && !article.getAuthorId().equals(comment.getUserId())) {
+                pointsService.addPoints(article.getAuthorId(), "comment_received", comment.getId(), "文章被评论");
+            }
         }
         
         return result;
@@ -180,7 +188,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             throw new IllegalArgumentException("评论 ID 列表不能为空");
         }
         
-        // 统计要删除的一级评论数量（用于更新文章评论数）
+
         long primaryCommentCount = commentIds.stream()
             .filter(id -> {
                 Comment comment = this.getById(id);
@@ -190,9 +198,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         
         boolean result = this.removeByIds(commentIds);
         
-        // 如果删除成功且有一级评论，则更新文章的评论数（减少）
+
         if (result && primaryCommentCount > 0) {
-            // 获取这些评论的 contentId（假设都是同一篇文章）
+
             Comment firstComment = this.getById(commentIds.get(0));
             if (firstComment != null) {
                 updateArticleCommentCount(firstComment.getContentId(), -(int)primaryCommentCount);
@@ -251,10 +259,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             throw new IllegalArgumentException("内容 ID 不能为空");
         }
         
-        // 只查询一级评论
+
         List<CommentView> rootComments = baseMapper.selectPrimaryComments(null, contentId);
         
-        // 为每个一级评论加载子评论
+
         for (CommentView rootComment : rootComments) {
             List<CommentView> children = baseMapper.selectChildComments(rootComment.getId());
             rootComment.setChildren(children);

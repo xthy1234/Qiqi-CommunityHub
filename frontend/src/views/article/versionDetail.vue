@@ -245,6 +245,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, useDialog } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
@@ -261,6 +262,7 @@ import Link from '@tiptap/extension-link'
 const appContext = useGlobalProperties()
 const router = useRouter()
 const route = useRoute()
+const { goBack: backNavigation, returnAfterRollback } = useBackNavigation()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -531,13 +533,8 @@ const doRollback = async () => {
     message.success('回滚成功')
     rollbackModalVisible.value = false
     
-    // 返回文章详情页
-    setTimeout(() => {
-      router.push({
-        path: '/index/articleDetail',
-        query: { id: articleId }
-      })
-    }, 500)
+    // 使用工具类返回文章详情页（replace 模式）
+    await returnAfterRollback(router, route, articleId)
     
   } catch (error) {
     console.error('回滚失败:', error)
@@ -589,15 +586,9 @@ const navigateToVersion = (version: ArticleVersion) => {
  * 返回上一页
  */
 const goBack = () => {
-  const articleId = route.params.articleId
-  if (articleId) {
-    router.push({
-      path: '/index/article/versions',
-      query: { articleId }
-    })
-  } else {
-    router.back()
-  }
+  backNavigation({
+    fallbackPath: `/index/article/versions?articleId=${route.params.articleId}`
+  })
 }
 
 /**
@@ -685,6 +676,100 @@ onMounted(() => {
       padding: 20px;
       background: #fafafa;
       border-radius: 4px;
+
+      :deep(img) {
+        max-width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        border-radius: 4px;
+        margin: 8px 0;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+      }
+
+      :deep(.file-node) {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        background: #f5f7fa;
+        border: 1px solid #e4e7ed;
+        border-radius: 4px;
+        margin: 8px 0;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover {
+          background: #ecf5ff;
+          border-color: #409eff;
+        }
+
+        .file-icon {
+          font-size: 24px;
+          margin-right: 8px;
+          color: #409eff;
+        }
+
+        .file-info {
+          flex: 1;
+          overflow: hidden;
+
+          .file-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .file-size {
+            font-size: 12px;
+            color: #909399;
+            margin-top: 2px;
+          }
+        }
+      }
+
+      :deep(.share-card-node) {
+        display: block;
+        margin: 16px 0;
+        border: 1px solid #e4e7ed;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s;
+
+        &:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .share-card-cover {
+          width: 100%;
+          height: 200px;
+          object-fit: cover;
+        }
+
+        .share-card-content {
+          padding: 16px;
+
+          .share-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+          }
+
+          .share-card-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+          }
+        }
+      }
     }
   }
 

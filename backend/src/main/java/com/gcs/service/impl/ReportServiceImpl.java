@@ -72,11 +72,11 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
     public boolean createReport(Report report) {
         validateReportForCreate(report);
         
-        // 设置默认值
+
         report.setCreateTime(LocalDateTime.now());
         report.setReportTime(LocalDateTime.now());
-        report.setReviewStatus(AuditStatus.PENDING); // 默认待审核状态
-        report.setStatus(CommonStatus.ENABLED); // 默认有效
+        report.setReviewStatus(AuditStatus.PENDING);
+        report.setStatus(CommonStatus.ENABLED);
         
         return this.save(report);
     }
@@ -140,7 +140,7 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
         return this.getById(reportId);
     }
 
-    // ==================== 私有验证方法 ====================
+
 
     /**
      * 验证查询参数

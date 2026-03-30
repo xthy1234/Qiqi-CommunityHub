@@ -17,7 +17,7 @@ public class Query<T> extends LinkedHashMap<String, Object> {
     /**
      * mybatis-plus分页参数
      */
-    private Page<T> page;  // 改为具体的Page类型
+    private Page<T> page;
     /**
      * 当前页码
      */
@@ -76,7 +76,7 @@ public class Query<T> extends LinkedHashMap<String, Object> {
 
     }
 
-    public Page<T> getPage() {  // 返回类型也相应修改
+    public Page<T> getPage() {
         return page;
     }
 

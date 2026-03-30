@@ -7,48 +7,46 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gcs.annotation.IgnoreAuth;
 import com.gcs.converter.ArticleConverter;
+import com.gcs.dto.ArticleUpdateDTO;
+import com.gcs.entity.Article;
 import com.gcs.entity.ArticleVersion;
 import com.gcs.entity.User;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.enums.AuditStatus;
+import com.gcs.service.ArticleService;
+import com.gcs.service.ArticleVersionService;
+import com.gcs.service.PointsService;
 import com.gcs.service.UserService;
-import com.gcs.utils.Query;
-import com.gcs.vo.*;
-
+import com.gcs.utils.*;
+import com.gcs.vo.ArticleDetailVO;
+import com.gcs.vo.ArticleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.gcs.dto.ArticleCreateDTO;
-import com.gcs.dto.ArticleDraftDTO;
-import com.gcs.dto.ArticleUpdateDTO;
-import com.gcs.entity.Article;
 import com.gcs.entity.Interaction;
 import com.gcs.enums.ContentType;
 import com.gcs.enums.InteractionActionType;
-import com.gcs.service.ArticleService;
 import com.gcs.service.InteractionService;
-import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
-import com.gcs.utils.MPUtil;
 import com.gcs.vo.ArticleSearchVO;
 
 import com.gcs.enums.EditMode;
-import com.gcs.service.ArticleVersionService;
-import com.gcs.service.ArticleContributorService;
 
-import lombok.extern.slf4j.Slf4j;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 /**
  * 帖子控制器
  * 提供帖子相关的 RESTful API 接口
@@ -57,11 +55,11 @@ import lombok.extern.slf4j.Slf4j;
  * @date
  */
 @Slf4j
-@Tag(name = "帖子管理", description = "帖子相关的 RESTful API 接口")
+@Tag(name = "文章管理", description = "文章相关的 RESTful API 接口")
 @RestController
 @RequestMapping("/articles")
 public class ArticleController {
-    
+
     @Autowired
     private ArticleService articleService;
     
@@ -69,11 +67,14 @@ public class ArticleController {
     private ArticleVersionService articleVersionService;
 
     @Autowired
-   private UserService userService;
-
+    private InteractionService favoriteService;
+    
     @Autowired
-   private InteractionService favoriteService;
-
+    private PointsService pointsService;
+    
+    @Autowired
+    private UserService userService;
+    
     @Autowired
     private ArticleConverter articleConverter;
 
@@ -372,6 +373,16 @@ public class ArticleController {
                     }
 
                     articles.add(article);
+                    
+                    // ✅ 新增：审核通过时发放积分（仅当从非通过状态变为通过状态）
+                    if (auditStatus == AuditStatus.APPROVED) {
+                        // 检查用户是否已经获得过发布积分（避免重复发放）
+                        boolean hasReceivedPoints = checkUserReceivedPostPoints(article.getAuthorId(), id);
+                        if (!hasReceivedPoints) {
+                            pointsService.addPoints(article.getAuthorId(), "post_article", id, "发布文章并通过审核");
+                            log.info("文章审核通过发放积分，articleId: {}, authorId: {}", id, article.getAuthorId());
+                        }
+                    }
                 }
             }
             articleService.updateBatchById(articles);
@@ -382,6 +393,18 @@ public class ArticleController {
         }
     }
 
+    /**
+     * 检查用户是否已经获得过某篇文章的发布积分
+     */
+    private boolean checkUserReceivedPostPoints(Long userId, Long articleId) {
+        // 查询积分流水，判断是否已经因为这篇文章获得过积分
+        QueryWrapper<com.gcs.entity.PointsTransaction> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId)
+               .eq("source", "post_article")
+               .eq("source_id", articleId);
+        
+        return pointsService.count(wrapper) > 0;
+    }
 
     /**
      * 更新帖子
@@ -839,6 +862,38 @@ public class ArticleController {
     }
 
     /**
+     * 增加文章浏览量
+     */
+    @Operation(summary = "增加文章浏览量", description = "增加指定文章的浏览量（带去重机制，同一用户每天只计一次）")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "操作成功"),
+        @ApiResponse(responseCode = "404", description = "文章不存在"),
+        @ApiResponse(responseCode = "500", description = "服务器错误")
+    })
+    @PostMapping("/{id}/view")
+    @IgnoreAuth
+    public R incrementView(@PathVariable("id") Long id, HttpServletRequest request) {
+        try {
+            // 检查文章是否存在
+            Article article = articleService.getById(id);
+            if (article == null) {
+                return R.error("文章不存在");
+            }
+
+            // 生成访问者标识
+            String viewerKey = generateViewerKey(request);
+            
+            // 增加浏览量
+            articleService.incrementViewCount(id, viewerKey);
+            
+            return R.ok("浏览量已更新");
+        } catch (Exception e) {
+            log.error("增加文章浏览量失败，articleId: {}", id, e);
+            return R.error("更新浏览量失败");
+        }
+    }
+
+    /**
      * 将 ArticleView 转换为 ArticleVO（包含联表查询的分类名、作者信息）
      */
     private ArticleVO convertArticleViewToVO(ArticleView articleView) {
@@ -939,6 +994,23 @@ public class ArticleController {
             log.error("检查管理员权限失败，userId: {}", userId, e);
             return false;
         }
+    }
+
+    /**
+     * 生成访问者标识
+     * 登录用户：user:{userId}
+     * 未登录用户：ip:{ip}:{userAgent}
+     */
+    private String generateViewerKey(HttpServletRequest request) {
+        Long userId = getCurrentUserId(request);
+        if (userId != null) {
+            return "user:" + userId;
+        }
+        
+        // 未登录时使用 IP + User-Agent 作为标识
+        String ip = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        return "ip:" + ip + ":" + (userAgent != null ? userAgent.hashCode() : "unknown");
     }
 
 }

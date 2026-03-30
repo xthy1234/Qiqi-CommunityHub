@@ -48,5 +48,5 @@ public class UserUpdateDTO {
     
     @NotNull(message = "状态不能为空")
     @Schema(description = "状态 (0:启用，1:禁用)", example = "0")
-   private CommonStatus status = CommonStatus.ENABLED; // 设置默认值为 0（启用）
+   private CommonStatus status = CommonStatus.ENABLED;
 }

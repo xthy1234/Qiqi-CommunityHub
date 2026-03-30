@@ -227,6 +227,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, useDialog } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
@@ -237,6 +238,7 @@ import { articleAPI } from '@/api/article'
 
 const router = useRouter()
 const route = useRoute()
+const { navigateWithBackUrl, goBack: backNavigation } = useBackNavigation()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -304,7 +306,7 @@ const loadSuggestions = async () => {
  * 跳转到详情页
  */
 const goToDetail = (item: ArticleEditSuggestion) => {
-  router.push({
+  navigateWithBackUrl({
     path: `/index/suggestion/${item.id}`,
     query: {
       mode: 'view',
@@ -317,7 +319,7 @@ const goToDetail = (item: ArticleEditSuggestion) => {
  * 提交审核
  */
 const goToReview = (item: ArticleEditSuggestion) => {
-  router.push({
+  navigateWithBackUrl({
     path: `/index/suggestion/${item.id}`,
     query: {
       mode: 'review',
@@ -420,18 +422,9 @@ const formatDate = (dateStr?: string) => {
  * 返回文章详情页或上一页
  */
 const goBack = () => {
-  const articleId = route.query.articleId as string
-
-  if (articleId) {
-    // 优先返回文章详情页
-    router.push({
-      path: '/index/articleDetail',
-      query: { id: articleId }
-    })
-  } else {
-    // 如果没有文章 ID，返回上一页（如从侧边栏菜单进入）
-    router.back()
-  }
+  backNavigation({
+    fallbackPath: '/index/articleDetail'
+  })
 }
 
 onMounted(() => {

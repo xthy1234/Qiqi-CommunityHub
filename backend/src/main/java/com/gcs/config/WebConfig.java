@@ -29,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
     
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 映射上传文件目录到 /upload/** 路径
+
         registry.addResourceHandler("/upload/**")
                 .addResourceLocations("file:" + uploadPath + "/");
     }

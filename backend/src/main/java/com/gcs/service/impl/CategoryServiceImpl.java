@@ -137,9 +137,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, Category> impl
             throw new RuntimeException("分类名称已存在");
         }
 
-        // 设置默认值
+
         category.setCreateTime(LocalDateTime.now());
-        category.setStatus(CategoryStatus.ENABLED); // 默认启用
+        category.setStatus(CategoryStatus.ENABLED);
         if (category.getSort() == null) {
             category.setSort(0);
         }
@@ -157,7 +157,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, Category> impl
     public boolean updateCategory(Category category) {
         validateCategoryForUpdate(category);
         
-        // 检查分类名称是否被其他分类占用
+
         Category existingCategory = selectByCategoryName(category.getCategoryName());
         if (existingCategory != null && !existingCategory.getId().equals(category.getId())) {
             throw new RuntimeException("分类名称已存在");
@@ -199,7 +199,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, Category> impl
     @Override
     public List<Category> getAllEnabledCategories() {
         return this.list(new QueryWrapper<Category>()
-            .eq("status", CategoryStatus.ENABLED.getCode()) // 查询启用状态的分类
+            .eq("status", CategoryStatus.ENABLED.getCode())
             .orderByAsc("sort"));
     }
 
@@ -210,15 +210,15 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, Category> impl
      */
     @Override
     public List<CategoryView> getCategoryTree() {
-        // 这里可以实现树形结构的构建逻辑
-        // 目前简单返回扁平化的列表
+
+
         List<Category> categories = getAllEnabledCategories();
         return categories.stream()
             .map(CategoryView::new)
             .collect(Collectors.toList());
     }
 
-    // ==================== 私有验证方法 ====================
+
 
     /**
      * 验证查询参数

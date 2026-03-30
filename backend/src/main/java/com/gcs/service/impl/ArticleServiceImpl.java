@@ -8,6 +8,7 @@ import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.gcs.dao.ArticleViewLogDao;
 import com.gcs.entity.ArticleVersion;
 import com.gcs.enums.AuditStatus;
 import com.gcs.vo.ArticleDetailVO;
@@ -40,6 +41,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
 
     @Autowired
     private ArticleVersionService articleVersionService;
+
+    @Autowired
+    private ArticleViewLogDao articleViewLogDao;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -74,7 +78,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
     public PageUtils queryPage(Map<String, Object> params, Wrapper<Article> queryWrapper) {
         IPage<ArticleView> articlePage = new Query<ArticleView>(params).getPage();
         IPage<ArticleView> resultPage = baseMapper.selectListView(articlePage, queryWrapper);
-        // 手动设置总记录数（解决 MyBatis-Plus 自动 COUNT 查询的问题）
+
         long totalCount = baseMapper.selectCount(queryWrapper);
         articlePage.setTotal(totalCount);
         return new PageUtils(resultPage);
@@ -111,18 +115,18 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             return null;
         }
         
-        // 直接返回 ArticleView（包含联表数据）
+
         return selectViewById(id);
     }
     
     @Override
     public void insertArticle(Article article) {
-        // 确保 publish_time 有值
+
         if (article.getPublishTime() == null && article.getAuditStatus() == AuditStatus.APPROVED) {
             article.setPublishTime(new java.util.Date());
         }
         
-        // 初始化默认值
+
         if (article.getEditMode() == null) {
             article.setEditMode(0);
         }
@@ -142,15 +146,15 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             throw new IllegalArgumentException("文章不存在");
         }
 
-        // 1️⃣ 先保存当前版本为快照（小版本）
+
         articleVersionService.createMinorVersion(article, userId,
                 changeSummary != null ? changeSummary : "手动保存");
 
-        // 2️⃣ 更新文章内容
+
         article.setTitle(title);
         article.setContent(content);
         
-        // ✅ 新增：更新 currentVersion（从版本表获取最新版本号）
+
         List<ArticleVersion> versions = articleVersionService.getVersionHistory(articleId);
         if (versions != null && !versions.isEmpty()) {
             ArticleVersion latestVersion = versions.get(0);
@@ -161,6 +165,40 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
 
         log.info("保存文章并创建小版本，articleId: {}, newVersion: {}", 
                 articleId, article.getCurrentVersion());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void incrementViewCount(Long id, String identifier) {
+        if (id == null || identifier == null) {
+            throw new IllegalArgumentException("文章 ID 和访问者标识不能为空");
+        }
+        
+        try {
+
+            int inserted = articleViewLogDao.insertIgnore(id, identifier);
+            
+
+            if (inserted > 0) {
+                Article article = this.getById(id);
+                if (article != null) {
+                    Integer currentCount = article.getViewCount();
+                    if (currentCount == null) {
+                        currentCount = 0;
+                    }
+                    article.setViewCount(currentCount + 1);
+                    this.updateById(article);
+                    
+                    log.info("增加文章浏览量成功，articleId: {}, viewerKey: {}, 当前浏览量：{}", 
+                            id, identifier, article.getViewCount());
+                }
+            } else {
+                log.debug("浏览记录已存在，跳过计数，articleId: {}, viewerKey: {}", id, identifier);
+            }
+        } catch (Exception e) {
+            log.error("增加文章浏览量失败，articleId: {}, viewerKey: {}", id, identifier, e);
+            throw new RuntimeException("增加浏览量失败", e);
+        }
     }
 
 }

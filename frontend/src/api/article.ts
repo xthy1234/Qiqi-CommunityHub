@@ -24,6 +24,7 @@ export interface Article {
   categoryStrName?: string | null
   authorAvatar?: string | null
   isDraft?: boolean
+  summary?: string
   // 兼容旧字段
   cover?: string
   datetime?: string
@@ -169,6 +170,14 @@ export class ArticleAPI {
       params: { editMode }
     })
   }
+
+  /**
+   * 增加文章浏览量
+   * 接口：POST /articles/{id}/view
+   */
+  incrementViewCount(id: number | string) {
+    return http.post(`${this.endpoint}/${id}/view`)
+  }
 }
 
 // 导出单例
@@ -190,3 +199,4 @@ export const getArticleStatsValue = (xColumn: string, yColumn: string) => articl
 export const getArticleStatsValueMultiple = (xColumn: string) => articleAPI.getStatsValueMultiple(xColumn)
 export const getArticleStatsTimeSeries = (xColumn: string, yColumn: string, timeType: string) => articleAPI.getStatsTimeSeries(xColumn, yColumn, timeType)
 export const getArticleStatsGroup = (column: string) => articleAPI.getStatsGroup(column)
+export const incrementArticleViewCount = (id: number | string) => articleAPI.incrementViewCount(id)

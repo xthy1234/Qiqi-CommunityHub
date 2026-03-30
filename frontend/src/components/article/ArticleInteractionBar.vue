@@ -60,6 +60,50 @@
       <span>举报</span>
     </div>
 
+    <!-- 举报模态框 -->
+    <n-modal
+      v-model:show="showReportModal"
+      title="举报文章"
+      preset="card"
+      style="width: 500px;"
+    >
+      <n-form
+        ref="reportFormRef"
+        :model="reportForm"
+        :rules="reportRules"
+        label-placement="top"
+      >
+        <n-form-item
+          label="举报原因"
+          path="reportReason"
+        >
+          <n-input
+            v-model:value="reportForm.reportReason"
+            type="textarea"
+            placeholder="请详细描述举报原因（如：虚假信息、违规内容、侵权等）"
+            :rows="4"
+            maxlength="500"
+            show-count
+          />
+        </n-form-item>
+      </n-form>
+
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showReportModal = false">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            :loading="reporting"
+            @click="submitReport"
+          >
+            提交举报
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
     <!-- 分享到聊天模态框 -->
     <n-modal
       v-model:show="showShareModal"
@@ -148,12 +192,13 @@ import {interactionAPI} from '@/api/interaction'
 import {useChatStore} from '@/stores/chat'
 import {useCircleChatStore} from '@/stores/circleChat'
 import {storeToRefs} from 'pinia'
-import {NAvatar, NButton, NModal, NSelect, NSpace, NTabPane, NTabs, useMessage} from 'naive-ui'
+import {NAvatar, NButton, NModal, NSelect, NSpace, NTabPane, NTabs, useMessage, NInput, NForm, NFormItem} from 'naive-ui'
 import {getWebSocket} from '@/utils/websocket'
 import {circleApi, circleChatApi} from '@/api/circle'
 import type {Circle} from '@/types/circleChat'
 import messageAPI from '@/api/message'
 import {ConversationVO} from "@/types/message";
+import {reportAPI, type ReportCreateDTO} from '@/api/report'
 
 // 定义全局 Window 接口扩展
 declare global {
@@ -389,6 +434,23 @@ const selectedCircleId = ref<number | null>(null)
 const showShareModal = ref(false)
 const loadingConversations = ref(false)
 
+// 举报相关状态
+const showReportModal = ref(false)
+const reportFormRef = ref(null)
+const reporting = ref(false)
+const reportForm = ref<Partial<ReportCreateDTO>>({
+  reportReason: ''
+})
+
+// 举报表单验证规则
+const reportRules = {
+  reportReason: {
+    required: true,
+    message: '请填写举报原因',
+    trigger: 'blur'
+  }
+}
+
 // 新增：获取用户加入的圈子列表
 const loadCircles = async () => {
   try {
@@ -572,7 +634,55 @@ const sendArticleToChat = () => {
 
 // 举报
 const handleReport = () => {
-  message.info('举报功能开发中...')
+  const articleData = window.detailArticleData
+
+  if (!articleData) {
+    message.error('文章信息加载失败，请刷新页面重试')
+    return
+  }
+
+  // 预填充举报表单
+  reportForm.value = {
+    contentId: Number(articleData.id),
+    contentTitle: articleData.title,
+    contentCategory: '文章',
+    reportedUserID: undefined,
+    reportedUserAccount: undefined,
+    reportedNickName: articleData.authorNickname,
+    reportReason: ''
+  }
+
+  showReportModal.value = true
+}
+
+// 提交举报
+const submitReport = async () => {
+  try {
+    await (reportFormRef.value as any)?.validate()
+
+    reporting.value = true
+
+    const submitData: ReportCreateDTO = {
+      contentId: reportForm.value.contentId!,
+      contentTitle: reportForm.value.contentTitle,
+      contentCategory: reportForm.value.contentCategory,
+      reportedNickName: reportForm.value.reportedNickName,
+      reportReason: reportForm.value.reportReason!
+    }
+
+    await reportAPI.createReport(submitData)
+
+    message.success('举报提交成功，管理员将尽快处理')
+    showReportModal.value = false
+  } catch (error: any) {
+    if (error?.errors) {
+      message.error('请填写完整的举报信息')
+    } else {
+      message.error(error.response?.data?.msg || '举报提交失败，请稍后重试')
+    }
+  } finally {
+    reporting.value = false
+  }
 }
 
 // 初始化时检查状态

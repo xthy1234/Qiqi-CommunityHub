@@ -54,7 +54,7 @@ public class UserView extends User implements Serializable {
      */
     public UserView(User user) {
         if (user != null) {
-            // 手动复制属性，避免使用过时的BeanUtils
+
             this.setId(user.getId());
             this.setAccount(user.getAccount());
             this.setPassword(user.getPassword());
@@ -71,7 +71,7 @@ public class UserView extends User implements Serializable {
             this.setLastLoginTime(user.getLastLoginTime());
             this.setLastLoginIp(user.getLastLoginIp());
             
-            // 设置扩展字段
+
             this.genderDescription = getGenderDescription(user.getGender());
             this.statusDescription = getStatusDescription(user.getStatus());
         }

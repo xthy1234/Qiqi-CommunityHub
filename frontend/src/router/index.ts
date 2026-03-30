@@ -30,6 +30,7 @@ import UserPasswordChangeView from '@/views/user/UserPasswordChange.vue'
 import UserPublicProfile from '@/views/user/UserPublicProfile.vue'
 import UserFollowingList from '@/views/user/UserFollowingList.vue'
 import UserFollowersList from '@/views/user/UserFollowersList.vue'
+import UserSignInView from '@/views/user/UserSignIn.vue'
 import HomeView from "@/views/HomeView.vue";
 
 // 发现相关页面
@@ -162,6 +163,17 @@ const routes: Array<RouteRecordRaw> = [
         path: 'user/profile',
         component: UserProfileView,
         meta: { title: '个人信息' }
+      },
+      // 积分中心/签到
+      {
+        path: 'user/signin',
+        component: UserSignInView,
+        meta: { title: '积分中心' }
+      },
+      {
+        path: 'index/user/signin',
+        component: UserSignInView,
+        meta: { title: '积分中心' }
       },
       // 修改个人信息
       {

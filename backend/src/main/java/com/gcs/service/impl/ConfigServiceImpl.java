@@ -143,7 +143,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigDao, Config> implements
         return this.removeByIds(configIds);
     }
 
-    // ==================== 私有验证方法 ====================
+
 
     /**
      * 验证查询参数

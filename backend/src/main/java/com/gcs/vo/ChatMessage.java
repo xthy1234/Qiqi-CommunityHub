@@ -47,5 +47,5 @@ public class ChatMessage {
     private LocalDateTime createTime;
     
     @Schema(description = "动作类型", example = "SEND")
-    private String action;          // SEND: 发送消息，READ: 已读回执，RECALL: 撤回消息
+    private String action;
 }

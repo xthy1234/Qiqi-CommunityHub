@@ -32,7 +32,7 @@ public class SwiperView extends Swiper implements Serializable {
      */
     public SwiperView(Swiper swiper) {
         if (swiper != null) {
-            // 手动复制属性，避免使用过时的 BeanUtils
+
             this.setId(swiper.getId());
             this.setTitle(swiper.getTitle());
             this.setImageUrl(swiper.getImageUrl());

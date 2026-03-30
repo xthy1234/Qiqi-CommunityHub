@@ -41,13 +41,13 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
     @Override
     @Transactional
     public boolean followOrUnfollow(Long followerId, Long followingId, String action) {
-        // 不能关注自己
+
         if (followerId.equals(followingId)) {
             throw new RuntimeException("不能关注自己");
         }
 
-        // 检查被关注用户是否存在（可选）
-        // 这里可以根据实际需求添加用户存在性检查
+
+
 
         QueryWrapper<Follow> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("follower_id", followerId)
@@ -56,9 +56,9 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
         Follow follow = this.getOne(queryWrapper);
 
         if ("follow".equalsIgnoreCase(action)) {
-            // 关注操作
+
             if (follow == null) {
-                // 不存在关注记录，创建新的关注
+
                 follow = new Follow();
                 follow.setFollowerId(followerId);
                 follow.setFollowingId(followingId);
@@ -68,35 +68,35 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
                 boolean result = this.save(follow);
                 
                 if (result) {
-                    // 📢 发送关注通知
+
                     sendFollowNotification(followerId, followingId);
                 }
                 
                 return result;
             } else if (follow.getStatus() == CommonStatus.DISABLED) {
-                // 已取消关注，重新关注
+
                 follow.setStatus(CommonStatus.ENABLED);
                 follow.setUpdateTime(LocalDateTime.now());
                 boolean result = this.updateById(follow);
                 
                 if (result) {
-                    // 📢 发送关注通知
+
                     sendFollowNotification(followerId, followingId);
                 }
                 
                 return result;
             } else {
-                // 已经关注，无需操作
+
                 return true;
             }
         } else if ("unfollow".equalsIgnoreCase(action)) {
-            // 取关操作
+
             if (follow != null && follow.getStatus() == CommonStatus.ENABLED) {
                 follow.setStatus(CommonStatus.DISABLED);
                 follow.setUpdateTime(LocalDateTime.now());
                 return this.updateById(follow);
             }
-            // 未关注，无需操作
+
             return true;
         } else {
             throw new RuntimeException("无效的操作类型");
@@ -108,10 +108,10 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
      */
     private void sendFollowNotification(Long followerId, Long followingId) {
         try {
-            // 获取关注者信息
+
             User follower = userDao.selectById(followerId);
             if (follower == null) {
-//                log.warn("关注者不存在，userId: {}", String.valueOf() followerId);
+
                 return;
             }
             
@@ -121,10 +121,10 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
             followerVO.setAvatar(follower.getAvatar());
             followerVO.setLastOnlineTime(follower.getLastOnlineTime());
             
-            // 构建 extra 数据
+
             Map<String, Object> extra = NotificationBuilder.buildFollowNotification(followerVO);
             
-            // 创建通知
+
             notificationService.createNotification(
                 followingId,
                 NotificationType.FOLLOW.getCode(),
@@ -133,11 +133,11 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
                 extra
             );
             
-//            log.info("发送关注通知成功，followerId: {}, followingId: {}", followerId, followingId);
+
             
         } catch (Exception e) {
-//            log.error("发送关注通知失败，followerId: {}, followingId: {}", followerId, followingId, e);
-            // 不抛出异常，避免影响关注操作
+
+
         }
     }
 
@@ -149,7 +149,7 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
         IPage<FollowUserVO> pageObj = new Page<>(page, limit);
         List<FollowUserVO> list = baseMapper.selectFollowingList(pageObj, userId);
         
-        // ✅ 修复：手动设置查询结果到 page 对象
+
         pageObj.setRecords(list);
         
         return new PageUtils(pageObj);
@@ -163,7 +163,7 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
         IPage<FollowUserVO> pageObj = new Page<>(page, limit);
         List<FollowUserVO> list = baseMapper.selectFollowerList(pageObj, userId);
         
-        // ✅ 修复：手动设置查询结果到 page 对象
+
         pageObj.setRecords(list);
         
         return new PageUtils(pageObj);
@@ -179,12 +179,12 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
 
         List<Follow> follows = baseMapper.selectFollowStatus(followerId, targetIds);
         
-        // 初始化所有目标用户为未关注
+
         for (Long targetId : targetIds) {
             statusMap.put(targetId, false);
         }
         
-        // 更新已关注的用户
+
         for (Follow follow : follows) {
             if (follow.getStatus() == CommonStatus.ENABLED) {
                 statusMap.put(follow.getFollowingId(), true);

@@ -20,14 +20,14 @@ public class InterceptorConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(getAuthorizationInterceptor())
             .addPathPatterns("/**")
-            // 排除静态资源
+
             .excludePathPatterns("/static/**", "/css/**", "/js/**", "/images/**")
-            // 排除 Swagger 相关资源 (SpringDoc OpenAPI)
+
             .excludePathPatterns("/swagger-ui/**", "/swagger-ui.html", "/swagger-ui/index.html")
             .excludePathPatterns("/swagger-resources/**", "/v2/api-docs", "/v3/api-docs/**")
             .excludePathPatterns("/webjars/**")
             .excludePathPatterns("/favicon.ico")
-            // 排除错误页面
+
             .excludePathPatterns("/error");
 	}
 	

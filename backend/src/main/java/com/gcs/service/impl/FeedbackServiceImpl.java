@@ -72,9 +72,9 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackDao, Feedback> impl
     public boolean createFeedback(Feedback feedback) {
         validateFeedbackForCreate(feedback);
         
-        // 设置默认值
+
         feedback.setCreateTime(LocalDateTime.now());
-        feedback.setStatus(FeedbackStatus.PENDING); // 默认待处理状态
+        feedback.setStatus(FeedbackStatus.PENDING);
         
         return this.save(feedback);
     }
@@ -92,7 +92,7 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackDao, Feedback> impl
 
         feedback.setReplyContent(replyContent);
         feedback.setReplyTime(LocalDateTime.now());
-        feedback.setStatus(FeedbackStatus.REPLIED); // 已回复状态
+        feedback.setStatus(FeedbackStatus.REPLIED);
         feedback.setUpdateTime(LocalDateTime.now());
         
         return this.updateById(feedback);
@@ -146,7 +146,7 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackDao, Feedback> impl
         return queryPage(params, queryWrapper);
     }
 
-    // ==================== 私有验证方法 ====================
+
 
     /**
      * 验证查询参数

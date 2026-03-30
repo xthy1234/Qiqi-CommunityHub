@@ -43,8 +43,8 @@ public class ArticleView extends Article implements Serializable {
      */
   public ArticleView(Article article) {
        if (article != null) {
-           // 使用现代的属性复制方式替代过时的 BeanUtils
-           // 这里可以根据需要选择合适的映射工具
+
+
            this.setId(article.getId());
            this.setTitle(article.getTitle());
            this.setCoverUrl(article.getCoverUrl());

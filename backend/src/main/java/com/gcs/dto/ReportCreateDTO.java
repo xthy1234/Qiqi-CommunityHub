@@ -2,6 +2,7 @@ package com.gcs.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -12,7 +13,7 @@ import lombok.Data;
 public class ReportCreateDTO {
     
     @Schema(description = "被举报内容 ID", required = true, example = "1")
-    @NotBlank(message = "被举报内容 ID 不能为空")
+    @NotNull(message = "被举报内容 ID 不能为空")
     private Long contentId;
     
     @Schema(description = "被举报内容标题", example = "这是一篇违规文章")
@@ -22,6 +23,7 @@ public class ReportCreateDTO {
     private String contentCategory;
     
     @Schema(description = "被举报用户 ID", example = "1")
+    @NotNull(message = "被举报用户 ID 不能为空")
     private Long reportedUserID;
     
     @Schema(description = "被举报用户账号", example = "violated_user")

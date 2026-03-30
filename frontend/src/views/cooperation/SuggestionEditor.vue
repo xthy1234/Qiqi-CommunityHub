@@ -114,6 +114,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, FormInst, FormRules } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
@@ -128,6 +129,7 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+const { goBack: backNavigation, navigateWithBackUrl } = useBackNavigation()
 const message = useMessage()
 
 // 响应式数据
@@ -279,8 +281,8 @@ const handleSubmit = async () => {
 
       message.success('建议提交成功！等待作者审核')
       
-      // 返回文章详情页
-      router.push(`/index/articleDetail?id=${articleId}`)
+      // 提交成功后返回（使用工具类）
+      backNavigation()
     } catch (error) {
       console.error('提交建议失败:', error)
       message.error('提交建议失败，请重试')
@@ -294,12 +296,9 @@ const handleSubmit = async () => {
  * 取消操作
  */
 const handleCancel = () => {
-  const articleId = route.query.articleId as string
-  if (articleId) {
-    router.push(`/index/articleDetail?id=${articleId}`)
-  } else {
-    router.back()
-  }
+  backNavigation({
+    fallbackPath: `/index/articleDetail?id=${route.params.articleId}`
+  })
 }
 
 onMounted(() => {

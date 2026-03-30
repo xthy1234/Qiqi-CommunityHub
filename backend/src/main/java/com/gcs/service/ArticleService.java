@@ -116,4 +116,5 @@ public interface ArticleService extends IService<Article> {
     void saveWithMinorVersion(Long articleId, Long userId, String title,
                               Map<String, Object> content, String changeSummary);
 
+    void incrementViewCount(Long id, String identifier);
 }

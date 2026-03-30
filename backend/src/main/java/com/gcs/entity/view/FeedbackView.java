@@ -43,7 +43,7 @@ public class FeedbackView extends Feedback implements Serializable {
      */
     public FeedbackView(Feedback feedback) {
         if (feedback != null) {
-            // 手动复制属性，避免使用过时的BeanUtils
+
             this.setId(feedback.getId());
             this.setUserId(feedback.getUserId());
             this.setUserNickname(feedback.getUserNickname());

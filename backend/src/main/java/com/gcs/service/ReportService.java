@@ -95,7 +95,7 @@ public interface ReportService extends IService<Report> {
      * @param params 分页参数
      * @return 举报列表
      */
-    PageUtils getUserReports(Long userId, Map<String, Object> params); // 添加这个方法
+    PageUtils getUserReports(Long userId, Map<String, Object> params);
     
     /**
      * 根据举报ID获取举报详情

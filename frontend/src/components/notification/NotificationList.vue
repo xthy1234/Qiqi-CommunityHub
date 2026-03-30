@@ -31,7 +31,8 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, useDialog } from 'naive-ui'
 import NotificationItem from '@/components/notification/NotificationItem.vue'
 import { useNotificationStore } from '@/stores/notification'
@@ -40,6 +41,8 @@ import type { Notification } from '@/types/notification'
 import {storeToRefs} from "pinia"
 
 const router = useRouter()
+const route = useRoute()
+const { navigateFromNotification } = useBackNavigation()
 const message = useMessage()
 const dialog = useDialog()
 const notificationStore = useNotificationStore()
@@ -114,10 +117,10 @@ const handleNavigate = async (notification: Notification) => {
     await handleMarkRead([notification.id])
   }
 
-  // 根据类型跳转
+  // 根据类型跳转（从通知中心进入，自动设置 backUrl 为通知中心）
   const routePath = getNotificationRoute(notification)
   if (routePath) {
-    router.push(routePath)
+    navigateFromNotification(routePath)
   }
 }
 

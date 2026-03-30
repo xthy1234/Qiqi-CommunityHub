@@ -214,6 +214,38 @@
           />
         </template>
       </n-button>
+      <n-button
+        size="tiny"
+        quaternary
+        title="上传文件"
+        @click="triggerFileUpload"
+      >
+        <template #icon>
+          <Icon
+            icon="material-symbols:upload-file"
+            width="16"
+          />
+        </template>
+      </n-button>
+      <n-button
+        size="tiny"
+        quaternary
+        title="插入我的文章卡片"
+        @click="openArticleSelector"
+      >
+        <template #icon>
+          <Icon
+            icon="material-symbols:article"
+            width="16"
+          />
+        </template>
+      </n-button>
+      <input
+        ref="fileInputRef"
+        type="file"
+        style="display: none"
+        @change="handleFileInputChange"
+      />
 
       <n-divider vertical />
 
@@ -361,11 +393,121 @@
         </n-space>
       </template>
     </n-modal>
+
+    <!-- 分享卡片插入对话框 -->
+    <n-modal
+      v-model:show="shareCardDialogVisible"
+      preset="dialog"
+      title="选择要分享的文章"
+      :style="{ width: '700px' }"
+    >
+      <div class="article-selector">
+        <!-- 搜索框 -->
+        <n-input
+          v-model:value="searchKeyword"
+          placeholder="搜索文章标题..."
+          clearable
+          style="margin-bottom: 16px;"
+        >
+          <template #prefix>
+            <Icon icon="ri:search-line" />
+          </template>
+        </n-input>
+
+        <!-- 文章列表 -->
+        <div class="article-list">
+          <n-spin :show="loadingArticles">
+            <n-empty
+              v-if="!loadingArticles && filteredArticles.length === 0"
+              description="暂无文章"
+            />
+
+            <div v-else class="article-grid">
+              <n-card
+                v-for="article in filteredArticles"
+                :key="article.id"
+                class="article-item"
+                size="small"
+                :bordered="selectedArticle?.id === article.id"
+                @click="selectArticle(article)"
+              >
+                <div class="article-card-content">
+                  <!-- 封面图 -->
+                  <div
+                    v-if="article.coverUrl"
+                    class="article-cover"
+                  >
+                    <n-image
+                      :src="getArticleCoverUrl(article.coverUrl)"
+                      object-fit="cover"
+                      class="cover-img"
+                      :preview-disabled="true"
+                    />
+                  </div>
+
+                  <!-- 文章信息 -->
+                  <div class="article-info">
+                    <h3 class="article-title">{{ article.title }}</h3>
+                    <p class="article-summary">
+                      {{ article.summary || '暂无摘要' }}
+                    </p>
+                    <div class="article-meta">
+                      <span class="meta-item">
+                        <Icon icon="ri:eye-line" />
+                        {{ article.viewCount || 0 }}
+                      </span>
+                      <span class="meta-item">
+                        <Icon icon="ri:star-line" />
+                        {{ article.favoriteCount || 0 }}
+                      </span>
+                      <span class="meta-item">
+                        <Icon icon="ri:time-line" />
+                        {{ formatDate(article.createTime) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </n-card>
+            </div>
+          </n-spin>
+        </div>
+
+        <!-- 分页 -->
+        <div
+          v-if="totalPages > 1"
+          class="article-pagination"
+        >
+          <n-pagination
+            v-model:page="currentPage"
+            :page-count="totalPages"
+            :page-size="pageSize"
+            show-size-picker
+            :page-sizes="[10, 20, 50]"
+            @update-page-size="handlePageSizeChange"
+          />
+        </div>
+      </div>
+
+      <template #action>
+        <n-space justify="end">
+          <n-button @click="shareCardDialogVisible = false">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            :disabled="!selectedArticle"
+            @click="insertSelectedArticle"
+          >
+            插入文章卡片
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onBeforeUnmount } from 'vue'
+import { ref, reactive, watch, onBeforeUnmount, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { useMessage } from 'naive-ui'
@@ -378,8 +520,12 @@ import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
-import { all, createLowlight } from 'lowlight'
 import type { SelectOption } from 'naive-ui'
+import { all, createLowlight } from 'lowlight'
+import { FileNodeExtension } from '@/utils/tiptap-file-node'
+import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
+import { uploadAPI } from '@/api/upload'
+import { articleAPI, type Article } from '@/api/article'
 
 const message = useMessage()
 
@@ -394,6 +540,11 @@ const emit = defineEmits<{
 const currentHeading = ref('paragraph')
 const linkDialogVisible = ref(false)
 const imageDialogVisible = ref(false)
+const shareCardDialogVisible = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const userArticles = ref<Article[]>([])
+const selectedArticle = ref<Article | null>(null)
+const loadingArticles = ref(false)
 
 const linkForm = reactive({
   text: '',
@@ -403,6 +554,29 @@ const linkForm = reactive({
 const imageForm = reactive({
   url: '',
   alt: ''
+})
+
+const shareCardForm = reactive({
+  title: '',
+  summary: '',
+  cover: '',
+  url: '',
+  author: '',
+  publishTime: ''
+})
+
+const searchKeyword = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalPages = ref(1)
+
+const filteredArticles = computed(() => {
+  if (!searchKeyword.value) {
+    return userArticles.value
+  }
+  return userArticles.value.filter(article =>
+    article.title.toLowerCase().includes(searchKeyword.value.toLowerCase())
+  )
 })
 
 const selectedText = ref('')
@@ -415,6 +589,34 @@ const headingOptions: SelectOption[] = [
 ]
 
 const lowlight = createLowlight(all)
+
+/**
+ * 格式化日期
+ */
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * 获取文章封面 URL
+ */
+const getArticleCoverUrl = (coverUrl: string): string => {
+  if (!coverUrl) return ''
+
+  // 如果已经是完整 URL，直接返回
+  if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) {
+    return coverUrl
+  }
+
+  // 拼接完整 URL
+  const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
+  return `${baseUrl}/${coverUrl}`
+}
 
 const editor = useEditor({
   content: props.modelValue || '',
@@ -435,6 +637,8 @@ const editor = useEditor({
         class: 'image'
       }
     }),
+    FileNodeExtension,
+    ShareCardNodeExtension,
     Link.configure({
       openOnClick: false,
       HTMLAttributes: {
@@ -455,6 +659,57 @@ const editor = useEditor({
       lowlight
     })
   ],
+  editorProps: {
+    handleDOMEvents: {
+      paste: (view, event) => {
+        const items = event.clipboardData?.items
+        if (!items) {return false}
+
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i]
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile()
+            if (file) {
+              event.preventDefault()
+              handleImagePaste(file)
+              return true
+            }
+          }
+        }
+        return false
+      },
+      // 关键修复：正确处理中文输入法的 composition 事件
+      compositionstart: () => {
+        // 标记正在使用输入法
+        if (editor.value) {
+          editor.value.isComposing = true
+        }
+        return false
+      },
+      compositionend: (view, event) => {
+        // 输入法确认输入
+        if (editor.value) {
+          editor.value.isComposing = false
+        }
+        return false
+      },
+      input: (view, event) => {
+        // 如果是输入法过程中的输入，不要立即处理
+        if (view.composing || editor.value?.isComposing) {
+          return false
+        }
+        return false
+      }
+    },
+    // 修复中文输入法标点符号重复问题
+    handleTextInput: (view, from, to, text) => {
+      // 在输入法进行过程中，阻止默认处理
+      if (view.composing || editor.value?.isComposing) {
+        return false
+      }
+      return false
+    }
+  },
   onUpdate: ({ editor }) => {
     const json = editor.getJSON()
     // console.log('=== 编辑器内容更新 ===')
@@ -481,6 +736,98 @@ const editor = useEditor({
       linkForm.text = selectedText.value
     }
   }
+})
+
+/**
+ * 打开文章选择器并加载用户文章
+ */
+const openArticleSelector = async () => {
+  shareCardDialogVisible.value = true
+  selectedArticle.value = null
+  searchKeyword.value = ''
+  currentPage.value = 1
+
+  await loadUserArticles()
+}
+
+/**
+ * 加载用户文章列表
+ */
+const loadUserArticles = async () => {
+  loadingArticles.value = true
+  try {
+    const userId = localStorage.getItem('userid')
+    if (!userId) {
+      message.warning('请先登录')
+      shareCardDialogVisible.value = false
+      return
+    }
+
+    // 调用 API 获取用户文章列表
+    const response = await articleAPI.getList({
+      page: currentPage.value,
+      limit: pageSize.value,
+      authorId: userId,
+      orderBy: 'createTime',
+      sortOrder: 'desc'
+    })
+
+    if (response.data.code === 0) {
+      userArticles.value = response.data.data.list || []
+      totalPages.value = response.data.data.totalPages || 1
+    } else {
+      message.error('加载文章列表失败')
+    }
+  } catch (error: any) {
+    console.error('❌ [RichTextEditor] 加载用户文章失败:', error)
+    message.error('加载文章列表失败')
+  } finally {
+    loadingArticles.value = false
+  }
+}
+
+/**
+ * 选择文章
+ */
+const selectArticle = (article: Article) => {
+  selectedArticle.value = article
+}
+
+/**
+ * 插入选中的文章卡片
+ */
+const insertSelectedArticle = () => {
+  if (!editor.value || !selectedArticle.value) {
+    message.warning('请先选择一篇文章')
+    return
+  }
+
+  // 使用选中文章的信息创建分享卡片
+  editor.value.commands.setShareCard({
+    title: selectedArticle.value.title,
+    summary: selectedArticle.value.summary || '',
+    cover: selectedArticle.value.coverUrl ? getArticleCoverUrl(selectedArticle.value.coverUrl) : '',
+    url: `${window.location.origin}/index/articleDetail?id=${selectedArticle.value.id}`,
+    author: selectedArticle.value.authorNickname || '匿名用户',
+    publishTime: formatDate(selectedArticle.value.publishTime || selectedArticle.value.createTime)
+  })
+
+  shareCardDialogVisible.value = false
+  message.success('文章卡片插入成功')
+}
+
+/**
+ * 处理分页大小变化
+ */
+const handlePageSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadUserArticles()
+}
+
+// 监听页码变化
+watch(currentPage, () => {
+  loadUserArticles()
 })
 
 watch(() => props.modelValue, (newVal : object) => {
@@ -538,6 +885,29 @@ const toggleCodeBlock = () => {
   editor.value.chain().focus().toggleCodeBlock().run()
 }
 
+const handleImagePaste = async (file: File) => {
+  try {
+    const response = await uploadAPI.uploadFile(file)
+    const fileData = response.code === 0 ? response : response.data
+    let fileUrl = fileData.url
+
+    if (!fileUrl) {
+      throw new Error('上传响应中缺少 url 字段')
+    }
+
+    if (fileUrl.startsWith('/')) {
+      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
+      fileUrl = `${baseUrl}${fileUrl}`
+    }
+
+    editor.value.chain().focus().setImage({ src: fileUrl }).run()
+    message.success('图片粘贴成功')
+  } catch (error: any) {
+    console.error('❌ [RichTextEditor] 粘贴图片失败:', error)
+    message.error('图片粘贴失败')
+  }
+}
+
 const openLinkDialog = () => {
   if (!editor.value) {return}
 
@@ -592,6 +962,18 @@ const removeLink = () => {
   linkDialogVisible.value = false
 }
 
+const triggerFileUpload = () => {
+  fileInputRef.value?.click()
+}
+
+const handleFileInputChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) {return}
+  handleUpload(file)
+  target.value = ''
+}
+
 const openImageDialog = () => {
   imageForm.url = ''
   imageForm.alt = ''
@@ -611,6 +993,51 @@ const insertImage = () => {
     .run()
 
   imageDialogVisible.value = false
+}
+
+const handleUpload = async (file: File) => {
+  if (!editor.value) {return}
+
+  try {
+    const response = await uploadAPI.uploadFile(file)
+    const fileData = response.code === 0 ? response : response.data
+    let fileUrl = fileData.url
+
+    if (!fileUrl) {
+      throw new Error('上传响应中缺少 url 字段')
+    }
+
+    if (fileUrl.startsWith('/')) {
+      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
+      fileUrl = `${baseUrl}${fileUrl}`
+    }
+
+    if (file.type.startsWith('image/')) {
+      editor.value.chain().focus().setImage({ src: fileUrl }).run()
+      message.success('图片上传成功')
+    } else {
+      const extension = file.name.split('.').pop()
+      editor.value.commands.setFile({
+        src: fileUrl,
+        name: String(file.name),
+        size: Number(file.size),
+        mimeType: String(file.type),
+        extension: extension ? String(extension) : ''
+      })
+      message.success('文件上传成功')
+    }
+  } catch (error: any) {
+    console.error('❌ [RichTextEditor] 文件上传失败:', error)
+    message.error(`文件上传失败：${error.message}`)
+  }
+}
+
+const openShareCardDialog = () => {
+
+}
+
+const insertShareCard = () => {
+
 }
 
 onBeforeUnmount(() => {
@@ -767,6 +1194,177 @@ onBeforeUnmount(() => {
       border-radius: 4px;
       margin: 8px 0;
       cursor: pointer;
+    }
+
+    :deep(.file-node) {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      background: #f5f7fa;
+      border: 1px solid #e4e7ed;
+      border-radius: 4px;
+      margin: 8px 0;
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:hover {
+        background: #ecf5ff;
+        border-color: #409eff;
+      }
+
+      .file-icon {
+        font-size: 24px;
+        margin-right: 8px;
+      }
+
+      .file-info {
+        flex: 1;
+        overflow: hidden;
+
+        .file-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #333;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .file-size {
+          font-size: 12px;
+          color: #909399;
+          margin-top: 2px;
+        }
+      }
+    }
+
+    :deep(.share-card-node) {
+      display: block;
+      margin: 16px 0;
+      border: 1px solid #e4e7ed;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.3s;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .share-card-cover {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+      }
+
+      .share-card-content {
+        padding: 16px;
+
+        .share-card-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 8px;
+        }
+
+        .share-card-description {
+          font-size: 14px;
+          color: #666;
+          line-height: 1.6;
+        }
+      }
+    }
+
+    .article-selector {
+      max-height: 500px;
+
+      .article-list {
+        max-height: 400px;
+        overflow-y: auto;
+
+        .article-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 12px;
+
+          .article-item {
+            cursor: pointer;
+            transition: all 0.3s;
+
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            &.n-card--bordered {
+              border-color: #18a058;
+              background-color: #f0f9eb;
+            }
+
+            .article-card-content {
+              .article-cover {
+                width: 100%;
+                height: 140px;
+                overflow: hidden;
+                border-radius: 4px;
+                margin-bottom: 12px;
+
+                .cover-img {
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                  max-width: 100%;
+                  max-height: 140px;
+                }
+              }
+
+              .article-info {
+                .article-title {
+                  font-size: 14px;
+                  font-weight: 600;
+                  color: #333;
+                  margin: 0 0 8px 0;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  display: -webkit-box;
+                  -webkit-line-clamp: 2;
+                  -webkit-box-orient: vertical;
+                }
+
+                .article-summary {
+                  font-size: 12px;
+                  color: #666;
+                  margin: 0 0 8px 0;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  display: -webkit-box;
+                  -webkit-line-clamp: 2;
+                  -webkit-box-orient: vertical;
+                  line-height: 1.5;
+                }
+
+                .article-meta {
+                  display: flex;
+                  gap: 12px;
+                  font-size: 12px;
+                  color: #999;
+
+                  .meta-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .article-pagination {
+        margin-top: 16px;
+        display: flex;
+        justify-content: center;
+      }
     }
 
     :deep(a) {

@@ -74,16 +74,16 @@ public class TokenServiceImpl extends ServiceImpl<TokenDao, Token> implements To
             throw new IllegalArgumentException("用户角色不能为空");
         }
 
-        // 先使旧 token 无效
+
         invalidateTokenByUserId(userId);
 
-        // 创建新 token
+
         Token newToken = new Token();
         newToken.setUserId(userId);
         newToken.setRoleId(roleId);
         newToken.setAccessToken(tokenValue);
         newToken.setExpireTime(LocalDateTime.now().plusHours(24));
-        newToken.setStatus(CommonStatus.ENABLED); // 设置为有效状态
+        newToken.setStatus(CommonStatus.ENABLED);
         if (ip != null && !ip.isEmpty()) {
             newToken.setIpAddress(ip);
         }
@@ -106,7 +106,7 @@ public class TokenServiceImpl extends ServiceImpl<TokenDao, Token> implements To
             return false;
         }
 
-        tokenEntity.setStatus(CommonStatus.DISABLED); // 设置为无效状态
+        tokenEntity.setStatus(CommonStatus.DISABLED);
         tokenEntity.setUpdateTime(LocalDateTime.now());
         
         return this.updateById(tokenEntity);
@@ -123,7 +123,7 @@ public class TokenServiceImpl extends ServiceImpl<TokenDao, Token> implements To
             return false;
         }
 
-        token.setStatus(CommonStatus.DISABLED); // 设置为无效状态
+        token.setStatus(CommonStatus.DISABLED);
         token.setUpdateTime(LocalDateTime.now());
         
         return this.updateById(token);
@@ -164,7 +164,7 @@ public class TokenServiceImpl extends ServiceImpl<TokenDao, Token> implements To
         }
 
         Token token = baseMapper.selectByAccessToken(accessToken);
-        return token != null && token.getStatus() == CommonStatus.ENABLED && // 0 表示有效
+        return token != null && token.getStatus() == CommonStatus.ENABLED &&
                token.getExpireTime().isAfter(LocalDateTime.now());
     }
 
@@ -194,19 +194,19 @@ public class TokenServiceImpl extends ServiceImpl<TokenDao, Token> implements To
             return false;
         }
 
-        // 检查是否已过期
+
         if (token.getExpireTime().isBefore(LocalDateTime.now())) {
             return false;
         }
 
-        // 刷新过期时间（延长 24 小时）
+
         token.setExpireTime(LocalDateTime.now().plusHours(TOKEN_EXPIRE_HOURS));
         token.setUpdateTime(LocalDateTime.now());
         
         return this.updateById(token);
     }
 
-    // ==================== 私有验证方法 ====================
+
 
     /**
      * 验证查询参数

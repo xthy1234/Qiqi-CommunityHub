@@ -161,6 +161,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, useDialog, type FormRules } from 'naive-ui'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { articleAPI, type Article } from '@/api/article'
@@ -176,8 +177,9 @@ import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
 
 const appContext = useGlobalProperties()
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
+const { goBack, returnAfterPublish, returnAfterCancel } = useBackNavigation()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -287,25 +289,22 @@ const navigateToHome = () => {
 }
 
 const handleCancel = () => {
-
   dialog.warning({
     title: '提示',
     content: '确定要取消吗？未保存的内容将丢失',
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-
       if (articleId.value) {
-
         try {
           await draftAPI.deleteDraft(articleId.value)
           appContext?.$toolUtil?.storageRemove('currentDraftId')
-
         } catch (error) {
           console.error('❌ [handleCancel] 删除草稿失败:', error)
         }
       }
-      router.back()
+
+      await returnAfterCancel(router, route, articleId.value, draftAPI)
     }
   })
 }
@@ -589,31 +588,10 @@ const handleConfirmPublish = async () => {
 
 
     if (publishResponse.data.code === 200 || publishResponse.data.msg) {
-      const publishVersionInfo = publishResponse.data.data || publishResponse.data
-
-
-
-
-
-
-
-
-
       message.success(isEdit.value ? '修改成功' : '发布成功')
 
-      // 清理草稿缓存
-
-      appContext?.$toolUtil?.storageRemove('currentDraftId')
-
-      showPublishModal.value = false
-
-      setTimeout(() => {
-
-        router.push('/index/articleList')
-      }, 500)
-    } else {
-      console.error('❌ [handleConfirmPublish] 发布失败:', publishResponse.data.msg)
-      message.error(publishResponse.data.msg || (isEdit.value ? '修改失败' : '发布失败'))
+      // 使用工具类返回（自动清理草稿 + replace 模式）
+      returnAfterPublish(appContext?.$toolUtil)
     }
   } catch (error) {
     console.error('❌ [handleConfirmPublish] 提交异常:', error)
@@ -797,11 +775,6 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
 
   const id = draftId || articleId.value
 
-
-
-
-
-
   if (passedArticleId && !draftId) {
 
     try {
@@ -959,6 +932,10 @@ onMounted(() => {
 
 })
 
+// 组件卸载时清理防抖定时器
+onUnmounted(() => {
+  cleanup()
+})
 </script>
 
 <style lang="scss" scoped>

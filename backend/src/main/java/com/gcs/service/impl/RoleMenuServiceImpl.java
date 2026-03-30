@@ -47,14 +47,14 @@ public class RoleMenuServiceImpl extends ServiceImpl<RoleMenuDao, RoleMenu> impl
             throw new IllegalArgumentException("角色 ID 不能为空");
         }
 
-        // 先删除原有的权限
+
         baseMapper.deleteByRoleId(roleId);
 
         if (menuIds == null || menuIds.isEmpty()) {
             return true;
         }
 
-        // 批量插入新权限
+
         List<RoleMenu> roleMenus = new ArrayList<>();
         for (Long menuId : menuIds) {
             RoleMenu roleMenu = new RoleMenu();
@@ -74,7 +74,7 @@ public class RoleMenuServiceImpl extends ServiceImpl<RoleMenuDao, RoleMenu> impl
             return true;
         }
 
-        // 验证数据
+
         for (RoleMenu roleMenu : roleMenus) {
             if (roleMenu.getRoleId() == null || roleMenu.getMenuId() == null) {
                 throw new IllegalArgumentException("角色 ID 和菜单 ID 不能为空");
@@ -84,7 +84,7 @@ public class RoleMenuServiceImpl extends ServiceImpl<RoleMenuDao, RoleMenu> impl
             }
         }
 
-        // 先删除第一个角色的所有权限（假设都是同一个角色）
+
         Long roleId = roleMenus.get(0).getRoleId();
         baseMapper.deleteByRoleId(roleId);
 

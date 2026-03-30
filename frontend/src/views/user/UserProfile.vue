@@ -8,8 +8,8 @@
       <div class="avatar-section">
         <div class="avatar-display">
           <n-avatar
-            v-if="userInfo.avatar" 
-            :src="getAvatarUrl(userInfo.avatar)" 
+            v-if="userInfo.avatar"
+            :src="getAvatarUrl(userInfo.avatar)"
             class="avatar-image"
             :size="150"
             round
@@ -208,7 +208,7 @@ const fetchUserInfo = async (): Promise<void> => {
     const response = await httpClient.get(`users/${currentUser.id}`, {
       params: { detail: true }
     })
-    
+
     const userData = response.data.data
     if (userData) {
       userInfo.value = {
@@ -225,7 +225,7 @@ const fetchUserInfo = async (): Promise<void> => {
         lastLoginTime: userData.lastLoginTime,
         lastLoginIp: userData.lastLoginIp
       }
-      
+
       appContext?.$toolUtil.storageSet('userid', userData.id)
       appContext?.$toolUtil.storageSet('nickname', userData.account)
       appContext?.$toolUtil.storageSet('avatar', userData.avatar)
@@ -287,13 +287,13 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     margin-bottom: 40px;
-    
+
     .avatar-display {
       .avatar-image,
       .avatar-placeholder {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
-      
+
       .avatar-placeholder {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         font-size: 60px;
@@ -302,30 +302,30 @@ onMounted(() => {
       }
     }
   }
-  
+
   .info-list {
     margin-bottom: 40px;
-    
+
     .info-item {
       display: flex;
       padding: 16px 0;
       border-bottom: 1px solid #f0f0f0;
-      
+
       &:last-child {
         border-bottom: none;
       }
-      
+
       .info-label {
         width: 120px;
         font-weight: 500;
         color: #666;
         flex-shrink: 0;
       }
-      
+
       .info-value {
         flex: 1;
         color: #333;
-        
+
         &.signature-text {
           white-space: pre-wrap;
           word-break: break-all;
@@ -333,7 +333,7 @@ onMounted(() => {
       }
     }
   }
-  
+
   .author-articles-section {
     margin-bottom: 40px;
     padding-top: 30px;

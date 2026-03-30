@@ -246,26 +246,27 @@
 
     <!-- 🔥 查询与指定用户有会话的所有用户 ID -->
     <select id="selectRelatedUserIds" resultType="java.lang.Long">
-        SELECT DISTINCT related_user_id
-        FROM (
-            SELECT
-                to_user_id as related_user_id,
-                MAX(create_time) as last_time
+        SELECT DISTINCT related_user_id FROM (
+            SELECT to_user_id as related_user_id
             FROM private_message
             WHERE from_user_id = #{userId}
-            GROUP BY to_user_id
 
             UNION
 
-            SELECT
-                from_user_id as related_user_id,
-                MAX(create_time) as last_time
+            SELECT from_user_id as related_user_id
             FROM private_message
             WHERE to_user_id = #{userId}
-            GROUP BY from_user_id
         ) AS related_users
-        ORDER BY last_time DESC
+        ORDER BY related_user_id
         LIMIT 100
     </select>
+
+    <!-- 原子更新用户积分 -->
+    <update id="incrementPoints">
+        UPDATE users
+        SET points = COALESCE(points, 0) + #{amount}
+        WHERE id = #{userId}
+          AND status = 0
+    </update>
 
 </mapper>

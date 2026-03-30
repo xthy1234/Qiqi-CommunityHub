@@ -219,8 +219,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {useRoute, useRouter} from 'vue-router'
+import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, useDialog } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
@@ -237,13 +238,18 @@ import {generateHTML} from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import Link from "@tiptap/extension-link"
+import { FileNodeExtension } from '@/utils/tiptap-file-node'
+import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { articleContributorAPI } from '@/api/contributor'
+import { useVisitedStore } from '@/stores/visited'
 
 const appContext = useGlobalProperties()
 const router = useRouter()
 const route = useRoute()
+const { navigateWithBackUrl, goBack: backNavigation } = useBackNavigation()
 const dialog = useDialog()
 const message = useMessage()
+const visitedStore = useVisitedStore()
 
 // 编辑器扩展配置 (避免重复)
 const extensions = [
@@ -254,6 +260,8 @@ const extensions = [
   Link.configure({
     openOnClick: false,
   }),
+  FileNodeExtension,
+  ShareCardNodeExtension,
 ]
 
 /**
@@ -449,11 +457,15 @@ const handleEditModeUpdate = async (key: number) => {
 }
 
 /**
- * 查看历史版本
+ * 查看版本历史
  */
 const viewVersionHistory = () => {
   if (!article.value?.id) {return}
-  router.push(`/index/article/versions?articleId=${article.value.id}`)
+
+  navigateWithBackUrl({
+    path: '/index/article/versions',
+    query: { articleId: article.value.id }
+  })
 }
 
 /**
@@ -461,7 +473,7 @@ const viewVersionHistory = () => {
  */
 const reviewSuggestions = () => {
   if (!article.value?.id) {return}
-  router.push(`/index/article/suggestions?articleId=${article.value.id}&status=0`)
+  navigateWithBackUrl(`/index/article/suggestions?articleId=${article.value.id}&status=0`)
 }
 
 /**
@@ -469,7 +481,8 @@ const reviewSuggestions = () => {
  */
 const submitSuggestion = () => {
   if (!article.value?.id) {return}
-  router.push(`/index/article/${article.value.id}/suggest`)
+
+  navigateWithBackUrl(`/index/article/${article.value.id}/suggest`)
 }
 
 /**
@@ -527,14 +540,18 @@ const downloadAttachment = () => {
  */
 const editArticle = () => {
   if (!article.value?.id) {return}
-  router.push(`/index/article/editor?id=${article.value.id}`)
+
+  navigateWithBackUrl({
+    path: '/index/article/editor',
+    query: { id: article.value.id }
+  })
 }
 
 /**
  * 返回上一页
  */
 const goBack = () => {
-  router.back()
+  backNavigation()
 }
 
 /**
@@ -557,7 +574,33 @@ onMounted(() => {
   loadArticleDetail()
   getCurrentUserAvatar()
   loadContributors()
+  incrementViewCount()
 })
+
+
+/**
+ * 增加文章浏览量
+ */
+const incrementViewCount = () => {
+  const id = route.query.id as string
+  if (!id) return
+
+  // 前端去重：检查是否已经计数
+  if (!visitedStore.hasViewed(id)) {
+    articleAPI.incrementViewCount(id)
+      .then(() => {
+        // 标记为已访问
+        visitedStore.markViewed(id)
+        // 可选：更新本地浏览量显示
+        if (article.value) {
+          article.value.viewCount = (article.value.viewCount || 0) + 1
+        }
+      })
+      .catch((error) => {
+        console.error('增加浏览量失败:', error)
+      })
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -688,6 +731,85 @@ onMounted(() => {
     height: auto;
     margin: 10px 0;
     border-radius: 4px;
+  }
+
+  :deep(.file-node) {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f5f7fa;
+    border: 1px solid #e4e7ed;
+    border-radius: 4px;
+    margin: 8px 0;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover {
+      background: #ecf5ff;
+      border-color: #409eff;
+    }
+
+    .file-icon {
+      font-size: 24px;
+      margin-right: 8px;
+      color: #409eff;
+    }
+
+    .file-info {
+      flex: 1;
+      overflow: hidden;
+
+      .file-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .file-size {
+        font-size: 12px;
+        color: #909399;
+        margin-top: 2px;
+      }
+    }
+  }
+
+  :deep(.share-card-node) {
+    display: block;
+    margin: 16px 0;
+    border: 1px solid #e4e7ed;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .share-card-cover {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .share-card-content {
+      padding: 16px;
+
+      .share-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+      }
+
+      .share-card-description {
+        font-size: 14px;
+        color: #666;
+        line-height: 1.6;
+      }
+    }
   }
 
   :deep(p) {

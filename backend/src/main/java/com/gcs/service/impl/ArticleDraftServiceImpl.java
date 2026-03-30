@@ -29,7 +29,7 @@ public class ArticleDraftServiceImpl extends ServiceImpl<ArticleDraftDao, Articl
         draft.setArticleId(articleId);
         draft.setTitle(title != null ? title : "未命名草稿");
         draft.setContent(content != null ? content : new HashMap<>());
-        draft.setExtra(new HashMap<>()); // ✅ 提供默认空 Map，避免 null
+        draft.setExtra(new HashMap<>());
         draft.setCoverUrl(coverUrl);
         draft.setCategoryId(categoryId);
         draft.setAutoSaveTime(LocalDateTime.now());
@@ -45,10 +45,10 @@ public class ArticleDraftServiceImpl extends ServiceImpl<ArticleDraftDao, Articl
         ArticleDraft draft = baseMapper.selectByArticleAndUser(articleId, userId);
         
         if (draft == null) {
-            // 如果草稿不存在，创建新草稿（兼容旧逻辑）
+
             createDraft(userId, articleId, title, content, null, null);
         } else {
-            // 更新草稿
+
             draft.setContent(content);
             draft.setTitle(title);
             draft.setAutoSaveTime(LocalDateTime.now());

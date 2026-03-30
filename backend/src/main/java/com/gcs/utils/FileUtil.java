@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class FileUtil {
     
-    private static final int BUFFER_SIZE = 8192; // 8KB缓冲区
+    private static final int BUFFER_SIZE = 8192;
     
     /**
      * 将文件转换为字节数组

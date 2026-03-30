@@ -49,23 +49,23 @@ public class CommonUtil {
 
     public static String getCellValue(Cell cell) {
         String resultValue = "";
-        // 判空
+
         if (Objects.isNull(cell)) {
             return resultValue;
         }
 
-        // 拿到单元格类型
+
         CellType cellType = cell.getCellType();
         switch (cellType) {
-            // 字符串类型
+
             case STRING:
                 resultValue = StringUtils.isEmpty(cell.getStringCellValue()) ? "" : cell.getStringCellValue().trim();
                 break;
-            // 布尔类型
+
             case BOOLEAN:
                 resultValue = String.valueOf(cell.getBooleanCellValue());
                 break;
-            // 数值类型
+
             case NUMERIC:
                 /**
                  * format 的值可能为以下这些 yyyyMMddHHmmss
@@ -77,7 +77,7 @@ public class CommonUtil {
                  * h时mm分  --------- 32
                  */
                 Object val = cell.getNumericCellValue();
-                // POI Excel 日期格式转换
+
                 String formatDate = "";
                 switch (cell.getCellStyle().getDataFormat()){
                     case 14:
@@ -114,7 +114,7 @@ public class CommonUtil {
                     resultValue = new DecimalFormat("#.######").format(cell.getNumericCellValue());
                 }
                 break;
-            // 取空串
+
             default:
                 break;
         }

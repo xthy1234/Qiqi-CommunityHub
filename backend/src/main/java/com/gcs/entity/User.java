@@ -94,6 +94,18 @@ public class User implements Serializable {
     private String signature;
 
     /**
+     * 用户积分
+     */
+    @Schema(description = "用户积分", example = "100")
+    private Integer points = 0;
+
+    /**
+     * 连续签到天数
+     */
+    @Schema(description = "连续签到天数", example = "7")
+    private Integer signInStreak = 0;
+
+    /**
      * 状态 (0:启用，1:禁用)
      */
     @Schema(description = "状态 (0:启用，1:禁用)", example = "0")
@@ -147,12 +159,12 @@ public class User implements Serializable {
     @Schema(description = "最后登录 IP", example = "192.168.1.1")
     private String lastLoginIp;
 
-    // 泛型构造函数（保持向后兼容）
+
     public <T> User(T t) {
-        // 简单的属性复制，避免使用过时的BeanUtils
+
         if (t != null) {
-            // 这里可以根据实际需求实现属性复制逻辑
-            // 或者使用更现代的映射工具如MapStruct
+
+
         }
     }
 }
