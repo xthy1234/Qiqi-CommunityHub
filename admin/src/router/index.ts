@@ -49,20 +49,30 @@ const routes: Array<RouteRecordRaw> = [
       // 用户管理
       {
         path: 'users',
-        component: () => import('@/views/user/list.vue'),
+        component: () => import('@/views/user/UserList.vue'),
         meta: { title: '用户管理' }
       },
-      // 评论管理
       {
-        path: 'comments',
-        component: () => import('@/views/comment/list.vue'),
-        meta: { title: '评论管理' }
+        path: 'users/edit',
+        component: () => import('@/views/user/UserEdit.vue'),
+        meta: { title: '用户编辑' }
       },
       // 文章管理
       {
         path: 'articles',
         component: () => import('@/views/article/list.vue'),
         meta: { title: '文章管理' }
+      },
+      {
+        path: 'articles/audit',
+        component: () => import('@/views/article/ArticleAudit.vue'),
+        meta: { title: '文章审核' }
+      },
+      // 评论管理
+      {
+        path: 'comments',
+        component: () => import('@/views/comment/list.vue'),
+        meta: { title: '评论管理' }
       },
       // 个人中心
       {

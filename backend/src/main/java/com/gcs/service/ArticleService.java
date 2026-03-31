@@ -7,7 +7,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.gcs.entity.Article;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.utils.PageUtils;
-import com.gcs.vo.ArticleDetailVO;
+import com.gcs.vo.AdminArticleDetailVO;
+import com.gcs.vo.ArticleDashboardStatsVO;
+import com.gcs.vo.ArticleAuditHistoryVO;
 import com.gcs.vo.ArticleSearchVO;
 
 import java.util.List;
@@ -117,4 +119,79 @@ public interface ArticleService extends IService<Article> {
                               Map<String, Object> content, String changeSummary);
 
     void incrementViewCount(Long id, String identifier);
+    
+    /**
+     * 管理员查询所有文章（包含全部审核状态）
+     * @param params 查询参数
+     * @param queryWrapper 查询条件
+     * @return 分页结果
+     */
+    PageUtils adminQueryPage(Map<String, Object> params, Wrapper<Article> queryWrapper);
+    
+    /**
+     * 获取管理后台统计数据
+     * @return 统计数据 VO
+     */
+    ArticleDashboardStatsVO getDashboardStats();
+    
+    /**
+     * 统计今日新增文章数
+     * @return 今日新增数量
+     */
+    Integer countToday();
+    
+    /**
+     * 按审核状态统计数量
+     * @param auditStatus 审核状态
+     * @return 数量
+     */
+    Integer countByAuditStatus(Integer auditStatus);
+    
+    /**
+     * 获取热门文章（按浏览量排序）
+     * @param limit 数量限制
+     * @return 文章列表
+     */
+    List<Article> getTopViewedArticles(Integer limit);
+    
+    /**
+     * 获取活跃作者（按文章数量排序）
+     * @param limit 数量限制
+     * @return 作者 ID 和文章数的 Map
+     */
+    List<Map<String, Object>> getTopAuthors(Integer limit);
+    
+    /**
+     * 批量修改文章分类
+     * @param articleIds 文章 ID 数组
+     * @param categoryId 新分类 ID
+     * @return 是否成功
+     */
+    boolean batchUpdateCategory(Long[] articleIds, Long categoryId);
+    
+    /**
+     * 设置文章置顶/推荐
+     * @param articleId 文章 ID
+     * @param isFeatured 是否推荐
+     * @param featuredLevel 推荐等级（0-普通，1-推荐，2-热门）
+     * @return 是否成功
+     */
+    boolean setFeatured(Long articleId, Boolean isFeatured, Integer featuredLevel);
+    
+    /**
+     * 获取文章审核历史
+     * @param articleId 文章 ID
+     * @return 审核历史列表
+     */
+    List<ArticleAuditHistoryVO> getAuditHistory(Long articleId);
+    
+    /**
+     * 记录审核历史（内部方法）
+     * @param articleId 文章 ID
+     * @param reviewerId 审核员 ID
+     * @param oldStatus 原审核状态
+     * @param newStatus 新审核状态
+     * @param reason 审核原因
+     */
+    void recordAuditHistory(Long articleId, Long reviewerId, Integer oldStatus, Integer newStatus, String reason);
 }

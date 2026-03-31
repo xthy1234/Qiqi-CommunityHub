@@ -68,6 +68,9 @@ public class UserController {
     private SessionUtils sessionUtils;
 
     @Autowired
+    private AuthUtils authUtils;
+
+    @Autowired
     public UserController(UserService userService, TokenService tokenService, RoleService roleService, 
                          UserConverter userConverter, UserRegisterConverter userRegisterConverter) {
         this.userService = userService;
@@ -277,9 +280,32 @@ public class UserController {
         @Parameter(description = "查询参数") @RequestParam Map<String, Object> params, 
         @Parameter(description = "用户查询条件") User user) {
         try {
+            log.info("========== 分页查询用户列表 ==========");
+            log.info("params 参数：{}", params);
+            log.info("user 对象 - account={}, phone={}, email={}, status={}, points={}, signInStreak={}", 
+                user.getAccount(), user.getPhone(), user.getEmail(), 
+                user.getStatus(), user.getPoints(), user.getSignInStreak());
+            
+            if (user != null) {
+                if (user.getPoints() != null && user.getPoints() == 0) {
+                    user.setPoints(null);
+                }
+                if (user.getSignInStreak() != null && user.getSignInStreak() == 0) {
+                    user.setSignInStreak(null);
+                }
+                if (user.getStatus() == CommonStatus.ENABLED && user.getId() == null) {
+                    user.setStatus(null);
+                }
+            }
+            
             QueryWrapper<User> queryWrapper = new QueryWrapper<>();
             PageUtils page = userService.queryPage(params, 
                 MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(queryWrapper, user), params), params));
+            
+            log.info("查询结果：总数={}, 当前页={}, 每页数量={}", page, page.getCurrPage(), page.getPageSize());
+            log.info("返回用户 ID 列表：{}", ((List<User>)page.getList()).stream()
+                .map(u -> u.getId())
+                .collect(Collectors.toList()));
             
             List<User> userList = (List<User>) page.getList();
             List<UserVO> voList = userConverter.toVOList(userList);
@@ -700,6 +726,132 @@ public class UserController {
         } catch (Exception e) {
             log.error("获取用户公开列表失败", e);
             return R.error("获取数据失败");
+        }
+    }
+
+    /**
+     * 管理员获取用户完整信息（管理端专用）
+     */
+    @GetMapping("/admin/{id}")
+    @Operation(summary = "管理员获取用户完整信息", description = "管理员通过用户 ID 获取用户的绝大多数信息，包含敏感字段")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "401", description = "用户未登录"),
+        @ApiResponse(responseCode = "403", description = "无管理员权限"),
+        @ApiResponse(responseCode = "404", description = "用户不存在")
+    })
+    public R getAdminUserProfile(
+        @Parameter(description = "用户 ID", required = true) @PathVariable("id") Long id,
+        HttpServletRequest request) {
+        try {
+            // 获取当前登录用户
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("用户未登录");
+            }
+            
+            // 验证是否为管理员
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无管理员权限");
+            }
+            
+            // 获取目标用户信息
+            User user = userService.getById(id);
+            if (user == null) {
+                return R.error("用户不存在");
+            }
+            
+            // 转换为详细 VO（包含密码外的所有字段）
+            UserDetailVO vo = userConverter.toDetailVO(user);
+            
+            // 补充角色名称
+            if (user.getRoleId() != null) {
+                Role role = roleService.getById(user.getRoleId());
+                if (role != null) {
+                    vo.setRoleName(role.getRoleName());
+                }
+            }
+            
+            return R.ok().put("data", vo);
+        } catch (Exception e) {
+            log.error("管理员获取用户信息失败，ID: {}", id, e);
+            return R.error("获取失败");
+        }
+    }
+
+    /**
+     * 管理员更新用户信息（管理端专用）
+     */
+    @PutMapping("/admin/{id}")
+    @Transactional
+    @Operation(summary = "管理员更新用户信息", description = "管理员通过用户 ID 更新用户的绝大多数信息，需要管理员权限")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "更新成功"),
+        @ApiResponse(responseCode = "401", description = "用户未登录"),
+        @ApiResponse(responseCode = "403", description = "无管理员权限"),
+        @ApiResponse(responseCode = "404", description = "用户不存在"),
+        @ApiResponse(responseCode = "400", description = "更新失败")
+    })
+    public R adminUpdateUser(
+        @Parameter(description = "用户 ID", required = true) @PathVariable("id") Long userId, 
+        @Parameter(description = "用户信息", required = true) @Valid @RequestBody AdminUserUpdateDTO updateDTO,
+        HttpServletRequest request) {
+        try {
+            // 获取当前登录用户
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("用户未登录");
+            }
+            
+            // 验证是否为管理员
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无管理员权限");
+            }
+            
+            // 获取目标用户信息
+            User user = userService.getById(userId);
+            if (user == null) {
+                return R.error("用户不存在");
+            }
+            
+            // 如果 DTO 中没有设置状态，则保持原状态
+            if (updateDTO.getStatus() == null) {
+                updateDTO.setStatus(user.getStatus());
+            }
+            
+            // 检查账号、手机号、邮箱的唯一性（排除当前用户）
+            if (StringUtils.hasText(updateDTO.getAccount())) {
+                User existingUser = userService.getUserByAccount(updateDTO.getAccount());
+                if (existingUser != null && !existingUser.getId().equals(userId)) {
+                    return R.error("账号已被使用");
+                }
+            }
+            
+            if (StringUtils.hasText(updateDTO.getPhone())) {
+                User existingUser = userService.getUserByPhone(updateDTO.getPhone());
+                if (existingUser != null && !existingUser.getId().equals(userId)) {
+                    return R.error("手机号已被使用");
+                }
+            }
+            
+            if (StringUtils.hasText(updateDTO.getEmail())) {
+                User existingUser = userService.getUserByEmail(updateDTO.getEmail());
+                if (existingUser != null && !existingUser.getId().equals(userId)) {
+                    return R.error("邮箱已被使用");
+                }
+            }
+            
+            // 更新用户信息
+            userConverter.updateEntity(updateDTO, user);
+            boolean result = userService.updateUser(user);
+            if (result) {
+                return R.ok("更新成功");
+            } else {
+                return R.error("更新失败");
+            }
+        } catch (Exception e) {
+            log.error("管理员更新用户失败，ID: {}", userId, e);
+            return R.error(e.getMessage());
         }
     }
 

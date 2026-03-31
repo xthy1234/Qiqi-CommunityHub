@@ -26,11 +26,8 @@ public class CommentVO implements Serializable {
     @Schema(description = "用户 ID", example = "1")
     private Long userId;
     
-    @Schema(description = "用户头像 URL", example = "http://example.com/avatar.jpg")
-    private String userAvatar;
-    
-    @Schema(description = "用户昵称", example = "张三")
-    private String userNickname;
+    @Schema(description = "用户信息")
+    private UserSimpleVO user;
     
     @Schema(description = "评论内容", example = "这是一条测试评论")
     private String content;

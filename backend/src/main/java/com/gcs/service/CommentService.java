@@ -1,19 +1,17 @@
 package com.gcs.service;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.gcs.entity.view.CommentView;
 import com.gcs.utils.PageUtils;
 import com.gcs.entity.Comment;
-import com.gcs.entity.view.CommentView;
-
 import java.util.List;
 import java.util.Map;
 
 /**
  * 评论服务接口
- * 提供评论相关的业务操作
- * @author 
- * @date 2026-04-16
  */
 public interface CommentService extends IService<Comment> {
 
@@ -124,5 +122,15 @@ public interface CommentService extends IService<Comment> {
      * @return 操作结果
      */
     boolean updateStatus(Long commentId, Integer status);
+
+    /**
+     * 管理员查询评论列表（包含所有状态）
+     */
+    IPage<Comment> adminQueryPage(Map<String, Object> params, QueryWrapper<Comment> queryWrapper);
+    
+    /**
+     * 批量更新评论状态
+     */
+    boolean batchUpdateStatus(Long[] commentIds, Integer status);
 }
 

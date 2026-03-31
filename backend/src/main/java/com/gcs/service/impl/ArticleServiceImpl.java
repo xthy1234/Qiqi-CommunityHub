@@ -9,9 +9,12 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gcs.dao.ArticleViewLogDao;
+import com.gcs.entity.ArticleAuditHistory;
 import com.gcs.entity.ArticleVersion;
 import com.gcs.enums.AuditStatus;
+import com.gcs.service.UserService;
 import com.gcs.vo.ArticleDetailVO;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -24,6 +27,16 @@ import com.gcs.service.ArticleVersionService;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.vo.ArticleSearchVO;
+import com.gcs.vo.AdminArticleDetailVO;
+import com.gcs.vo.ArticleDashboardStatsVO;
+import com.gcs.vo.ArticleAuditHistoryVO;
+import com.gcs.converter.ArticleConverter;
+import com.gcs.entity.ArticleAuditHistory;
+import com.gcs.dao.ArticleAuditHistoryDao;
+import com.gcs.service.UserService;
+import java.time.LocalDate;
+import java.util.stream.Collectors;
+import com.gcs.entity.User;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +57,16 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
 
     @Autowired
     private ArticleViewLogDao articleViewLogDao;
+
+    @Autowired
+    private ArticleConverter articleConverter;
+    
+    @Autowired
+    private ArticleAuditHistoryDao auditHistoryDao;
+    
+    @Lazy
+    @Autowired
+    private UserService userService;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -201,4 +224,212 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
         }
     }
 
+    @Override
+    public PageUtils adminQueryPage(Map<String, Object> params, Wrapper<Article> queryWrapper) {
+        IPage<ArticleView> articlePage = new Query<ArticleView>(params).getPage();
+        IPage<ArticleView> resultPage = baseMapper.selectListView(articlePage, queryWrapper);
+        
+        long totalCount = baseMapper.selectCount(queryWrapper);
+        resultPage.setTotal(totalCount);
+        return new PageUtils(resultPage);
+    }
+    
+    @Override
+    public ArticleDashboardStatsVO getDashboardStats() {
+        ArticleDashboardStatsVO statsVO = new ArticleDashboardStatsVO();
+        
+        // 今日统计
+        Integer todayCount = countToday();
+        statsVO.setTodayCount(todayCount);
+        
+        // 昨日统计
+        Integer yesterdayCount = countByDate(LocalDate.now().minusDays(1));
+        statsVO.setYesterdayCount(yesterdayCount);
+        
+        // 审核状态统计
+        statsVO.setPendingCount(countByAuditStatus(AuditStatus.PENDING.getCode()));
+        statsVO.setApprovedCount(countByAuditStatus(AuditStatus.APPROVED.getCode()));
+        statsVO.setRejectedCount(countByAuditStatus(AuditStatus.REJECTED.getCode()));
+        
+        // 总数统计
+        statsVO.setTotalCount(Math.toIntExact(this.count()));
+        
+        // 总浏览量
+        List<Map<String, Object>> totalViewResult = this.selectValue(
+            Map.of("xColumn", "id", "yColumn", "view_count"), 
+            new QueryWrapper<>()
+        );
+        Integer totalViewCount = totalViewResult.stream()
+            .mapToInt(m -> ((Number) m.get("view_count")).intValue())
+            .sum();
+        statsVO.setTotalViewCount(totalViewCount);
+        
+        // 热门文章
+        List<Article> topArticles = getTopViewedArticles(10);
+        statsVO.setTopArticles(topArticles.stream()
+            .map(a -> Map.of(
+                "id", a.getId(),
+                "title", a.getTitle(),
+                "viewCount", a.getViewCount()
+            ))
+            .collect(Collectors.toList()));
+        
+        // 活跃作者
+        List<Map<String, Object>> topAuthors = getTopAuthors(10);
+        statsVO.setTopAuthors(topAuthors);
+        
+        // 分类统计
+        List<Map<String, Object>> categoryStats = this.selectGroup(
+            Map.of("column", "category_id"),
+            new QueryWrapper<>()
+        );
+        Map<String, Integer> categoryMap = categoryStats.stream()
+            .collect(Collectors.toMap(
+                m -> m.get("category_id").toString(),
+                m -> ((Number) m.get("count")).intValue()
+            ));
+        statsVO.setCategoryStats(categoryMap);
+        
+        // 日环比增长率
+        if (yesterdayCount > 0) {
+            Double growth = ((todayCount - yesterdayCount) * 100.0) / yesterdayCount;
+            statsVO.setDayOverDayGrowth(growth);
+        } else {
+            statsVO.setDayOverDayGrowth(todayCount > 0 ? 100.0 : 0.0);
+        }
+        
+        return statsVO;
+    }
+    
+    private Integer countByDate(LocalDate date) {
+        QueryWrapper<Article> wrapper = new QueryWrapper<>();
+        wrapper.eq("deleted", false)
+            .between("create_time", 
+                date.atStartOfDay(),
+                date.plusDays(1).atStartOfDay());
+        return Math.toIntExact(this.count(wrapper));
+    }
+    
+    @Override
+    public Integer countToday() {
+        return countByDate(LocalDate.now());
+    }
+    
+    @Override
+    public Integer countByAuditStatus(Integer auditStatus) {
+        QueryWrapper<Article> wrapper = new QueryWrapper<>();
+        wrapper.eq("deleted", false)
+            .eq("audit_status", auditStatus);
+        return Math.toIntExact(this.count(wrapper));
+    }
+    
+    @Override
+    public List<Article> getTopViewedArticles(Integer limit) {
+        QueryWrapper<Article> wrapper = new QueryWrapper<>();
+        wrapper.eq("deleted", false)
+            .orderByDesc("view_count")
+            .last("LIMIT " + limit);
+        return this.list(wrapper);
+    }
+    
+    @Override
+    public List<Map<String, Object>> getTopAuthors(Integer limit) {
+        QueryWrapper<Article> wrapper = new QueryWrapper<>();
+        wrapper.select("author_id", "COUNT(*) as article_count")
+            .eq("deleted", false)
+            .groupBy("author_id")
+            .orderByDesc("article_count")
+            .last("LIMIT " + limit);
+        return this.listMaps(wrapper);
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean batchUpdateCategory(Long[] articleIds, Long categoryId) {
+        if (articleIds == null || articleIds.length == 0) {
+            return false;
+        }
+        
+        for (Long id : articleIds) {
+            Article article = this.getById(id);
+            if (article != null) {
+                article.setCategoryId(categoryId);
+                this.updateById(article);
+            }
+        }
+        
+        log.info("批量修改文章分类成功，数量：{}, 新分类 ID: {}", articleIds.length, categoryId);
+        return true;
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean setFeatured(Long articleId, Boolean isFeatured, Integer featuredLevel) {
+        Article article = this.getById(articleId);
+        if (article == null) {
+            return false;
+        }
+        
+        article.setIsFeatured(isFeatured);
+        article.setFeaturedLevel(featuredLevel != null ? featuredLevel : 0);
+        this.updateById(article);
+        
+        log.info("设置文章推荐状态，articleId: {}, isFeatured: {}, level: {}", 
+            articleId, isFeatured, featuredLevel);
+        return true;
+    }
+    
+    @Override
+    public List<ArticleAuditHistoryVO> getAuditHistory(Long articleId) {
+        QueryWrapper<ArticleAuditHistory> wrapper = new QueryWrapper<>();
+        wrapper.eq("article_id", articleId)
+            .orderByDesc("create_time");
+        
+        List<ArticleAuditHistory> historyList = auditHistoryDao.selectList(wrapper);
+        
+        return historyList.stream()
+            .map(history -> {
+                ArticleAuditHistoryVO vo = new ArticleAuditHistoryVO();
+                vo.setId(history.getId());
+                vo.setArticleId(history.getArticleId());
+                vo.setAuditorId(history.getReviewerId());
+                
+                // 补充审核员昵称
+                if (history.getReviewerId() != null) {
+                    User reviewer = userService.getById(history.getReviewerId());
+                    if (reviewer != null) {
+                        vo.setAuditorNickname(reviewer.getNickname());
+                    }
+                }
+                
+                vo.setOldStatus(history.getOldStatus());
+                vo.setNewStatus(history.getNewStatus());
+                vo.setReason(history.getReason());
+                vo.setAuditTime(history.getCreateTime());
+                
+                return vo;
+            })
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void recordAuditHistory(Long articleId, Long reviewerId, 
+                                   Integer oldStatus, Integer newStatus, String reason) {
+        try {
+            ArticleAuditHistory history = new ArticleAuditHistory();
+            history.setArticleId(articleId);
+            history.setReviewerId(reviewerId);
+            history.setOldStatus(oldStatus);
+            history.setNewStatus(newStatus);
+            history.setReason(reason != null ? reason : "");
+            
+            auditHistoryDao.insert(history);
+            log.info("记录审核历史成功，articleId: {}, reviewerId: {}, oldStatus: {}, newStatus: {}", 
+                articleId, reviewerId, oldStatus, newStatus);
+        } catch (Exception e) {
+            log.error("记录审核历史失败，articleId: {}, reviewerId: {}", articleId, reviewerId, e);
+            // 不抛出异常，避免影响主流程
+        }
+    }
 }

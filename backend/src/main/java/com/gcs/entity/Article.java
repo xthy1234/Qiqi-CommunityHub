@@ -155,6 +155,18 @@ public class Article implements Serializable {
     private Integer editMode;
     
     /**
+     * 是否推荐/置顶
+     */
+    @Schema(description = "是否推荐/置顶", example = "false")
+    private Boolean isFeatured;
+    
+    /**
+     * 推荐等级（0-普通，1-推荐，2-热门）
+     */
+    @Schema(description = "推荐等级（0-普通，1-推荐，2-热门）", example = "0")
+    private Integer featuredLevel;
+    
+    /**
      * 逻辑删除标志 (false:未删除，true:已删除)
      */
     @Schema(description = "逻辑删除标志", example = "false")

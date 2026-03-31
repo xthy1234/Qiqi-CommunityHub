@@ -1,6 +1,8 @@
 <template>
-  <div class="page-container">
-    <NCard title="用户管理" size="large">
+  <PageContainer
+      :header-title="'用户管理'"
+      @back="goBack"
+  >
       <template #header-extra>
         <NButton type="primary" @click="handleCreate">
           <template #icon>
@@ -49,7 +51,7 @@
           :remote="true"
           striped
       />
-    </NCard>
+
 
     <!-- 新增/编辑用户对话框 -->
     <UserEditDialog
@@ -57,7 +59,7 @@
         :user-data="currentUserData"
         @success="loadData"
     />
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -67,7 +69,9 @@ import { Icon } from '@iconify/vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NTag, NSpace, useMessage, useDialog } from 'naive-ui'
 import UserEditDialog from '@/components/UserEditDialog.vue'
-import apiService from '@/api'
+import { adminUserApi } from '@/api/adminUser'
+
+import PageContainer from "@/components/common/PageContainer.vue";
 
 interface ApiResponse<T = any> {
   code: number
@@ -260,7 +264,7 @@ const loadData = async () => {
       ...searchForm.value
     }
 
-    const response = await apiService.user.getUserList(params)
+    const response = await adminUserApi.getUserList(params)
 
     if (response.data.code === 0 || response.data.code === 200) {
       tableData.value = response.data.data.list || []
@@ -294,8 +298,7 @@ const handleCreate = () => {
 }
 
 const handleEdit = (row: UserItem) => {
-  currentUserData.value = { ...row }
-  editDialogVisible.value = true
+  router.push(`/users/edit?id=${row.id}`)
 }
 
 const handleDelete = async (row: UserItem) => {
@@ -307,7 +310,7 @@ const handleDelete = async (row: UserItem) => {
       negativeText: '取消',
       onPositiveClick: async () => {
         try {
-          const response = await apiService.user.deleteUser(row.id)
+          const response = await adminUserApi.deleteUser(row.id)
 
           if (response.data.code === 0 || response.data.code === 200) {
             message.success('删除成功')

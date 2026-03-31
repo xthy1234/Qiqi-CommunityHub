@@ -28,7 +28,11 @@ public class InterceptorConfig implements WebMvcConfigurer {
             .excludePathPatterns("/webjars/**")
             .excludePathPatterns("/favicon.ico")
 
-            .excludePathPatterns("/error");
+            .excludePathPatterns("/error")
+            
+            // 添加：排除 OPTIONS 预检请求（CORS）
+            .excludePathPatterns("/**/status")
+            .excludePathPatterns("/comments/admin/batch-update-status");
 	}
 	
 	/**

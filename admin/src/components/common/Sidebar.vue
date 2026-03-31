@@ -161,7 +161,20 @@ const menuOptions = computed<MenuOption[]>(() => {
       label: '文章管理',
       key: 'articles',
       icon: renderIcon('ri:article-line'),
-      click: () => navigateToRoute('/articles')
+      children: [
+        {
+          label: '文章列表',
+          key: 'articles-list',
+          icon: renderIcon('ri:file-list-line'),
+          click: () => navigateToRoute('/articles')
+        },
+        {
+          label: '文章审核',
+          key: 'articles-audit',
+          icon: renderIcon('ri:shield-check-line'),
+          click: () => navigateToRoute('/articles/audit')
+        }
+      ]
     },
     {
       label: '评论管理',

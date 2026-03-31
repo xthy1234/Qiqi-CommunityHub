@@ -1,10 +1,12 @@
 package com.gcs.controller;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gcs.entity.Article;
 import com.gcs.entity.Comment;
 import com.gcs.entity.User;
@@ -17,6 +19,7 @@ import com.gcs.service.InteractionService;
 import com.gcs.service.UserService;
 
 import com.gcs.utils.*;
+import com.gcs.vo.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -30,11 +33,6 @@ import com.gcs.dto.CommentCreateDTO;
 import com.gcs.dto.CommentUpdateDTO;
 import com.gcs.dto.CommentReplyDTO;
 
-import com.gcs.vo.CommentVO;
-import com.gcs.vo.CommentDetailVO;
-import com.gcs.vo.CommentTreeVO;
-import com.gcs.vo.CommentWithUserVO;
-
 import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +40,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import java.time.LocalDate;
 
 /**
  * 评论控制器
@@ -382,11 +381,29 @@ public class CommentController {
     @Transactional
     public R updateComment(
         @Parameter(description = "评论 ID", required = true) @PathVariable("id") Long id, 
-        @Parameter(description = "评论信息", required = true) @Valid @RequestBody CommentUpdateDTO updateDTO) {
+        @Parameter(description = "评论信息", required = true) @Valid @RequestBody CommentUpdateDTO updateDTO,
+        HttpServletRequest request) {
         try {
+            // 获取当前用户信息
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
             Comment comment = commentService.getById(id);
             if (comment == null) {
                 return R.error("评论不存在");
+            }
+            
+            // 判断是否为管理员
+            boolean isAdmin = authUtils.isAdmin(currentUserId);
+            
+            // 判断是否为评论作者
+            boolean isAuthor = comment.getUserId().equals(currentUserId);
+            
+            // 权限验证：只有管理员或评论作者才能修改
+            if (!isAdmin && !isAuthor) {
+                return R.error("无权限修改此评论");
             }
             
             // 使用转换器更新实体
@@ -415,11 +432,29 @@ public class CommentController {
     @Transactional
     public R partialUpdateComment(
         @Parameter(description = "评论 ID", required = true) @PathVariable("id") Long id, 
-        @Parameter(description = "评论信息") @RequestBody CommentUpdateDTO updateDTO) {
+        @Parameter(description = "评论信息") @RequestBody CommentUpdateDTO updateDTO,
+        HttpServletRequest request) {
         try {
+            // 获取当前用户信息
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
             Comment comment = commentService.getById(id);
             if (comment == null) {
                 return R.error("评论不存在");
+            }
+            
+            // 判断是否为管理员
+            boolean isAdmin = authUtils.isAdmin(currentUserId);
+            
+            // 判断是否为评论作者
+            boolean isAuthor = comment.getUserId().equals(currentUserId);
+            
+            // 权限验证：只有管理员或评论作者才能修改
+            if (!isAdmin && !isAuthor) {
+                return R.error("无权限修改此评论");
             }
             
             // 使用转换器更新实体
@@ -447,13 +482,26 @@ public class CommentController {
     @PatchMapping("/{id}/status")
     public R updateStatus(
         @Parameter(description = "评论 ID", required = true) @PathVariable("id") Long commentId,
-        @Parameter(description = "状态 (0:显示，1:隐藏)", required = true) @RequestParam Integer status) {
+        @Parameter(description = "状态 (0:显示，1:隐藏)", required = true) @RequestParam Integer status,
+        HttpServletRequest request) {
         try {
+            // 获取当前用户信息
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
+            // 判断是否为管理员
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无管理员权限");
+            }
+            
             boolean result = commentService.updateStatus(commentId, status);
             if (result) {
-                return R.ok("状态更新成功");
+                String action = status == 0 ? "启用" : "禁用";
+                return R.ok(action + "成功");
             } else {
-                return R.error("状态更新失败");
+                return R.error("操作失败");
             }
         } catch (Exception e) {
             log.error("更新评论状态失败，ID: {}", commentId, e);
@@ -587,6 +635,118 @@ public class CommentController {
         }
     }
     
+    /**
+     * 管理员查询评论列表（包含所有状态）
+     */
+    @GetMapping("/admin/list")
+    @Operation(summary = "管理员查询评论列表", description = "管理员可以查询所有评论，支持按内容 ID、用户 ID、状态等条件筛选，包含隐藏和已删除的评论")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "查询成功"),
+        @ApiResponse(responseCode = "403", description = "无管理员权限"),
+        @ApiResponse(responseCode = "500", description = "服务器错误")
+    })
+    public R adminGetComments(
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer limit,
+            @Parameter(description = "排序字段") @RequestParam(defaultValue = "createTime") String sort,
+            @Parameter(description = "排序方式") @RequestParam(defaultValue = "desc") String order,
+            @Parameter(description = "内容 ID") @RequestParam(required = false) Long contentId,
+            @Parameter(description = "用户 ID") @RequestParam(required = false) Long userId,
+            @Parameter(description = "状态 (0:显示，1:隐藏)") @RequestParam(required = false) Integer status,
+            @Parameter(description = "开始日期") @RequestParam(required = false) String startDate,
+            @Parameter(description = "结束日期") @RequestParam(required = false) String endDate,
+            HttpServletRequest request) {
+        try {
+            // 验证管理员权限
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无管理员权限");
+            }
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("page", page);
+            params.put("limit", limit);
+            params.put("sort", sort);
+            params.put("order", order);
+            
+            QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
+            
+            // 筛选条件
+            if (contentId != null) {
+                queryWrapper.eq("content_id", contentId);
+            }
+            if (userId != null) {
+                queryWrapper.eq("user_id", userId);
+            }
+            if (status != null) {
+                queryWrapper.eq("status", status);
+            }
+            if (startDate != null && !startDate.isEmpty()) {
+                queryWrapper.ge("create_time", LocalDate.parse(startDate).atStartOfDay());
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                queryWrapper.le("create_time", LocalDate.parse(endDate).atTime(23, 59, 59));
+            }
+            
+            IPage<Comment> resultPage = commentService.adminQueryPage(params, queryWrapper);
+            
+            // 转换为 VO 列表，并补充用户信息
+            List<CommentDetailVO> voList = resultPage.getRecords().stream()
+                .map(this::convertToDetailVOWithUserInfo)
+                .collect(Collectors.toList());
+            
+            PageUtils pageResult = new PageUtils(voList, resultPage.getTotal(), limit, page);
+            
+            return R.ok().put("data", pageResult);
+        } catch (Exception e) {
+            log.error("管理员查询评论列表失败", e);
+            return R.error("查询失败");
+        }
+    }
+    
+    /**
+     * 批量启用/禁用评论
+     */
+    @PostMapping("/admin/batch-update-status")
+    @Transactional
+    @Operation(summary = "批量启用/禁用评论", description = "管理员批量修改多个评论的显示/隐藏状态")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "操作成功"),
+        @ApiResponse(responseCode = "403", description = "无管理员权限"),
+        @ApiResponse(responseCode = "400", description = "参数错误"),
+        @ApiResponse(responseCode = "500", description = "服务器错误")
+    })
+    public R batchUpdateStatus(
+            @Parameter(description = "评论 ID 数组") @RequestBody Long[] commentIds,
+            @Parameter(description = "状态 (0:显示，1:隐藏)", required = true) @RequestParam Integer status,
+            HttpServletRequest request) {
+        try {
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无管理员权限");
+            }
+            
+            boolean result = commentService.batchUpdateStatus(commentIds, status);
+            if (result) {
+                String action = status == 0 ? "启用" : "禁用";
+                return R.ok(action + "成功");
+            } else {
+                return R.error("操作失败");
+            }
+        } catch (Exception e) {
+            log.error("批量更新评论状态失败", e);
+            return R.error("操作失败");
+        }
+    }
+    
     // ==================== 私有转换方法 ====================
     
     /**
@@ -597,8 +757,16 @@ public class CommentController {
         vo.setId(comment.getId());
         vo.setContentId(comment.getContentId());
         vo.setUserId(comment.getUserId());
-        vo.setUserAvatar(comment.getUserAvatar());
-        vo.setUserNickname(comment.getUserNickname());
+        
+        // 构建用户信息
+        if (comment.getUserId() != null) {
+            UserSimpleVO userVO = new UserSimpleVO();
+            userVO.setId(comment.getUserId());
+            userVO.setNickname(comment.getUserNickname());
+            userVO.setAvatar(comment.getUserAvatar());
+            vo.setUser(userVO);
+        }
+        
         vo.setContent(comment.getContent());
         vo.setParentId(comment.getParentId());
         vo.setLikeCount(comment.getLikeCount());
@@ -615,8 +783,16 @@ public class CommentController {
         vo.setId(comment.getId());
         vo.setContentId(comment.getContentId());
         vo.setUserId(comment.getUserId());
-        vo.setUserAvatar(comment.getUserAvatar());
-        vo.setUserNickname(comment.getUserNickname());
+        
+        // 构建用户信息
+        if (comment.getUserId() != null) {
+            UserSimpleVO userVO = new UserSimpleVO();
+            userVO.setId(comment.getUserId());
+            userVO.setNickname(comment.getUserNickname());
+            userVO.setAvatar(comment.getUserAvatar());
+            vo.setUser(userVO);
+        }
+        
         vo.setContent(comment.getContent());
         vo.setReplyContent(comment.getReplyContent());
         vo.setParentId(comment.getParentId());
@@ -628,6 +804,34 @@ public class CommentController {
     }
     
     /**
+     * 从数据库查询并转换 Comment 为 CommentDetailVO（包含完整用户信息）
+     */
+    private CommentDetailVO convertToDetailVOWithUserInfo(Comment comment) {
+        CommentDetailVO vo = convertToDetailVO(comment);
+        
+        // 如果评论中没有用户头像和昵称，从 users 表查询
+        if (comment.getUserId() != null && (vo.getUser() == null || 
+            (vo.getUser().getAvatar() == null && vo.getUser().getNickname() == null))) {
+            
+            try {
+                User dbUser = userService.getById(comment.getUserId());
+                if (dbUser != null) {
+                    UserSimpleVO userVO = new UserSimpleVO();
+                    userVO.setId(dbUser.getId());
+                    userVO.setNickname(dbUser.getNickname());
+                    userVO.setAvatar(dbUser.getAvatar());
+                    userVO.setLastOnlineTime(dbUser.getLastOnlineTime());
+                    vo.setUser(userVO);
+                }
+            } catch (Exception e) {
+                log.warn("查询用户信息失败，userId: {}", comment.getUserId(), e);
+            }
+        }
+        
+        return vo;
+    }
+    
+    /**
      * 将 CommentView 转换为 CommentDetailVO
      */
     private CommentDetailVO convertViewToDetailVO(CommentView view) {
@@ -635,8 +839,16 @@ public class CommentController {
         vo.setId(view.getId());
         vo.setContentId(view.getContentId());
         vo.setUserId(view.getUserId());
-        vo.setUserAvatar(view.getUserAvatar());
-        vo.setUserNickname(view.getUserNickname());
+        
+        // 构建用户信息
+        if (view.getUserId() != null) {
+            UserSimpleVO userVO = new UserSimpleVO();
+            userVO.setId(view.getUserId());
+            userVO.setNickname(view.getUserNickname());
+            userVO.setAvatar(view.getUserAvatar());
+            vo.setUser(userVO);
+        }
+        
         vo.setContent(view.getContent());
         vo.setReplyContent(view.getReplyContent());
         vo.setParentId(view.getParentId());

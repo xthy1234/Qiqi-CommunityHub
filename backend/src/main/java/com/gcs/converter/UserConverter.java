@@ -1,5 +1,6 @@
 package com.gcs.converter;
 
+import com.gcs.dto.AdminUserUpdateDTO;
 import com.gcs.dto.UserRegisterDTO;
 import com.gcs.dto.UserUpdateDTO;
 import com.gcs.dto.UserDTO;
@@ -32,6 +33,8 @@ public interface UserConverter {
     
     User toEntity(UserUpdateDTO dto);
     
+    User toEntity(AdminUserUpdateDTO dto);
+    
     // ==================== Entity to VO ====================
     @Named("toVO")
     UserVO toVO(User entity);
@@ -60,4 +63,6 @@ public interface UserConverter {
     
     // ==================== Update existing entity ====================
     void updateEntity(UserUpdateDTO dto, @MappingTarget User entity);
+    
+    void updateEntity(AdminUserUpdateDTO dto, @MappingTarget User entity);
 }

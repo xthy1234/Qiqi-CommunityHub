@@ -31,6 +31,9 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * 评论服务实现类
@@ -338,6 +341,83 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         comment.setUpdateTime(LocalDateTime.now());
         
         return this.updateById(comment);
+    }
+    
+    @Override
+    public IPage<Comment> adminQueryPage(Map<String, Object> params, QueryWrapper<Comment> queryWrapper) {
+        int page = params.get("page") != null ? Integer.parseInt(params.get("page").toString()) : 1;
+        int limit = params.get("limit") != null ? Integer.parseInt(params.get("limit").toString()) : 10;
+        
+        IPage<Comment> commentPage = new Query<Comment>(params).getPage();
+        IPage<Comment> resultPage = this.page(commentPage, queryWrapper);
+        
+        log.info("管理员查询评论列表，总记录数：{}, 页码：{}, 每页数量：{}", resultPage.getTotal(), page, limit);
+        
+        return resultPage;
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean batchUpdateStatus(Long[] commentIds, Integer status) {
+        if (commentIds == null || commentIds.length == 0) {
+            throw new IllegalArgumentException("评论 ID 列表不能为空");
+        }
+        
+        if (status == null) {
+            throw new IllegalArgumentException("状态不能为空");
+        }
+        
+        try {
+            CommentStatus commentStatus = CommentStatus.valueOf(status);
+            
+            for (Long id : commentIds) {
+                Comment comment = this.getById(id);
+                if (comment != null) {
+                    comment.setStatus(commentStatus);
+                    comment.setUpdateTime(LocalDateTime.now());
+                    this.updateById(comment);
+                }
+            }
+            
+            log.info("批量更新评论状态成功，数量：{}, 新状态：{}", commentIds.length, status);
+            return true;
+        } catch (Exception e) {
+            log.error("批量更新评论状态失败", e);
+            return false;
+        }
+    }
+    
+    /**
+     * 为评论列表补充用户信息
+     */
+    public void enrichCommentsWithUserInfo(List<Comment> comments) {
+        if (CollectionUtils.isEmpty(comments)) {
+            return;
+        }
+        
+        // 收集所有用户 ID
+        Set<Long> userIds = comments.stream()
+            .map(Comment::getUserId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        
+        if (userIds.isEmpty()) {
+            return;
+        }
+        
+        // 批量查询用户信息
+        List<User> users = userDao.selectBatchIds(userIds);
+        Map<Long, User> userMap = users.stream()
+            .collect(Collectors.toMap(User::getId, user -> user));
+        
+        // 为每个评论设置用户信息
+        for (Comment comment : comments) {
+            User user = userMap.get(comment.getUserId());
+            if (user != null) {
+                comment.setUserAvatar(user.getAvatar());
+                comment.setUserNickname(user.getNickname());
+            }
+        }
     }
 
     // ==================== 私有验证方法 ====================
