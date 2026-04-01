@@ -61,7 +61,7 @@ public interface ReportService extends IService<Report> {
     /**
      * 审核举报
      *
-     * @param reportId 举报ID
+     * @param reportId 举报 ID
      * @param reviewStatus 审核状态
      * @param replyContent 回复内容
      * @param reviewerAccount 审核人账号
@@ -75,10 +75,10 @@ public interface ReportService extends IService<Report> {
      * @param reportIds 举报ID列表
      * @param reviewStatus 审核状态
      * @param replyContent 回复内容
-     * @param reviewerAccount 审核人账号
+     * @param reviewerId 审核人账号
      * @return 审核结果
      */
-    boolean batchReviewReports(List<Long> reportIds, Integer reviewStatus, String replyContent, String reviewerAccount);
+    boolean batchReviewReports(List<Long> reportIds, Integer reviewStatus, String replyContent, Long reviewerId);
 
     /**
      * 统计不同审核状态的举报数量

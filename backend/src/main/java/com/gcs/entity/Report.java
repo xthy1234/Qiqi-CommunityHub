@@ -45,51 +45,16 @@ public class Report implements Serializable {
     private Long contentId;
 
     /**
-     * 被举报内容标题
-     */
-    @Schema(description = "被举报内容标题", example = "这是一篇违规文章")
-    private String contentTitle;
-
-    /**
-     * 被举报内容分类
-     */
-    @Schema(description = "被举报内容分类", example = "文章")
-    private String contentCategory;
-
-    /**
      * 被举报用户账号
      */
     @Schema(description = "被举报用户 ID", example = "1")
-    private Long reportedUserID;
-
-    @Schema(description = "被举报用户账号", example = "violated_user")
-    private String reportedUserAccount;
-
-    /**
-     * 被举报用户姓名
-     */
-    @Schema(description = "被举报用户昵称", example = "违规用户")
-    private String reportedNickName;
+    private Long reportedUserId;
 
     /**
      * 举报原因
      */
     @Schema(description = "举报原因", example = "发布虚假信息")
     private String reportReason;
-
-    /**
-     * 举报时间
-     */
-    @Schema(description = "举报时间", example = "2026-01-01 12:00:00")
-    @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime reportTime;
-
-    /**
-     * 举报人账号
-     */
-    @Schema(description = "举报人账号", example = "reporter_user")
-    private String reporterAccount;
 
     /**
      * 举报人 ID
@@ -110,10 +75,10 @@ public class Report implements Serializable {
     private AuditStatus reviewStatus = AuditStatus.PENDING;
 
     /**
-     * 审核人账号
+     * 审核人id
      */
     @Schema(description = "审核人账号", example = "admin")
-    private String reviewerAccount;
+    private Long reviewerId;
 
     /**
      * 审核时间

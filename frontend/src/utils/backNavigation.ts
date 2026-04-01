@@ -1,4 +1,5 @@
-import type { Router, RouteLocationNormalizedLoaded } from 'vue-router'
+import type { Router } from 'vue-router'
+import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 /**
  * 返回操作选项

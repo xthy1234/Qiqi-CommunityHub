@@ -1,0 +1,698 @@
+<template>
+  <div class="page-container">
+    <!-- 页面头部 -->
+    <PageHeader
+      title="轮播图管理"
+      @back="goBack"
+    >
+      <template #extra>
+        <NSpace>
+          <NButton type="success" @click="handleCreate">
+            <template #icon>
+              <Icon icon="ri:add-line" />
+            </template>
+            新建轮播图
+          </NButton>
+          <NButton
+            type="error"
+            @click="handleBatchDelete"
+            :disabled="checkedRowKeys.length === 0"
+          >
+            <template #icon>
+              <Icon icon="ri:delete-bin-line" />
+            </template>
+            批量删除
+          </NButton>
+        </NSpace>
+      </template>
+    </PageHeader>
+
+    <!-- 主内容区域 -->
+    <div class="page-content">
+      <!-- 搜索栏 -->
+      <SearchBar @search="handleSearch" @reset="handleReset">
+        <NInput
+            v-model:value="searchForm.title"
+            placeholder="请输入轮播图标题"
+            clearable
+            style="width: 250px"
+        />
+        <NSelect
+            v-model:value="searchForm.status"
+            placeholder="状态"
+            :options="statusOptions"
+            clearable
+            style="width: 120px"
+        />
+      </SearchBar>
+
+      <!-- 表格 -->
+      <NDataTable
+          :columns="columns"
+          :data="tableData"
+          :loading="loading"
+          :pagination="pagination"
+          :remote="true"
+          :row-key="(row) => row.id"
+          :checked-row-keys="checkedRowKeys"
+          @update:checked-row-keys="handleCheckAll"
+          striped
+      />
+
+      <!-- 新增/编辑对话框 -->
+      <CrudDialog
+        v-model:visible="editDialogVisible"
+        :is-edit="isEdit"
+        :form-data="formData"
+        :form-rules="formRules"
+        :create-title="'新建轮播图'"
+        :edit-title="'编辑轮播图'"
+        width="700px"
+        @submit="handleSubmit"
+        @cancel="handleDialogCancel"
+        @after-leave="handleDialogAfterLeave"
+      >
+        <template #form-content>
+          <NFormItem label="轮播图标题" path="title">
+            <NInput
+                v-model:value="formData.title"
+                placeholder="请输入轮播图标题"
+            />
+          </NFormItem>
+
+          <NFormItem label="轮播图片" path="imageUrl">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <NUpload
+                  :action="uploadUrl"
+                  :headers="uploadHeaders"
+                  :show-file-list="false"
+                  accept="image/*"
+                  @finish="handleImageUploadFinish"
+              >
+                <NButton>选择图片</NButton>
+              </NUpload>
+              <span v-if="formData.imageUrl" style="color: #999; font-size: 13px;">
+                {{ getFileName(formData.imageUrl) }}
+              </span>
+            </div>
+            <div v-if="previewVisible" class="image-preview-wrapper">
+              <NImage
+                  :src="getFullImageUrl(formData.imageUrl)"
+                  width="200"
+                  object-fit="cover"
+              />
+            </div>
+          </NFormItem>
+
+          <NFormItem label="跳转链接" path="linkUrl">
+            <NInput
+                v-model:value="formData.linkUrl"
+                placeholder="请输入点击跳转的链接（可选）"
+            />
+          </NFormItem>
+
+          <NFormItem label="排序" path="sort">
+            <NInputNumber
+                v-model:value="formData.sort"
+                :min="0"
+                style="width: 100%"
+            />
+          </NFormItem>
+
+          <NFormItem label="状态" path="status">
+            <NRadioGroup v-model:value="formData.status">
+              <NRadioButton :value="1" label="显示" />
+              <NRadioButton :value="0" label="隐藏" />
+            </NRadioGroup>
+          </NFormItem>
+
+          <NFormItem label="描述信息" path="description">
+            <NInput
+                v-model:value="formData.description"
+                type="textarea"
+                placeholder="请输入轮播图描述（可选）"
+                :rows="3"
+            />
+          </NFormItem>
+        </template>
+      </CrudDialog>
+
+      <!-- 图片预览弹窗 -->
+      <NModal
+          v-model:show="previewModalVisible"
+          preset="dialog"
+          title="图片预览"
+          :show-icon="false"
+          :closable="true"
+          style="width: 800px;"
+      >
+        <div style="text-align: center;">
+          <NImage
+              :src="currentPreviewUrl"
+              width="100%"
+              object-fit="contain"
+          />
+        </div>
+      </NModal>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, h, reactive, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
+import type { DataTableColumns, FormRules, FormInst, UploadFileInfo } from 'naive-ui'
+import { NButton, NTag, NSpace, useMessage, useDialog, NModal, NForm, NFormItem, NInput, NUpload, NImage, NInputNumber, NRadioGroup, NRadioButton } from 'naive-ui'
+import { swiperApi, type SwiperVO, type SwiperCreateDTO, type SwiperUpdateDTO } from '@/api/swiper'
+import { uploadAPI } from '@/api/upload'
+import SearchBar from "@/components/common/SearchBar.vue"
+import StatusTag from "@/components/common/StatusTag.vue"
+import CrudDialog from "@/components/common/CrudDialog.vue"
+import PageHeader from "@/components/common/PageHeader.vue"
+import { commonStatusConfigs, imageUploadHelper } from '@/utils/componentHelpers'
+
+const router = useRouter()
+const message = useMessage()
+const dialog = useDialog()
+
+const searchForm = ref({
+  title: '',
+  status: null as number | null
+})
+
+// 使用预设的状态配置（适配数字格式，0=启用，1=禁用）
+const statusOptions = commonStatusConfigs.enableDisable
+
+const loading = ref(false)
+const tableData = ref<SwiperVO[]>([])
+const pagination = reactive({
+  page: 1,
+  pageSize: 10,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50],
+  onChange: (page: number) => {
+    pagination.page = page
+    loadData()
+  },
+  onUpdatePageSize: (pageSize: number) => {
+    pagination.pageSize = pageSize
+    pagination.page = 1
+    loadData()
+  }
+})
+
+const checkedRowKeys = ref<number[]>([])
+
+const editDialogVisible = ref(false)
+const isEdit = ref(false)
+const submitting = ref(false)
+const formRef = ref<FormInst | null>(null)
+const previewVisible = ref(false)
+const previewModalVisible = ref(false)
+const currentPreviewUrl = ref('')
+
+// 表单数据
+const formData = ref<SwiperCreateDTO & { id?: number }>({
+  title: '',
+  imageUrl: '',
+  linkUrl: '',
+  sort: 1,
+  status: 0,
+  description: ''
+})
+
+// 上传配置
+const backendUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
+const uploadUrl = `${backendUrl}/files`
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('Token')
+  return {
+    'Authorization': `Bearer ${token}`
+  }
+})
+
+const formRules: FormRules = {
+  title: {
+    required: true,
+    message: '请输入轮播图标题',
+    trigger: ['blur', 'change']
+  },
+  imageUrl: {
+    required: true,
+    message: '请上传轮播图片',
+    trigger: ['blur', 'change']
+  }
+}
+
+const columns: DataTableColumns = [
+  {
+    type: 'selection',
+    width: 50
+  },
+  {
+    title: 'ID',
+    key: 'id',
+    width: 80
+  },
+  {
+    title: '标题',
+    key: 'title',
+    width: 200,
+    ellipsis: {
+      tooltip: true
+    }
+  },
+  {
+    title: '图片',
+    key: 'imageUrl',
+    width: 150,
+    render: (row) => {
+      return h('div', {
+        style: { cursor: 'pointer' },
+        onClick: () => handlePreview(row.imageUrl)
+      }, [
+        h(NImage, {
+          src: getFullImageUrl(row.imageUrl),
+          width: 100,
+          height: 60,
+          objectFit: 'cover',
+          style: { borderRadius: '4px' }
+        })
+      ])
+    }
+  },
+  {
+    title: '跳转链接',
+    key: 'linkUrl',
+    width: 200,
+    ellipsis: {
+      tooltip: true
+    },
+    render: (row) => {
+      return row.linkUrl ? h('a', {
+        href: row.linkUrl,
+        target: '_blank',
+        style: { color: '#18a058' }
+      }, {
+        default: () => row.linkUrl
+      }) : '-'
+    }
+  },
+  {
+    title: '排序',
+    key: 'sort',
+    width: 80
+  },
+  {
+    title: '状态',
+    key: 'status',
+    width: 100,
+    // 使用 StatusTag 组件
+    render: (row) => {
+      return h(StatusTag, {
+        status: row.status,
+        options: commonStatusConfigs.enableDisable
+      })
+    }
+  },
+  {
+    title: '描述',
+    key: 'description',
+    width: 200,
+    ellipsis: {
+      tooltip: true
+    }
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 200,
+    fixed: 'right',
+    render: (row) => {
+      return h(NSpace, {}, {
+        default: () => [
+          h(NButton, {
+            size: 'small',
+            onClick: () => handleEdit(row)
+          }, {
+            default: () => '编辑'
+          }),
+          h(NButton, {
+            size: 'small',
+            type: row.status === 0 ? 'warning' : 'success',
+            onClick: () => handleToggleStatus(row)
+          }, {
+            default: () => row.status === 0 ? '隐藏' : '显示'
+          }),
+          h(NButton, {
+            size: 'small',
+            type: 'error',
+            onClick: () => handleDelete(row)
+          }, {
+            default: () => '删除'
+          })
+        ]
+      })
+    }
+  }
+]
+
+const goBack = () => {
+  router.back()
+}
+
+const loadData = async () => {
+  console.log('🔍 [SwiperList] 开始加载数据...')
+  console.log('📋 [SwiperList] 分页参数:', {
+    page: pagination.page,
+    pageSize: pagination.pageSize
+  })
+  console.log('🔍 [SwiperList] 搜索条件:', {
+    title: searchForm.value.title,
+    status: searchForm.value.status
+  })
+
+  loading.value = true
+  try {
+    const params = {
+      page: pagination.page,
+      limit: pagination.pageSize,
+      title: searchForm.value.title || undefined,
+      status: searchForm.value.status !== null ? searchForm.value.status : undefined
+    }
+
+    console.log('🌐 [SwiperList] 请求 API:', '/swipers')
+    console.log('📤 [SwiperList] 请求参数:', params)
+
+    const res = await swiperApi.getSwiperList(params)
+
+    console.log('📥 [SwiperList] API 响应:', res)
+    console.log('📥 [SwiperList] 响应数据:', res.data)
+    
+    // 修复：正确访问 code 字段（从 response.data 中获取）
+    if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+      tableData.value = res.data.data.list
+      pagination.itemCount = res.data.data.totalCount
+
+      console.log('✅ [SwiperList] 数据加载成功!')
+      console.log('📊 [SwiperList] 表格数据:', tableData.value)
+      console.log('📊 [SwiperList] 数据条数:', tableData.value.length)
+      console.log('📊 [SwiperList] 总记录数:', pagination.itemCount)
+
+      // 检查每条数据的字段
+      if (tableData.value.length > 0) {
+        console.log('🔍 [SwiperList] 第一条数据结构:')
+        console.table(tableData.value[0])
+      }
+    } else {
+      console.error('❌ [SwiperList] 加载失败 - 错误码:', res.data?.code)
+      console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
+      message.error(res.data?.msg || '加载失败')
+    }
+  } catch (error) {
+    console.error('❌ [SwiperList] 加载异常:', error)
+    message.error('加载失败')
+  } finally {
+    loading.value = false
+    console.log('⏹️ [SwiperList] 加载状态:', loading.value)
+  }
+}
+
+const handleSearch = () => {
+  console.log('🔍 [SwiperList] 执行搜索')
+  pagination.page = 1
+  loadData()
+}
+
+const handleReset = () => {
+  console.log('🔄 [SwiperList] 重置搜索')
+  searchForm.value.title = ''
+  searchForm.value.status = null
+  pagination.page = 1
+  loadData()
+}
+
+const handleCreate = () => {
+  console.log('🆕 [SwiperList] 点击了新建按钮！！！')
+  isEdit.value = false
+  formData.value = {
+    title: '',
+    imageUrl: '',
+    linkUrl: '',
+    sort: 1,
+    status: 0,
+    description: ''
+  }
+  editDialogVisible.value = true
+}
+
+const handleEdit = (row: SwiperVO) => {
+  isEdit.value = true
+  formData.value = {
+    id: row.id,
+    title: row.title,
+    imageUrl: row.imageUrl,
+    linkUrl: row.linkUrl,
+    sort: row.sort,
+    status: row.status,
+    description: row.description
+  }
+  editDialogVisible.value = true
+}
+
+const handleToggleStatus = async (row: SwiperVO) => {
+  const newStatus = row.status === 0 ? 1 : 0
+  console.log('🔄 [SwiperList] 切换状态:', {
+    id: row.id,
+    oldStatus: row.status,
+    newStatus: newStatus
+  })
+
+  try {
+    // 尝试使用 patch 方法
+    console.log('📤 [SwiperList] 调用 updateSwiperStatus:', row.id, newStatus)
+    const res = await swiperApi.updateSwiperStatus(row.id, newStatus)
+
+    console.log('📥 [SwiperList] 状态更新响应:', res)
+
+    if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+      message.success('更新成功')
+      loadData()
+    } else {
+      console.error('❌ [SwiperList] 状态更新失败 - 错误码:', res.data?.code)
+      console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
+      message.error(res.data?.msg || '更新失败')
+    }
+  } catch (error) {
+    console.error('❌ [SwiperList] 状态更新异常:', error)
+
+    // 如果是 CORS 错误，尝试使用 PUT 全量更新
+    if (error.message.includes('CORS') || error.message.includes('Network Error')) {
+      console.warn('⚠️ [SwiperList] CORS 错误，尝试使用全量更新...')
+      try {
+        const updateData = {
+          title: row.title,
+          imageUrl: row.imageUrl,
+          linkUrl: row.linkUrl,
+          sort: row.sort,
+          status: newStatus,
+          description: row.description
+        }
+        console.log('📤 [SwiperList] 使用 PUT 更新:', updateData)
+        const res = await swiperApi.updateSwiper(row.id, updateData)
+
+        if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+          message.success('更新成功')
+          loadData()
+        } else {
+          message.error(res.data?.msg || '更新失败')
+        }
+      } catch (putError) {
+        console.error('❌ [SwiperList] PUT 更新也失败了:', putError)
+        message.error('更新失败，可能是后端 CORS 配置问题')
+      }
+    } else {
+      message.error('更新失败')
+    }
+  }
+}
+
+const handleDelete = (row: SwiperVO) => {
+  console.log('🗑️ [SwiperList] 准备删除轮播图:', row)
+
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除轮播图 "${row.title}" 吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      console.log('✅ [SwiperList] 用户确认删除 ID:', row.id)
+
+      try {
+        const res = await swiperApi.deleteSwiper(row.id)
+        console.log('📥 [SwiperList] 删除响应:', res)
+
+        if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+          message.success('删除成功')
+          loadData()
+        } else {
+          console.error('❌ [SwiperList] 删除失败 - 错误码:', res.data?.code)
+          console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
+          message.error(res.data?.msg || '删除失败')
+        }
+      } catch (error) {
+        console.error('❌ [SwiperList] 删除异常:', error)
+        message.error('删除失败')
+      }
+    },
+    onNegativeClick: () => {
+      console.log('❌ [SwiperList] 用户取消删除')
+    }
+  })
+}
+
+const handleBatchDelete = () => {
+  if (checkedRowKeys.value.length === 0) {
+    message.warning('请选择要删除的轮播图')
+    return
+  }
+  
+  console.log('🗑️ [SwiperList] 准备批量删除 IDs:', checkedRowKeys.value)
+
+  dialog.warning({
+    title: '确认删除',
+    content: `确定要删除选中的 ${checkedRowKeys.value.length} 条轮播图吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      console.log('✅ [SwiperList] 用户确认批量删除 IDs:', checkedRowKeys.value)
+
+      try {
+        const res = await swiperApi.batchDeleteSwipers(checkedRowKeys.value)
+        console.log('📥 [SwiperList] 批量删除响应:', res)
+
+        if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+          message.success('批量删除成功')
+          checkedRowKeys.value = []
+          loadData()
+        } else {
+          console.error('❌ [SwiperList] 批量删除失败 - 错误码:', res.data?.code)
+          console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
+          message.error(res.data?.msg || '批量删除失败')
+        }
+      } catch (error) {
+        console.error('❌ [SwiperList] 批量删除异常:', error)
+        message.error('批量删除失败')
+      }
+    }
+  })
+}
+
+// 处理提交 - 由 CrudDialog 内部触发
+const handleSubmit = async (validatedData: Record<string, any>) => {
+  console.log('✍️ [SwiperList] 提交表单数据:', validatedData)
+
+  submitting.value = true
+  try {
+    // 修复：使用 undefined 而不是 null，让 Axios 自动忽略这些字段
+    const submitData: SwiperCreateDTO | SwiperUpdateDTO = {
+      title: validatedData.title,
+      imageUrl: validatedData.imageUrl,
+      linkUrl: validatedData.linkUrl || undefined,  // ← 改为 undefined
+      sort: validatedData.sort,
+      status: validatedData.status,
+      description: validatedData.description || undefined  // ← 改为 undefined
+    }
+
+    console.log('📤 [SwiperList] 整理后的提交数据:', submitData)
+
+    let res
+    if (isEdit.value && formData.value.id) {
+      console.log('🔄 [SwiperList] 执行更新操作，ID:', formData.value.id)
+      res = await swiperApi.updateSwiper(formData.value.id, submitData as SwiperUpdateDTO)
+    } else {
+      console.log('➕ [SwiperList] 执行创建操作')
+      res = await swiperApi.createSwiper(submitData as SwiperCreateDTO)
+    }
+
+    console.log('📥 [SwiperList] 提交响应:', res)
+
+    if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+      message.success(isEdit.value ? '更新成功' : '创建成功')
+      editDialogVisible.value = false
+      loadData()
+    } else {
+      console.error('❌ [SwiperList] 操作失败 - 错误码:', res.data?.code)
+      console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
+      message.error(res.data?.msg || '操作失败')
+    }
+  } catch (error: any) {
+    console.error('❌ [SwiperList] 操作异常:', error)
+
+    // 如果是 400 错误，打印详细的错误信息
+    if (error.response) {
+      console.error('❌ [SwiperList] 错误响应状态:', error.response.status)
+      console.error('❌ [SwiperList] 错误响应数据:', error.response.data)
+      console.error('❌ [SwiperList] 请求的 URL:', error.config?.url)
+      console.error('❌ [SwiperList] 请求的数据:', JSON.stringify(error.config?.data))
+    }
+
+    message.error(error.response?.data?.msg || '操作失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 处理对话框取消
+const handleDialogCancel = () => {
+  console.log('对话框取消')
+}
+
+// 处理对话框关闭后
+const handleDialogAfterLeave = () => {
+  console.log('对话框已关闭')
+}
+
+const handlePreview = (imageUrl: string) => {
+  currentPreviewUrl.value = getFullImageUrl(imageUrl)
+  previewModalVisible.value = true
+}
+
+// 使用工具函数
+const getFullImageUrl = imageUploadHelper.getFullImageUrl
+const getFileName = imageUploadHelper.getFileName
+
+const handleCheckAll = (keys: any) => {
+  checkedRowKeys.value = keys as number[]
+}
+
+onMounted(() => {
+  console.log('🚀 [SwiperList] 组件已挂载')
+  console.log('🚀 [SwiperList] 准备加载初始数据...')
+  loadData()
+})
+</script>
+
+<style lang="scss" scoped>
+.page-container {
+  min-height: calc(100vh - 60px);
+  background: #f5f7fa;
+  padding: 24px;
+
+  .page-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    padding: 30px;
+
+    @media (max-width: 768px) {
+      padding: 20px;
+      border-radius: 8px;
+    }
+  }
+}
+</style>

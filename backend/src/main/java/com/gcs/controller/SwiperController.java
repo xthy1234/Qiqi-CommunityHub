@@ -56,12 +56,16 @@ public class SwiperController {
     })
     @GetMapping
     public R getPage(
-        @Parameter(description = "查询参数") @RequestParam Map<String, Object> params, 
-        @Parameter(description = "轮播图查询对象") Swiper swiper) {
+        @Parameter(description = "查询参数") @RequestParam Map<String, Object> params) {
         try {
             QueryWrapper<Swiper> queryWrapper = new QueryWrapper<>();
+            
+            // 🔍 只使用 params 中的条件，不传 Swiper 实体对象避免过度过滤
             PageUtils page = swiperService.queryPage(params, 
-                MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(queryWrapper, swiper), params), params));
+                MPUtil.sort(MPUtil.between(queryWrapper, params), params));
+            
+            log.info("轮播图分页查询，总数：{}, 当前页数据量：{}", 
+                page.getTotalCount(), page.getList().size());
             
             // 将 Swiper 转换为 SwiperVO
             List<SwiperVO> voList = ((List<Swiper>) page.getList())
@@ -142,6 +146,9 @@ public class SwiperController {
     public R saveSwiper(
         @Parameter(description = "轮播图信息", required = true) @Valid @RequestBody SwiperCreateDTO createDTO) {
         try {
+            log.info("📝 [创建轮播图] 开始创建，标题：{}, 图片：{}", 
+                createDTO.getTitle(), createDTO.getImageUrl());
+            
             Swiper swiper = convertToEntity(createDTO);
             
             // 默认状态为显示
@@ -151,12 +158,14 @@ public class SwiperController {
             
             boolean result = swiperService.save(swiper);
             if (result) {
+                log.info(" [创建轮播图] 成功，ID: {}", swiper.getId());
                 return R.ok("轮播图保存成功");
             } else {
+                log.error(" [创建轮播图] 失败，标题：{}", createDTO.getTitle());
                 return R.error("保存失败");
             }
         } catch (Exception e) {
-            log.error("保存轮播图失败", e);
+            log.error(" [创建轮播图] 异常", e);
             return R.error(e.getMessage());
         }
     }
@@ -238,14 +247,18 @@ public class SwiperController {
         @Parameter(description = "轮播图 ID", required = true) @PathVariable("id") Long swiperId,
         @Parameter(description = "状态 (0:隐藏 1:显示)", required = true) @RequestParam Integer status) {
         try {
+            log.info("📝 [轮播图状态更新] 开始更新，ID: {}, 目标状态：{}", swiperId, status);
+            
             boolean result = swiperService.updateStatus(swiperId, status);
             if (result) {
+                log.info(" [轮播图状态更新] 成功，ID: {}, 状态：{}", swiperId, status);
                 return R.ok("状态更新成功");
             } else {
+                log.error(" [轮播图状态更新] 失败，ID: {}", swiperId);
                 return R.error("状态更新失败");
             }
         } catch (Exception e) {
-            log.error("更新轮播图状态失败，ID: {}", swiperId, e);
+            log.error("[轮播图状态更新] 异常，ID: {}, 状态：{}", swiperId, status, e);
             return R.error(e.getMessage());
         }
     }
@@ -262,11 +275,15 @@ public class SwiperController {
     public R deleteSwiper(
         @Parameter(description = "轮播图 ID", required = true) @PathVariable("id") Long id) {
         try {
+            log.info(" [删除轮播图] 开始删除，ID: {}", id);
+            
             swiperService.removeById(id);
+            
+            log.info(" [删除轮播图] 成功，ID: {}", id);
             return R.ok("删除成功");
         } catch (Exception e) {
-            log.error("删除轮播图失败，ID: {}", id, e);
-            return R.error("删除失败");
+            log.error(" [删除轮播图] 失败，ID: {}", id, e);
+            return R.error("删除失败：" + e.getMessage());
         }
     }
 
@@ -287,16 +304,20 @@ public class SwiperController {
                 return R.error("请选择要删除的轮播图");
             }
             
+            log.info("🗑️ [批量删除轮播图] 开始删除，IDs: {}", Arrays.toString(ids));
+            
             List<Long> swiperIds = Arrays.stream(ids).collect(Collectors.toList());
             boolean result = swiperService.deleteSwipers(swiperIds);
             if (result) {
+                log.info(" [批量删除轮播图] 成功，删除数量：{}", ids.length);
                 return R.ok("删除成功");
             } else {
+                log.error(" [批量删除轮播图] 失败，IDs: {}", Arrays.toString(ids));
                 return R.error("删除失败");
             }
         } catch (Exception e) {
-            log.error("删除轮播图失败", e);
-            return R.error("删除失败");
+            log.error(" [批量删除轮播图] 异常", e);
+            return R.error("删除失败：" + e.getMessage());
         }
     }
 
@@ -381,7 +402,18 @@ public class SwiperController {
         swiper.setImageUrl(dto.getImageUrl());
         swiper.setLinkUrl(dto.getLinkUrl());
         swiper.setSort(dto.getSort());
-        swiper.setStatus(dto.getStatus());
+        
+        // 🔧 将 Integer 转换为 CommonStatus 枚举
+        if (dto.getStatus() != null) {
+            try {
+                CommonStatus status = CommonStatus.valueOf(dto.getStatus());
+                swiper.setStatus(status);
+            } catch (IllegalArgumentException e) {
+                log.warn("无效的状态值：{}", dto.getStatus());
+                // 保持原状态不变
+            }
+        }
+        
         swiper.setDescription(dto.getDescription());
     }
 }

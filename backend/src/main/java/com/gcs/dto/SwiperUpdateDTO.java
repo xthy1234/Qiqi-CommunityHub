@@ -1,5 +1,6 @@
 package com.gcs.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.gcs.enums.CommonStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -12,9 +13,8 @@ import lombok.Data;
 @Data
 @Schema(description = "轮播图更新请求对象")
 public class SwiperUpdateDTO {
-    
-    @NotNull(message = "ID 不能为空")
-    @Schema(description = "主键 ID", required = true, example = "1")
+
+    @Schema(description = "主键 ID", example = "1")
     private Long id;
     
     @NotBlank(message = "标题不能为空")
@@ -32,8 +32,8 @@ public class SwiperUpdateDTO {
     @Schema(description = "排序，数字越小越靠前", required = true, example = "1")
     private Integer sort;
     
-    @Schema(description = "状态（0:显示，1:隐藏）", example = "1")
-    private CommonStatus status;
+    @Schema(description = "状态（0:显示，1:隐藏）", example = "0")
+    private Integer status;
     
     @Schema(description = "描述", example = "2026 年新年特别活动")
     private String description;

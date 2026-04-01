@@ -1,30 +1,42 @@
 package com.gcs.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.gcs.annotation.IgnoreAuth;
+import com.gcs.dto.AdminSendNotificationDTO;
 import com.gcs.dto.MarkReadRequest;
 import com.gcs.dto.NotificationCreateDTO;
+import com.gcs.dto.AdminSendNotificationDTO;
+import com.gcs.entity.Category;
 import com.gcs.entity.Notification;
 import com.gcs.enums.NotificationType;
 import com.gcs.service.NotificationService;
+import com.gcs.utils.MPUtil;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
+import com.gcs.utils.AuthUtils;
 import com.gcs.vo.NotificationVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.gcs.utils.MPUtil;
 /**
  * 通知控制器
  */
@@ -36,6 +48,9 @@ public class NotificationController {
 
     @Autowired
     private NotificationService notificationService;
+    
+    @Autowired
+    private AuthUtils authUtils;
 
     /**
      * 获取当前用户的通知列表
@@ -170,6 +185,215 @@ public class NotificationController {
         }
     }
 
+    /**
+     * 管理员发送通知
+     */
+    @Operation(summary = "发送通知（管理员）", description = "管理员向指定用户或全员发送系统通知")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "发送成功"),
+        @ApiResponse(responseCode = "400", description = "参数错误"),
+        @ApiResponse(responseCode = "403", description = "无权限")
+    })
+    @PostMapping("/send")
+    @Transactional
+    public R sendNotification(
+            @Parameter(description = "通知数据", required = true) @Valid @RequestBody AdminSendNotificationDTO dto,
+            HttpServletRequest request) {
+        try {
+            // 验证管理员权限
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无权限执行此操作");
+            }
+
+            String adminAccount = getSessionAttribute(request, "account");
+
+            // 构建通知内容
+            Map<String, Object> content = new HashMap<>();
+            content.put("title", dto.getTitle());
+            content.put("content", dto.getContent());
+            content.put("linkUrl", dto.getLinkUrl());
+            content.put("priority", dto.getPriority());
+            content.put("isTop", dto.getIsTop());
+            content.put("sender", "system");
+            content.put("senderAccount", adminAccount);
+
+            // 合并额外数据
+            Map<String, Object> extraData = new HashMap<>();
+            if (dto.getExtra() != null) {
+                extraData.putAll(dto.getExtra());
+            }
+            extraData.put("sentTime", LocalDateTime.now().toString());
+            extraData.put("adminAccount", adminAccount);
+
+            // 发送通知
+            int sentCount;
+            if (CollectionUtils.isEmpty(dto.getUserIds())) {
+                // 全员广播
+                sentCount = notificationService.sendBroadcastNotification(dto.getType(), content, extraData);
+            } else {
+                // 发送给指定用户
+                sentCount = notificationService.sendBatchNotifications(dto.getUserIds(), dto.getType(), content, extraData);
+            }
+
+            log.info("管理员发送通知，类型：{}, 接收人数：{}, 操作人：{}", 
+                    dto.getType(), sentCount, adminAccount);
+
+            return R.ok("发送成功，共发送 " + sentCount + " 条通知");
+        } catch (Exception e) {
+            log.error("发送通知失败", e);
+            return R.error("发送失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员撤回通知
+     */
+    @Operation(summary = "撤回通知（管理员）", description = "管理员撤回已发送的通知")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "撤回成功"),
+        @ApiResponse(responseCode = "404", description = "通知不存在")
+    })
+    @DeleteMapping("/{id}")
+    @Transactional
+    public R withdrawNotification(
+            @Parameter(description = "通知 ID", required = true) @PathVariable("id") Long notificationId,
+            HttpServletRequest request) {
+        try {
+            // 验证管理员权限
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无权限执行此操作");
+            }
+
+            String adminAccount = getSessionAttribute(request, "account");
+
+            boolean result = notificationService.withdrawNotification(notificationId);
+            if (result) {
+                log.info("管理员撤回通知，ID: {}, 操作人：{}", notificationId, adminAccount);
+                return R.ok("撤回成功");
+            } else {
+                return R.error("撤回失败");
+            }
+        } catch (Exception e) {
+            log.error("撤回通知失败，ID: {}", notificationId, e);
+            return R.error("撤回失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员批量撤回通知
+     */
+    @Operation(summary = "批量撤回通知（管理员）", description = "管理员批量撤回多个通知")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "撤回成功"),
+        @ApiResponse(responseCode = "400", description = "参数错误")
+    })
+    @PostMapping("/batch-withdraw")
+    @Transactional
+    public R batchWithdrawNotifications(
+            @Parameter(description = "通知 ID 数组", required = true) @RequestBody Long[] notificationIds,
+            HttpServletRequest request) {
+        try {
+            // 验证管理员权限
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无权限执行此操作");
+            }
+
+            String adminAccount = getSessionAttribute(request, "account");
+
+            if (notificationIds == null || notificationIds.length == 0) {
+                return R.error("请选择要撤回的通知");
+            }
+
+            List<Long> ids = Arrays.asList(notificationIds);
+            int count = notificationService.batchWithdrawNotifications(ids);
+
+            log.info("管理员批量撤回通知，数量：{}, 操作人：{}", count, adminAccount);
+            return R.ok("撤回成功，共撤回 " + count + " 条通知");
+        } catch (Exception e) {
+            log.error("批量撤回通知失败", e);
+            return R.error("撤回失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 管理员查询通知记录（分页）
+     */
+    @Operation(summary = "查询通知记录（管理员）", description = "管理员查看所有用户的通知记录")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "查询成功"),
+        @ApiResponse(responseCode = "500", description = "查询失败")
+    })
+    @GetMapping("/records")
+    public R getNotificationRecords(
+            @Parameter(description = "查询参数") @RequestParam Map<String, Object> params,
+            @Parameter(description = "通知查询条件") Notification notification,
+    HttpServletRequest request) {
+        try {
+            // 验证管理员权限
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+            
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无权限执行此操作");
+            }
+
+            String adminAccount = getSessionAttribute(request, "account");
+
+            // 构建查询条件
+            QueryWrapper<Notification> queryWrapper = new QueryWrapper<>();
+            
+            // 支持按类型筛选
+            if (params.containsKey("type")) {
+                queryWrapper.eq("type", params.get("type"));
+            }
+            // 支持按用户 ID 筛选
+            if (params.containsKey("userId")) {
+                queryWrapper.eq("user_id", params.get("userId"));
+            }
+            // 支持按已读/未读状态筛选
+            if (params.containsKey("isRead")) {
+                queryWrapper.eq("is_read", "true".equals(params.get("isRead")));
+            }
+            
+            // 默认按创建时间倒序
+            queryWrapper.orderByDesc("create_time");
+
+            // 分页查询
+            PageUtils page = notificationService.queryPage(params, 
+                MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(queryWrapper, notification), params), params));
+            
+            // 转换为 VO
+            List<NotificationVO> voList = ((List<Notification>) page.getList())
+                    .stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+            page.setList(voList);
+
+            log.info("管理员查询通知记录，操作人：{}, 结果数：{}", adminAccount, page.getList().size());
+            return R.ok().put("data", page);
+        } catch (Exception e) {
+            log.error("查询通知记录失败", e);
+            return R.error("查询失败");
+        }
+    }
+
     // ==================== 辅助方法 ====================
 
     private NotificationVO convertToVO(Notification notification) {
@@ -208,5 +432,10 @@ public class NotificationController {
 
     private Long getCurrentUserId(HttpServletRequest request) {
         return (Long) request.getSession().getAttribute("userId");
+    }
+
+    private String getSessionAttribute(HttpServletRequest request, String attributeName) {
+        Object attribute = request.getSession().getAttribute(attributeName);
+        return attribute != null ? attribute.toString() : null;
     }
 }

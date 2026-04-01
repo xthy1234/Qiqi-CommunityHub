@@ -1,5 +1,6 @@
 package com.gcs.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import com.baomidou.mybatisplus.annotation.EnumValue;
@@ -16,6 +17,14 @@ public enum CommonStatus {
     @EnumValue
     private final Integer code;
     private final String description;
+    
+    /**
+     * JSON 序列化时返回数字编码
+     */
+    @JsonValue
+    public Integer getCode() {
+        return this.code;
+    }
     
     /**
      * 根据编码获取枚举

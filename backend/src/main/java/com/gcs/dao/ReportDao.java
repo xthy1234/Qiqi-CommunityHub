@@ -51,10 +51,10 @@ public interface ReportDao extends BaseMapper<Report> {
      * 批量更新举报审核状态
      * @param reportIds 举报ID列表
      * @param reviewStatus 审核状态
-     * @param reviewerAccount 审核人账号
+     * @param reviewerId 审核人id
      * @return 更新结果
      */
     int updateReviewStatusBatch(@Param("reportIds") List<Long> reportIds, 
                                @Param("reviewStatus") Integer reviewStatus,
-                               @Param("reviewerAccount") String reviewerAccount);
+                               @Param("reviewerId") Long reviewerId);
 }

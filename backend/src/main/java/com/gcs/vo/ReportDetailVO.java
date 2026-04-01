@@ -16,17 +16,8 @@ import java.time.LocalDateTime;
 @Schema(description = "举报信息详情视图对象")
 public class ReportDetailVO extends ReportVO {
     
-    @Schema(description = "被举报用户 ID", example = "50")
-    private Long reportedUserID;
-    
-    @Schema(description = "被举报用户账号", example = "violator_user")
-    private String reportedUserAccount;
-    
     @Schema(description = "回复内容", example = "已处理，感谢举报")
     private String replyContent;
-    
-    @Schema(description = "审核人账号", example = "admin")
-    private String reviewerAccount;
     
     @Schema(description = "审核时间", example = "2026-01-01 14:00:00")
     private LocalDateTime reviewTime;

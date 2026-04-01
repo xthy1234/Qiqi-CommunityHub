@@ -12,7 +12,7 @@ import lombok.Data;
 @Schema(description = "举报创建请求对象")
 public class ReportCreateDTO {
     
-    @Schema(description = "被举报内容 ID", required = true, example = "1")
+    @Schema(description = "被举报内容 ID", example = "1")
     @NotNull(message = "被举报内容 ID 不能为空")
     private Long contentId;
     
@@ -24,7 +24,7 @@ public class ReportCreateDTO {
     
     @Schema(description = "被举报用户 ID", example = "1")
     @NotNull(message = "被举报用户 ID 不能为空")
-    private Long reportedUserID;
+    private Long reportedUserId;
     
     @Schema(description = "被举报用户账号", example = "violated_user")
     private String reportedUserAccount;
@@ -33,6 +33,6 @@ public class ReportCreateDTO {
     private String reportedNickName;
     
     @NotBlank(message = "举报原因不能为空")
-    @Schema(description = "举报原因", required = true, example = "发布虚假信息")
+    @Schema(description = "举报原因",  example = "发布虚假信息")
     private String reportReason;
 }

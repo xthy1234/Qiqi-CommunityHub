@@ -43,23 +43,19 @@ public class ReportView extends Report implements Serializable {
      */
     public ReportView(Report report) {
         if (report != null) {
-
             this.setId(report.getId());
-            this.setContentTitle(report.getContentTitle());
-            this.setContentCategory(report.getContentCategory());
-            this.setReportedUserAccount(report.getReportedUserAccount());
-            this.setReportedNickName(report.getReportedNickName());
+            this.setContentId(report.getContentId());
+            this.setReportedUserId(report.getReportedUserId());
             this.setReportReason(report.getReportReason());
-            this.setReportTime(report.getReportTime());
-            this.setReporterAccount(report.getReporterAccount());
             this.setReporterId(report.getReporterId());
             this.setReplyContent(report.getReplyContent());
             this.setReviewStatus(report.getReviewStatus());
-            this.setReviewerAccount(report.getReviewerAccount());
+            this.setReviewerId(report.getReviewerId());
             this.setReviewTime(report.getReviewTime());
             this.setStatus(report.getStatus());
             this.setCreateTime(report.getCreateTime());
             this.setUpdateTime(report.getUpdateTime());
+            this.setIsDeleted(report.getIsDeleted());
         }
     }
 }

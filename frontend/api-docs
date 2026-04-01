@@ -17,8 +17,12 @@
   ],
   "tags": [
     {
-      "name": "圈子聊天管理",
-      "description": "圈子聊天相关的 RESTful API 接口"
+      "name": "文章草稿管理",
+      "description": "文章草稿相关的 RESTful API 接口"
+    },
+    {
+      "name": "文章修改建议管理",
+      "description": "文章修改建议相关的 RESTful API 接口，包括提交建议、审核建议、查询建议列表等功能"
     },
     {
       "name": "圈子管理",
@@ -29,36 +33,20 @@
       "description": "系统配置相关的 RESTful API 接口"
     },
     {
-      "name": "帖子管理",
-      "description": "帖子相关的 RESTful API 接口"
-    },
-    {
       "name": "圈子成员管理",
       "description": "圈子成员相关的 RESTful API 接口"
-    },
-    {
-      "name": "菜单管理",
-      "description": "菜单相关的 RESTful API 接口"
-    },
-    {
-      "name": "关注管理",
-      "description": "关注相关的 RESTful API 接口"
-    },
-    {
-      "name": "评论管理",
-      "description": "评论相关的 RESTful API 接口"
     },
     {
       "name": "用户管理",
       "description": "用户相关的 RESTful API 接口"
     },
     {
-      "name": "在线状态管理",
-      "description": "用户在线状态相关的 RESTful API"
+      "name": "文章版本管理",
+      "description": "文章版本历史、版本对比、版本回滚等操作的 RESTful API 接口"
     },
     {
-      "name": "文件管理",
-      "description": "文件上传、下载相关的 RESTful API 接口"
+      "name": "在线状态管理",
+      "description": "用户在线状态相关的 RESTful API"
     },
     {
       "name": "私信管理",
@@ -69,12 +57,8 @@
       "description": "角色菜单权限相关的 RESTful API 接口"
     },
     {
-      "name": "角色管理",
-      "description": "角色相关的 RESTful API 接口"
-    },
-    {
-      "name": "互动记录管理",
-      "description": "互动记录（点赞、收藏、关注等）相关的 RESTful API 接口"
+      "name": "通知管理",
+      "description": "通知相关的 RESTful API 接口"
     },
     {
       "name": "轮播图管理",
@@ -83,6 +67,46 @@
     {
       "name": "分类管理",
       "description": "内容分类相关的 RESTful API 接口"
+    },
+    {
+      "name": "文章贡献者管理",
+      "description": "文章贡献者相关的 RESTful API 接口"
+    },
+    {
+      "name": "圈子聊天管理",
+      "description": "圈子聊天相关的 RESTful API 接口"
+    },
+    {
+      "name": "签到管理",
+      "description": "签到相关的 RESTful API 接口"
+    },
+    {
+      "name": "菜单管理",
+      "description": "菜单相关的 RESTful API 接口"
+    },
+    {
+      "name": "关注管理",
+      "description": "关注相关的 RESTful API 接口"
+    },
+    {
+      "name": "文章管理",
+      "description": "文章相关的 RESTful API 接口"
+    },
+    {
+      "name": "评论管理",
+      "description": "评论相关的 RESTful API 接口"
+    },
+    {
+      "name": "文件管理",
+      "description": "文件上传、下载相关的 RESTful API 接口"
+    },
+    {
+      "name": "角色管理",
+      "description": "角色相关的 RESTful API 接口"
+    },
+    {
+      "name": "互动记录管理",
+      "description": "互动记录（点赞、收藏、关注等）相关的 RESTful API 接口"
     },
     {
       "name": "反馈信息管理",
@@ -106,7 +130,7 @@
           {
             "name": "id",
             "in": "path",
-            "description": "用户ID",
+            "description": "用户 ID",
             "required": true,
             "schema": {
               "type": "integer",
@@ -1048,6 +1072,60 @@
         }
       }
     },
+    "/notifications/mark-read": {
+      "put": {
+        "tags": [
+          "通知管理"
+        ],
+        "summary": "标记通知已读",
+        "description": "批量将通知标记为已读状态",
+        "operationId": "markAsRead",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/mark-all-read": {
+      "put": {
+        "tags": [
+          "通知管理"
+        ],
+        "summary": "一键已读",
+        "description": "将所有未读通知标记为已读",
+        "operationId": "markAllAsRead",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/messages/recall/{messageId}": {
       "put": {
         "tags": [
@@ -1089,7 +1167,7 @@
         ],
         "summary": "标记消息为已读",
         "description": "将当前用户与某人的所有未读消息标记为已读",
-        "operationId": "markAsRead",
+        "operationId": "markAsRead_1",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2596,11 +2674,11 @@
     "/articles/{id}": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "summary": "获取帖子详情",
         "description": "根据帖子 ID 查询详细信息，包含作者、分类等信息",
-        "operationId": "getArticleInfo",
+        "operationId": "get",
         "parameters": [
           {
             "name": "id",
@@ -2647,22 +2725,20 @@
       },
       "put": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "summary": "更新帖子",
         "description": "根据帖子 ID 更新帖子信息",
-        "operationId": "updateArticle",
+        "operationId": "update",
         "parameters": [
           {
             "name": "id",
             "in": "path",
-            "description": "帖子 ID",
             "required": true,
             "schema": {
               "type": "integer",
               "format": "int64"
-            },
-            "example": 1
+            }
           }
         ],
         "requestBody": {
@@ -2716,11 +2792,12 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       },
       "delete": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "summary": "删除文章",
         "description": "根据文章 ID 删除文章（逻辑删除，自动判断状态和权限）",
@@ -2781,7 +2858,7 @@
       },
       "patch": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "partialUpdateArticle",
         "parameters": [
@@ -2819,15 +2896,142 @@
         }
       }
     },
-    "/articles/draft/{id}": {
-      "get": {
+    "/articles/{articleId}/edit-mode": {
+      "put": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
-        "operationId": "getDraftInfo",
+        "summary": "修改文章编辑模式",
+        "description": "设置文章的编辑模式（仅作者可编辑/所有人可建议）",
+        "operationId": "updateEditMode",
         "parameters": [
           {
-            "name": "id",
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "editMode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/suggestions/{suggestionId}/review": {
+      "put": {
+        "tags": [
+          "文章修改建议管理"
+        ],
+        "summary": "审核建议",
+        "description": "文章作者审核修改建议，可以选择通过或拒绝。需要通过审核后会更新文章版本并记录贡献者。",
+        "operationId": "reviewSuggestion",
+        "parameters": [
+          {
+            "name": "suggestionId",
+            "in": "path",
+            "description": "建议 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionReviewDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "建议或文章不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "审核成功",
+            "content": {
+              "application/json": {
+
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限审核（非文章作者）",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/drafts/{draftId}": {
+      "get": {
+        "tags": [
+          "文章草稿管理"
+        ],
+        "summary": "获取草稿详情",
+        "description": "根据草稿 ID 获取草稿内容（用于加载编辑器）",
+        "operationId": "getDraft",
+        "parameters": [
+          {
+            "name": "draftId",
             "in": "path",
             "required": true,
             "schema": {
@@ -2851,14 +3055,14 @@
       },
       "put": {
         "tags": [
-          "帖子管理"
+          "文章草稿管理"
         ],
-        "summary": "更新文章草稿",
-        "description": "完善草稿文章的信息，可以更新标题、内容、分类等",
-        "operationId": "updateDraft",
+        "summary": "自动保存草稿（基于 ID）",
+        "description": "前端定时调用，根据草稿 ID 保存内容",
+        "operationId": "autoSaveByDraftId",
         "parameters": [
           {
-            "name": "id",
+            "name": "draftId",
             "in": "path",
             "required": true,
             "schema": {
@@ -2871,12 +3075,46 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArticleDraftDTO"
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
               }
             }
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "文章草稿管理"
+        ],
+        "summary": "删除草稿",
+        "description": "根据草稿 ID 删除草稿",
+        "operationId": "deleteDraft",
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -3415,6 +3653,48 @@
           },
           "500": {
             "description": "删除失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sign-in": {
+      "post": {
+        "tags": [
+          "签到管理"
+        ],
+        "summary": "用户签到",
+        "description": "用户每日签到获取积分，连续签到有额外奖励",
+        "operationId": "doSignIn",
+        "responses": {
+          "500": {
+            "description": "服务器错误",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "签到成功",
             "content": {
               "*/*": {
                 "schema": {
@@ -5539,6 +5819,60 @@
         }
       }
     },
+    "/circles/{circleId}/chat/read": {
+      "post": {
+        "tags": [
+          "圈子聊天管理"
+        ],
+        "summary": "标记圈子消息为已读",
+        "description": "用户进入圈子时，调用此接口标记消息为已读",
+        "operationId": "markAsRead_2",
+        "parameters": [
+          {
+            "name": "circleId",
+            "in": "path",
+            "description": "圈子 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "标记成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "圈子不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权操作",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/circles/{circleId}/chat/messages": {
       "post": {
         "tags": [
@@ -5746,7 +6080,7 @@
     "/articles": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "summary": "获取文章分页列表",
         "description": "分页查询文章列表，支持多种条件筛选",
@@ -5797,7 +6131,7 @@
           {
             "name": "auditStatus",
             "in": "query",
-            "description": "审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿)",
+            "description": "审核状态 (0:待审核，1:已通过，2:已拒绝)",
             "required": false,
             "schema": {
               "type": "integer",
@@ -5827,7 +6161,7 @@
           {
             "name": "type",
             "in": "query",
-            "description": "查询类型 (all/draft/published/my/favorite/pending)",
+            "description": "查询类型 (all/published/my/favorite/pending)",
             "required": false,
             "schema": {
               "type": "string",
@@ -5870,9 +6204,9 @@
       },
       "post": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
-        "operationId": "createArticle",
+        "operationId": "create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5897,19 +6231,87 @@
         }
       }
     },
-    "/articles/draft": {
+    "/articles/{id}/view": {
       "post": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
-        "summary": "创建文章草稿",
-        "description": "创建草稿文章，只需要标题和内容，其他信息可后续完善。需要登录后使用。",
-        "operationId": "createDraft",
+        "summary": "增加文章浏览量",
+        "description": "增加指定文章的浏览量（带去重机制，同一用户每天只计一次）",
+        "operationId": "incrementView",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "文章不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务器错误",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{articleId}/versions/{version}/save": {
+      "post": {
+        "tags": [
+          "文章版本管理"
+        ],
+        "summary": "手动保存文章",
+        "description": "用户点击保存按钮，基于草稿创建小版本并更新文章",
+        "operationId": "saveArticle",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArticleDraftDTO"
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                },
+                "description": "标题和内容"
               }
             }
           },
@@ -5929,17 +6331,373 @@
         }
       }
     },
-    "/articles/draft/{id}/submit": {
+    "/articles/{articleId}/versions/{version}/rollback": {
       "post": {
         "tags": [
-          "帖子管理"
+          "文章版本管理"
         ],
-        "summary": "提交草稿审核",
-        "description": "将草稿文章提交审核，审核后对外可见",
-        "operationId": "submitDraft",
+        "summary": "回滚到指定版本",
+        "description": "将文章内容回滚到某个历史版本（需要作者或管理员权限）",
+        "operationId": "rollbackToVersion",
         "parameters": [
           {
-            "name": "id",
+            "name": "articleId",
+            "in": "path",
+            "description": "文章 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "description": "版本号",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "文章或版本不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "回滚成功",
+            "content": {
+              "application/json": {
+
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{articleId}/versions/{version}/mark-major": {
+      "post": {
+        "tags": [
+          "文章版本管理"
+        ],
+        "summary": "标记为大版本",
+        "description": "用户主动触发，创建大版本记录",
+        "operationId": "markMajorVersion",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "changeSummary",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/suggestions/{articleId}": {
+      "get": {
+        "tags": [
+          "文章修改建议管理"
+        ],
+        "summary": "获取建议列表",
+        "description": "查询指定文章的所有修改建议，支持按审核状态筛选。公开接口，无需登录。",
+        "operationId": "getSuggestions",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "审核状态筛选（0-待审核，1-已通过，2-已拒绝）",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 0
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageUtils"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "文章不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "文章修改建议管理"
+        ],
+        "summary": "提交修改建议",
+        "description": "对指定文章提交修改建议，需要文章开启协作编辑模式（edit_mode=1）。不允许作者给自己提交建议。",
+        "operationId": "submitSuggestion",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionSubmitDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "文章不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "文章未开启协作模式或作者不能给自己提建议",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "提交成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/drafts": {
+      "post": {
+        "tags": [
+          "文章草稿管理"
+        ],
+        "summary": "创建新草稿",
+        "description": "用户点击'写文章'时调用，返回草稿 ID，前端后续自动保存都使用该 ID",
+        "operationId": "createDraft",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/drafts/{draftId}/save": {
+      "post": {
+        "tags": [
+          "文章草稿管理"
+        ],
+        "summary": "保存草稿（不发布）",
+        "description": "手动保存草稿到数据库（不创建版本，不发布）",
+        "operationId": "saveDraft",
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/drafts/{draftId}/publish": {
+      "post": {
+        "tags": [
+          "文章草稿管理"
+        ],
+        "summary": "发布文章",
+        "description": "根据草稿发布文章（article_id 为空时创建新文章，否则更新已有文章）",
+        "operationId": "publish",
+        "parameters": [
+          {
+            "name": "draftId",
             "in": "path",
             "required": true,
             "schema": {
@@ -5965,7 +6723,7 @@
     "/articles/batch-delete": {
       "post": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "batchDeleteArticles",
         "requestBody": {
@@ -5999,7 +6757,7 @@
     "/articles/batch-audit": {
       "post": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "batchAudit",
         "parameters": [
@@ -6598,6 +7356,52 @@
         }
       }
     },
+    "/users/public/list": {
+      "get": {
+        "tags": [
+          "用户管理"
+        ],
+        "summary": "获取用户公开列表",
+        "description": "分页查询用户公开信息列表，用于前端展示",
+        "operationId": "getUserPublicList",
+        "parameters": [
+          {
+            "name": "params",
+            "in": "query",
+            "description": "查询参数（page, limit, keyword）",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "获取失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/me": {
       "get": {
         "tags": [
@@ -6750,6 +7554,94 @@
           },
           "200": {
             "description": "查询成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sign-in/transactions": {
+      "get": {
+        "tags": [
+          "签到管理"
+        ],
+        "summary": "获取积分流水",
+        "description": "分页查询用户的积分变动记录",
+        "operationId": "getTransactions",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sign-in/status": {
+      "get": {
+        "tags": [
+          "签到管理"
+        ],
+        "summary": "检查今日签到状态",
+        "description": "查询当前用户今日是否已签到",
+        "operationId": "getSignInStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sign-in/points": {
+      "get": {
+        "tags": [
+          "签到管理"
+        ],
+        "summary": "获取当前用户积分",
+        "description": "查询当前用户的积分余额和连续签到天数",
+        "operationId": "getUserPoints",
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
@@ -7122,6 +8014,83 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "通知管理"
+        ],
+        "summary": "获取通知列表",
+        "description": "查询当前用户的通知列表（分页）",
+        "operationId": "getNotifications",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "isRead",
+            "in": "query",
+            "description": "是否已读（true:已读，false:未读，null:全部）",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "通知管理"
+        ],
+        "summary": "获取未读通知数量",
+        "description": "查询当前用户的未读通知数量",
+        "operationId": "getUnreadCount",
         "responses": {
           "200": {
             "description": "OK",
@@ -8938,10 +9907,499 @@
         }
       }
     },
+    "/articles/{articleId}/versions": {
+      "get": {
+        "tags": [
+          "文章版本管理"
+        ],
+        "summary": "获取文章版本列表",
+        "description": "查询文章的所有历史版本列表（按创建时间倒序）",
+        "operationId": "getVersionList",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "文章不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{articleId}/versions/{version}": {
+      "get": {
+        "tags": [
+          "文章版本管理"
+        ],
+        "summary": "获取指定版本详情",
+        "description": "查询文章的某个历史版本详细信息（包含完整内容）",
+        "operationId": "getVersionDetail",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "description": "版本号",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "版本不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleVersionVO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "文章版本管理"
+        ],
+        "summary": "删除文章版本（管理员专用）",
+        "description": "删除文章的某个历史版本（软删除，仅管理员权限）",
+        "operationId": "deleteVersion",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "description": "版本号",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "版本不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{articleId}/versions/compare": {
+      "get": {
+        "tags": [
+          "文章版本管理"
+        ],
+        "summary": "对比两个版本",
+        "description": "对比文章的两个历史版本（返回两个版本的完整数据用于前端 diff）",
+        "operationId": "compareVersions",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "文章 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          },
+          {
+            "name": "versionA",
+            "in": "query",
+            "description": "版本 A",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "versionB",
+            "in": "query",
+            "description": "版本 B",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 2
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "版本不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "对比成功",
+            "content": {
+              "application/json": {
+
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{articleId}/contributors": {
+      "get": {
+        "tags": [
+          "文章贡献者管理"
+        ],
+        "summary": "获取文章贡献者列表",
+        "description": "查询文章的贡献者及其贡献详情",
+        "operationId": "getContributors",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/{articleId}/contributors/count": {
+      "get": {
+        "tags": [
+          "文章贡献者管理"
+        ],
+        "summary": "获取贡献者数量",
+        "description": "统计文章的贡献者总数",
+        "operationId": "countContributors",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/suggestions/{suggestionId}/detail": {
+      "get": {
+        "tags": [
+          "文章修改建议管理"
+        ],
+        "summary": "获取建议详情",
+        "description": "查询单个修改建议的详细信息，包含建议内容、当前文章内容对比等。公开接口，无需登录。",
+        "operationId": "getSuggestionDetail",
+        "parameters": [
+          {
+            "name": "suggestionId",
+            "in": "path",
+            "description": "建议 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleSuggestionVO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "建议不存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/suggestions/received-by-me": {
+      "get": {
+        "tags": [
+          "文章修改建议管理"
+        ],
+        "summary": "获取我的文章收到的建议列表",
+        "description": "查询当前用户的文章收到的所有修改建议，支持按审核状态筛选。需要登录。",
+        "operationId": "getSuggestionsReceivedByMe",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "审核状态筛选（0-待审核，1-已通过，2-已拒绝）",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 0
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageUtils"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articles/suggestions/proposed-by-me": {
+      "get": {
+        "tags": [
+          "文章修改建议管理"
+        ],
+        "summary": "获取我提出的建议列表",
+        "description": "查询当前用户向所有文章提出的修改建议，支持按审核状态筛选。需要登录。",
+        "operationId": "getSuggestionsProposedByMe",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "审核状态筛选（0-待审核，1-已通过，2-已拒绝）",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageUtils"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/stats/value/{xColumn}/{yColumn}": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "valueStatistics",
         "parameters": [
@@ -8979,7 +10437,7 @@
     "/articles/stats/value/multiple/{xColumn}": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "multipleValueStatistics",
         "parameters": [
@@ -9017,7 +10475,7 @@
     "/articles/stats/time/{xColumn}/{yColumn}/{timeType}": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "timeStatistics",
         "parameters": [
@@ -9063,7 +10521,7 @@
     "/articles/stats/group/{column}": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "groupStatistics",
         "parameters": [
@@ -9093,7 +10551,7 @@
     "/articles/search": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "summary": "全文搜索文章",
         "description": "基于 PostgreSQL 全文搜索，支持关键词搜索、分类筛选、时间范围筛选",
@@ -9187,10 +10645,56 @@
         }
       }
     },
+    "/articles/drafts/my": {
+      "get": {
+        "tags": [
+          "文章草稿管理"
+        ],
+        "summary": "获取我的草稿列表",
+        "description": "查询当前用户的所有草稿（分页）",
+        "operationId": "getMyDrafts",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/articles/count": {
       "get": {
         "tags": [
-          "帖子管理"
+          "文章管理"
         ],
         "operationId": "getCount_2",
         "parameters": [
@@ -9271,6 +10775,28 @@
           },
           "400": {
             "description": "删除失败",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/R"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/clear": {
+      "delete": {
+        "tags": [
+          "通知管理"
+        ],
+        "summary": "清空通知",
+        "description": "清空当前用户的所有通知",
+        "operationId": "clearNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
@@ -9738,8 +11264,7 @@
             "enum": [
               "PENDING",
               "APPROVED",
-              "REJECTED",
-              "DRAFT"
+              "REJECTED"
             ]
           },
           "reviewerAccount": {
@@ -9778,6 +11303,24 @@
           }
         },
         "description": "举报信息"
+      },
+      "MarkReadRequest": {
+        "required": [
+          "notificationIds"
+        ],
+        "type": "object",
+        "properties": {
+          "notificationIds": {
+            "type": "array",
+            "description": "通知 ID 列表",
+            "items": {
+              "type": "integer",
+              "description": "通知 ID 列表",
+              "format": "int64"
+            }
+          }
+        },
+        "description": "标记已读请求数据"
       },
       "MessageReadDTO": {
         "type": "object",
@@ -10141,9 +11684,20 @@
             "example": 1
           },
           "content": {
-            "type": "string",
-            "description": "内容详情",
-            "example": "这是帖子的具体内容..."
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "内容详情"
+            },
+            "description": "内容详情"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "扩展信息 (JSON 格式)"
+            },
+            "description": "扩展信息 (JSON 格式)"
           },
           "attachment": {
             "type": "string",
@@ -10151,44 +11705,26 @@
             "example": "http://example.com/attachment.zip"
           }
         },
-        "description": "帖子信息"
+        "description": "帖子更新请求对象"
       },
-      "ArticleDraftDTO": {
+      "SuggestionReviewDTO": {
         "required": [
-          "categoryId",
-          "content",
-          "title"
+          "approved"
         ],
         "type": "object",
         "properties": {
-          "title": {
-            "type": "string",
-            "description": "标题（必填）",
-            "example": "我的文章"
+          "approved": {
+            "type": "boolean",
+            "description": "是否通过（true-通过，false-拒绝）",
+            "example": true
           },
-          "content": {
+          "reason": {
             "type": "string",
-            "description": "内容（必填）",
-            "example": "这是文章内容..."
-          },
-          "coverUrl": {
-            "type": "string",
-            "description": "封面图片 URL",
-            "example": "http://example.com/cover.jpg"
-          },
-          "categoryId": {
-            "type": "integer",
-            "description": "内容分类 ID（必填）",
-            "format": "int64",
-            "example": 1
-          },
-          "attachment": {
-            "type": "string",
-            "description": "附件 URL",
-            "example": "http://example.com/attachment.zip"
+            "description": "拒绝理由（仅拒绝时需要）",
+            "example": "内容有误"
           }
         },
-        "description": "文章创建请求对象（草稿版）"
+        "description": "审核结果"
       },
       "UserRegisterDTO": {
         "required": [
@@ -10481,9 +12017,22 @@
             "example": 456
           },
           "content": {
-            "type": "string",
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "消息内容",
+              "example": "你好！"
+            },
             "description": "消息内容",
             "example": "你好！"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "扩展信息 (JSON格式)"
+            },
+            "description": "扩展信息 (JSON格式)"
           },
           "msgType": {
             "type": "integer",
@@ -10749,9 +12298,20 @@
             "$ref": "#/components/schemas/UserSimpleVO"
           },
           "content": {
-            "type": "string",
-            "description": "消息内容",
-            "example": "大家好！"
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "消息内容 (JSON格式)"
+            },
+            "description": "消息内容 (JSON格式)"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "扩展信息 (JSON格式)"
+            },
+            "description": "扩展信息 (JSON格式)"
           },
           "msgType": {
             "type": "integer",
@@ -10773,6 +12333,24 @@
           "createTime": {
             "type": "string",
             "description": "创建时间",
+            "format": "date-time"
+          },
+          "isRecalled": {
+            "type": "boolean",
+            "description": "是否已撤回",
+            "example": false
+          },
+          "deletedByAdmin": {
+            "type": "boolean",
+            "description": "是否被管理员删除",
+            "example": false
+          },
+          "deleter": {
+            "$ref": "#/components/schemas/UserSimpleVO"
+          },
+          "deletedTime": {
+            "type": "string",
+            "description": "删除时间",
             "format": "date-time"
           },
           "action": {
@@ -10801,6 +12379,11 @@
             "type": "string",
             "description": "头像 URL",
             "example": "http://example.com/avatar.jpg"
+          },
+          "lastOnlineTime": {
+            "type": "string",
+            "description": "最后在线时间",
+            "format": "date-time"
           }
         },
         "description": "用户简易信息"
@@ -10855,9 +12438,20 @@
             "example": "http://example.com/cover.jpg"
           },
           "content": {
-            "type": "string",
-            "description": "内容详情",
-            "example": "这是帖子的具体内容..."
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "内容详情"
+            },
+            "description": "内容详情"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "扩展信息 (JSON格式)"
+            },
+            "description": "扩展信息 (JSON格式)"
           },
           "attachment": {
             "type": "string",
@@ -10866,6 +12460,34 @@
           }
         },
         "description": "帖子创建请求对象（正式版）"
+      },
+      "SuggestionSubmitDTO": {
+        "required": [
+          "content",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "建议标题",
+            "example": "优化文章结构"
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "建议内容（JSON）"
+            },
+            "description": "建议内容（JSON）"
+          },
+          "changeSummary": {
+            "type": "string",
+            "description": "修改摘要",
+            "example": "重新组织了段落"
+          }
+        },
+        "description": "修改建议信息"
       },
       "Article": {
         "type": "object",
@@ -10910,13 +12532,32 @@
             "example": "http://example.com/attachment.zip"
           },
           "content": {
-            "type": "string",
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "内容详情",
+              "example": "这是帖子的具体内容..."
+            },
             "description": "内容详情",
             "example": "这是帖子的具体内容..."
           },
+          "currentVersion": {
+            "type": "integer",
+            "description": "版本号",
+            "format": "int32",
+            "example": 1
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "扩展信息 (JSON 格式)"
+            },
+            "description": "扩展信息 (JSON 格式)"
+          },
           "publishTime": {
             "type": "string",
-            "description": "发布时间",
+            "description": "发布时间（审核通过后自动生成）",
             "format": "date-time"
           },
           "likeCount": {
@@ -10944,8 +12585,7 @@
             "enum": [
               "PENDING",
               "APPROVED",
-              "REJECTED",
-              "DRAFT"
+              "REJECTED"
             ]
           },
           "auditReply": {
@@ -10965,19 +12605,30 @@
             "format": "int32",
             "example": 20
           },
+          "editMode": {
+            "type": "integer",
+            "description": "编辑模式（0-仅作者可编辑，1-所有人可建议）",
+            "format": "int32",
+            "example": 0
+          },
           "deleted": {
             "type": "boolean",
             "description": "逻辑删除标志",
             "example": false
           },
+          "draftExists": {
+            "type": "boolean",
+            "description": "是否存在草稿",
+            "example": false
+          },
           "createTime": {
             "type": "string",
-            "description": "创建时间",
+            "description": "创建时间（系统自动生成）",
             "format": "date-time"
           },
           "updateTime": {
             "type": "string",
-            "description": "更新时间",
+            "description": "更新时间（系统自动生成）",
             "format": "date-time"
           }
         },
@@ -11045,6 +12696,18 @@
             "description": "个人签名",
             "example": "生活不止眼前的苟且，还有诗和远方"
           },
+          "points": {
+            "type": "integer",
+            "description": "用户积分",
+            "format": "int32",
+            "example": 100
+          },
+          "signInStreak": {
+            "type": "integer",
+            "description": "连续签到天数",
+            "format": "int32",
+            "example": 7
+          },
           "status": {
             "type": "string",
             "description": "状态 (0:启用，1:禁用)",
@@ -11072,6 +12735,11 @@
           "lastLoginTime": {
             "type": "string",
             "description": "最后登录时间",
+            "format": "date-time"
+          },
+          "lastOnlineTime": {
+            "type": "string",
+            "description": "最后在线时间",
             "format": "date-time"
           },
           "lastLoginIp": {
@@ -11416,6 +13084,259 @@
           }
         },
         "description": "内容分类实体"
+      },
+      "ArticleVersionVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "版本 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "articleId": {
+            "type": "integer",
+            "description": "文章 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "version": {
+            "type": "integer",
+            "description": "版本号",
+            "format": "int32",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "description": "文章标题",
+            "example": "Java 并发编程指南"
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "内容详情（JSONB 全量快照）"
+            },
+            "description": "内容详情（JSONB 全量快照）"
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "额外信息"
+            },
+            "description": "额外信息"
+          },
+          "changeSummary": {
+            "type": "string",
+            "description": "修改摘要",
+            "example": "优化了线程池示例代码"
+          },
+          "operatorId": {
+            "type": "integer",
+            "description": "操作人 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "operator": {
+            "$ref": "#/components/schemas/UserSimpleVO"
+          },
+          "contributorId": {
+            "type": "integer",
+            "description": "实际贡献者 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "contributor": {
+            "$ref": "#/components/schemas/UserSimpleVO"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "isLatest": {
+            "type": "boolean",
+            "description": "是否当前最新版本",
+            "example": true
+          },
+          "versionType": {
+            "type": "integer",
+            "description": "版本类型（0-小版本，1-大版本）",
+            "format": "int32",
+            "example": 0
+          },
+          "majorVersion": {
+            "type": "integer",
+            "description": "主版本号",
+            "format": "int32",
+            "example": 2
+          },
+          "minorVersion": {
+            "type": "integer",
+            "description": "次版本号",
+            "format": "int32",
+            "example": 3
+          },
+          "formattedVersion": {
+            "type": "string",
+            "description": "格式化版本号",
+            "example": "2.3"
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "是否为当前版本",
+            "example": true
+          }
+        },
+        "description": "文章版本详细视图对象"
+      },
+      "ArticleSuggestionVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "建议 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "articleId": {
+            "type": "integer",
+            "description": "文章 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "articleTitle": {
+            "type": "string",
+            "description": "文章标题",
+            "example": "Java 并发编程指南"
+          },
+          "articleCoverUrl": {
+            "type": "string",
+            "description": "文章封面图",
+            "example": "http://example.com/cover.jpg"
+          },
+          "originalContent": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "文章原始内容（JSONB）"
+            },
+            "description": "文章原始内容（JSONB）"
+          },
+          "proposerId": {
+            "type": "integer",
+            "description": "建议者 ID",
+            "format": "int64",
+            "example": 2
+          },
+          "proposer": {
+            "$ref": "#/components/schemas/UserSimpleVO"
+          },
+          "title": {
+            "type": "string",
+            "description": "建议标题",
+            "example": "优化文章结构"
+          },
+          "version": {
+            "type": "integer",
+            "description": "建议基于的文章版本号",
+            "format": "int32",
+            "example": 1
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "建议内容（JSONB 全量）"
+            },
+            "description": "建议内容（JSONB 全量）"
+          },
+          "changeSummary": {
+            "type": "string",
+            "description": "修改摘要",
+            "example": "重新组织了段落"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态（0-待审核，1-已通过，2-已拒绝）",
+            "format": "int32",
+            "example": 0
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "reviewTime": {
+            "type": "string",
+            "description": "审核时间",
+            "format": "date-time"
+          },
+          "reviewerId": {
+            "type": "integer",
+            "description": "审核人 ID",
+            "format": "int64",
+            "example": 1
+          },
+          "reviewer": {
+            "$ref": "#/components/schemas/UserSimpleVO"
+          },
+          "appliedVersion": {
+            "type": "integer",
+            "description": "应用后的版本号（审核通过后填充）",
+            "format": "int32",
+            "example": 2
+          },
+          "addedLines": {
+            "type": "integer",
+            "description": "新增行数",
+            "format": "int32",
+            "example": 15
+          },
+          "removedLines": {
+            "type": "integer",
+            "description": "删除行数",
+            "format": "int32",
+            "example": 10
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "额外信息（用于对比等）"
+            },
+            "description": "额外信息（用于对比等）"
+          }
+        },
+        "description": "文章修改建议视图对象"
+      },
+      "PageUtils": {
+        "type": "object",
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPage": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currPage": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
       },
       "InteractionCancelDTO": {
         "required": [

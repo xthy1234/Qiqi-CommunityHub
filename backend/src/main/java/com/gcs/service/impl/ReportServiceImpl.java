@@ -1,8 +1,11 @@
 package com.gcs.service.impl;
 
 import com.gcs.entity.Report;
+import com.gcs.entity.User;
 import com.gcs.enums.AuditStatus;
 import com.gcs.enums.CommonStatus;
+import com.gcs.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.List;
@@ -35,6 +38,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service("reportService")
 public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements ReportService {
 
+    @Autowired
+    private UserService userService;
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
         validateParams(params);
@@ -71,10 +76,6 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
     @Override
     public boolean createReport(Report report) {
         validateReportForCreate(report);
-        
-
-        report.setCreateTime(LocalDateTime.now());
-        report.setReportTime(LocalDateTime.now());
         report.setReviewStatus(AuditStatus.PENDING);
         report.setStatus(CommonStatus.ENABLED);
         
@@ -94,7 +95,13 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
         AuditStatus auditStatus = AuditStatus.valueOf(reviewStatus);
         report.setReviewStatus(auditStatus);
         report.setReplyContent(replyContent);
-        report.setReviewerAccount(reviewerAccount);
+        
+        // 根据账号查询审核人 ID
+        User reviewer = userService.getUserByAccount(reviewerAccount);
+        if (reviewer != null) {
+            report.setReviewerId(reviewer.getId());
+        }
+        
         report.setReviewTime(LocalDateTime.now());
         report.setUpdateTime(LocalDateTime.now());
         
@@ -102,12 +109,12 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
     }
 
     @Override
-    public boolean batchReviewReports(List<Long> reportIds, Integer reviewStatus, String replyContent, String reviewerAccount) {
+    public boolean batchReviewReports(List<Long> reportIds, Integer reviewStatus, String replyContent, Long reviewerId) {
         if (CollectionUtils.isEmpty(reportIds) || reviewStatus == null) {
             throw new IllegalArgumentException("参数不能为空");
         }
 
-        int result = baseMapper.updateReviewStatusBatch(reportIds, reviewStatus, reviewerAccount);
+        int result = baseMapper.updateReviewStatusBatch(reportIds, reviewStatus, reviewerId);
         return result > 0;
     }
 
@@ -174,9 +181,6 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
     private void validateReportForCreate(Report report) {
         if (report == null) {
             throw new IllegalArgumentException("举报信息不能为空");
-        }
-        if (!StringUtils.hasText(report.getContentTitle())) {
-            throw new IllegalArgumentException("被举报内容标题不能为空");
         }
         if (!StringUtils.hasText(report.getReportReason())) {
             throw new IllegalArgumentException("举报原因不能为空");

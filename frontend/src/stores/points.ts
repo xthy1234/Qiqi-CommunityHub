@@ -68,8 +68,8 @@ export const usePointsStore = defineStore('points', {
         
         this.points = pointsData.points
         this.streak = pointsData.streak
-        this.signedInToday = statusData.signedIn  // ✅ 使用正确的字段名
-        this.lastSignInDate = statusData.lastSignInDate
+        this.signedInToday = pointsData.signedIn
+        this.lastSignInDate = pointsData.lastSignInDate
       } catch (error) {
         console.error('加载积分信息失败:', error)
         throw error
@@ -110,8 +110,7 @@ export const usePointsStore = defineStore('points', {
     async refreshSignInStatus() {
       try {
         const status = await signInService.getSignInStatus()
-        this.signedInToday = status.signedInToday
-        this.lastSignInDate = status.lastSignInDate
+        this.signedInToday = status.signedIn
       } catch (error) {
         console.error('刷新签到状态失败:', error)
       }

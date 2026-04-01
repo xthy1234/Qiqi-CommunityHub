@@ -44,9 +44,9 @@ import {
   NBadge,
   NConfigProvider,
   NDataTable,
-  NDataTableCell
 } from "naive-ui"
 
+import NDataTableCell from "naive-ui"
 // 地图组件初始化
 import VueAMap, { initAMapApiLoader } from "@vuemap/vue-amap"
 import "@vuemap/vue-amap/dist/style.css"

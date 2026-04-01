@@ -9,7 +9,7 @@
       :back-path="backPath"
       @back="handleBack"
     >
-      <template v-if="$slots.headerExtra" #extra>
+      <template #extra>
         <slot name="headerExtra"></slot>
       </template>
     </PageHeader>
@@ -40,6 +40,8 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   (e: 'back'): void
 }>()
+
+
 
 const router = useRouter()
 

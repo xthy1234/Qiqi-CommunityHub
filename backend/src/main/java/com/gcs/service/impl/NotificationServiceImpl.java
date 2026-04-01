@@ -1,33 +1,47 @@
 package com.gcs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gcs.dao.NotificationDao;
+import com.gcs.dao.UserDao;
 import com.gcs.entity.Notification;
+import com.gcs.entity.User;
 import com.gcs.enums.NotificationType;
 import com.gcs.service.NotificationService;
+import com.gcs.service.UserService;
+import com.gcs.utils.MPUtil;
+import com.gcs.utils.PageUtils;
 import com.gcs.vo.NotificationVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 通知服务实现类
  */
 @Slf4j
 @Service("notificationService")
-public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notification> 
-        implements NotificationService {
+public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notification> implements NotificationService {
 
     @Autowired
     private NotificationDao notificationDao;
+    
+    @Autowired
+    private UserDao userDao;
     
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -219,4 +233,94 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
             log.error("❌ [清空推送] 失败，userId: {}", userId, e);
         }
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int sendBatchNotifications(List<Long> userIds, Integer type, Map<String, Object> content, Map<String, Object> extra) {
+        if (type == null || content == null) {
+            throw new IllegalArgumentException("通知类型和内容不能为空");
+        }
+
+        List<Long> targetUserIds = userIds;
+        
+        // 如果 userIds 为空，发送给所有用户
+        if (CollectionUtils.isEmpty(userIds)) {
+            List<User> allUsers = userDao.selectList(new QueryWrapper<User>().select("id"));
+            targetUserIds = allUsers.stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList());
+        }
+
+        if (CollectionUtils.isEmpty(targetUserIds)) {
+            return 0;
+        }
+
+        // 批量插入通知
+        List<Notification> notifications = new ArrayList<>();
+        for (Long uid : targetUserIds) {
+            Notification notification = new Notification();
+            notification.setUserId(uid);
+            notification.setType(type);
+            notification.setContent(content);
+            notification.setExtra(extra);
+            notification.setIsRead(false);
+            notification.setCreateTime(LocalDateTime.now());
+            notifications.add(notification);
+        }
+
+        // 分批插入，每批 1000 条
+        final int BATCH_SIZE = 1000;
+        int sentCount = 0;
+        for (int i = 0; i < notifications.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, notifications.size());
+            List<Notification> batch = notifications.subList(i, end);
+            boolean result = this.saveBatch(batch);
+            if (result) {
+                sentCount += batch.size();
+            }
+        }
+
+        log.info("批量发送通知，目标用户数：{}, 实际发送：{}", targetUserIds.size(), sentCount);
+        return sentCount;
+    }
+
+    @Override
+    public int sendBroadcastNotification(Integer type, Map<String, Object> content, Map<String, Object> extra) {
+        return sendBatchNotifications(null, type, content, extra);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean withdrawNotification(Long notificationId) {
+        if (notificationId == null) {
+            throw new IllegalArgumentException("通知 ID 不能为空");
+        }
+
+        return this.removeById(notificationId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchWithdrawNotifications(List<Long> notificationIds) {
+        if (CollectionUtils.isEmpty(notificationIds)) {
+            throw new IllegalArgumentException("通知 ID 列表不能为空");
+        }
+
+        int removedCount = this.removeByIds(notificationIds) ? notificationIds.size() : 0;
+        log.info("批量撤回通知，撤回数量：{}", removedCount);
+        return removedCount;
+    }
+
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        QueryWrapper<Notification> wrapper = new QueryWrapper<>();
+        return queryPage(params, wrapper);
+    }
+
+    @Override
+    public PageUtils queryPage(Map<String, Object> params, Wrapper<Notification> queryWrapper) {
+        IPage<Notification> page = this.page(new Page<>(), queryWrapper);
+        return new PageUtils(page);
+    }
+
 }

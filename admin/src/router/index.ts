@@ -74,6 +74,40 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/comment/list.vue'),
         meta: { title: '评论管理' }
       },
+      // 角色与权限管理
+      {
+        path: 'admin/roles',
+        component: () => import('@/views/admin/RoleList.vue'),
+        meta: { title: '角色管理' }
+      },
+      {
+        path: 'admin/menus',
+        component: () => import('@/views/admin/MenuList.vue'),
+        meta: { title: '菜单管理' }
+      },
+      {
+        path: 'admin/role-menus',
+        component: () => import('@/views/admin/RoleMenu.vue'),
+        meta: { title: '权限分配' }
+      },
+      // 分类管理
+      {
+        path: 'admin/categories',
+        component: () => import('@/views/admin/CategoryList.vue'),
+        meta: { title: '分类管理' }
+      },
+      // 举报管理
+      {
+        path: 'admin/reports',
+        component: () => import('@/views/report/ReportList.vue'),
+        meta: { title: '举报管理' }
+      },
+      // 轮播图管理
+      {
+        path: 'admin/swipers',
+        component: () => import('@/views/swiper/SwiperList.vue'),
+        meta: { title: '轮播图管理' }
+      },
       // 个人中心
       {
         path: 'profile',

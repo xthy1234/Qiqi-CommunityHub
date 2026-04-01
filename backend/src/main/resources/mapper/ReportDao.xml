@@ -6,21 +6,18 @@
     <!-- 举报结果映射 -->
     <resultMap type="com.gcs.entity.Report" id="reportMap">
         <result property="id" column="id"/>
-        <result property="contentTitle" column="content_title"/>
-        <result property="contentCategory" column="content_category"/>
-        <result property="reportedUserAccount" column="reported_user_account"/>
-        <result property="reportedNickName" column="reported_user_name"/>
+        <result property="contentId" column="content_id"/>
+        <result property="reportedUserId" column="reported_user_id"/>
         <result property="reportReason" column="report_reason"/>
-        <result property="reportTime" column="report_time"/>
-        <result property="reporterAccount" column="reporter_account"/>
         <result property="reporterId" column="reporter_id"/>
         <result property="replyContent" column="reply_content"/>
         <result property="reviewStatus" column="review_status"/>
-        <result property="reviewerAccount" column="reviewer_account"/>
+        <result property="reviewerId" column="reviewer_id"/>
         <result property="reviewTime" column="review_time"/>
         <result property="status" column="status"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
+        <result property="isDeleted" column="is_deleted"/>
     </resultMap>
 
     <!-- 举报视图结果映射 -->
@@ -34,17 +31,13 @@
 <!--    <select id="selectListView" resultMap="reportViewMap">-->
 <!--        SELECT-->
 <!--            r.id,-->
-<!--            r.content_title,-->
-<!--            r.content_category,-->
-<!--            r.reported_user_account,-->
-<!--            r.reported_user_name,-->
+<!--            r.content_id,-->
+<!--            r.reported_user_id,-->
 <!--            r.report_reason,-->
-<!--            r.report_time,-->
-<!--            r.reporter_account,-->
 <!--            r.reporter_id,-->
 <!--            r.reply_content,-->
 <!--            r.review_status,-->
-<!--            r.reviewer_account,-->
+<!--            r.reviewer_id,-->
 <!--            r.review_time,-->
 <!--            r.status,-->
 <!--            r.create_time,-->
@@ -59,7 +52,7 @@
 <!--            uu.username as reported_user_nickname-->
 <!--        FROM report r-->
 <!--        LEFT JOIN user ur ON r.reporter_id = ur.id-->
-<!--        LEFT JOIN user uu ON r.reported_user_account = uu.account-->
+<!--        LEFT JOIN user uu ON r.reported_user_id = uu.id-->
 <!--        <where>-->
 <!--            1=1-->
 <!--            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">-->
@@ -73,17 +66,13 @@
     <select id="selectListView" resultMap="reportViewMap">
         SELECT
             r.id,
-            r.content_title,
-            r.content_category,
-            r.reported_user_account,
-            r.reported_user_name,
+            r.content_id,
+            r.reported_user_id,
             r.report_reason,
-            r.report_time,
-            r.reporter_account,
             r.reporter_id,
             r.reply_content,
             r.review_status,
-            r.reviewer_account,
+            r.reviewer_id,
             r.review_time,
             r.status,
             r.create_time,
@@ -95,10 +84,10 @@
                 ELSE '未知状态'
             END as review_status_description,
             ur.account as reporter_nickname,
-            uu.account as reported_user_nickname
+            uu.nickname as reported_user_nickname
         FROM report r
-        LEFT JOIN user ur ON r.reporter_id = ur.id
-        LEFT JOIN user uu ON r.reported_user_account = uu.account
+        LEFT JOIN users ur ON r.reporter_id = ur.id
+        LEFT JOIN users uu ON r.reported_user_id = uu.id
         <where>
             1=1
             <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
@@ -112,17 +101,13 @@
     <select id="selectView" resultMap="reportViewMap">
         SELECT
             r.id,
-            r.content_title,
-            r.content_category,
-            r.reported_user_account,
-            r.reported_user_name,
+            r.content_id,
+            r.reported_user_id,
             r.report_reason,
-            r.report_time,
-            r.reporter_account,
             r.reporter_id,
             r.reply_content,
             r.review_status,
-            r.reviewer_account,
+            r.reviewer_id,
             r.review_time,
             r.status,
             r.create_time,
@@ -134,10 +119,10 @@
                 ELSE '未知状态'
             END as review_status_description,
             ur.account as reporter_nickname,
-            uu.account as reported_user_nickname
+            uu.nickname as reported_user_nickname
         FROM report r
         LEFT JOIN users ur ON r.reporter_id = ur.id
-        LEFT JOIN users uu ON r.reported_user_account = uu.account
+        LEFT JOIN users uu ON r.reported_user_id = uu.id
         <where>
             1=1
             <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
@@ -158,7 +143,7 @@
     <update id="updateReviewStatusBatch">
         UPDATE report
         SET review_status = #{reviewStatus},
-            reviewer_account = #{reviewerAccount},
+            reviewer_id = #{reviewerId},
             review_time = NOW(),
             update_time = NOW()
         WHERE id IN

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import com.gcs.enums.AuditStatus;
 import com.gcs.enums.CommonStatus;
+import com.gcs.service.ArticleService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -18,10 +19,13 @@ import org.springframework.web.bind.annotation.*;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.gcs.annotation.IgnoreAuth;
 import com.gcs.dto.ReportCreateDTO;
+import com.gcs.dto.ReportCreateSimpleDTO;
 import com.gcs.dto.ReportReviewDTO;
 import com.gcs.dto.ReportBatchReviewDTO;
+import com.gcs.entity.Article;
 import com.gcs.entity.Report;
 import com.gcs.entity.view.ReportView;
+import com.gcs.service.ArticleService;
 import com.gcs.service.ReportService;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
@@ -29,7 +33,9 @@ import com.gcs.utils.MPUtil;
 import com.gcs.vo.ReportVO;
 import com.gcs.vo.ReportDetailVO;
 import com.gcs.vo.ReportStatisticsVO;
-
+import com.gcs.entity.User;
+import com.gcs.service.UserService;
+import com.gcs.vo.UserSimpleVO;
 import lombok.extern.slf4j.Slf4j;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,7 +59,12 @@ public class ReportController {
     
     @Autowired
     private ReportService reportService;
+    
+    @Autowired
+    private ArticleService articleService;
 
+    @Autowired
+    private UserService userService;
     /**
      * 获取举报分页列表
      */
@@ -78,10 +89,10 @@ public class ReportController {
             PageUtils page = reportService.queryPage(params, 
                 MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(queryWrapper, report), params), params));
             
-            // 将 Report 转换为 ReportVO
+            // 将 Report 转换为 ReportVO，并填充用户信息
             List<ReportVO> voList = ((List<Report>) page.getList())
                 .stream()
-                .map(this::convertToVO)
+                .map(this::convertToVOWithUserInfo)
                 .collect(Collectors.toList());
             page.setList(voList);
             
@@ -110,8 +121,8 @@ public class ReportController {
                 return R.error("举报信息不存在");
             }
             
-            // 将 Report 转换为 ReportDetailVO
-            ReportDetailVO vo = convertToDetailVO(report);
+            // 将 Report 转换为 ReportDetailVO，并填充用户信息
+            ReportDetailVO vo = convertToDetailVOWithUserInfo(report);
             return R.ok().put("data", vo);
         } catch (Exception e) {
             log.error("获取举报详情失败，ID: {}", id, e);
@@ -134,10 +145,10 @@ public class ReportController {
         try {
             PageUtils page = reportService.getUserReports(userId, params);
             
-            // 将 Report 转换为 ReportVO
+            // 将 Report 转换为 ReportVO，并填充用户信息
             List<ReportVO> voList = ((List<Report>) page.getList())
                 .stream()
-                .map(this::convertToVO)
+                .map(this::convertToVOWithUserInfo)
                 .collect(Collectors.toList());
             page.setList(voList);
             
@@ -170,37 +181,77 @@ public class ReportController {
     }
 
     /**
-     * 创建举报
+     * 创建举报（简化版 - 推荐使用）
      */
-    @Operation(summary = "创建举报", description = "用户提交新的举报信息")
+    @Operation(summary = "创建举报", description = "用户提交新的举报信息，只需提供内容 ID 和举报原因")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "举报提交成功"),
-        @ApiResponse(responseCode = "400", description = "提交失败")
+        @ApiResponse(responseCode = "400", description = "提交失败"),
+        @ApiResponse(responseCode = "404", description = "内容不存在")
     })
     @PostMapping
-    public R createReport(
-        @Parameter(description = "举报信息", required = true) @Valid @RequestBody ReportCreateDTO createDTO, 
+    public R createReportSimple(
+        @Parameter(description = "举报信息", required = true) @Valid @RequestBody ReportCreateSimpleDTO createDTO, 
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Report report = convertToEntity(createDTO);
+            // 获取当前登录用户
+            Long currentUserId = (Long) request.getSession().getAttribute("userId");
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
             
-            // 设置举报人信息
-            Long userId = (Long) request.getSession().getAttribute("userId");
-            String userAccount = getSessionAttribute(request, "account");
-            report.setReporterId(userId);
-            report.setReporterAccount(userAccount);
-            report.setReviewStatus(AuditStatus.PENDING); // 默认为待审核
-            report.setStatus(CommonStatus.ENABLED); // 默认为有效
+            // 根据内容类型自动查询被举报内容信息
+            String reportType = createDTO.getReportType() != null ? createDTO.getReportType() : "ARTICLE";
+            
+            Long reportedUserId = null;
+            String reportedUserAccount = null;
+            String reportedNickName = null;
+            String contentTitle = null;
+            
+            if ("ARTICLE".equals(reportType)) {
+                // 查询文章信息
+                Article article = articleService.getById(createDTO.getContentId());
+                if (article == null) {
+                    return R.error("文章不存在");
+                }
+                
+                reportedUserId = article.getAuthorId();
+                contentTitle = article.getTitle();
+                
+                // 查询作者详细信息
+                if (reportedUserId != null) {
+                    User author = userService.getById(reportedUserId);
+                    if (author != null) {
+                        reportedUserAccount = author.getAccount();
+                        reportedNickName = author.getNickname();
+                    } else {
+                        log.warn("举报时无法找到作者信息，authorId: {}", reportedUserId);
+                    }
+                }
+            }
+            // TODO: 支持其他类型的举报（评论、用户等）
+            
+            // 构建举报实体
+            Report report = new Report();
+            report.setContentId(createDTO.getContentId());
+            report.setReporterId(currentUserId);
+            report.setReportedUserId(reportedUserId);
+            report.setReportReason(createDTO.getReportReason());
+            report.setReviewStatus(AuditStatus.PENDING);
+            report.setStatus(CommonStatus.ENABLED);
             report.setReviewTime(LocalDateTime.now());
             
             boolean result = reportService.createReport(report);
             if (result) {
-                return R.ok("举报提交成功");
+                log.info("用户举报成功，userId: {}, contentId: {}, reportedUserId: {}", 
+                    currentUserId, createDTO.getContentId(), reportedUserId);
+                return R.ok("举报提交成功，感谢您的反馈！");
             } else {
                 return R.error("提交失败");
             }
         } catch (Exception e) {
-            log.error("添加举报失败", e);
+            log.error("添加举报失败，userId: {}, dto: {}", 
+                request.getSession().getAttribute("userId"), createDTO, e);
             return R.error(e.getMessage());
         }
     }
@@ -254,15 +305,31 @@ public class ReportController {
             if (batchDTO.getReportIds() == null || batchDTO.getReportIds().length == 0) {
                 return R.error("请选择要审核的举报信息");
             }
+
+            Long reviewerId = (Long) request.getSession().getAttribute("id");
+            if (reviewerId == null) {
+                String reviewerIdStr = getSessionAttribute(request, "id");
+                if (reviewerIdStr != null && !reviewerIdStr.isEmpty()) {
+                    try {
+                        reviewerId = Long.parseLong(reviewerIdStr);
+                    } catch (NumberFormatException e) {
+                        log.error("解析审核人 ID 失败：{}", reviewerIdStr, e);
+                        return R.error("无效的审核人 ID");
+                    }
+                }
+            }
             
-            String reviewerAccount = getSessionAttribute(request, "account");
+            if (reviewerId == null) {
+                return R.error("请先登录");
+            }
+            
             List<Long> reportIdList = Arrays.stream(batchDTO.getReportIds()).collect(Collectors.toList());
             
             boolean result = reportService.batchReviewReports(
                 reportIdList, 
                 batchDTO.getReviewStatus(), 
                 batchDTO.getReplyContent(), 
-                reviewerAccount);
+                reviewerId);
             
             if (result) {
                 return R.ok("批量审核成功");
@@ -411,46 +478,90 @@ public class ReportController {
     // ==================== 私有转换方法 ====================
     
     /**
-     * 将 Report 转换为 ReportVO
+     * 将 Report 转换为 ReportVO（不包含用户信息）
      */
     private ReportVO convertToVO(Report report) {
         ReportVO vo = new ReportVO();
         vo.setId(report.getId());
         vo.setContentId(report.getContentId());
-        vo.setContentTitle(report.getContentTitle());
-        vo.setContentCategory(report.getContentCategory());
-        vo.setReportedNickName(report.getReportedNickName());
+        vo.setReportedUserId(report.getReportedUserId());
         vo.setReportReason(report.getReportReason());
-        vo.setReporterAccount(report.getReporterAccount());
         vo.setReviewStatus(report.getReviewStatus());
         vo.setStatus(report.getStatus());
-        vo.setReportTime(report.getReportTime());
+        vo.setReportTime(report.getCreateTime());
         vo.setCreateTime(report.getCreateTime());
         return vo;
     }
     
     /**
-     * 将 Report 转换为 ReportDetailVO
+     * 将 Report 转换为 ReportVO（包含用户信息）
      */
-    private ReportDetailVO convertToDetailVO(Report report) {
+    private ReportVO convertToVOWithUserInfo(Report report) {
+        ReportVO vo = convertToVO(report);
+        
+        // 设置举报人信息
+        if (report.getReporterId() != null) {
+            User reporter = userService.getById(report.getReporterId());
+            if (reporter != null) {
+                vo.setReporterUserInfo(convertToUserSimpleVO(reporter));
+            }
+        }
+        
+        // 设置审核人信息
+        if (report.getReviewerId() != null) {
+            User reviewer = userService.getById(report.getReviewerId());
+            if (reviewer != null) {
+                vo.setReviewUserInfo(convertToUserSimpleVO(reviewer));
+            }
+        }
+        
+        return vo;
+    }
+    
+    /**
+     * 将 Report 转换为 ReportDetailVO（包含用户信息）
+     */
+    private ReportDetailVO convertToDetailVOWithUserInfo(Report report) {
         ReportDetailVO vo = new ReportDetailVO();
         vo.setId(report.getId());
         vo.setContentId(report.getContentId());
-        vo.setContentTitle(report.getContentTitle());
-        vo.setContentCategory(report.getContentCategory());
-        vo.setReportedUserID(report.getReportedUserID());
-        vo.setReportedUserAccount(report.getReportedUserAccount());
-        vo.setReportedNickName(report.getReportedNickName());
+        vo.setReportedUserId(report.getReportedUserId());
         vo.setReportReason(report.getReportReason());
-        vo.setReporterAccount(report.getReporterAccount());
         vo.setReplyContent(report.getReplyContent());
-        vo.setReviewerAccount(report.getReviewerAccount());
         vo.setReviewStatus(report.getReviewStatus());
         vo.setStatus(report.getStatus());
-        vo.setReportTime(report.getReportTime());
+        vo.setReportTime(report.getCreateTime());
         vo.setReviewTime(report.getReviewTime());
         vo.setCreateTime(report.getCreateTime());
         vo.setUpdateTime(report.getUpdateTime());
+        
+        // 设置举报人信息
+        if (report.getReporterId() != null) {
+            User reporter = userService.getById(report.getReporterId());
+            if (reporter != null) {
+                vo.setReporterUserInfo(convertToUserSimpleVO(reporter));
+            }
+        }
+        
+        // 设置审核人信息
+        if (report.getReviewerId() != null) {
+            User reviewer = userService.getById(report.getReviewerId());
+            if (reviewer != null) {
+                vo.setReviewUserInfo(convertToUserSimpleVO(reviewer));
+            }
+        }
+        
+        return vo;
+    }
+    
+    /**
+     * 将 User 转换为 UserSimpleVO
+     */
+    private UserSimpleVO convertToUserSimpleVO(User user) {
+        UserSimpleVO vo = new UserSimpleVO();
+        vo.setId(user.getId());
+        vo.setNickname(user.getNickname());
+        vo.setAvatar(user.getAvatar());
         return vo;
     }
     
@@ -460,11 +571,7 @@ public class ReportController {
     private Report convertToEntity(ReportCreateDTO dto) {
         Report report = new Report();
         report.setContentId(dto.getContentId());
-        report.setContentTitle(dto.getContentTitle());
-        report.setContentCategory(dto.getContentCategory());
-        report.setReportedUserID(dto.getReportedUserID());
-        report.setReportedUserAccount(dto.getReportedUserAccount());
-        report.setReportedNickName(dto.getReportedNickName());
+        report.setReportedUserId(dto.getReportedUserId());
         report.setReportReason(dto.getReportReason());
         return report;
     }

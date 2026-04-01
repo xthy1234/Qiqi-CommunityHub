@@ -173,6 +173,24 @@ const menuOptions = computed<MenuOption[]>(() => {
           key: 'articles-audit',
           icon: renderIcon('ri:shield-check-line'),
           click: () => navigateToRoute('/articles/audit')
+        },
+        {
+          label: '分类管理',
+          key: 'system-categories',
+          icon: renderIcon('ri:folder-shield-line'),
+          click: () => navigateToRoute('/admin/categories')
+        },
+        {
+          label: '举报管理',
+          key: 'system-reports',
+          icon: renderIcon('ri:flag-warning-line'),
+          click: () => navigateToRoute('/admin/reports')
+        },
+        {
+          label: '轮播图管理',
+          key: 'system-swipers',
+          icon: renderIcon('ri:image-line'),
+          click: () => navigateToRoute('/admin/swipers')
         }
       ]
     },
@@ -181,6 +199,31 @@ const menuOptions = computed<MenuOption[]>(() => {
       key: 'comments',
       icon: renderIcon('ri:chat-3-line'),
       click: () => navigateToRoute('/comments')
+    },
+    {
+      label: '系统管理',
+      key: 'system',
+      icon: renderIcon('ri:settings-4-line'),
+      children: [
+        {
+          label: '角色管理',
+          key: 'system-roles',
+          icon: renderIcon('ri:shield-user-line'),
+          click: () => navigateToRoute('/admin/roles')
+        },
+        {
+          label: '菜单管理',
+          key: 'system-menus',
+          icon: renderIcon('ri:menu-fold-line'),
+          click: () => navigateToRoute('/admin/menus')
+        },
+        {
+          label: '分类管理',
+          key: 'system-categories',
+          icon: renderIcon('ri:folder-shield-line'),
+          click: () => navigateToRoute('/admin/categories')
+        }
+      ]
     }
   ]
 

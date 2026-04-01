@@ -38,7 +38,8 @@ public class SwiperServiceImpl extends ServiceImpl<SwiperDao, Swiper> implements
         }
 
         IPage<Swiper> pageData = new Page<>(page, limit);
-
+        
+        //!(wrapper instanceof QueryWrapper)的值是 false
         if (!(wrapper instanceof QueryWrapper)) {
             QueryWrapper<Swiper> tempWrapper = new QueryWrapper<>();
             if (wrapper != null) {
@@ -48,8 +49,20 @@ public class SwiperServiceImpl extends ServiceImpl<SwiperDao, Swiper> implements
         }
 
         QueryWrapper<Swiper> queryWrapper = (QueryWrapper<Swiper>) wrapper;
+        
+        // 🔍 添加调试日志
+        System.out.println("=== SwiperService.queryPage 调试信息 ===");
+        System.out.println("params: " + params);
+        System.out.println("page: " + page + ", limit: " + limit);
+        System.out.println("queryWrapper SQL: " + queryWrapper.getSqlSegment());
+        System.out.println("queryWrapper Entity: " + queryWrapper.getEntity());
+        
         IPage<Swiper> resultPage = this.page(pageData, queryWrapper);
-
+        
+        System.out.println("查询结果总数：" + resultPage.getTotal());
+        System.out.println("查询结果列表大小：" + resultPage.getRecords().size());
+        System.out.println("========================================");
+        
         return new PageUtils(resultPage);
     }
 

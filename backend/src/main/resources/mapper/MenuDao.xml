@@ -174,63 +174,90 @@
 
     <!-- 查询所有启用的菜单（树形结构） -->
     <select id="selectMenuTree" resultMap="menuViewMap">
-        SELECT
-            m.id,
-            m.name,
-            m.component,
-            m.parent_id,
-            m.icon,
-            m.path,
-            m.sort,
-            m.status,
-            m.create_time,
-            m.update_time,
-            m.remark,
-            CASE m.status
-                WHEN 0 THEN '禁用'
-                WHEN 1 THEN '启用'
-                ELSE '未知'
-            END as status_description,
-            CASE m.type
-                WHEN 1 THEN '系统菜单'
-                WHEN 2 THEN '业务菜单'
-                WHEN 3 THEN '自定义菜单'
-                ELSE '未知类型'
-            END as menu_type_description
+        SELECT m.id,
+               m.name,
+               m.component,
+               m.parent_id,
+               m.icon,
+               m.path,
+               m.sort,
+               m.status,
+               m.create_time,
+               m.update_time,
+               m.remark,
+               CASE m.status
+                   WHEN 0 THEN '禁用'
+                   WHEN 1 THEN '启用'
+                   ELSE '未知'
+                   END as status_description,
+               CASE m.type
+                   WHEN 1 THEN '系统菜单'
+                   WHEN 2 THEN '业务菜单'
+                   WHEN 3 THEN '自定义菜单'
+                   ELSE '未知类型'
+                   END as menu_type_description
         FROM menu m
         WHERE m.status = 1
-        ORDER BY m.parent_id ASC, m.sort ASC, m.create_time ASC
+        ORDER BY m.parent_id, m.sort, m.create_time
     </select>
 
     <!-- 根据父级 ID 查询子菜单 -->
     <select id="selectChildrenByParentId" resultMap="menuViewMap">
-        SELECT
-            m.id,
-            m.name,
-            m.component,
-            m.parent_id,
-            m.icon,
-            m.path,
-            m.sort,
-            m.status,
-            m.create_time,
-            m.update_time,
-            m.remark,
-            CASE m.status
-                WHEN 0 THEN '禁用'
-                WHEN 1 THEN '启用'
-                ELSE '未知'
-            END as status_description,
-            CASE m.type
-                WHEN 1 THEN '系统菜单'
-                WHEN 2 THEN '业务菜单'
-                WHEN 3 THEN '自定义菜单'
-                ELSE '未知类型'
-            END as menu_type_description
+        SELECT m.id,
+               m.name,
+               m.component,
+               m.parent_id,
+               m.icon,
+               m.path,
+               m.sort,
+               m.status,
+               m.create_time,
+               m.update_time,
+               m.remark,
+               CASE m.status
+                   WHEN 0 THEN '禁用'
+                   WHEN 1 THEN '启用'
+                   ELSE '未知'
+                   END as status_description,
+               CASE m.type
+                   WHEN 1 THEN '系统菜单'
+                   WHEN 2 THEN '业务菜单'
+                   WHEN 3 THEN '自定义菜单'
+                   ELSE '未知类型'
+                   END as menu_type_description
         FROM menu m
         WHERE m.parent_id = #{parentId}
-        AND m.status = 1
-        ORDER BY m.sort ASC, m.create_time ASC
+          AND m.status = 1
+        ORDER BY m.sort, m.create_time
+    </select>
+
+    <!-- 查询菜单树形结构（新增） -->
+    <select id="selectTreeList" resultMap="menuViewMap">
+        SELECT m.id,
+               m.name,
+               m.component,
+               m.parent_id,
+               m.icon,
+               m.path,
+               m.sort,
+               m.status,
+               m.create_time,
+               m.update_time,
+               m.remark,
+               CASE m.status
+                   WHEN 0 THEN '禁用'
+                   WHEN 1 THEN '启用'
+                   ELSE '未知'
+                   END as status_description,
+               CASE m.type
+                   WHEN 1 THEN '系统菜单'
+                   WHEN 2 THEN '业务菜单'
+                   WHEN 3 THEN '自定义菜单'
+                   ELSE '未知类型'
+                   END as menu_type_description
+        FROM menu m
+        WHERE m.is_deleted = 0
+        ORDER BY m.parent_id, m.sort, m.create_time
     </select>
 
     <!-- 统计菜单数量 -->
@@ -257,7 +284,7 @@
             #{roleId}
         </foreach>
         AND m.status = 1
-        ORDER BY m.id ASC
+        ORDER BY m.id
     </select>
 
 </mapper>

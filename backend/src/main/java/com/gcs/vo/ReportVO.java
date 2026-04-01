@@ -23,21 +23,18 @@ public class ReportVO implements Serializable {
     @Schema(description = "被举报内容 ID", example = "100")
     private Long contentId;
     
-    @Schema(description = "被举报内容标题", example = "违规文章标题")
-    private String contentTitle;
-    
-    @Schema(description = "被举报内容分类", example = "文章")
-    private String contentCategory;
-    
-    @Schema(description = "被举报用户昵称", example = "违规用户")
-    private String reportedNickName;
+    @Schema(description = "被举报用户 ID", example = "50")
+    private Long reportedUserId;
     
     @Schema(description = "举报原因", example = "发布违规信息")
     private String reportReason;
     
-    @Schema(description = "举报人账号", example = "reporter_user")
-    private String reporterAccount;
-    
+    @Schema(description = "举报人信息")
+    private UserSimpleVO reporterUserInfo;
+
+    @Schema(description = "审核人信息")
+    private UserSimpleVO reviewUserInfo;
+
     @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝)", example = "0")
     private AuditStatus reviewStatus;
     

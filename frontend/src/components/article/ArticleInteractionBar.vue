@@ -436,8 +436,10 @@ const loadingConversations = ref(false)
 
 // 举报相关状态
 const showReportModal = ref(false)
-const reportFormRef = ref(null)
 const reporting = ref(false)
+const reportFormRef = ref<FormInst | null>(null)
+
+// 简化举报表单，只保留必要字段
 const reportForm = ref<Partial<ReportCreateDTO>>({
   reportReason: ''
 })
@@ -447,7 +449,7 @@ const reportRules = {
   reportReason: {
     required: true,
     message: '请填写举报原因',
-    trigger: 'blur'
+    trigger: ['blur', 'change']
   }
 }
 
@@ -632,53 +634,58 @@ const sendArticleToChat = () => {
   selectedCircleId.value = null
 }
 
-// 举报
+// 打开举报弹窗
 const handleReport = () => {
-  const articleData = window.detailArticleData
-
-  if (!articleData) {
-    message.error('文章信息加载失败，请刷新页面重试')
-    return
-  }
-
-  // 预填充举报表单
+  // 重置表单
   reportForm.value = {
-    contentId: Number(articleData.id),
-    contentTitle: articleData.title,
-    contentCategory: '文章',
-    reportedUserID: undefined,
-    reportedUserAccount: undefined,
-    reportedNickName: articleData.authorNickname,
     reportReason: ''
   }
 
   showReportModal.value = true
+
+  // 重置验证状态
+  setTimeout(() => {
+    reportFormRef.value?.restoreValidation()
+  }, 0)
 }
 
-// 提交举报
+// 提交举报（简化版）
 const submitReport = async () => {
   try {
     await (reportFormRef.value as any)?.validate()
 
     reporting.value = true
 
+    // 获取文章数据
+    const articleData = window.detailArticleData
+
+    if (!articleData || !articleData.id) {
+      message.error('文章信息不存在')
+      return
+    }
+
+    // 构建简化的提交数据
     const submitData: ReportCreateDTO = {
-      contentId: reportForm.value.contentId!,
-      contentTitle: reportForm.value.contentTitle,
-      contentCategory: reportForm.value.contentCategory,
-      reportedNickName: reportForm.value.reportedNickName,
-      reportReason: reportForm.value.reportReason!
+      contentId: Number(articleData.id),
+      reportReason: reportForm.value.reportReason!.trim(),
+      reportType: 'ARTICLE'
     }
 
     await reportAPI.createReport(submitData)
 
     message.success('举报提交成功，管理员将尽快处理')
     showReportModal.value = false
+    reportForm.value.reportReason = ''
   } catch (error: any) {
+    console.error('❌ [ArticleInteractionBar] 提交举报失败:', error)
+
     if (error?.errors) {
+      // 验证错误
       message.error('请填写完整的举报信息')
     } else {
-      message.error(error.response?.data?.msg || '举报提交失败，请稍后重试')
+      // HTTP 错误
+      const errorMsg = error.response?.data?.msg || error.message || '举报提交失败，请稍后重试'
+      message.error(errorMsg)
     }
   } finally {
     reporting.value = false
