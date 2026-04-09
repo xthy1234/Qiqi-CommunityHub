@@ -33,7 +33,7 @@ public class SwiperUpdateDTO {
     private Integer sort;
     
     @Schema(description = "状态（0:显示，1:隐藏）", example = "0")
-    private Integer status;
+    private CommonStatus status;
     
     @Schema(description = "描述", example = "2026 年新年特别活动")
     private String description;

@@ -88,8 +88,8 @@
         s.create_time,
         s.update_time,
         CASE s.status
-        WHEN 1 THEN '显示'
-        WHEN 0 THEN '隐藏'
+        WHEN 0 THEN '显示'
+        WHEN 1 THEN '隐藏'
         ELSE '未知'
         END as status_description
         FROM swiper s
@@ -115,7 +115,7 @@
             s.create_time,
             s.update_time
         FROM swiper s
-        WHERE s.status = 1
+        WHERE s.status = 0
           AND s.is_deleted = false
         ORDER BY s.sort ASC
     </select>

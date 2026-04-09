@@ -406,7 +406,7 @@ public class SwiperController {
         // 🔧 将 Integer 转换为 CommonStatus 枚举
         if (dto.getStatus() != null) {
             try {
-                CommonStatus status = CommonStatus.valueOf(dto.getStatus());
+                CommonStatus status = dto.getStatus();
                 swiper.setStatus(status);
             } catch (IllegalArgumentException e) {
                 log.warn("无效的状态值：{}", dto.getStatus());

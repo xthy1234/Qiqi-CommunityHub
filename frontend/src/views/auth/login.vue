@@ -4,41 +4,31 @@
       <n-form
         ref="formRef"
         :model="loginForm"
+        :rules="formRules"
         class="login_form"
         label-placement="left"
         label-width="90px"
       >
         <div class="title_view">
-          中文社区交流平台登录
+          游戏社区交流平台登录
         </div>
 
-        <!-- 用户名输入 -->
+        <!-- 账号输入 -->
         <n-form-item
-          v-if="loginType === LoginTypeEnum.USERNAME"
           label="账号："
           path="account"
-          :rule="{
-            required: true,
-            message: '请输入账号',
-            trigger: 'blur'
-          }"
         >
           <n-input
             v-model:value="loginForm.account"
             placeholder="请输入账号"
+            @keydown.enter="handleLogin"
           />
         </n-form-item>
 
         <!-- 密码输入 -->
         <n-form-item
-          v-if="loginType === LoginTypeEnum.USERNAME"
           label="密码："
           path="password"
-          :rule="{
-            required: true,
-            message: '请输入密码',
-            trigger: 'blur'
-          }"
         >
           <n-input
             v-model:value="loginForm.password"
@@ -53,11 +43,6 @@
           v-if="availableUserRoles.length > 1"
           label="用户类型："
           path="role"
-          :rule="{
-            required: true,
-            message: '请选择角色',
-            trigger: 'change'
-          }"
         >
           <n-select
             v-model:value="loginForm.role"
@@ -67,10 +52,7 @@
         </n-form-item>
 
         <!-- 记住密码选项 -->
-        <div
-          v-if="loginType === LoginTypeEnum.USERNAME"
-          class="remember_option"
-        >
+        <div class="remember_option">
           <n-checkbox v-model:checked="shouldRememberPassword">
             记住密码
           </n-checkbox>
@@ -79,7 +61,6 @@
         <!-- 操作按钮 -->
         <div class="button_group">
           <n-button
-            v-if="loginType === LoginTypeEnum.USERNAME"
             class="login_button"
             type="success"
             :loading="loginLoading"
@@ -91,7 +72,7 @@
             class="register_button"
             type="primary"
             text
-            @click="navigateToRegister(UserType.USER)"
+            @click="navigateToRegister"
           >
             注册用户
           </n-button>
@@ -102,20 +83,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
 import menu from '@/utils/menu'
-import { getWebSocket } from '@/utils/websocket'
 import { connectWebSocketOnStartup } from '@/utils/websocketInit'
+import toolUtil from '@/utils/toolUtil'
+import userApi from '@/api/user'
 
 // 获取 router 实例
 const router = useRouter()
 const formRef = ref<FormInst | null>(null)
 const message = useMessage()
 
-// 类型定义
+// 接口定义
 interface UserRole {
   roleName: string
   hasFrontLogin: string
@@ -127,28 +109,35 @@ interface LoginForm {
   password: string
 }
 
-// 枚举定义
-enum LoginTypeEnum {
-  USERNAME = 1,
-  OTHER = 2
-}
-
-enum UserType {
-  USER = 'user'
-}
-
 // 响应式数据
 const availableUserRoles = ref<UserRole[]>([])
-const menuList = ref<UserRole[]>([])
 const loginForm = ref<LoginForm>({
   role: '',
   account: '',
   password: ''
 })
 
-const loginType = ref<LoginTypeEnum>(LoginTypeEnum.USERNAME)
 const shouldRememberPassword = ref<boolean>(true)
 const loginLoading = ref<boolean>(false)
+
+// 表单验证规则
+const formRules: FormRules = {
+  account: {
+    required: true,
+    message: '请输入账号',
+    trigger: 'blur'
+  },
+  password: {
+    required: true,
+    message: '请输入密码',
+    trigger: 'blur'
+  },
+  role: {
+    required: true,
+    message: '请选择角色',
+    trigger: 'change'
+  }
+}
 
 // 计算角色选项
 const roleOptions = computed(() => {
@@ -158,15 +147,11 @@ const roleOptions = computed(() => {
   }))
 })
 
-// 导入工具模块
-import toolUtil from '@/utils/toolUtil'
-import httpClient from '@/utils/http'
-
 /**
  * 导航到注册页面
  */
-const navigateToRegister = (userType: UserType): void => {
-  router.push(`/${userType}Register`)
+const navigateToRegister = (): void => {
+  router.push('/userRegister')
 }
 
 /**
@@ -175,11 +160,10 @@ const navigateToRegister = (userType: UserType): void => {
 const handleLogin = async (): Promise<void> => {
   try {
     await formRef.value?.validate()
+    await executeLogin()
   } catch (error) {
-    return
+    console.error('表单验证失败:', error)
   }
-
-  executeLogin()
 }
 
 /**
@@ -189,37 +173,31 @@ const executeLogin = async (): Promise<void> => {
   loginLoading.value = true
 
   try {
-    const loginUrl = loginForm.value.role === '管理员'
-        ? 'users/admin/login'
-        : 'users/login'
-
-    const response = await httpClient.post(loginUrl, {
+    const isAdmin = loginForm.value.role === '管理员'
+    const loginData = {
       account: loginForm.value.account,
       password: loginForm.value.password
-    })
+    }
 
-    // 处理记住密码逻辑
-    handlePasswordRemember()
+    // 根据角色调用不同登录接口
+    const response = isAdmin
+      ? await userApi.adminLogin(loginData)
+      : await userApi.login(loginData)
 
     // 存储认证信息
-    storeAuthInfo(response.data.data.token)
+    storeAuthInfo(response.token)
 
-    // 直接使用登录返回的 user 数据
-    const userData = response.data.data.user
-    if (userData) {
-      toolUtil.storageSet('userid', userData.id)
-      toolUtil.storageSet('nickname', userData.nickname)
-      toolUtil.storageSet('account', userData.account)
-      toolUtil.storageSet('avatar', userData.avatar)
-      toolUtil.storageSet('UserInfo', JSON.stringify(userData))
-      toolUtil.storageSet('roleId', userData.roleId)
-    }
+    // 获取并存储用户信息
+    await fetchAndStoreUserInfo(isAdmin)
 
     // 获取用户菜单
     await fetchUserMenus()
 
-    // 关键修改：登录成功后建立 WebSocket连接
+    // 建立 WebSocket 连接
     await initializeWebSocket()
+
+    // 处理记住密码
+    handlePasswordRemember()
 
     // 跳转到目标页面
     redirectToTargetPage()
@@ -233,11 +211,35 @@ const executeLogin = async (): Promise<void> => {
 }
 
 /**
- * 初始化 WebSocket连接
+ * 获取并存储用户信息
+ */
+const fetchAndStoreUserInfo = async (isAdmin: boolean): Promise<void> => {
+  try {
+    // 如果不是管理员，获取当前用户详细信息
+    if (!isAdmin) {
+      const userData = await userApi.getCurrentUser()
+
+      toolUtil.storageSet('userid', userData.id)
+      toolUtil.storageSet('nickname', userData.nickname || '')
+      toolUtil.storageSet('account', userData.account)
+      toolUtil.storageSet('avatar', userData.avatar || '')
+      toolUtil.storageSet('UserInfo', JSON.stringify(userData))
+      toolUtil.storageSet('roleId', userData.roleId)
+    } else {
+      // 管理员使用基本信息
+      toolUtil.storageSet('account', loginForm.value.account)
+      toolUtil.storageSet('nickname', '管理员')
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+  }
+}
+
+/**
+ * 初始化 WebSocket 连接
  */
 const initializeWebSocket = async (): Promise<void> => {
   try {
-    // 使用统一的初始化方法
     await connectWebSocketOnStartup({
       debug: process.env.NODE_ENV === 'development',
       heartbeatInterval: 30000,
@@ -246,7 +248,7 @@ const initializeWebSocket = async (): Promise<void> => {
     })
   } catch (error) {
     console.error('❌ [登录] WebSocket连接失败:', error)
-    // WebSocket连接失败不影响登录流程
+    // WebSocket 连接失败不影响登录流程
   }
 }
 
@@ -274,10 +276,9 @@ const fetchUserMenus = async (): Promise<void> => {
 const handlePasswordRemember = (): void => {
   if (shouldRememberPassword.value) {
     const formToSave = { ...loginForm.value }
-    delete formToSave.code
-    toolUtil.storageSet("frontLoginForm", JSON.stringify(formToSave))
+    toolUtil.storageSet('frontLoginForm', JSON.stringify(formToSave))
   } else {
-    toolUtil.storageRemove("frontLoginForm")
+    toolUtil.storageRemove('frontLoginForm')
   }
 }
 
@@ -285,8 +286,8 @@ const handlePasswordRemember = (): void => {
  * 存储认证信息
  */
 const storeAuthInfo = (token: string): void => {
-  toolUtil.storageSet("Token", token)
-  toolUtil.storageSet("role", loginForm.value.role)
+  toolUtil.storageSet('Token', token)
+  toolUtil.storageSet('role', loginForm.value.role)
 }
 
 /**
@@ -305,7 +306,7 @@ const redirectToTargetPage = (): void => {
 }
 
 /**
- * 获取菜单数据
+ * 加载菜单数据
  */
 const loadMenuData = async (): Promise<void> => {
   menu.list() && toolUtil.storageRemove('menus')
@@ -314,21 +315,17 @@ const loadMenuData = async (): Promise<void> => {
 
   if (!menus) {
     try {
-      const response = await httpClient.get("menus/auth")
-
-      if (response.data.data && response.data.data.list && response.data.data.list.length > 0) {
-        toolUtil.storageSet("menus", response.data.data.list[0].menujson)
-        menus = JSON.parse(response.data.data.list[0].menujson)
+      const response = await menu.list()
+      if (response && response.length > 0) {
+        menus = response
       }
     } catch (error) {
-      console.error('获取旧菜单失败:', error)
+      console.error('获取菜单失败:', error)
     }
   }
 
-  menuList.value = menus || []
-
-  availableUserRoles.value = menuList.value.filter(
-    menu => menu.hasFrontLogin === '是'
+  availableUserRoles.value = (menus || []).filter(
+    (menu: UserRole) => menu.hasFrontLogin === '是'
   )
 
   if (availableUserRoles.value.length === 0) {

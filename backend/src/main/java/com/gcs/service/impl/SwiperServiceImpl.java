@@ -69,7 +69,7 @@ public class SwiperServiceImpl extends ServiceImpl<SwiperDao, Swiper> implements
     @Override
     public List<Swiper> getAllEnabledSwipers() {
         QueryWrapper<Swiper> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("status", 1)
+        queryWrapper.eq("status", 0)
                 .orderByAsc("sort");
         return this.list(queryWrapper);
     }
