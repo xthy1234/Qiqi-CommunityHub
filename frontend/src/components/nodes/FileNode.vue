@@ -157,11 +157,6 @@ const handleDownload = () => {
   // 输出示例: "http://localhost:8080/api/files/5/download"
   const src = normalizeFileUrl(rawSrc)
 
-  console.log('📥 [FileNode] 文件下载信息:')
-  console.log('  - 原始 URL (src):', rawSrc)
-  console.log('  - 标准化 URL:', src)
-  console.log('  - 文件名:', name)
-  console.log('  - 预期格式: http://localhost:8080/api/files/{id}/download')
 
   const link = document.createElement('a')
   link.href = src

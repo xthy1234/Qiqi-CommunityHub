@@ -89,6 +89,7 @@ import { Icon } from '@iconify/vue'
 import { handleImageError } from '@/utils/userUtils'
 import {useGlobalProperties} from "@/utils/globalProperties";
 import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 interface ArticleProps {
   id: number | string
@@ -117,14 +118,9 @@ const router = useRouter()
 const appContext = useGlobalProperties()
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
 
-const isHttpUrl = (url: string): boolean => {
-  if (!url) {return false}
-  return url.startsWith('http')
-}
-
 const getCoverImageUrl = (coverUrl: string): string => {
   if (!coverUrl || coverUrl === 'null') {return '/placeholder.svg'}
-  return isHttpUrl(coverUrl) ? coverUrl : `${baseUrl.value}/${coverUrl}`
+  return normalizeFileUrl(coverUrl, baseUrl.value)
 }
 
 const formatDate = (dateStr: string): string => {

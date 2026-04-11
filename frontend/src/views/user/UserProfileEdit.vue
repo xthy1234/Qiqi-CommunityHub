@@ -118,7 +118,6 @@
               placeholder="选择生日"
               style="width: 100%"
               format="yyyy-MM-dd"
-              value-format="yyyy-MM-dd"
             />
           </n-form-item>
         </n-grid-item>
@@ -188,7 +187,7 @@ interface EditForm {
   gender: number | null
   phone: string
   email: string
-  birthday: string | null
+  birthday: number | null
   signature: string
 }
 
@@ -268,7 +267,14 @@ const fetchUserInfo = async () => {
       editForm.gender = userData.gender ?? null
       editForm.phone = userData.phone || ''
       editForm.email = userData.email || ''
-      editForm.birthday = userData.birthday || null
+
+      // 将日期字符串转换为时间戳
+      if (userData.birthday) {
+        editForm.birthday = new Date(userData.birthday).getTime()
+      } else {
+        editForm.birthday = null
+      }
+
       editForm.signature = userData.signature || ''
       editForm.id = userData.id
 
@@ -306,7 +312,7 @@ const handleSubmit = async () => {
       gender: editForm.gender ?? 0,
       phone: editForm.phone,
       email: editForm.email,
-      birthday: editForm.birthday,
+      birthday: editForm.birthday ? new Date(editForm.birthday).toISOString().split('T')[0] : null,
       signature: editForm.signature
     }
 

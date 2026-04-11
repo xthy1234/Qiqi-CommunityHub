@@ -21,7 +21,8 @@ public class DanmakuSendDTO {
     @NotBlank(message = "视频 URL 不能为空")
     private String videoUrl;
 
-    @Schema(description = "文章 ID（可选）", example = "1")
+    @Schema(description = "文章 ID", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @NotNull(message = "文章 ID 不能为空")
     private Long articleId;
 
     @Schema(description = "弹幕内容", required = true, example = "前方高能！")

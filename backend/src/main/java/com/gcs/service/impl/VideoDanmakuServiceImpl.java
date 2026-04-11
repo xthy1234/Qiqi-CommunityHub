@@ -92,7 +92,7 @@ public class VideoDanmakuServiceImpl extends ServiceImpl<VideoDanmakuDao, VideoD
     }
 
     @Override
-    public List<VideoDanmakuDetailVO> getDanmakuByTimeRange(String videoUrl, BigDecimal fromTime, BigDecimal toTime) {
+    public List<VideoDanmakuDetailVO> getDanmakuByTimeRange(Long articleId, String videoUrl, BigDecimal fromTime, BigDecimal toTime) {
         if (fromTime == null) {
             fromTime = BigDecimal.ZERO;
         }
@@ -100,20 +100,20 @@ public class VideoDanmakuServiceImpl extends ServiceImpl<VideoDanmakuDao, VideoD
             toTime = new BigDecimal("999999");
         }
 
-        List<VideoDanmaku> list = danmakuDao.selectByVideoAndTimeRange(videoUrl, fromTime, toTime);
+        List<VideoDanmaku> list = danmakuDao.selectByArticleAndTimeRange(articleId, videoUrl, fromTime, toTime);
         return danmakuConverter.toDetailVOList(list);
     }
 
     @Override
-    public List<VideoDanmakuVO> getLatestDanmaku(String videoUrl, Integer limit) {
+    public List<VideoDanmakuVO> getLatestDanmaku(Long articleId, String videoUrl, Integer limit) {
         if (limit == null || limit <= 0) {
             limit = 100;
         }
         if (limit > 500) {
-            limit = 500; // 限制最大返回数量
+            limit = 500;
         }
 
-        List<VideoDanmaku> list = danmakuDao.selectLatestByVideo(videoUrl, limit);
+        List<VideoDanmaku> list = danmakuDao.selectLatestByArticleAndVideo(articleId, videoUrl, limit);
         return danmakuConverter.toVOList(list);
     }
 
@@ -164,8 +164,8 @@ public class VideoDanmakuServiceImpl extends ServiceImpl<VideoDanmakuDao, VideoD
     }
 
     @Override
-    public Integer countByVideo(String videoUrl) {
-        return danmakuDao.countByVideo(videoUrl);
+    public Integer countByVideo(Long articleId, String videoUrl) {
+        return danmakuDao.countByArticleAndVideo(articleId, videoUrl);
     }
 
     private VideoDanmakuDetailVO buildDetailVO(VideoDanmaku danmaku) {

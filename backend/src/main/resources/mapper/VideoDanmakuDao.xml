@@ -58,9 +58,35 @@
         ORDER BY create_time DESC
     </select>
 
+    <select id="selectByArticleAndTimeRange" resultType="com.gcs.entity.VideoDanmaku">
+        SELECT * FROM video_danmaku
+        WHERE article_id = #{articleId}
+          AND video_url = #{videoUrl}
+          AND time &gt;= #{fromTime}
+          AND time &lt;= #{toTime}
+          AND status = 1
+        ORDER BY time ASC
+    </select>
+
+    <select id="selectLatestByArticleAndVideo" resultMap="danmakuMap">
+        SELECT * FROM video_danmaku
+        WHERE article_id = #{articleId}
+          AND video_url = #{videoUrl}
+          AND status = 1
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
     <select id="countByVideo" resultType="java.lang.Integer">
         SELECT COUNT(*) FROM video_danmaku 
         WHERE video_url = #{videoUrl}
+          AND status = 1
+    </select>
+
+    <select id="countByArticleAndVideo" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM video_danmaku
+        WHERE article_id = #{articleId}
+          AND video_url = #{videoUrl}
           AND status = 1
     </select>
 

@@ -748,6 +748,7 @@ const searchKeyword = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const totalPages = ref(1)
+const isSettingContent = ref(false)
 
 const filteredArticles = computed(() => {
   if (!searchKeyword.value) {
@@ -851,7 +852,7 @@ const editor = useEditor({
         for (let i = 0; i < items.length; i++) {
           const item = items[i]
 
-          // 【修复】处理图片粘贴
+          // 处理图片粘贴
           if (item.type.startsWith('image/')) {
             const file = item.getAsFile()
             if (file) {
@@ -861,7 +862,7 @@ const editor = useEditor({
             }
           }
 
-          // 【新增】处理视频粘贴
+          // 处理视频粘贴
           if (item.type.startsWith('video/')) {
             const file = item.getAsFile()
             if (file) {
@@ -871,7 +872,7 @@ const editor = useEditor({
             }
           }
 
-          // 【新增】处理文档类文件粘贴（PDF、Word、Excel 等）
+          // 处理文档类文件粘贴（PDF、Word、Excel 等）
           if (isDocumentType(item.type)) {
             const file = item.getAsFile()
             if (file) {
@@ -883,46 +884,28 @@ const editor = useEditor({
         }
         return false
       },
-      // 关键修复：正确处理中文输入法的 composition 事件
+      // 正确处理中文输入法的 composition 事件
       compositionstart: () => {
-        // 标记正在使用输入法
         if (editor.value) {
           editor.value.isComposing = true
         }
         return false
       },
-      compositionend: (view, event) => {
-        // 输入法确认输入
+      compositionend: () => {
         if (editor.value) {
           editor.value.isComposing = false
         }
         return false
-      },
-      input: (view, event) => {
-        // 如果是输入法过程中的输入，不要立即处理
-        if (view.composing || editor.value?.isComposing) {
-          return false
-        }
-        return false
       }
-    },
-    // 修复中文输入法标点符号重复问题
-    handleTextInput: (view, from, to, text) => {
-      // 在输入法进行过程中，阻止默认处理
-      if (view.composing || editor.value?.isComposing) {
-        return false
-      }
-      return false
     }
   },
   onUpdate: ({ editor }) => {
+    // 如果是 setContent 触发的更新，跳过 emit
+    if (isSettingContent.value) return
+
     const json = editor.getJSON()
-    // // console.log('=== 编辑器内容更新 ===')
-    // console.log('JSON 格式:', JSON.stringify(json, null, 2))
-    // console.log('HTML 格式:', editor.getHTML())
-    // console.log('文本内容:', editor.getText())
-    // console.log('是否为空:', editor.isEmpty)
     emit('update:modelValue', json)
+
     if (editor.isActive('heading', { level: 2 })) {
       currentHeading.value = 'h2'
     } else if (editor.isActive('heading', { level: 3 })) {
@@ -1035,11 +1018,34 @@ watch(currentPage, () => {
   loadUserArticles()
 })
 
-watch(() => props.modelValue, (newVal : object) => {
-  if (editor.value && newVal !== editor.value.getJSON()) {
-    editor.value.commands.setContent(newVal)
+watch(() => props.modelValue, (newVal: object) => {
+  if (!editor.value || isSettingContent.value) return
+
+  const currentJson = editor.value.getJSON()
+
+  // 只有当内容真正不同时才更新
+  if (JSON.stringify(newVal) !== JSON.stringify(currentJson)) {
+    // 保存当前光标位置
+    const { from, to } = editor.value.state.selection
+
+    isSettingContent.value = true
+    // 第二个参数 false 表示不自动聚焦，避免光标跳转
+    editor.value.commands.setContent(newVal, false)
+
+    // 恢复光标位置（如果位置仍然有效）
+    setTimeout(() => {
+      try {
+        const docSize = editor.value.state.doc.content.size
+        const validFrom = Math.min(from, docSize - 1)
+        const validTo = Math.min(to, docSize - 1)
+        editor.value.commands.setTextSelection({ from: validFrom, to: validTo })
+      } catch (e) {
+        // 如果光标位置无效，保持当前位置
+      }
+      isSettingContent.value = false
+    }, 0)
   }
-}, { immediate: true })
+}, { deep: true })
 
 const setHeading = (level: string) => {
   if (!editor.value) {return}
@@ -1530,6 +1536,9 @@ onBeforeUnmount(() => {
 
   .tiptap {
     min-height: 480px;
+    max-height: 600px;
+    overflow-y: auto;
+    resize: vertical;
     padding: 16px;
     outline: none;
     font-size: 14px;

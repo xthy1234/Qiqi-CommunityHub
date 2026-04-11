@@ -59,6 +59,15 @@
       style="display: none"
       @change="handleFileChange"
     />
+
+    <!-- 图片裁剪组件 -->
+    <ImageCropper
+      v-model:show="showCropper"
+      :image-file="selectedFile"
+      crop-type="cover"
+      @success="handleCropSuccess"
+      @cancel="handleCropCancel"
+    />
   </div>
 </template>
 
@@ -69,6 +78,8 @@ import { uploadAPI } from '@/api/upload'
 import { normalizeFileUrl } from '@/utils/fileUrl'
 import {useGlobalProperties} from "@/utils/globalProperties";
 import { Icon } from '@iconify/vue'
+import ImageCropper from './ImageCropper.vue'
+
 const message = useMessage()
 
 const props = defineProps<{
@@ -82,6 +93,9 @@ const emit = defineEmits<{
 const appContext = useGlobalProperties()
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
+const showCropper = ref(false)
+const selectedFile = ref<File | null>(null)
+
 
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
 const uploadUrl = computed(() => `${baseUrl.value}/files`)
@@ -89,77 +103,70 @@ const uploadHeaders = computed(() => ({
   token: appContext?.$toolUtil?.storageGet('Token') || ''
 }))
 
-// 【调试】计算图片显示URL
-// 作用：将上传接口返回的 fileUrl（如 /api/files/3）转换为完整的可访问URL
-// 示例：/api/files/3 → http://localhost:8080/api/files/3
 const imageUrl = computed(() => {
-
   const result = normalizeFileUrl(props.modelValue, baseUrl.value)
 
   return result
 })
 
 const triggerUpload = () => {
+
   coverInputRef.value?.click()
 }
 
-const handleFileChange = async (event: Event) => {
+const handleFileChange = (event: Event) => {
+
+
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
 
-  if (!file) {return}
+
+  if (!file) {
+
+    return
+  }
 
   const isImage = file.type.startsWith('image/')
-  const isLt2M = file.size / 1024 / 1024 < 10
+  const isLt10M = file.size / 1024 / 1024 < 10
 
   if (!isImage) {
+
     message.error('只能上传图片文件!')
     return
   }
-  if (!isLt2M) {
+  if (!isLt10M) {
+
     message.error('图片大小不能超过 10MB!')
     return
   }
 
-  try {
-    console.log('📤 [CoverUpload] 调用 uploadAPI.uploadImage...')
 
-    // 【关键】调用上传接口
-    // 期望返回：UploadResponse 对象，包含 fileUrl 字段
-    // 实际返回结构需要根据后端响应调整
-    const response = await uploadAPI.uploadImage(file, '文章封面')
-
-    // 【调试】检查返回值
-    if (response) {
+  // 打开裁剪窗口
+  selectedFile.value = file
 
 
+  showCropper.value = true
 
-      // 触发更新，将 fileUrl（如 /api/files/3）传递给父组件
-      emit('update:modelValue', response)
 
-      message.success('封面上传成功')
-    } else {
-      // 【错误情况】response 为 null 或 undefined
-      console.error('❌ [CoverUpload] 上传失败：response 为空')
-      console.error('❌ [CoverUpload] 可能原因：')
-      console.error('   1. uploadAPI.uploadImage 内部捕获了异常并返回 null')
-      console.error('   2. 后端返回的 code !== 0')
-      console.error('   3. 网络请求失败')
-      message.error('上传失败：未获取到图片 URL')
-    }
-  } catch (error: any) {
-    // 【异常情况】上传过程抛出异常
-    console.error('❌ [CoverUpload] 上传过程发生异常:', error)
-    console.error('❌ [CoverUpload] 错误信息:', error.message)
-    console.error('❌ [CoverUpload] 错误堆栈:', error.stack)
-    message.error('上传失败，请重试')
-  } finally {
-    // 清空文件输入框，允许重复选择同一文件
-    if (target) {
-      target.value = ''
+  // 清空输入框
+  target.value = ''
 
-    }
-  }
+}
+
+const handleCropSuccess = (url: string) => {
+
+
+  emit('update:modelValue', url)
+  message.success('封面上传成功')
+
+  // 重置状态
+  selectedFile.value = null
+
+}
+
+const handleCropCancel = () => {
+
+  selectedFile.value = null
 }
 
 const handleRemove = () => {

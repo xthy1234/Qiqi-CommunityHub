@@ -39,6 +39,15 @@
         />
       </div>
     </n-upload>
+
+    <!-- 图片裁剪组件 -->
+    <ImageCropper
+      v-model:show="showCropper"
+      :image-file="selectedFile"
+      crop-type="avatar"
+      @success="handleCropSuccess"
+      @cancel="handleCropCancel"
+    />
   </div>
 </template>
 
@@ -48,6 +57,7 @@ import { Icon } from '@iconify/vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { uploadAPI } from '@/api/upload'
 import type { UploadCustomRequestOptions } from 'naive-ui'
+import ImageCropper from './ImageCropper.vue'
 
 interface Props {
   modelValue?: string
@@ -67,8 +77,12 @@ const emit = defineEmits<{
 
 const globalProps = useGlobalProperties()
 const imageUrl = ref(props.modelValue)
+const showCropper = ref(false)
+const selectedFile = ref<File | null>(null)
+
 
 watch(() => props.modelValue, (newVal : string) => {
+
   if (newVal) {
     const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
     // 判断是否是新版 API URL
@@ -80,48 +94,67 @@ watch(() => props.modelValue, (newVal : string) => {
   } else {
     imageUrl.value = newVal
   }
+
 })
 
-const customUpload = async ({ file, onFinish, onError }: UploadCustomRequestOptions) => {
-  try {
-    const response = await uploadAPI.uploadImage(file.file as File, '用户头像')
+const customUpload = ({ file }: UploadCustomRequestOptions) => {
 
-    if (response) {
-      const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
-      const fullUrl = `${baseUrl}${response}`
 
-      imageUrl.value = fullUrl
-      emit('update:modelValue', response)
-      emit('change', fullUrl)
 
-      if (globalProps.$toolUtil?.message) {
-        globalProps.$toolUtil.message('头像上传成功', 'success')
-      }
 
-      onFinish()
-    } else {
-      throw new Error('上传失败')
+  // 不直接上传，而是打开裁剪窗口
+  selectedFile.value = file.file as File
+
+
+  showCropper.value = true
+
+
+  return {
+    abort: () => {
+
     }
-  } catch (error) {
-    console.error('头像上传失败:', error)
-    if (globalProps.$toolUtil?.message) {
-      globalProps.$toolUtil.message('头像上传失败', 'error')
-    }
-    onError()
   }
 }
 
+const handleCropSuccess = (url: string) => {
+
+
+  imageUrl.value = url
+
+  // 提取相对路径用于存储
+  const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
+  const relativePath = url.replace(baseUrl, '')
+
+
+
+  emit('update:modelValue', relativePath)
+  emit('change', url)
+
+  // 重置状态
+  selectedFile.value = null
+
+}
+
+const handleCropCancel = () => {
+
+  selectedFile.value = null
+}
+
 const beforeAvatarUpload = ({ file }: { file: File }) => {
+
+
   const isImage = file.type.startsWith('image/')
   const isLt10M = file.size / 1024 / 1024 < 10
 
   if (!isImage) {
+
     if (globalProps.$toolUtil?.message) {
       globalProps.$toolUtil.message('只能上传图片文件!', 'error')
     }
     return false
   }
   if (!isLt10M) {
+
     if (globalProps.$toolUtil?.message) {
       globalProps.$toolUtil.message('图片大小不能超过 10MB!', 'error')
     }

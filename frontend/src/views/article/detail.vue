@@ -139,10 +139,14 @@
 
           <!-- 文章内容 - 使用只读编辑器 -->
           <div
-            v-if="contentHtml"
+            v-if="article?.content"
             class="article-content-body"
-            v-html="contentHtml"
-          />
+          >
+            <EditorContent
+              :editor="editor"
+              v-if="editor"
+            />
+          </div>
 
           <!-- 附件 -->
           <div
@@ -219,7 +223,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import { useBackNavigation } from '@/utils/backNavigation'
 import { useMessage, useDialog } from 'naive-ui'
@@ -234,15 +238,17 @@ import { articleAPI, type Article } from '@/api/article'
 import { interactionAPI } from '@/api/interaction'
 import { getAvatarUrl } from '@/utils/userUtils'
 import { useGlobalProperties } from '@/utils/globalProperties'
-import {generateHTML} from "@tiptap/core"
+import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import Link from "@tiptap/extension-link"
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { VideoNodeExtension } from '@/utils/tiptap-video-node'
+import { VideoAnnotationRefExtension } from '@/utils/tiptap-video-annotation-ref'
 import { articleContributorAPI } from '@/api/contributor'
 import { useVisitedStore } from '@/stores/visited'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 const appContext = useGlobalProperties()
 const router = useRouter()
@@ -262,7 +268,15 @@ const extensions = [
   FileNodeExtension,
   ShareCardNodeExtension,
   VideoNodeExtension,
+  VideoAnnotationRefExtension,
 ]
+
+// 创建只读编辑器
+const editor = useEditor({
+  extensions,
+  editable: false,
+  content: '',
+})
 
 /**
  * 格式化日期
@@ -285,7 +299,6 @@ const isCurrentUser = ref<boolean>(false)
 const currentUserAvatar = ref<string>('')
 const currentUserId = ref<string | number>('')
 const isAdmin = ref<boolean>(false)
-const contentHtml = ref<string>('')
 const editMode = ref<number>(0)
 const pendingSuggestionsCount = ref<number>(0)
 const contributors = ref([])
@@ -295,24 +308,6 @@ const totalContributors = ref(0)
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
 
 /**
- * 将 JSON 内容转换为 HTML
- */
-const convertJsonToHtml = (content: object) => {
-  try {
-    if (!content) {
-      return ''
-    }
-
-    // 如果是字符串，尝试解析为 JSON
-    // 使用 Tiptap 的 generateHTML 将 JSON 转为 HTML
-    return generateHTML(content, extensions)
-  } catch (error) {
-    console.error('转换文章内容失败:', error)
-    return ''
-  }
-}
-
-/**
  * 获取封面图片 URL
  */
 const getCoverImageUrl = (): string => {
@@ -320,13 +315,8 @@ const getCoverImageUrl = (): string => {
 
   const coverUrl = article.value.coverUrl.split(',')[0]
 
-  // 如果已经是完整 URL，直接返回
-  if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) {
-   return coverUrl
-  }
-
-  // 拼接完整 URL
-  return `${baseUrl.value}/${coverUrl}`
+  // 使用统一的 URL 处理工具
+  return normalizeFileUrl(coverUrl, baseUrl.value)
 }
 
 /**
@@ -358,9 +348,9 @@ const loadArticleDetail = async () => {
     // 设置编辑模式
     editMode.value = article.value?.editMode || 0
 
-    // 转换 JSON 内容为 HTML
-    if (article.value?.content) {
-      contentHtml.value = convertJsonToHtml(article.value.content)
+    // 设置编辑器内容
+    if (article.value?.content && editor.value) {
+      editor.value.commands.setContent(article.value.content)
     }
 
     // 设置全局变量，供分享组件使用
@@ -577,6 +567,14 @@ onMounted(() => {
   incrementViewCount()
 })
 
+/**
+ * 组件卸载时
+ */
+onBeforeUnmount(() => {
+  if (editor.value) {
+    editor.value.destroy()
+  }
+})
 
 /**
  * 增加文章浏览量
@@ -726,13 +724,91 @@ const incrementViewCount = () => {
   color: #333;
   min-height: 300px;
 
-  :deep(img) {
-    max-width: 100%;
-    height: auto;
-    margin: 10px 0;
-    border-radius: 4px;
+  :deep(.ProseMirror) {
+    padding: 0;
+
+    p {
+      margin-bottom: 16px;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    blockquote {
+      margin: 16px 0;
+      padding: 10px 20px;
+      background: #f5f7fa;
+      border-left: 4px solid #409EFF;
+      border-radius: 4px;
+    }
+
+    code {
+      padding: 2px 6px;
+      background: #f5f7fa;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    pre {
+      padding: 16px;
+      background: #282c34;
+      color: #abb2bf;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 16px 0;
+
+      code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+      }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+
+      th, td {
+        border: 1px solid #dcdfe6;
+        padding: 12px;
+        text-align: left;
+      }
+
+      th {
+        background: #f5f7fa;
+        font-weight: 600;
+      }
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
   }
 
+  // 视频节点样式
+  :deep(.video-node-wrapper) {
+    margin: 16px 0;
+
+    .video-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+  }
+
+  // 文件节点样式
   :deep(.file-node) {
     display: inline-flex;
     align-items: center;
@@ -776,6 +852,7 @@ const incrementViewCount = () => {
     }
   }
 
+  // 分享卡片节点样式
   :deep(.share-card-node) {
     display: block;
     margin: 16px 0;
@@ -809,78 +886,6 @@ const incrementViewCount = () => {
         color: #666;
         line-height: 1.6;
       }
-    }
-  }
-
-  :deep(.video-node-wrapper) {
-    margin: 16px 0;
-
-    .video-container {
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    }
-  }
-
-  :deep(p) {
-    margin-bottom: 16px;
-  }
-
-  :deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6) {
-    margin-top: 24px;
-    margin-bottom: 16px;
-    font-weight: 600;
-  }
-
-  :deep(ul), :deep(ol) {
-    padding-left: 20px;
-    margin-bottom: 16px;
-  }
-
-  :deep(blockquote) {
-    margin: 16px 0;
-    padding: 10px 20px;
-    background: #f5f7fa;
-    border-left: 4px solid #409EFF;
-    border-radius: 4px;
-  }
-
-  :deep(code) {
-    padding: 2px 6px;
-    background: #f5f7fa;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-  }
-
-  :deep(pre) {
-    padding: 16px;
-    background: #282c34;
-    color: #abb2bf;
-    border-radius: 6px;
-    overflow-x: auto;
-    margin: 16px 0;
-
-    code {
-      background: transparent;
-      padding: 0;
-      color: inherit;
-    }
-  }
-
-  :deep(table) {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 16px 0;
-
-    th, td {
-      border: 1px solid #dcdfe6;
-      padding: 12px;
-      text-align: left;
-    }
-
-    th {
-      background: #f5f7fa;
-      font-weight: 600;
     }
   }
 }
