@@ -64,9 +64,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Icon } from '@iconify/vue'
 import { useMessage } from 'naive-ui'
-import { useGlobalProperties } from '@/utils/globalProperties'
+import { uploadAPI } from '@/api/upload'
+import { normalizeFileUrl } from '@/utils/fileUrl'
+import {useGlobalProperties} from "@/utils/globalProperties";
+import { Icon } from '@iconify/vue'
+const message = useMessage()
 
 const props = defineProps<{
   modelValue?: string
@@ -76,7 +79,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const message = useMessage()
 const appContext = useGlobalProperties()
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
@@ -87,12 +89,14 @@ const uploadHeaders = computed(() => ({
   token: appContext?.$toolUtil?.storageGet('Token') || ''
 }))
 
+// 【调试】计算图片显示URL
+// 作用：将上传接口返回的 fileUrl（如 /api/files/3）转换为完整的可访问URL
+// 示例：/api/files/3 → http://localhost:8080/api/files/3
 const imageUrl = computed(() => {
-  if (!props.modelValue) {return ''}
 
-  return props.modelValue.startsWith('http')
-    ? props.modelValue
-    : `${baseUrl.value}/${props.modelValue}`
+  const result = normalizeFileUrl(props.modelValue, baseUrl.value)
+
+  return result
 })
 
 const triggerUpload = () => {
@@ -117,40 +121,49 @@ const handleFileChange = async (event: Event) => {
     return
   }
 
-  const formDataUpload = new FormData()
-  formDataUpload.append('file', file)
-
   try {
-    const response = await appContext?.$http.post(uploadUrl.value, formDataUpload, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        token: uploadHeaders.value.token
-      }
-    })
+    console.log('📤 [CoverUpload] 调用 uploadAPI.uploadImage...')
 
-    const res = response.data
-    if (res.code === 0 || res.code === 200 || res.success) {
-      const fileUrl = res.data?.url || res.fileName
-      if (fileUrl) {
-        emit('update:modelValue', "files/"+fileUrl)
-        message.success('封面上传成功')
-      } else {
-        message.error('上传失败：未获取到图片 URL')
-      }
+    // 【关键】调用上传接口
+    // 期望返回：UploadResponse 对象，包含 fileUrl 字段
+    // 实际返回结构需要根据后端响应调整
+    const response = await uploadAPI.uploadImage(file, '文章封面')
+
+    // 【调试】检查返回值
+    if (response) {
+
+
+
+      // 触发更新，将 fileUrl（如 /api/files/3）传递给父组件
+      emit('update:modelValue', response)
+
+      message.success('封面上传成功')
     } else {
-      message.error(res.message || '封面上传失败')
+      // 【错误情况】response 为 null 或 undefined
+      console.error('❌ [CoverUpload] 上传失败：response 为空')
+      console.error('❌ [CoverUpload] 可能原因：')
+      console.error('   1. uploadAPI.uploadImage 内部捕获了异常并返回 null')
+      console.error('   2. 后端返回的 code !== 0')
+      console.error('   3. 网络请求失败')
+      message.error('上传失败：未获取到图片 URL')
     }
-  } catch (error) {
-    console.error('上传失败:', error)
+  } catch (error: any) {
+    // 【异常情况】上传过程抛出异常
+    console.error('❌ [CoverUpload] 上传过程发生异常:', error)
+    console.error('❌ [CoverUpload] 错误信息:', error.message)
+    console.error('❌ [CoverUpload] 错误堆栈:', error.stack)
     message.error('上传失败，请重试')
   } finally {
+    // 清空文件输入框，允许重复选择同一文件
     if (target) {
       target.value = ''
+
     }
   }
 }
 
 const handleRemove = () => {
+
   emit('update:modelValue', '')
 }
 </script>

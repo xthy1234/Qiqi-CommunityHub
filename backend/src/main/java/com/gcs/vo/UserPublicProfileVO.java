@@ -5,11 +5,8 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-/**
- * 用户公开个人信息视图对象 - 用于公开主页展示
- * 不包含敏感信息（电话、邮箱、账号等）
- */
 @Data
 @Schema(description = "用户公开个人信息视图对象")
 public class UserPublicProfileVO implements Serializable {
@@ -45,4 +42,7 @@ public class UserPublicProfileVO implements Serializable {
 
     @Schema(description = "用户生日", example = "")
     private LocalDate birthday;
+    
+    @Schema(description = "注册时间", example = "2026-04-09 13:15:00")
+    private LocalDateTime createTime;
 }

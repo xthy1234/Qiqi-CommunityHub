@@ -240,11 +240,44 @@
           />
         </template>
       </n-button>
+      <n-button
+        size="tiny"
+        quaternary
+        title="插入视频"
+        @click="openVideoDialog"
+      >
+        <template #icon>
+          <Icon
+            icon="material-symbols:video-file"
+            width="16"
+          />
+        </template>
+      </n-button>
+      <n-button
+        size="tiny"
+        quaternary
+        title="上传视频"
+        @click="triggerVideoUpload"
+      >
+        <template #icon>
+          <Icon
+            icon="material-symbols:upload"
+            width="16"
+          />
+        </template>
+      </n-button>
       <input
         ref="fileInputRef"
         type="file"
         style="display: none"
         @change="handleFileInputChange"
+      />
+      <input
+        ref="videoInputRef"
+        type="file"
+        accept="video/*"
+        style="display: none"
+        @change="handleVideoInputChange"
       />
 
       <n-divider vertical />
@@ -503,6 +536,55 @@
         </n-space>
       </template>
     </n-modal>
+
+    <!-- 视频插入对话框 -->
+    <n-modal
+      v-model:show="videoDialogVisible"
+      preset="dialog"
+      title="插入视频"
+      :style="{ width: '500px' }"
+    >
+      <n-form
+        :model="videoForm"
+        label-placement="left"
+        label-width="80px"
+      >
+        <n-form-item
+          label="视频 URL"
+          required
+        >
+          <n-input
+            v-model:value="videoForm.src"
+            placeholder="https://example.com/video.mp4"
+          />
+        </n-form-item>
+        <n-form-item label="封面图">
+          <n-input
+            v-model:value="videoForm.poster"
+            placeholder="https://example.com/poster.jpg（可选）"
+          />
+        </n-form-item>
+        <n-form-item label="视频标题">
+          <n-input
+            v-model:value="videoForm.title"
+            placeholder="视频标题（可选）"
+          />
+        </n-form-item>
+      </n-form>
+      <template #action>
+        <n-space justify="end">
+          <n-button @click="videoDialogVisible = false">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            @click="insertVideo"
+          >
+            确定
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -524,6 +606,7 @@ import type { SelectOption } from 'naive-ui'
 import { all, createLowlight } from 'lowlight'
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
+import { VideoNodeExtension } from '@/utils/tiptap-video-node'
 import { uploadAPI } from '@/api/upload'
 import { articleAPI, type Article } from '@/api/article'
 
@@ -541,7 +624,9 @@ const currentHeading = ref('paragraph')
 const linkDialogVisible = ref(false)
 const imageDialogVisible = ref(false)
 const shareCardDialogVisible = ref(false)
+const videoDialogVisible = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const videoInputRef = ref<HTMLInputElement | null>(null)
 const userArticles = ref<Article[]>([])
 const selectedArticle = ref<Article | null>(null)
 const loadingArticles = ref(false)
@@ -556,13 +641,10 @@ const imageForm = reactive({
   alt: ''
 })
 
-const shareCardForm = reactive({
-  title: '',
-  summary: '',
-  cover: '',
-  url: '',
-  author: '',
-  publishTime: ''
+const videoForm = reactive({
+  src: '',
+  poster: '',
+  title: ''
 })
 
 const searchKeyword = ref('')
@@ -619,46 +701,30 @@ const getArticleCoverUrl = (coverUrl: string): string => {
 }
 
 const editor = useEditor({
-  content: props.modelValue || '',
   extensions: [
     StarterKit.configure({
-      heading: {
-        levels: [2, 3],
-        HTMLAttributes: {
-          class: 'heading'
-        }
-      },
+      heading: { levels: [2, 3] },
       codeBlock: false,
       link: false,
       underline: false
     }),
-    Image.configure({
-      HTMLAttributes: {
-        class: 'image'
-      }
-    }),
-    FileNodeExtension,
-    ShareCardNodeExtension,
-    Link.configure({
-      openOnClick: false,
-      HTMLAttributes: {
-        target: '_blank',
-        rel: 'noopener noreferrer'
-      }
-    }),
-    TextAlign.configure({
-      types: ['heading', 'paragraph']
-    }),
+    Image,
+    Link,
+    TextAlign,
     Underline,
     Color,
     Highlight,
     Placeholder.configure({
-      placeholder: '开始撰写文章内容...'
+      placeholder: '开始编辑文章内容...'
     }),
     CodeBlockLowlight.configure({
-      lowlight
-    })
+      lowlight: createLowlight(all)
+    }),
+    FileNodeExtension,
+    ShareCardNodeExtension,
+    VideoNodeExtension,
   ],
+  content: props.modelValue || '',
   editorProps: {
     handleDOMEvents: {
       paste: (view, event) => {
@@ -667,11 +733,33 @@ const editor = useEditor({
 
         for (let i = 0; i < items.length; i++) {
           const item = items[i]
+
+          // 【修复】处理图片粘贴
           if (item.type.startsWith('image/')) {
             const file = item.getAsFile()
             if (file) {
               event.preventDefault()
               handleImagePaste(file)
+              return true
+            }
+          }
+
+          // 【新增】处理视频粘贴
+          if (item.type.startsWith('video/')) {
+            const file = item.getAsFile()
+            if (file) {
+              event.preventDefault()
+              handleVideoPaste(file)
+              return true
+            }
+          }
+
+          // 【新增】处理文档类文件粘贴（PDF、Word、Excel 等）
+          if (isDocumentType(item.type)) {
+            const file = item.getAsFile()
+            if (file) {
+              event.preventDefault()
+              handleDocumentPaste(file)
               return true
             }
           }
@@ -712,7 +800,7 @@ const editor = useEditor({
   },
   onUpdate: ({ editor }) => {
     const json = editor.getJSON()
-    // console.log('=== 编辑器内容更新 ===')
+    // // console.log('=== 编辑器内容更新 ===')
     // console.log('JSON 格式:', JSON.stringify(json, null, 2))
     // console.log('HTML 格式:', editor.getHTML())
     // console.log('文本内容:', editor.getText())
@@ -885,26 +973,103 @@ const toggleCodeBlock = () => {
   editor.value.chain().focus().toggleCodeBlock().run()
 }
 
+/**
+ * 判断是否为文档类型文件
+ */
+const isDocumentType = (mimeType: string): boolean => {
+  const documentTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'application/zip',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed'
+  ]
+
+  return documentTypes.includes(mimeType) || mimeType.startsWith('application/')
+}
+
+/**
+ * 处理文档类文件粘贴
+ */
+const handleDocumentPaste = async (file: File) => {
+  try {
+    message.loading('文件上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadAnyFile(file)
+
+    if (!response) {
+      throw new Error('文件上传失败')
+    }
+
+    // 插入文件节点，response 是 downloadUrl (/api/files/{id}/download)
+    editor.value.commands.setFileNode({
+      src: response,
+      name: file.name,
+      size: file.size,
+      mimeType: file.type,
+      extension: file.name.split('.').pop() || ''
+    })
+
+    message.destroyAll()
+    message.success('文件粘贴成功')
+  } catch (error: any) {
+    console.error('❌ [RichTextEditor] 粘贴文件失败:', error)
+    message.destroyAll()
+    message.error('文件粘贴失败')
+  }
+}
+
 const handleImagePaste = async (file: File) => {
   try {
-    const response = await uploadAPI.uploadFile(file)
-    const fileData = response.code === 0 ? response : response.data
-    let fileUrl = fileData.url
+    message.loading('图片上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadImage(file)
 
-    if (!fileUrl) {
-      throw new Error('上传响应中缺少 url 字段')
+    if (!response) {
+      throw new Error('图片上传失败')
     }
 
-    if (fileUrl.startsWith('/')) {
-      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
-      fileUrl = `${baseUrl}${fileUrl}`
-    }
-
-    editor.value.chain().focus().setImage({ src: fileUrl }).run()
+    // 新版 API 返回 viewUrl (/api/files/123/view)
+    editor.value.chain().focus().setImage({ src: response }).run()
+    message.destroyAll()
     message.success('图片粘贴成功')
   } catch (error: any) {
     console.error('❌ [RichTextEditor] 粘贴图片失败:', error)
+    message.destroyAll()
     message.error('图片粘贴失败')
+  }
+}
+
+/**
+ * 处理视频粘贴
+ */
+const handleVideoPaste = async (file: File) => {
+  try {
+    message.loading('视频上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadVideo(file)
+
+    if (!response) {
+      throw new Error('视频上传失败')
+    }
+
+    // 插入视频节点，response 是 viewUrl (/api/files/123/view)
+    editor.value.commands.setVideo({
+      src: response,
+      title: file.name,
+      duration: 0,
+      annotations: []
+    })
+
+    message.destroyAll()
+    message.success('视频粘贴成功')
+  } catch (error: any) {
+    console.error('❌ [RichTextEditor] 粘贴视频失败:', error)
+    message.destroyAll()
+    message.error('视频粘贴失败')
   }
 }
 
@@ -966,12 +1131,36 @@ const triggerFileUpload = () => {
   fileInputRef.value?.click()
 }
 
-const handleFileInputChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
+const handleFileInputChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
   const file = target.files?.[0]
+
   if (!file) {return}
-  handleUpload(file)
-  target.value = ''
+
+  try {
+    const response = await uploadAPI.uploadAnyFile(file)
+
+    if (!response) {
+      throw new Error('文件上传失败')
+    }
+
+    // 插入文件节点
+    editor.value.commands.setFileNode({
+      src: response,
+      name: file.name,
+      size: Number(file.size),
+      mimeType: String(file.type),
+      extension: file.name.split('.').pop() || ''
+    })
+    message.success('文件上传成功')
+  } catch (error: any) {
+    console.error('❌ [RichTextEditor] 文件上传失败:', error)
+    message.error(`文件上传失败：${error.message}`)
+  } finally {
+    if (target) {
+      target.value = ''
+    }
+  }
 }
 
 const openImageDialog = () => {
@@ -999,33 +1188,22 @@ const handleUpload = async (file: File) => {
   if (!editor.value) {return}
 
   try {
-    const response = await uploadAPI.uploadFile(file)
-    const fileData = response.code === 0 ? response : response.data
-    let fileUrl = fileData.url
+    const response = await uploadAPI.uploadAnyFile(file)
 
-    if (!fileUrl) {
-      throw new Error('上传响应中缺少 url 字段')
+    if (!response) {
+      throw new Error('文件上传失败')
     }
 
-    if (fileUrl.startsWith('/')) {
-      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
-      fileUrl = `${baseUrl}${fileUrl}`
-    }
+    // 【修复】使用正确的命令名 setFileNode
+    editor.value.commands.setFileNode({
+      src: response,
+      name: file.name,
+      size: file.size,
+      mimeType: file.type,
+      extension: file.name.split('.').pop() || ''
+    })
 
-    if (file.type.startsWith('image/')) {
-      editor.value.chain().focus().setImage({ src: fileUrl }).run()
-      message.success('图片上传成功')
-    } else {
-      const extension = file.name.split('.').pop()
-      editor.value.commands.setFile({
-        src: fileUrl,
-        name: String(file.name),
-        size: Number(file.size),
-        mimeType: String(file.type),
-        extension: extension ? String(extension) : ''
-      })
-      message.success('文件上传成功')
-    }
+    message.success('文件上传成功')
   } catch (error: any) {
     console.error('❌ [RichTextEditor] 文件上传失败:', error)
     message.error(`文件上传失败：${error.message}`)
@@ -1038,6 +1216,76 @@ const openShareCardDialog = () => {
 
 const insertShareCard = () => {
 
+}
+
+const openVideoDialog = () => {
+  if (!editor.value) return
+
+  videoForm.src = ''
+  videoForm.poster = ''
+  videoForm.title = ''
+  videoDialogVisible.value = true
+}
+
+const insertVideo = async () => {
+  if (!editor.value) return
+
+  if (!videoForm.src) {
+    message.error('请输入视频地址')
+    return
+  }
+
+  // 如果是本地上传的视频，videoForm.src 已经是 /api/files/{id} 格式
+  // 如果是在线视频链接，直接使用
+  editor.value.commands.setVideo({
+    src: videoForm.src,
+    poster: videoForm.poster || undefined,
+    title: videoForm.title || '',
+    duration: 0,
+    annotations: []
+  })
+
+  videoDialogVisible.value = false
+  message.success('视频插入成功')
+}
+
+const triggerVideoUpload = () => {
+  videoInputRef.value?.click()
+}
+
+const handleVideoInputChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) return
+
+  try {
+    message.loading('视频上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadVideo(file)
+
+    if (!response) {
+      throw new Error('视频上传失败')
+    }
+
+    // 插入视频节点
+    editor.value.commands.setVideo({
+      src: response,
+      title: file.name,
+      duration: 0,
+      annotations: []
+    })
+
+    message.destroyAll()
+    message.success('视频上传成功')
+  } catch (error: any) {
+    console.error('❌ [RichTextEditor] 视频上传失败:', error)
+    message.destroyAll()
+    message.error(`视频上传失败：${error.message}`)
+  } finally {
+    if (target) {
+      target.value = ''
+    }
+  }
 }
 
 onBeforeUnmount(() => {

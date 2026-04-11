@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gcs.dao.FileRecordDao">
+
+    <!-- 根据 MD5 查询文件记录 -->
+    <select id="selectByMd5" resultType="com.gcs.entity.FileRecord">
+        SELECT * FROM file_record
+        WHERE file_md5 = #{md5}
+        LIMIT 1
+    </select>
+
+    <!-- 统计用户上传的文件数量 -->
+    <select id="countByUploader" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM file_record
+        WHERE uploader_id = #{uploaderId}
+        AND status = 1
+    </select>
+
+    <!-- 分页查询文件列表（支持多条件） -->
+    <select id="selectFileList" resultType="com.gcs.entity.FileRecord">
+        SELECT * FROM file_record
+        <where>
+            <if test="params.fileType != null and params.fileType != ''">
+                AND file_type = #{params.fileType}
+            </if>
+            <if test="params.uploaderId != null">
+                AND uploader_id = #{params.uploaderId}
+            </if>
+            <if test="params.status != null">
+                AND status = #{params.status}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (original_file_name LIKE CONCAT('%', #{params.keyword}, '%')
+                     OR description LIKE CONCAT('%', #{params.keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY upload_time DESC
+    </select>
+
+</mapper>

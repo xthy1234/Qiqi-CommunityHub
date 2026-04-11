@@ -240,6 +240,7 @@ import Image from "@tiptap/extension-image"
 import Link from "@tiptap/extension-link"
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
+import { VideoNodeExtension } from '@/utils/tiptap-video-node'
 import { articleContributorAPI } from '@/api/contributor'
 import { useVisitedStore } from '@/stores/visited'
 
@@ -253,15 +254,14 @@ const visitedStore = useVisitedStore()
 
 // 编辑器扩展配置 (避免重复)
 const extensions = [
-  StarterKit.configure({
-    link: false,
-  }),
+  StarterKit.configure({ link: false }),
   Image,
   Link.configure({
     openOnClick: false,
   }),
   FileNodeExtension,
   ShareCardNodeExtension,
+  VideoNodeExtension,
 ]
 
 /**
@@ -809,6 +809,16 @@ const incrementViewCount = () => {
         color: #666;
         line-height: 1.6;
       }
+    }
+  }
+
+  :deep(.video-node-wrapper) {
+    margin: 16px 0;
+
+    .video-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     }
   }
 

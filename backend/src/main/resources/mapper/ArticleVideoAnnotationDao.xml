@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gcs.dao.ArticleVideoAnnotationDao">
+
+    <resultMap id="annotationMap" type="com.gcs.entity.ArticleVideoAnnotation">
+        <id property="id" column="id"/>
+        <result property="articleId" column="article_id"/>
+        <result property="videoUrl" column="video_url"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="status" column="status"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByArticleAndVideo" resultMap="annotationMap">
+        SELECT * FROM article_video_annotation 
+        WHERE article_id = #{articleId} 
+          AND video_url = #{videoUrl}
+          AND is_deleted = false
+        ORDER BY start_time ASC
+    </select>
+
+    <select id="selectByArticleId" resultMap="annotationMap">
+        SELECT * FROM article_video_annotation 
+        WHERE article_id = #{articleId}
+          AND is_deleted = false
+        ORDER BY start_time ASC
+    </select>
+
+    <select id="selectAnnotationList" resultMap="annotationMap">
+        SELECT * FROM article_video_annotation
+        <where>
+            is_deleted = false
+            <if test="params.articleId != null">
+                AND article_id = #{params.articleId}
+            </if>
+            <if test="params.videoUrl != null and params.videoUrl != ''">
+                AND video_url = #{params.videoUrl}
+            </if>
+            <if test="params.creatorId != null">
+                AND creator_id = #{params.creatorId}
+            </if>
+            <if test="params.status != null">
+                AND status = #{params.status}
+            </if>
+            <if test="params.keyword != null and params.keyword != ''">
+                AND (title LIKE '%' || #{params.keyword} || '%' 
+                     OR content LIKE '%' || #{params.keyword} || '%')
+            </if>
+        </where>
+        ORDER BY 
+        <choose>
+            <when test="params.sortBy == 'createTime'">
+                create_time DESC
+            </when>
+            <when test="params.sortBy == 'startTime'">
+                start_time ASC
+            </when>
+            <otherwise>
+                sort_order ASC, start_time ASC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

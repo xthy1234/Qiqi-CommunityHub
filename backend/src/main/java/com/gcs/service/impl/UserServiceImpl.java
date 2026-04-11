@@ -571,6 +571,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         vo.setGender(user.getGender());
         vo.setSignature(user.getSignature());
         vo.setBirthday(user.getBirthday());
+        vo.setCreateTime(user.getCreateTime());
         
         // ✅ 补充业务字段：粉丝数、关注数、文章数
         Integer followerCount = followService != null ? followService.countFollowers(user.getId()) : 0;

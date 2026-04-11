@@ -89,6 +89,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import {uploadAPI} from "@/api/upload";
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
+import { VideoNodeExtension } from '@/utils/tiptap-video-node'
 
 const appContext = useGlobalProperties()
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -102,7 +103,8 @@ const editor = useEditor({
     StarterKit,
     Image,
     FileNodeExtension,
-    ShareCardNodeExtension, // 添加 ShareCard 扩展
+    ShareCardNodeExtension,
+    VideoNodeExtension,
     Placeholder.configure({
       placeholder: '输入消息... (Enter 发送，Shift+Enter 换行)'
     })
@@ -181,76 +183,42 @@ const handleUpload = () => {
   fileInputRef.value?.click()
 }
 
-const handleFileChange = async (e: Event) => {
-  const target = e.target as HTMLInputElement
+const handleFileChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  if (!file || !editor.value) {return}
+
+  if (!file) return
 
   try {
+    const response = await uploadAPI.uploadImage(file)
 
-    const response = await uploadAPI.uploadFile(file)
-
-    // 关键修复：正确解析响应数据并转换为完整 URL
-    const fileData = response.code === 0 ? response : response.data
-    let fileUrl = fileData.url
-
-    if (!fileUrl) {
-      throw new Error('上传响应中缺少 url 字段')
+    if (!response) {
+      throw new Error('图片上传失败')
     }
 
-    // 关键修复：如果是相对路径，转换为完整 URL
-    if (fileUrl.startsWith('/')) {
-      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
-      fileUrl = `${baseUrl}${fileUrl}`
-    }
-
-    if (file.type.startsWith('image/')) {
-      // 图片：插入到编辑器
-      editor.value.chain().focus().setImage({ src: fileUrl }).run()
-      appContext?.$message.success('图片上传成功')
-    } else {
-      // 文件：使用新的 File 节点插入
-      const extension = file.name.split('.').pop()
-
-      // 关键修复：确保所有属性都是正确的类型
-      editor.value.commands.setFile({
-        src: fileUrl,
-        name: String(file.name),
-        size: Number(file.size),
-        mimeType: String(file.type),
-        extension: extension ? String(extension) : ''
-      })
-
-      appContext?.$message.success('文件上传成功')
-    }
+    editor.value.chain().focus().setImage({ src: response }).run()
+    appContext?.$message.success('图片上传成功')
   } catch (error: any) {
-    console.error('❌ [ChatInput] 文件上传失败:', error)
-    appContext?.$message.error(`文件上传失败：${error.message}`)
+    console.error('❌ [ChatInput] 图片上传失败:', error)
+    appContext?.$message.error('图片上传失败')
+  } finally {
+    if (target) {
+      target.value = ''
+    }
   }
-
-  target.value = ''
 }
 
 // 新增：处理粘贴的图片
 const handleImagePaste = async (file: File) => {
   try {
+    const response = await uploadAPI.uploadImage(file)
 
-    const response = await uploadAPI.uploadFile(file)
-    const fileData = response.code === 0 ? response : response.data
-    let fileUrl = fileData.url
-
-    if (!fileUrl) {
-      throw new Error('上传响应中缺少 url 字段')
+    if (!response) {
+      throw new Error('图片上传失败')
     }
 
-    // 关键修复：如果是相对路径，转换为完整 URL
-    if (fileUrl.startsWith('/')) {
-      const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
-      fileUrl = `${baseUrl}${fileUrl}`
-    }
-
-    // 插入图片到编辑器
-    editor.value.chain().focus().setImage({ src: fileUrl }).run()
+    // 新版 API 直接返回完整 URL
+    editor.value.chain().focus().setImage({ src: response }).run()
     appContext?.$message.success('图片粘贴成功')
   } catch (error: any) {
     console.error('❌ [ChatInput] 粘贴图片失败:', error)

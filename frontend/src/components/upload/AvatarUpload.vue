@@ -1,12 +1,10 @@
 <template>
   <div class="avatar-upload-wrapper">
     <n-upload
-      :action="uploadUrl"
-      :headers="uploadHeaders"
+      :custom-request="customUpload"
       :show-file-list="false"
       :before-upload="beforeAvatarUpload"
       :disabled="isDisabled"
-      @finish="handleAvatarSuccess"
     >
       <n-button
         v-if="false"
@@ -48,6 +46,7 @@
 import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
+import { uploadAPI } from '@/api/upload'
 import type { UploadCustomRequestOptions } from 'naive-ui'
 
 interface Props {
@@ -69,36 +68,46 @@ const emit = defineEmits<{
 const globalProps = useGlobalProperties()
 const imageUrl = ref(props.modelValue)
 
-watch(() => props.modelValue, (newVal) => {
-  imageUrl.value = newVal
-})
-
-const uploadUrl = computed(() => {
-  const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
-
-  return `${baseUrl}/${props.uploadAction}`
-})
-
-const uploadHeaders = computed(() => {
-  const token = globalProps.$toolUtil?.storageGet("Token")
-  return {
-    'Authorization': token || ''
+watch(() => props.modelValue, (newVal : string) => {
+  if (newVal) {
+    const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
+    // 判断是否是新版 API URL
+    if (newVal.startsWith('/api/files/')) {
+      imageUrl.value = `${baseUrl}${newVal}`
+    } else {
+      imageUrl.value = newVal.startsWith('http') ? newVal : `${baseUrl}/${newVal}`
+    }
+  } else {
+    imageUrl.value = newVal
   }
 })
 
-const handleAvatarSuccess = ({ event }: { event: Event }) => {
-  const target = event.target as XMLHttpRequest
-  const response = JSON.parse(target.response)
+const customUpload = async ({ file, onFinish, onError }: UploadCustomRequestOptions) => {
+  try {
+    const response = await uploadAPI.uploadImage(file.file as File, '用户头像')
 
-  const uploadedFilePath = "files/" + response.fileName
-  const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
-  imageUrl.value = `${baseUrl}/${uploadedFilePath}`
+    if (response) {
+      const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
+      const fullUrl = `${baseUrl}${response}`
 
-  emit('update:modelValue', uploadedFilePath)
-  emit('change', imageUrl.value)
+      imageUrl.value = fullUrl
+      emit('update:modelValue', response)
+      emit('change', fullUrl)
 
-  if (globalProps.$toolUtil?.message) {
-    globalProps.$toolUtil.message('头像上传成功', 'success')
+      if (globalProps.$toolUtil?.message) {
+        globalProps.$toolUtil.message('头像上传成功', 'success')
+      }
+
+      onFinish()
+    } else {
+      throw new Error('上传失败')
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    if (globalProps.$toolUtil?.message) {
+      globalProps.$toolUtil.message('头像上传失败', 'error')
+    }
+    onError()
   }
 }
 

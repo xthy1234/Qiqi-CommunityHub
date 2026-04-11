@@ -59,10 +59,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { NIcon, NButton } from 'naive-ui'
+import { computed, inject } from 'vue'
+import { NIcon, NButton, useMessage } from 'naive-ui'
 import { NodeViewWrapper } from '@tiptap/vue-3'
-import { useGlobalProperties } from '@/utils/globalProperties'
+import { normalizeFileUrl } from '@/utils/fileUrl'
+
+// 【修复】直接在组件中使用 useMessage
+const message = useMessage()
 
 // 关键修复：接收完整的 NodeView props（包括 node 对象）
 interface Props {
@@ -87,8 +90,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 关键新增：添加日志检查 node.attrs
 console.log('🔍 [FileNode] node.attrs:', props.node?.attrs)
-
-const appContext = useGlobalProperties()
 
 // 格式化文件大小
 const formatFileSize = (bytes: number): string => {
@@ -143,13 +144,24 @@ const fileInfo = computed(() => ({
 
 // 处理下载
 const handleDownload = () => {
-  const src = props.node?.attrs?.src
+  const rawSrc = props.node?.attrs?.src
   const name = props.node?.attrs?.name || 'download'
 
-  if (!src) {
-    appContext?.$message.warning('文件链接无效')
+  if (!rawSrc) {
+    message.warning('文件链接无效')
     return
   }
+
+  // 【修复】使用 normalizeFileUrl 确保 URL 正确拼接 baseUrl
+  // 输入示例: "/api/files/5/download"
+  // 输出示例: "http://localhost:8080/api/files/5/download"
+  const src = normalizeFileUrl(rawSrc)
+
+  console.log('📥 [FileNode] 文件下载信息:')
+  console.log('  - 原始 URL (src):', rawSrc)
+  console.log('  - 标准化 URL:', src)
+  console.log('  - 文件名:', name)
+  console.log('  - 预期格式: http://localhost:8080/api/files/{id}/download')
 
   const link = document.createElement('a')
   link.href = src
@@ -159,7 +171,7 @@ const handleDownload = () => {
   link.click()
   document.body.removeChild(link)
 
-  appContext?.$message.success('开始下载文件')
+  message.success('开始下载文件')
 }
 </script>
 

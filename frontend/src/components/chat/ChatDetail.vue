@@ -290,7 +290,7 @@ const debouncedSendReadReceipt = debounce((userId: number, reason = '用户操�
             const lastMessage = messagesFromUser[messagesFromUser.length - 1]
             lastReadTimestamp.value.set(userId, Date.now())
 
-            // console.log('✅ [已读回执] 已发送给用户:', userId,
+            // // console.log('✅ [已读回执] 已发送给用户:', userId,
             //     '- 原因:', reason,
             //     '- 消息数:', messagesFromUser.length,
             //     '- 最后消息 ID:', lastMessage.id)
@@ -325,7 +325,7 @@ const sendReadReceiptIfNeed = (userId: number, reason = '检查未读消息') =>
         debouncedSendReadReceipt(userId, reason)
     }
     // else {
-    //     console.log('ℹ️ [sendReadReceiptIfNeed] 无未读消息，跳过:', userId, '- 原因:', reason)
+    //     // console.log('ℹ️ [sendReadReceiptIfNeed] 无未读消息，跳过:', userId, '- 原因:', reason)
     // }
 }
 
@@ -336,7 +336,7 @@ const retryPendingReadReceipts = () => {
     }
 
     pendingReadReceipts.value.forEach(userId => {
-        // console.log('🔄 [重试] 补发已读回执给用户:', userId)
+        // // console.log('🔄 [重试] 补发已读回执给用户:', userId)
         debouncedSendReadReceipt(userId, 'WebSocket 重连后补发')
     })
 
@@ -415,7 +415,7 @@ onUnmounted(() => {
 const checkIsAtBottom = () => {
     const messageListEl = messageListRef.value
     if (!messageListEl) {
-        // console.log('⚠️ [checkIsAtBottom] messageListEl 为 null')
+        // // console.log('⚠️ [checkIsAtBottom] messageListEl 为 null')
         return false
     }
 
@@ -475,7 +475,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
             // 调整滚动条，补偿新增的高度，保持用户视野不变
             messageListEl.scrollTop = currentScrollTop + heightDiff
 
-            // console.log('📏 [Watch] 已保持滚动位置:',
+            // // console.log('📏 [Watch] 已保持滚动位置:',
             //     '- 原 scrollTop:', currentScrollTop,
             //     '- 原 scrollHeight:', currentScrollHeight,
             //     '- 新 scrollHeight:', newScrollHeight,
@@ -512,7 +512,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
             // 调整滚动条，补偿新增的高度
             messageListEl.scrollTop = currentScrollTop + heightDiff
 
-            // console.log('📏 [Watch] 调整滚动条以保持视野:',
+            // // console.log('📏 [Watch] 调整滚动条以保持视野:',
             //     '- 原 scrollTop:', currentScrollTop,
             //     '- 原 scrollHeight:', currentScrollHeight,
             //     '- 新 scrollHeight:', newScrollHeight,
@@ -544,7 +544,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
             )
 
             if (hasUnreadFromCurrentConv) {
-                // console.log('📨 [Watch] 收到当前会话的新消息，触发已读回执')
+                // // console.log('📨 [Watch] 收到当前会话的新消息，触发已读回执')
                 debouncedSendReadReceipt(store.currentConversation.userId, '收到新消息')
             }
         }

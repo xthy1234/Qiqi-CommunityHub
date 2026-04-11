@@ -8,10 +8,9 @@ import com.gcs.vo.CommentVO;
 import com.gcs.vo.CommentDetailVO;
 import com.gcs.vo.CommentTreeVO;
 import com.gcs.vo.CommentWithUserVO;
-import org.mapstruct.IterableMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
+import com.gcs.vo.UserSimpleVO;
+import org.mapstruct.*;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.util.List;
@@ -33,9 +32,13 @@ public interface CommentConverter {
     
     // Entity to VO - 使用 Named 注解明确方法名
     @Named("toVO")
+    @Mapping(target = "user", expression = "java(convertToUserSimpleVO(entity))")
+    @Mapping(target = "userId", ignore = true)
     CommentVO toVO(Comment entity);
     
     @Named("toDetailVO")
+    @Mapping(target = "user", expression = "java(convertToUserSimpleVO(entity))")
+    @Mapping(target = "userId", ignore = true)
     CommentDetailVO toDetailVO(Comment entity);
     
     @Named("toTreeVO")
@@ -59,4 +62,16 @@ public interface CommentConverter {
     
     // Update existing entity
     void updateEntity(CommentUpdateDTO dto, @MappingTarget Comment entity);
+    
+    // 手动转换方法 - 仅用于 CommentVO 和 CommentDetailVO
+    default UserSimpleVO convertToUserSimpleVO(Comment comment) {
+        if (comment == null) {
+            return null;
+        }
+        UserSimpleVO userVO = new UserSimpleVO();
+        userVO.setId(comment.getUserId());
+        userVO.setNickname(comment.getUserNickname());
+        userVO.setAvatar(comment.getUserAvatar());
+        return userVO;
+    }
 }

@@ -113,7 +113,31 @@
             <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
                 AND ${ew.sqlSegment}
             </if>
+
+            <!-- 【临时注释】屏蔽作者 - 待完善参数传递后启用 -->
+            <!--
+            <if test="params.blockedAuthorIds != null and params.blockedAuthorIds.size() > 0">
+                AND a.author_id NOT IN
+                <foreach item="id" collection="params.blockedAuthorIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+
+            <if test="params.blockedCategoryIds != null and params.blockedCategoryIds.size() > 0">
+                AND a.category_id NOT IN
+                <foreach item="id" collection="params.blockedCategoryIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+
+            <if test="params.blockedKeywords != null and params.blockedKeywords.size() > 0">
+                <foreach item="kw" collection="params.blockedKeywords">
+                    AND a.title NOT ILIKE '%' || #{kw} || '%'
+                </foreach>
+            </if>
+            -->
         </where>
+        ORDER BY a.create_time DESC
     </select>
 
     <!-- 查询单个文章视图 -->

@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import FileNode from '@/components/chat/FileNode.vue'
+import FileNode from '@/components/nodes/FileNode.vue'
 
 export interface FileNodeOptions {
   HTMLAttributes: Record<string, any>
@@ -9,7 +9,7 @@ export interface FileNodeOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     fileNode: {
-      setFile: (attrs: { src: string; name: string; size: number; mimeType: string; extension: string }) => ReturnType
+      setFileNode: (attrs: { src: string; name: string; size: number; mimeType: string; extension: string }) => ReturnType
     }
   }
 }
@@ -84,7 +84,7 @@ export const FileNodeExtension = Node.create<FileNodeOptions>({
   
   addCommands() {
     return {
-      setFile: (attrs: { src: string; name: string; size: number; mimeType: string; extension: string }) => ({ chain }) => {
+      setFileNode: (attrs: { src: string; name: string; size: number; mimeType: string; extension: string }) => ({ chain }) => {
         return chain()
           .insertContent({
             type: this.name,

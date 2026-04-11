@@ -62,7 +62,9 @@ public interface UserConverter {
     List<UserPublicProfileVO> toPublicProfileVOList(List<User> entities);
     
     // ==================== Update existing entity ====================
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(UserUpdateDTO dto, @MappingTarget User entity);
     
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(AdminUserUpdateDTO dto, @MappingTarget User entity);
 }

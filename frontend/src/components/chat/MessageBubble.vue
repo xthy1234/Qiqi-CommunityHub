@@ -153,8 +153,9 @@ import { getWebSocket } from '@/utils/websocket'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
-import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
+import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
+import { VideoNodeExtension } from '@/utils/tiptap-video-node'
 
 const appContext = useGlobalProperties()
 const messageApi = useMessage()
@@ -310,8 +311,9 @@ onMounted(() => {
       extensions: [
         StarterKit,
         Image,
-        ShareCardNodeExtension,  // 添加分享卡片节点支持
-        FileNodeExtension        // 添加文件节点支持
+        ShareCardNodeExtension,
+        FileNodeExtension,
+        VideoNodeExtension,
       ],
       content: contentJson,
       editable: false, // 关键：设置为不可编辑

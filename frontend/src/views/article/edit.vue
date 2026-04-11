@@ -316,10 +316,39 @@ watch(() => route.fullPath, (newPath: string, oldPath: string) => {
   }
 })
 
-onUnmounted(() => {
+// 【组件卸载时清理】
+// 作用：
+// 1. 离开页面前自动保存草稿，确保数据不丢失
+// 2. 停止自动保存定时器，防止内存泄漏
+// 3. 清理草稿ID缓存
+onUnmounted(async () => {
 
+
+  // 【重要】离开页面前自动保存一次
+  // 场景：用户直接点击侧边栏导航、浏览器后退、关闭标签页等
+  // 确保最后一次编辑的内容被保存到后端
+  if (formData.title || (formData.content && formData.content.content?.length > 0)) {
+
+
+    try {
+      await handleAutoSave()
+
+    } catch (error) {
+      console.error('❌ [edit.vue] 离页前自动保存失败:', error)
+      // 不阻断卸载流程，只记录错误
+    }
+  } else {
+
+  }
+
+  // 停止自动保存定时器
   stopAutoSave()
-  appContext?.$toolUtil?.storageRemove('currentDraftId')
+
+
+  // 清理草稿ID缓存（注意：只在取消操作时删除，正常保存后保留）
+  // 这里不删除 currentDraftId，让用户可以继续编辑
+  // appContext?.$toolUtil?.storageRemove('currentDraftId')
+
 })
 
 const startAutoSave = () => {
@@ -932,10 +961,6 @@ onMounted(() => {
 
 })
 
-// 组件卸载时清理防抖定时器
-onUnmounted(() => {
-  cleanup()
-})
 </script>
 
 <style lang="scss" scoped>

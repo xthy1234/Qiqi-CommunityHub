@@ -1,5 +1,10 @@
 package com.gcs.service.impl;
 
+import com.gcs.utils.SessionUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +17,7 @@ import com.gcs.dao.ArticleViewLogDao;
 import com.gcs.entity.ArticleAuditHistory;
 import com.gcs.entity.ArticleVersion;
 import com.gcs.enums.AuditStatus;
-import com.gcs.service.UserService;
+import com.gcs.service.*;
 import com.gcs.vo.ArticleDetailVO;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -22,8 +27,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.gcs.dao.ArticleDao;
 import com.gcs.entity.Article;
 import com.gcs.entity.view.ArticleView;
-import com.gcs.service.ArticleService;
-import com.gcs.service.ArticleVersionService;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.vo.ArticleSearchVO;
@@ -68,8 +71,29 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private BlockRuleService blockRuleService;
+
+    @Autowired
+    private SessionUtils sessionUtils;
+
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
+        // 【新增】通过 Spring 上下文获取当前请求并注入屏蔽条件
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                Long userId = sessionUtils.getCurrentUserId(request);
+                if (userId != null) {
+                    blockRuleService.injectBlockConditions(userId, params);
+                }
+            }
+        } catch (Exception e) {
+            // 防止在非 Web 环境（如定时任务）下调用报错
+            log.debug("无法获取当前请求上下文，跳过屏蔽规则注入");
+        }
+
         IPage<Article> articlePage = new Query<Article>(params).getPage();
         IPage<Article> resultPage = this.page(articlePage, new QueryWrapper<>());
         
