@@ -3,7 +3,9 @@ import { VueNodeViewRenderer } from '@tiptap/vue-3'
 import VideoNode from '@/components/nodes/VideoNode.vue'
 
 export interface Annotation {
-  time: number
+  id: string
+  startTime: number
+  endTime?: number
   title: string
   content: string
 }

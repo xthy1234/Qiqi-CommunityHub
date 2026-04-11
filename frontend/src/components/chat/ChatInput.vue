@@ -31,6 +31,32 @@
         <template #trigger>
           <n-button
             text
+            @click="openVideoUpload"
+          >
+            <template #icon>
+              <n-icon size="20">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"
+                  />
+                </svg>
+              </n-icon>
+            </template>
+          </n-button>
+        </template>
+        发送视频
+      </n-tooltip>
+
+      <n-tooltip trigger="hover">
+        <template #trigger>
+          <n-button
+            text
             @click="insertEmoji"
           >
             <template #icon>
@@ -75,13 +101,21 @@
       style="display: none"
       @change="handleFileChange"
     />
+
+    <!-- 视频上传 -->
+    <input
+      ref="videoInputRef"
+      type="file"
+      accept="video/*"
+      style="display: none"
+      @change="handleVideoInputChange"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from 'vue'
-import { useGlobalProperties } from '@/utils/globalProperties'
-import { NButton, NIcon, NTooltip, NInput } from 'naive-ui'
+import { NButton, NIcon, NTooltip, useMessage } from 'naive-ui'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -91,8 +125,9 @@ import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { VideoNodeExtension } from '@/utils/tiptap-video-node'
 
-const appContext = useGlobalProperties()
+const message = useMessage()
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const videoInputRef = ref<HTMLInputElement | null>(null)
 
 // 最大字符数限制
 const MAX_CHAR_COUNT = 500
@@ -115,7 +150,6 @@ const editor = useEditor({
       class: 'editor-content',
       placeholder: '输入消息... (Enter 发送，Shift+Enter 换行)'
     },
-    // 关键修复：粘贴图片时自动压缩
     handleDOMEvents: {
       paste: (view, event) => {
         const items = event.clipboardData?.items
@@ -123,11 +157,21 @@ const editor = useEditor({
 
         for (let i = 0; i < items.length; i++) {
           const item = items[i]
+
           if (item.type.startsWith('image/')) {
             const file = item.getAsFile()
             if (file) {
               event.preventDefault()
               handleImagePaste(file)
+              return true
+            }
+          }
+
+          if (item.type.startsWith('video/')) {
+            const file = item.getAsFile()
+            if (file) {
+              event.preventDefault()
+              handleVideoPaste(file)
               return true
             }
           }
@@ -138,11 +182,9 @@ const editor = useEditor({
   },
   autofocus: 'end',
   onUpdate: ({ editor }) => {
-    // 检查字符数限制
     const text = editor.state.doc.textContent
     if (text.length > MAX_CHAR_COUNT) {
-      appContext?.$message.warning(`消息内容超过 ${MAX_CHAR_COUNT} 字限制`)
-      // 截断多余内容
+      message.warning(`消息内容超过 ${MAX_CHAR_COUNT} 字限制`)
       const pos = editor.state.selection.from
       editor.commands.setTextSelection(Math.min(pos, MAX_CHAR_COUNT))
       editor.commands.deleteSelection()
@@ -197,10 +239,10 @@ const handleFileChange = async (event: Event) => {
     }
 
     editor.value.chain().focus().setImage({ src: response }).run()
-    appContext?.$message.success('图片上传成功')
+    message.success('图片上传成功')
   } catch (error: any) {
     console.error('❌ [ChatInput] 图片上传失败:', error)
-    appContext?.$message.error('图片上传失败')
+    message.error('图片上传失败')
   } finally {
     if (target) {
       target.value = ''
@@ -208,7 +250,6 @@ const handleFileChange = async (event: Event) => {
   }
 }
 
-// 新增：处理粘贴的图片
 const handleImagePaste = async (file: File) => {
   try {
     const response = await uploadAPI.uploadImage(file)
@@ -217,12 +258,74 @@ const handleImagePaste = async (file: File) => {
       throw new Error('图片上传失败')
     }
 
-    // 新版 API 直接返回完整 URL
     editor.value.chain().focus().setImage({ src: response }).run()
-    appContext?.$message.success('图片粘贴成功')
+    message.success('图片粘贴成功')
   } catch (error: any) {
     console.error('❌ [ChatInput] 粘贴图片失败:', error)
-    appContext?.$message.error('图片粘贴失败')
+    message.error('图片粘贴失败')
+  }
+}
+
+const openVideoUpload = () => {
+  videoInputRef.value?.click()
+}
+
+const handleVideoInputChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) return
+
+  try {
+    message.loading('视频上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadVideo(file)
+
+    if (!response) {
+      throw new Error('视频上传失败')
+    }
+
+    editor.value.commands.setVideo({
+      src: response,
+      title: file.name,
+      duration: 0,
+      annotations: []
+    })
+
+    message.destroyAll()
+    message.success('视频上传成功')
+  } catch (error: any) {
+    console.error('❌ [ChatInput] 视频上传失败:', error)
+    message.destroyAll()
+    message.error(`视频上传失败：${error.message}`)
+  } finally {
+    if (target) {
+      target.value = ''
+    }
+  }
+}
+
+const handleVideoPaste = async (file: File) => {
+  try {
+    message.loading('视频上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadVideo(file)
+
+    if (!response) {
+      throw new Error('视频上传失败')
+    }
+
+    editor.value.commands.setVideo({
+      src: response,
+      title: file.name,
+      duration: 0,
+      annotations: []
+    })
+
+    message.destroyAll()
+    message.success('视频粘贴成功')
+  } catch (error: any) {
+    console.error('❌ [ChatInput] 粘贴视频失败:', error)
+    message.destroyAll()
+    message.error('视频粘贴失败')
   }
 }
 

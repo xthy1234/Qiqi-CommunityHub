@@ -266,6 +266,19 @@
           />
         </template>
       </n-button>
+      <n-button
+        size="tiny"
+        quaternary
+        title="插入视频注释引用"
+        @click="openAnnotationRefDialog"
+      >
+        <template #icon>
+          <Icon
+            icon="material-symbols:bookmark"
+            width="16"
+          />
+        </template>
+      </n-button>
       <input
         ref="fileInputRef"
         type="file"
@@ -585,6 +598,70 @@
         </n-space>
       </template>
     </n-modal>
+
+    <!-- 视频注释引用选择器 -->
+    <n-modal
+      v-model:show="annotationRefDialogVisible"
+      preset="dialog"
+      title="选择视频注释引用"
+      :style="{ width: '600px' }"
+    >
+      <div class="annotation-ref-selector">
+        <n-alert type="info" :show-icon="false" style="margin-bottom: 16px;">
+          从当前文档的视频中选择要引用的注释
+        </n-alert>
+
+        <n-spin :show="loadingVideos">
+          <n-empty
+            v-if="!loadingVideos && availableAnnotations.length === 0"
+            description="当前文档中没有可用的视频注释"
+          />
+
+          <div v-else class="annotation-list">
+            <n-card
+              v-for="(item, index) in availableAnnotations"
+              :key="`${item.videoNodeId}-${item.annotation.id}`"
+              class="annotation-item"
+              size="small"
+              :bordered="selectedAnnotationRef?.annotation.id === item.annotation.id"
+              @click="selectAnnotationRef(item)"
+            >
+              <div class="annotation-item-content">
+                <div class="annotation-video-title">
+                  <Icon icon="material-symbols:video-file" width="16" />
+                  <span>{{ item.videoTitle }}</span>
+                </div>
+                <div class="annotation-time">
+                  {{ formatTimeRange(item.annotation.startTime, item.annotation.endTime) }}
+                </div>
+                <div class="annotation-title">{{ item.annotation.title }}</div>
+                <div
+                  v-if="item.annotation.content"
+                  class="annotation-content"
+                >
+                  {{ item.annotation.content }}
+                </div>
+              </div>
+            </n-card>
+          </div>
+        </n-spin>
+      </div>
+
+      <template #action>
+        <n-space justify="end">
+          <n-button @click="annotationRefDialogVisible = false">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            :disabled="!selectedAnnotationRef"
+            @click="insertAnnotationRef"
+          >
+            插入引用
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -607,6 +684,7 @@ import { all, createLowlight } from 'lowlight'
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { VideoNodeExtension } from '@/utils/tiptap-video-node'
+import { VideoAnnotationRefExtension } from '@/utils/tiptap-video-annotation-ref'
 import { uploadAPI } from '@/api/upload'
 import { articleAPI, type Article } from '@/api/article'
 
@@ -625,11 +703,30 @@ const linkDialogVisible = ref(false)
 const imageDialogVisible = ref(false)
 const shareCardDialogVisible = ref(false)
 const videoDialogVisible = ref(false)
+const annotationRefDialogVisible = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const videoInputRef = ref<HTMLInputElement | null>(null)
 const userArticles = ref<Article[]>([])
 const selectedArticle = ref<Article | null>(null)
 const loadingArticles = ref(false)
+const loadingVideos = ref(false)
+
+interface AnnotationItem {
+  id: string
+  startTime: number
+  endTime?: number
+  title: string
+  content: string
+}
+
+interface VideoWithAnnotations {
+  videoNodeId: string
+  videoTitle: string
+  annotation: AnnotationItem
+}
+
+const availableAnnotations = ref<VideoWithAnnotations[]>([])
+const selectedAnnotationRef = ref<VideoWithAnnotations | null>(null)
 
 const linkForm = reactive({
   text: '',
@@ -700,6 +797,25 @@ const getArticleCoverUrl = (coverUrl: string): string => {
   return `${baseUrl}/${coverUrl}`
 }
 
+/**
+ * 格式化时间范围
+ */
+const formatTimeRange = (startTime: number, endTime?: number): string => {
+  if (endTime && endTime > startTime) {
+    return `${formatTime(startTime)}-${formatTime(endTime)}`
+  }
+  return formatTime(startTime)
+}
+
+/**
+ * 格式化时间
+ */
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
 const editor = useEditor({
   extensions: [
     StarterKit.configure({
@@ -723,6 +839,7 @@ const editor = useEditor({
     FileNodeExtension,
     ShareCardNodeExtension,
     VideoNodeExtension,
+    VideoAnnotationRefExtension,
   ],
   content: props.modelValue || '',
   editorProps: {
@@ -1288,6 +1405,82 @@ const handleVideoInputChange = async (event: Event) => {
   }
 }
 
+/**
+ * 打开视频注释引用选择器
+ */
+const openAnnotationRefDialog = () => {
+  if (!editor.value) return
+
+  // 扫描文档中的所有视频节点及其注释
+  scanVideoAnnotations()
+
+  if (availableAnnotations.value.length === 0) {
+    message.warning('当前文档中没有可用的视频注释')
+    return
+  }
+
+  selectedAnnotationRef.value = null
+  annotationRefDialogVisible.value = true
+}
+
+/**
+ * 扫描文档中的视频注释
+ */
+const scanVideoAnnotations = () => {
+  if (!editor.value) return
+
+  loadingVideos.value = true
+  availableAnnotations.value = []
+
+  const doc = editor.value.state.doc
+
+  doc.descendants((node: any) => {
+    if (node.type.name === 'videoNode') {
+      const annotations = node.attrs.annotations || []
+      const videoTitle = node.attrs.title || '未命名视频'
+      const videoNodeId = node.attrs.id || `video_${Date.now()}`
+
+      annotations.forEach((annotation: AnnotationItem) => {
+        availableAnnotations.value.push({
+          videoNodeId,
+          videoTitle,
+          annotation
+        })
+      })
+    }
+  })
+
+  loadingVideos.value = false
+}
+
+/**
+ * 选择要引用的注释
+ */
+const selectAnnotationRef = (item: VideoWithAnnotations) => {
+  selectedAnnotationRef.value = item
+}
+
+/**
+ * 插入视频注释引用
+ */
+const insertAnnotationRef = () => {
+  if (!editor.value || !selectedAnnotationRef.value) {
+    message.warning('请先选择一个注释')
+    return
+  }
+
+  const { videoNodeId, annotation } = selectedAnnotationRef.value
+
+  editor.value.commands.setVideoAnnotationRef({
+    videoNodeId,
+    annotationId: annotation.id,
+    displayText: ''
+  })
+
+  annotationRefDialogVisible.value = false
+  message.success('视频注释引用插入成功')
+}
+
 onBeforeUnmount(() => {
   if (editor.value) {
     editor.value.destroy()
@@ -1612,6 +1805,64 @@ onBeforeUnmount(() => {
         margin-top: 16px;
         display: flex;
         justify-content: center;
+      }
+    }
+
+    // 视频注释引用选择器样式
+    .annotation-ref-selector {
+      max-height: 500px;
+
+      .annotation-list {
+        max-height: 400px;
+        overflow-y: auto;
+
+        .annotation-item {
+          cursor: pointer;
+          transition: all 0.3s;
+          margin-bottom: 8px;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+
+          &.n-card--bordered {
+            border-color: #18a058;
+            background-color: #f0f9eb;
+          }
+
+          .annotation-item-content {
+            .annotation-video-title {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 13px;
+              font-weight: 600;
+              color: #2080f0;
+              margin-bottom: 6px;
+            }
+
+            .annotation-time {
+              font-size: 12px;
+              color: #999;
+              font-family: 'Courier New', monospace;
+              margin-bottom: 4px;
+            }
+
+            .annotation-title {
+              font-size: 14px;
+              font-weight: 600;
+              color: #333;
+              margin-bottom: 4px;
+            }
+
+            .annotation-content {
+              font-size: 12px;
+              color: #666;
+              line-height: 1.5;
+            }
+          }
+        }
       }
     }
 
