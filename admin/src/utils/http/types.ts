@@ -27,13 +27,14 @@ export interface HttpClientConfig extends AxiosRequestConfig {
 
 /**
  * HTTP 客户端实例接口
+ * 注意：由于响应拦截器已经解包了 AxiosResponse，这里直接返回 ApiResponse<T>
  */
 export interface HttpClientInstance {
-  request: <T = any>(config: AxiosRequestConfig) => Promise<AxiosResponse<ApiResponse<T>>>
-  get: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<AxiosResponse<ApiResponse<T>>>
-  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<AxiosResponse<ApiResponse<T>>>
-  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<AxiosResponse<ApiResponse<T>>>
-  delete: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<AxiosResponse<ApiResponse<T>>>
-  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<AxiosResponse<ApiResponse<T>>>
+  request: <T = any>(config: AxiosRequestConfig) => Promise<ApiResponse<T>>
+  get: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<ApiResponse<T>>
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<ApiResponse<T>>
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<ApiResponse<T>>
+  delete: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<ApiResponse<T>>
+  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<ApiResponse<T>>
   instance: AxiosInstance
 }

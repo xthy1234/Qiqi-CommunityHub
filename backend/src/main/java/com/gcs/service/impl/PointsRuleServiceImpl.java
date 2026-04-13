@@ -1,9 +1,14 @@
 package com.gcs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gcs.dao.PointsRuleDao;
 import com.gcs.entity.PointsRule;
 import com.gcs.service.PointsRuleService;
+import com.gcs.utils.MPUtil;
+import com.gcs.utils.PageUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +76,32 @@ public class PointsRuleServiceImpl extends ServiceImpl<PointsRuleDao, PointsRule
         defaultConfig.put(3, 5);
         defaultConfig.put(7, 20);
         return defaultConfig;
+    }
+    
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        QueryWrapper<PointsRule> wrapper = new QueryWrapper<>();
+        return queryPage(params, wrapper);
+    }
+    
+    @Override
+    public PageUtils queryPage(Map<String, Object> params, Wrapper<PointsRule> queryWrapper) {
+        // 确保 queryWrapper 是 QueryWrapper 类型
+        if (!(queryWrapper instanceof QueryWrapper)) {
+            queryWrapper = new QueryWrapper<>();
+        }
+        
+        // 使用 MPUtil 处理查询条件
+        queryWrapper = MPUtil.sort(MPUtil.between(MPUtil.likeOrEq((QueryWrapper<PointsRule>) queryWrapper, null), params), params);
+        
+        // 执行分页查询
+        com.baomidou.mybatisplus.core.metadata.IPage<PointsRule> page = new com.gcs.utils.Query<PointsRule>(params).getPage();
+        com.baomidou.mybatisplus.core.metadata.IPage<PointsRule> resultPage = this.page(page, queryWrapper);
+        
+        long totalCount = this.count(queryWrapper);
+        resultPage.setTotal(totalCount);
+        
+        return new PageUtils(resultPage);
     }
 
     /**

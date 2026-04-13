@@ -251,12 +251,12 @@ watch(() => props.visible, (val: boolean) => {
 const fetchRoles = async () => {
   try {
     const response = await apiService.role.getAllRoles()
-    if (response.data.code === 0 || response.data.code === 200) {
-      roleOptions.value = (response.data.data || []).map((role: any) => ({
+    if (response.code === 0 || response.code === 200) {
+      roleOptions.value = (response.data || []).map((role: any) => ({
         label: role.roleName,
         value: role.id
       }))
-    } else if (response.data.code === 401) {
+    } else if (response.code === 401) {
       message.error('请先登录')
       setTimeout(() => {
         emit('update:visible', false)
@@ -306,23 +306,23 @@ const handleSubmit = async () => {
       
       const response = await apiService.user.updateUser(submitData.id!, submitData)
       
-      if (response.data.code === 0 || response.data.code === 200) {
+      if (response.code === 0 || response.code === 200) {
         message.success('更新成功')
         emit('update:visible', false)
         emit('success')
       } else {
-        message.error(response.data.msg || '更新失败')
+        message.error(response.msg || '更新失败')
       }
     } else {
       // 新增模式
       const response = await apiService.user.createUser(submitData)
       
-      if (response.data.code === 0 || response.data.code === 200) {
+      if (response.code === 0 || response.code === 200) {
         message.success('创建成功')
         emit('update:visible', false)
         emit('success')
       } else {
-        message.error(response.data.msg || '创建失败')
+        message.error(response.msg || '创建失败')
       }
     }
   } catch (error: any) {

@@ -364,15 +364,6 @@ const goBack = () => {
 }
 
 const loadData = async () => {
-  console.log('🔍 [SwiperList] 开始加载数据...')
-  console.log('📋 [SwiperList] 分页参数:', {
-    page: pagination.page,
-    pageSize: pagination.pageSize
-  })
-  console.log('🔍 [SwiperList] 搜索条件:', {
-    title: searchForm.value.title,
-    status: searchForm.value.status
-  })
 
   loading.value = true
   try {
@@ -383,51 +374,38 @@ const loadData = async () => {
       status: searchForm.value.status !== null ? searchForm.value.status : undefined
     }
 
-    console.log('🌐 [SwiperList] 请求 API:', '/swipers')
-    console.log('📤 [SwiperList] 请求参数:', params)
-
     const res = await swiperApi.getSwiperList(params)
 
-    console.log('📥 [SwiperList] API 响应:', res)
-    console.log('📥 [SwiperList] 响应数据:', res.data)
-    
-    // 修复：正确访问 code 字段（从 response.data 中获取）
-    if (res.data && (res.data.code === 0 || res.data.code === 200)) {
-      tableData.value = res.data.data.list
-      pagination.itemCount = res.data.data.totalCount
+    if (res && (res.code === 0 || res.code === 200)) {
+      tableData.value = res.data.list
+      pagination.itemCount = res.data.totalCount
 
-      console.log('✅ [SwiperList] 数据加载成功!')
-      console.log('📊 [SwiperList] 表格数据:', tableData.value)
-      console.log('📊 [SwiperList] 数据条数:', tableData.value.length)
-      console.log('📊 [SwiperList] 总记录数:', pagination.itemCount)
-
-      // 检查每条数据的字段
       if (tableData.value.length > 0) {
-        console.log('🔍 [SwiperList] 第一条数据结构:')
+
         console.table(tableData.value[0])
       }
     } else {
-      console.error('❌ [SwiperList] 加载失败 - 错误码:', res.data?.code)
-      console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
-      message.error(res.data?.msg || '加载失败')
+      console.error('❌ [SwiperList] 加载失败 - 错误码:', res?.code)
+      console.error('❌ [SwiperList] 错误信息:', res?.msg)
+      message.error(res?.msg || '加载失败')
     }
   } catch (error) {
     console.error('❌ [SwiperList] 加载异常:', error)
     message.error('加载失败')
   } finally {
     loading.value = false
-    console.log('⏹️ [SwiperList] 加载状态:', loading.value)
+
   }
 }
 
 const handleSearch = () => {
-  console.log('🔍 [SwiperList] 执行搜索')
+
   pagination.page = 1
   loadData()
 }
 
 const handleReset = () => {
-  console.log('🔄 [SwiperList] 重置搜索')
+
   searchForm.value.title = ''
   searchForm.value.status = null
   pagination.page = 1
@@ -435,7 +413,7 @@ const handleReset = () => {
 }
 
 const handleCreate = () => {
-  console.log('🆕 [SwiperList] 点击了新建按钮！！！')
+
   isEdit.value = false
   formData.value = {
     title: '',
@@ -464,26 +442,21 @@ const handleEdit = (row: SwiperVO) => {
 
 const handleToggleStatus = async (row: SwiperVO) => {
   const newStatus = row.status === 0 ? 1 : 0
-  console.log('🔄 [SwiperList] 切换状态:', {
-    id: row.id,
-    oldStatus: row.status,
-    newStatus: newStatus
-  })
+
 
   try {
     // 尝试使用 patch 方法
-    console.log('📤 [SwiperList] 调用 updateSwiperStatus:', row.id, newStatus)
+
     const res = await swiperApi.updateSwiperStatus(row.id, newStatus)
 
-    console.log('📥 [SwiperList] 状态更新响应:', res)
 
-    if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+    if (res && (res.code === 0 || res.code === 200)) {
       message.success('更新成功')
       loadData()
     } else {
-      console.error('❌ [SwiperList] 状态更新失败 - 错误码:', res.data?.code)
-      console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
-      message.error(res.data?.msg || '更新失败')
+      console.error('❌ [SwiperList] 状态更新失败 - 错误码:', res?.code)
+      console.error('❌ [SwiperList] 错误信息:', res?.msg)
+      message.error(res?.msg || '更新失败')
     }
   } catch (error) {
     console.error('❌ [SwiperList] 状态更新异常:', error)
@@ -500,14 +473,14 @@ const handleToggleStatus = async (row: SwiperVO) => {
           status: newStatus,
           description: row.description
         }
-        console.log('📤 [SwiperList] 使用 PUT 更新:', updateData)
+
         const res = await swiperApi.updateSwiper(row.id, updateData)
 
-        if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+        if (res && (res.code === 0 || res.code === 200)) {
           message.success('更新成功')
           loadData()
         } else {
-          message.error(res.data?.msg || '更新失败')
+          message.error(res?.msg || '更新失败')
         }
       } catch (putError) {
         console.error('❌ [SwiperList] PUT 更新也失败了:', putError)
@@ -520,7 +493,7 @@ const handleToggleStatus = async (row: SwiperVO) => {
 }
 
 const handleDelete = (row: SwiperVO) => {
-  console.log('🗑️ [SwiperList] 准备删除轮播图:', row)
+
 
   dialog.warning({
     title: '确认删除',
@@ -528,19 +501,19 @@ const handleDelete = (row: SwiperVO) => {
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      console.log('✅ [SwiperList] 用户确认删除 ID:', row.id)
+
 
       try {
         const res = await swiperApi.deleteSwiper(row.id)
-        console.log('📥 [SwiperList] 删除响应:', res)
 
-        if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+
+        if (res && (res.code === 0 || res.code === 200)) {
           message.success('删除成功')
           loadData()
         } else {
-          console.error('❌ [SwiperList] 删除失败 - 错误码:', res.data?.code)
-          console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
-          message.error(res.data?.msg || '删除失败')
+          console.error('❌ [SwiperList] 删除失败 - 错误码:', res?.code)
+          console.error('❌ [SwiperList] 错误信息:', res?.msg)
+          message.error(res?.msg || '删除失败')
         }
       } catch (error) {
         console.error('❌ [SwiperList] 删除异常:', error)
@@ -548,7 +521,7 @@ const handleDelete = (row: SwiperVO) => {
       }
     },
     onNegativeClick: () => {
-      console.log('❌ [SwiperList] 用户取消删除')
+
     }
   })
 }
@@ -558,8 +531,7 @@ const handleBatchDelete = () => {
     message.warning('请选择要删除的轮播图')
     return
   }
-  
-  console.log('🗑️ [SwiperList] 准备批量删除 IDs:', checkedRowKeys.value)
+
 
   dialog.warning({
     title: '确认删除',
@@ -567,20 +539,20 @@ const handleBatchDelete = () => {
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      console.log('✅ [SwiperList] 用户确认批量删除 IDs:', checkedRowKeys.value)
+
 
       try {
         const res = await swiperApi.batchDeleteSwipers(checkedRowKeys.value)
-        console.log('📥 [SwiperList] 批量删除响应:', res)
 
-        if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+
+        if (res && (res.code === 0 || res.code === 200)) {
           message.success('批量删除成功')
           checkedRowKeys.value = []
           loadData()
         } else {
-          console.error('❌ [SwiperList] 批量删除失败 - 错误码:', res.data?.code)
-          console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
-          message.error(res.data?.msg || '批量删除失败')
+          console.error('❌ [SwiperList] 批量删除失败 - 错误码:', res?.code)
+          console.error('❌ [SwiperList] 错误信息:', res?.msg)
+          message.error(res?.msg || '批量删除失败')
         }
       } catch (error) {
         console.error('❌ [SwiperList] 批量删除异常:', error)
@@ -592,7 +564,7 @@ const handleBatchDelete = () => {
 
 // 处理提交 - 由 CrudDialog 内部触发
 const handleSubmit = async (validatedData: Record<string, any>) => {
-  console.log('✍️ [SwiperList] 提交表单数据:', validatedData)
+
 
   submitting.value = true
   try {
@@ -606,27 +578,25 @@ const handleSubmit = async (validatedData: Record<string, any>) => {
       description: validatedData.description || undefined  // ← 改为 undefined
     }
 
-    console.log('📤 [SwiperList] 整理后的提交数据:', submitData)
 
     let res
     if (isEdit.value && formData.value.id) {
-      console.log('🔄 [SwiperList] 执行更新操作，ID:', formData.value.id)
+
       res = await swiperApi.updateSwiper(formData.value.id, submitData as SwiperUpdateDTO)
     } else {
-      console.log('➕ [SwiperList] 执行创建操作')
+
       res = await swiperApi.createSwiper(submitData as SwiperCreateDTO)
     }
 
-    console.log('📥 [SwiperList] 提交响应:', res)
 
-    if (res.data && (res.data.code === 0 || res.data.code === 200)) {
+    if (res && (res.code === 0 || res.code === 200)) {
       message.success(isEdit.value ? '更新成功' : '创建成功')
       editDialogVisible.value = false
       loadData()
     } else {
-      console.error('❌ [SwiperList] 操作失败 - 错误码:', res.data?.code)
-      console.error('❌ [SwiperList] 错误信息:', res.data?.msg)
-      message.error(res.data?.msg || '操作失败')
+      console.error('❌ [SwiperList] 操作失败 - 错误码:', res?.code)
+      console.error('❌ [SwiperList] 错误信息:', res?.msg)
+      message.error(res?.msg || '操作失败')
     }
   } catch (error: any) {
     console.error('❌ [SwiperList] 操作异常:', error)
@@ -647,12 +617,12 @@ const handleSubmit = async (validatedData: Record<string, any>) => {
 
 // 处理对话框取消
 const handleDialogCancel = () => {
-  console.log('对话框取消')
+
 }
 
 // 处理对话框关闭后
 const handleDialogAfterLeave = () => {
-  console.log('对话框已关闭')
+
 }
 
 const handlePreview = (imageUrl: string) => {
@@ -669,8 +639,8 @@ const handleCheckAll = (keys: any) => {
 }
 
 onMounted(() => {
-  console.log('🚀 [SwiperList] 组件已挂载')
-  console.log('🚀 [SwiperList] 准备加载初始数据...')
+
+
   loadData()
 })
 </script>

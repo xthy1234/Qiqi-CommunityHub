@@ -219,8 +219,10 @@ import {
 } from 'naive-ui'
 import PageContainer from '@/components/common/PageContainer.vue'
 import { adminUserApi } from '@/api/adminUser'
-import apiService from '@/api'
-import { useGlobalProperties } from '@/utils/globalProperties'
+import articleApi from '@/api/article'
+import statsApi, { type AuditOverviewStats } from '@/api/stats'
+import { normalizeFileUrl } from '@/utils/fileUrl'
+import {useGlobalProperties} from "@/utils/globalProperties";
 
 interface ApiResponse<T = any> {
   code: number
@@ -297,7 +299,7 @@ const pagination = reactive({
   }
 })
 
-const dashboardStats = ref<DashboardStats>({
+const dashboardStats = ref<AuditOverviewStats>({
   pendingCount: 0,
   todayApproved: 0,
   todayRejected: 0,
@@ -343,7 +345,9 @@ const columns: DataTableColumns = [
           h('div', { style: { flex: 1 } }, {
             default: () => [
               h('div', { style: { fontWeight: 'bold', marginBottom: '4px' } }, rowData.title),
-              h('div', { style: { fontSize: '12px', color: '#999' } }, rowData.summary?.substring(0, 50) + '...' || '-')
+              rowData.summary ? h('div', { style: { fontSize: '12px', color: '#999' } },
+                rowData.summary.length > 50 ? rowData.summary.substring(0, 50) + '...' : rowData.summary
+              ) : null
             ]
           })
         ]
@@ -495,15 +499,15 @@ const fetchCategories = async () => {
 
 const fetchDashboardStats = async () => {
   try {
-    const response = await apiService.article.getArticleList({ page: 1, limit: 1 })
-    dashboardStats.value = {
-      pendingCount: 0,
-      todayApproved: 0,
-      todayRejected: 0,
-      totalCount: response.data.data.totalCount || 0
+    const res = await statsApi.getAuditOverview()
+
+    if (res.code === 0 || res.code === 200) {
+      dashboardStats.value = res.data
+    } else {
+      console.error('获取审核统计数据失败:', res.msg)
     }
   } catch (error) {
-    console.error('获取统计数据失败:', error)
+    console.error('获取审核统计数据失败:', error)
   }
 }
 
@@ -513,6 +517,8 @@ const loadData = async () => {
     const params: any = {
       page: pagination.page,
       limit: pagination.pageSize,
+      auditStatus: 0,  // 强制只查询待审核文章
+      type: 'pending',
       ...searchForm.value
     }
     
@@ -523,22 +529,17 @@ const loadData = async () => {
       params.endDate = searchEndDate.value
     }
 
-    const response = await apiService.article.getArticleList(params)
+    const response = await articleApi.getArticleList(params)
 
-    if (response.data.code === 0 || response.data.code === 200) {
-      // 处理图片 URL，添加完整路径
-      const baseUrl = appContext?.$config?.url || 'http://localhost:8080'
-      tableData.value = (response.data.data.list || []).map((item: ArticleItem) => ({
+    if (response.code === 0 || response.code === 200) {
+      tableData.value = (response.data.list || []).map((item: ArticleItem) => ({
         ...item,
-        coverUrl: item.coverUrl ? getFullUrl(item.coverUrl, baseUrl) : '',
-        authorAvatar: item.authorAvatar ? getFullUrl(item.authorAvatar, baseUrl) : ''
+        coverUrl: item.coverUrl ? normalizeFileUrl(item.coverUrl) : '',
+        authorAvatar: item.authorAvatar ? normalizeFileUrl(item.authorAvatar) : ''
       }))
-      pagination.itemCount = response.data.data.totalCount || 0
-      
-      const pendingCount = tableData.value.filter((item: any) => item.auditStatus === 0).length
-      dashboardStats.value.pendingCount = pendingCount
+      pagination.itemCount = response.data.totalCount || 0
     } else {
-      message.error(response.data.msg || '获取文章列表失败')
+      message.error(response.msg || '获取文章列表失败')
     }
   } catch (error: any) {
     console.error('获取文章列表失败:', error)
@@ -598,18 +599,18 @@ const handleSingleAudit = async (row: ArticleItem, status: number) => {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        const response = await apiService.article.batchAuditArticles({
+        const response = await articleApi.batchAuditArticles({
           ids: [row.id],
           status: status,
           reply: ''
         })
 
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success('审核成功')
           loadData()
           fetchDashboardStats()
         } else {
-          message.error(response.data.msg || '审核失败')
+          message.error(response.msg || '审核失败')
         }
       } catch (error: any) {
         console.error('审核失败:', error)
@@ -637,20 +638,20 @@ const confirmAudit = async () => {
   }
 
   try {
-    const response = await apiService.article.batchAuditArticles({
+    const response = await articleApi.batchAuditArticles({
       ids: checkedRowKeys.value,
       status: auditForm.value.status,
       reply: auditForm.value.reply
     })
 
-    if (response.data.code === 0 || response.data.code === 200) {
+    if (response.code === 0 || response.code === 200) {
       message.success('批量审核成功')
       auditDialogVisible.value = false
       checkedRowKeys.value = []
       loadData()
       fetchDashboardStats()
     } else {
-      message.error(response.data.msg || '批量审核失败')
+      message.error(response.msg || '批量审核失败')
     }
   } catch (error: any) {
     console.error('批量审核失败:', error)
@@ -661,8 +662,8 @@ const confirmAudit = async () => {
 const handleViewHistory = async (row: ArticleItem) => {
   currentArticleId.value = row.id
   try {
-    const response = await apiService.article.getArticleSuggestions(row.id)
-    auditHistory.value = response.data.data || []
+    const response = await articleApi.getArticleSuggestions(row.id)
+    auditHistory.value = response.data || []
     historyDialogVisible.value = true
   } catch (error: any) {
     console.error('获取审核历史失败:', error)
@@ -672,17 +673,6 @@ const handleViewHistory = async (row: ArticleItem) => {
 
 const onChecked = (keys: number[]) => {
   checkedRowKeys.value = keys
-}
-
-const getFullUrl = (path: string, baseUrl?: string): string => {
-  if (!path) return ''
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path
-  }
-  if (baseUrl) {
-    return `${baseUrl}/${path}`
-  }
-  return path
 }
 
 onMounted(() => {

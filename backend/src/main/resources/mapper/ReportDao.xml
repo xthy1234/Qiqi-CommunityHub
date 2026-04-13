@@ -83,15 +83,19 @@
                 WHEN 2 THEN '已拒绝'
                 ELSE '未知状态'
             END as review_status_description,
-            ur.account as reporter_nickname,
-            uu.nickname as reported_user_nickname
+            (SELECT ur.account FROM users ur WHERE ur.id = r.reporter_id) as reporter_nickname,
+            (SELECT uu.nickname FROM users uu WHERE uu.id = r.reported_user_id) as reported_user_nickname
         FROM report r
-        LEFT JOIN users ur ON r.reporter_id = ur.id
-        LEFT JOIN users uu ON r.reported_user_id = uu.id
         <where>
             1=1
-            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
-                AND ${ew.sqlSegment}
+            <if test="params.reviewStatus != null">
+                AND r.review_status = #{params.reviewStatus}
+            </if>
+            <if test="params.status != null">
+                AND r.status = #{params.status}
+            </if>
+            <if test="params.isDeleted != null">
+                AND r.is_deleted = #{params.isDeleted}
             </if>
         </where>
         ORDER BY r.create_time DESC
@@ -118,16 +122,11 @@
                 WHEN 2 THEN '已拒绝'
                 ELSE '未知状态'
             END as review_status_description,
-            ur.account as reporter_nickname,
-            uu.nickname as reported_user_nickname
+            (SELECT ur.account FROM users ur WHERE ur.id = r.reporter_id) as reporter_nickname,
+            (SELECT uu.nickname FROM users uu WHERE uu.id = r.reported_user_id) as reported_user_nickname
         FROM report r
-        LEFT JOIN users ur ON r.reporter_id = ur.id
-        LEFT JOIN users uu ON r.reported_user_id = uu.id
         <where>
             1=1
-            <if test="ew != null and ew.sqlSegment != null and ew.sqlSegment != ''">
-                AND ${ew.sqlSegment}
-            </if>
         </where>
     </select>
 

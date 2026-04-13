@@ -178,7 +178,7 @@ const fetchUserInfo = async () => {
       method: 'get'
     })
     
-    const userData = response.data.data
+    const userData = response.data
     if (userData) {
       userInfo.value = {
         id: userData.id,
@@ -221,7 +221,7 @@ const fetchUserArticles = async () => {
       params
     })
 
-    const apiData = response.data.data
+    const apiData = response.data
     articleList.value = apiData.list || []
     articleTotalCount.value = apiData.totalCount || 0
   } catch (error) {

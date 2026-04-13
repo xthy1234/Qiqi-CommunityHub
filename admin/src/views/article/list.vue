@@ -189,6 +189,7 @@ import {
   useMessage, useDialog
 } from 'naive-ui'
 import apiService from '@/api'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 interface ApiResponse<T = any> {
   code: number
@@ -291,6 +292,21 @@ const columns: DataTableColumns = [
     title: 'ID',
     key: 'id',
     width: 80
+  },
+  {
+    title: '封面',
+    key: 'coverUrl',
+    width: 100,
+    render: (row) => {
+      const rowData = row as unknown as ArticleItem
+      if (rowData.coverUrl) {
+        return h('img', {
+          src: rowData.coverUrl,
+          style: { width: '80px', height: '50px', objectFit: 'cover', borderRadius: '4px' }
+        })
+      }
+      return h('span', { style: { color: '#999' } }, '无封面')
+    }
   },
   {
     title: '文章标题',
@@ -455,11 +471,16 @@ const loadData = async () => {
 
     const response = await apiService.article.getArticleList(params)
 
-    if (response.data.code === 0 || response.data.code === 200) {
-      tableData.value = response.data.data.list || []
-      pagination.itemCount = response.data.data.totalCount || 0
+    if (response.code === 0 || response.code === 200) {
+      const list = response.data.list || []
+      tableData.value = list.map((item: ArticleItem) => ({
+        ...item,
+        coverUrl: item.coverUrl ? normalizeFileUrl(item.coverUrl) : '',
+        authorAvatar: item.authorAvatar ? normalizeFileUrl(item.authorAvatar) : ''
+      }))
+      pagination.itemCount = response.data.totalCount || 0
     } else {
-      message.error(response.data.msg || '获取文章列表失败')
+      message.error(response.msg || '获取文章列表失败')
     }
   } catch (error: any) {
     console.error('获取文章列表失败:', error)
@@ -528,11 +549,11 @@ const handleSingleAudit = async (row: ArticleItem, status: number) => {
           reply: ''
         })
 
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success('审核成功')
           loadData()
         } else {
-          message.error(response.data.msg || '审核失败')
+          message.error(response.msg || '审核失败')
         }
       } catch (error: any) {
         console.error('审核失败:', error)
@@ -561,13 +582,13 @@ const confirmBatchAudit = async () => {
       reply: auditForm.value.reply
     })
 
-    if (response.data.code === 0 || response.data.code === 200) {
+    if (response.code === 0 || response.code === 200) {
       message.success('批量审核成功')
       auditDialogVisible.value = false
       checkedRowKeys.value = []
       loadData()
     } else {
-      message.error(response.data.msg || '批量审核失败')
+      message.error(response.msg || '批量审核失败')
     }
   } catch (error: any) {
     console.error('批量审核失败:', error)
@@ -585,11 +606,11 @@ const handleDelete = async (row: ArticleItem) => {
       try {
         const response = await apiService.article.deleteArticle(row.id)
 
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success('删除成功')
           loadData()
         } else {
-          message.error(response.data.msg || '删除失败')
+          message.error(response.msg || '删除失败')
         }
       } catch (error: any) {
         console.error('删除失败:', error)
@@ -614,12 +635,12 @@ const handleBatchDelete = async () => {
       try {
         const response = await apiService.article.batchDeleteArticles(checkedRowKeys.value)
 
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success('批量删除成功')
           checkedRowKeys.value = []
           loadData()
         } else {
-          message.error(response.data.msg || '批量删除失败')
+          message.error(response.msg || '批量删除失败')
         }
       } catch (error: any) {
         console.error('批量删除失败:', error)

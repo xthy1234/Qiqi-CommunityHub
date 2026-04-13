@@ -41,125 +41,108 @@ class MenuService {
    * 获取所有菜单列表（无分页）
    */
   async getAllMenus(): Promise<MenuItem[]> {
-    const response: AxiosResponse<ApiResponse<MenuItem[]>> = await httpClient.get(`${this.baseUrl}/all`)
-    return response.data.data
+    const response = await httpClient.get(`${this.baseUrl}/all`)
+    return response.data
   }
 
   /**
    * 获取菜单树结构
    */
   async getMenuTree(): Promise<MenuItem[]> {
-    const response: AxiosResponse<ApiResponse<MenuItem[]>> = await httpClient.get(`${this.baseUrl}/tree`)
-    return response.data.data
+    const response = await httpClient.get(`${this.baseUrl}/tree`)
+    return response.data
   }
 
   /**
    * 获取子菜单
-   * @param parentId 父菜单 ID
    */
   async getChildren(parentId: number): Promise<MenuItem[]> {
-    const response: AxiosResponse<ApiResponse<MenuItem[]>> = await httpClient.get(`${this.baseUrl}/${parentId}/children`)
-    return response.data.data
+    const response = await httpClient.get(`${this.baseUrl}/${parentId}/children`)
+    return response.data
   }
 
   /**
-   * 获取菜单详情
-   * @param id 菜单 ID
+   * 根据ID获取菜单详情
    */
   async getMenuById(id: number): Promise<MenuItem> {
-    const response: AxiosResponse<ApiResponse<MenuItem>> = await httpClient.get(`${this.baseUrl}/${id}`)
-    return response.data.data
+    const response = await httpClient.get(`${this.baseUrl}/${id}`)
+    return response.data
   }
 
   /**
-   * 验证菜单配置
-   * @param data 菜单数据
+   * 验证菜单数据
    */
   async validateMenu(data: Partial<MenuItem>): Promise<void> {
-    const response: AxiosResponse<ApiResponse<void>> = await httpClient.post(`${this.baseUrl}/validate`, data)
-    return response.data.data
+    await httpClient.post(`${this.baseUrl}/validate`, data)
   }
 
   /**
    * 创建菜单
-   * @param data 菜单数据
    */
   async createMenu(data: MenuItem): Promise<MenuItem> {
-    const response: AxiosResponse<ApiResponse<MenuItem>> = await httpClient.post(this.baseUrl, data)
-    return response.data.data
+    const response = await httpClient.post(this.baseUrl, data)
+    return response.data
   }
 
   /**
-   * 更新菜单
-   * @param id 菜单 ID
-   * @param data 菜单数据
+   * 更新菜单（全量）
    */
   async updateMenu(id: number, data: MenuItem): Promise<MenuItem> {
-    const response: AxiosResponse<ApiResponse<MenuItem>> = await httpClient.put(`${this.baseUrl}/${id}`, data)
-    return response.data.data
+    const response = await httpClient.put(`${this.baseUrl}/${id}`, data)
+    return response.data
   }
 
   /**
    * 部分更新菜单
-   * @param id 菜单 ID
-   * @param data 菜单数据
    */
   async partialUpdateMenu(id: number, data: Partial<MenuItem>): Promise<MenuItem> {
-    const response: AxiosResponse<ApiResponse<MenuItem>> = await httpClient.patch(`${this.baseUrl}/${id}`, data)
-    return response.data.data
+    const response = await httpClient.patch(`${this.baseUrl}/${id}`, data)
+    return response.data
   }
 
   /**
    * 更新菜单状态
-   * @param id 菜单 ID
-   * @param status 状态
    */
   async updateStatus(id: number, status: number): Promise<void> {
-    const response: AxiosResponse<ApiResponse<void>> = await httpClient.patch(`${this.baseUrl}/${id}/status`, { status })
-    return response.data.data
+    await httpClient.patch(`${this.baseUrl}/${id}/status`, { status })
   }
 
   /**
    * 删除菜单
-   * @param id 菜单 ID
    */
   async deleteMenu(id: number): Promise<void> {
-    const response: AxiosResponse<ApiResponse<void>> = await httpClient.delete(`${this.baseUrl}/${id}`)
-    return response.data.data
+    await httpClient.delete(`${this.baseUrl}/${id}`)
   }
 
   /**
    * 批量删除菜单
-   * @param ids 菜单 ID 数组
    */
   async batchDeleteMenus(ids: number[]): Promise<void> {
-    const response: AxiosResponse<ApiResponse<void>> = await httpClient.delete(this.baseUrl, { data: { ids } })
-    return response.data.data
+    await httpClient.delete(this.baseUrl, { data: { ids } })
   }
 
   /**
-   * 统计菜单数量
+   * 获取菜单总数
    */
   async count(): Promise<number> {
-    const response: AxiosResponse<ApiResponse<number>> = await httpClient.get(`${this.baseUrl}/count`)
-    return response.data.data
+    const response = await httpClient.get(`${this.baseUrl}/count`)
+    return response.data
   }
 
   /**
-   * 获取当前用户角色的菜单权限
+   * 获取当前用户有权限的菜单
    */
   async getAuthMenus(): Promise<MenuItem[]> {
-    const response: AxiosResponse<ApiResponse<MenuItem[]>> = await httpClient.get(`${this.baseUrl}/auth`)
-    return response.data.data
+    const response = await httpClient.get(`${this.baseUrl}/auth`)
+    return response.data
   }
 
   /**
-   * 获取菜单分页列表
-   * @param params 查询参数
+   * 分页获取菜单列表
    */
   async getMenuList(params: { page: number; limit: number; [key: string]: any }): Promise<{ list: MenuItem[]; total: number }> {
-    const response: AxiosResponse<ApiResponse<{ list: MenuItem[]; total: number }>> = await httpClient.get(this.baseUrl, { params })
-    return response.data.data
+    const response = await httpClient.get(this.baseUrl, { params })
+    return response.data
   }
 }
 

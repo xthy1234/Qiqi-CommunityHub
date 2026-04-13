@@ -91,16 +91,29 @@ export interface ReportBatchReviewDTO {
 }
 
 /**
+ * 用户信息对象（用于举报中的举报人和被举报人）
+ */
+export interface UserInfo {
+  id: number
+  nickname: string
+  avatar?: string
+  lastOnlineTime?: string | null
+}
+
+/**
  * ReportVO - 举报视图对象
  */
 export interface ReportVO {
   id: number
   reporterId: number
-  reporterName: string
+  reporterName?: string
   reportedId: number
-  reportedName: string
-  contentType: string
-  contentTitle: string
+  reportedName?: string
+  reporterUserInfo?: UserInfo
+  reportedUserInfo?: UserInfo
+  reviewUserInfo?: UserInfo | null
+  contentType?: string
+  contentTitle?: string
   reportReason: string
   reportDesc?: string
   reviewStatus: ReviewStatus
@@ -110,6 +123,9 @@ export interface ReportVO {
   reviewTime?: string
   createTime: string
   updateTime?: string
+  status?: number
+  contentId?: number
+  reportTime?: string
 }
 
 /**

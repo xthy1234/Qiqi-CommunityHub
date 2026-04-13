@@ -8,6 +8,7 @@ import com.gcs.entity.view.ReportView;
 
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 举报信息数据访问接口
@@ -29,9 +30,10 @@ public interface ReportDao extends BaseMapper<Report> {
      * 分页查询举报列表视图
      * @param page 分页对象
      * @param wrapper 查询条件包装器
+     * @param params 查询参数
      * @return 举报视图列表
      */
-    List<ReportView> selectListView(IPage<ReportView> page, @Param("ew") Wrapper<Report> wrapper);
+    List<ReportView> selectListView(IPage<ReportView> page, @Param("ew") Wrapper<Report> wrapper, @Param("params") Map<String, Object> params);
 	
     /**
      * 查询单个举报视图

@@ -71,10 +71,23 @@ const routes: Array<RouteRecordRaw> = [
       // 评论管理
       {
         path: 'comments',
+        name: 'Comments',
         component: () => import('@/views/comment/list.vue'),
-        meta: { title: '评论管理' }
+        meta: { requiresAuth: true }
       },
-      // 角色与权限管理
+      {
+        path: 'points-rules',
+        name: 'PointsRules',
+        component: () => import('@/views/points/PointsRuleList.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'points-transactions',
+        name: 'PointsTransactions',
+        component: () => import('@/views/points/PointsTransactionList.vue'),
+        meta: { requiresAuth: true }
+      },
+      // 系统管理
       {
         path: 'admin/roles',
         component: () => import('@/views/admin/RoleList.vue'),
@@ -93,7 +106,7 @@ const routes: Array<RouteRecordRaw> = [
       // 分类管理
       {
         path: 'admin/categories',
-        component: () => import('@/views/admin/CategoryList.vue'),
+        component: () => import('@/views/category/CategoryList.vue'),
         meta: { title: '分类管理' }
       },
       // 举报管理
@@ -152,7 +165,7 @@ router.beforeEach((to: any, from: any, next: any) => {
   }
 
   // 🔍 调试日志：路由守卫触发
-  console.log('🔒 [路由守卫] 从:', from.path, '-> 到:', to.path)
+
   
   // 白名单路由（不需要登录）
   const whiteList = ['/login', '/register']
@@ -164,23 +177,22 @@ router.beforeEach((to: any, from: any, next: any) => {
     // 除登录/注册外的所有页面都需要登录
     if (!token) {
       // 🔍 调试日志：未登录，需要重定向
-      console.log('⚠️ [路由守卫] 未登录，访问需要认证的页面，重定向到登录页')
+
       
       // 未登录，保存当前要访问的路径，登录后跳转
       localStorage.setItem('redirectPath', to.fullPath)
-      console.log('💾 [路由守卫] 已保存 redirectPath:', to.fullPath)
+
       
       // 重定向到登录页
       next('/login')
       return
     } else {
-      console.log('✅ [路由守卫] 已登录，允许访问')
+
     }
   } else {
-    console.log('ℹ️ [路由守卫] 访问白名单页面:', to.path)
+
   }
 
-  console.log('➡️ [路由守卫] 继续执行')
   next()
 })
 

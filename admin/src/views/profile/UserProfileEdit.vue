@@ -229,7 +229,7 @@ const fetchUserInfo = async () => {
       method: 'get'
     })
     
-    const userData = response.data.data
+    const userData = response.data
     if (userData) {
       editForm.account = userData.account
       editForm.nickname = userData.nickname || userData.username || ''
@@ -286,13 +286,13 @@ const handleSubmit = async () => {
       data: updateData
     })
 
-    if (response.data && response.data.data) {
+    if (response.data && response.data) {
       const userInfoKey = 'userInfo'
       const existingCache = appContext?.$toolUtil?.storageGet(userInfoKey)
       const cachedUser = existingCache ? JSON.parse(existingCache) : {}
       const updatedUser = {
         ...cachedUser,
-        ...response.data.data,
+        ...response.data,
         token: cachedUser.token,
         refreshToken: cachedUser.refreshToken
       }

@@ -27,21 +27,32 @@ public class BlockRuleServiceImpl extends ServiceImpl<BlockRuleDao, BlockRule> i
 
     @Override
     @Transactional
-    public void addRule(Long userId, Object dto) {
+    public String addRule(Long userId, Object dto) {
         BlockRuleCreateDTO createDTO = (BlockRuleCreateDTO) dto;
-        BlockRule rule = converter.toEntity(createDTO);
-        rule.setUserId(userId);
         
-        // 防止重复添加
+        // 检查是否已存在相同的规则
         QueryWrapper<BlockRule> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", userId)
                .eq("rule_type", createDTO.getRuleType())
                .eq("rule_value", createDTO.getRuleValue());
-        if (this.count(wrapper) > 0) {
-            throw new RuntimeException("该屏蔽规则已存在");
+        BlockRule existingRule = this.getOne(wrapper);
+        
+        if (existingRule != null) {
+            // 如果规则已存在且未启用，则启用它
+            if (!existingRule.getEnabled()) {
+                existingRule.setEnabled(true);
+                this.updateById(existingRule);
+                return "enabled";
+            }
+            // 如果已经启用，返回已存在
+            return "exists";
         }
         
+        // 规则不存在，创建新规则
+        BlockRule rule = converter.toEntity(createDTO);
+        rule.setUserId(userId);
         this.save(rule);
+        return "added";
     }
 
     @Override
@@ -57,6 +68,19 @@ public class BlockRuleServiceImpl extends ServiceImpl<BlockRuleDao, BlockRule> i
         QueryWrapper<BlockRule> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", userId).orderByDesc("create_time");
         return converter.toVOList(this.list(wrapper));
+    }
+
+    @Override
+    @Transactional
+    public void toggleRule(Long userId, Long ruleId, Boolean enabled) {
+        QueryWrapper<BlockRule> wrapper = new QueryWrapper<>();
+        wrapper.eq("id", ruleId).eq("user_id", userId);
+        BlockRule rule = this.getOne(wrapper);
+        if (rule == null) {
+            throw new RuntimeException("规则不存在或无权限操作");
+        }
+        rule.setEnabled(enabled);
+        this.updateById(rule);
     }
 
     @Override

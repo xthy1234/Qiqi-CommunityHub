@@ -90,16 +90,13 @@
         <NAlert title="举报信息" type="info" style="margin-bottom: 16px;">
           <NDescriptions bordered :column="1" size="small">
             <NDescriptionsItem label="举报人">
-              {{ currentReport?.reporterName }}
+              {{ currentReport?.reporterUserInfo?.nickname || currentReport?.reporterName || '-' }}
             </NDescriptionsItem>
             <NDescriptionsItem label="被举报人">
-              {{ currentReport?.reportedName }}
-            </NDescriptionsItem>
-            <NDescriptionsItem label="内容类型">
-              {{ currentReport?.contentType }}
+              {{ currentReport?.reportedUserInfo?.nickname || currentReport?.reportedName || '-' }}
             </NDescriptionsItem>
             <NDescriptionsItem label="内容标题">
-              {{ currentReport?.contentTitle }}
+              {{ currentReport?.contentTitle || '-' }}
             </NDescriptionsItem>
             <NDescriptionsItem label="举报原因">
               {{ currentReport?.reportReason }}
@@ -273,6 +270,9 @@ const columns: DataTableColumns = [
     width: 120,
     ellipsis: {
       tooltip: true
+    },
+    render: (row) => {
+      return row.reporterUserInfo?.nickname || row.reporterName || '-'
     }
   },
   {
@@ -281,18 +281,9 @@ const columns: DataTableColumns = [
     width: 120,
     ellipsis: {
       tooltip: true
-    }
-  },
-  {
-    title: '内容类型',
-    key: 'contentType',
-    width: 100,
+    },
     render: (row) => {
-      return h(NTag, {
-        type: 'info'
-      }, {
-        default: () => row.contentType
-      })
+      return row.reportedUserInfo?.nickname || row.reportedName || '-'
     }
   },
   {

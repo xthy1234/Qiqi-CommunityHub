@@ -266,16 +266,17 @@ const loadData = async () => {
 
     const response = await adminUserApi.getUserList(params)
 
-    if (response.data.code === 0 || response.data.code === 200) {
-      tableData.value = response.data.data.list || []
-      pagination.itemCount = response.data.data.totalCount || 0
-    } else if (response.data.code === 401) {
+    if (response.code === 0 || response.code === 200) {
+      tableData.value = response.data.list || []
+      pagination.itemCount = response.data.totalCount || 0
+    } else if (response.code === 401) {
       message.error('请先登录')
       setTimeout(() => {
         router.push('/login')
       }, 500)
     } else {
-      message.error(response.data.msg || '获取用户列表失败')
+      message.error(
+response.msg || '获取用户列表失败')
     }
   } catch (error: any) {
     console.error('获取用户列表失败:', error)
@@ -312,11 +313,12 @@ const handleDelete = async (row: UserItem) => {
         try {
           const response = await adminUserApi.deleteUser(row.id)
 
-          if (response.data.code === 0 || response.data.code === 200) {
+          if (response.code === 0 || response.code === 200) {
             message.success('删除成功')
             loadData()
           } else {
-            message.error(response.data.msg || '删除失败')
+            message.error(
+response.msg || '删除失败')
           }
         } catch (error: any) {
           console.error('删除失败:', error)

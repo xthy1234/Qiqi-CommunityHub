@@ -124,7 +124,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
     @Override
     public PageUtils queryPage(Map<String, Object> params, Wrapper<Article> queryWrapper) {
         IPage<ArticleView> articlePage = new Query<ArticleView>(params).getPage();
-        IPage<ArticleView> resultPage = baseMapper.selectListView(articlePage, queryWrapper);
+        IPage<ArticleView> resultPage = baseMapper.selectListView(articlePage, queryWrapper, params);
 
         long totalCount = baseMapper.selectCount(queryWrapper);
         articlePage.setTotal(totalCount);
@@ -133,7 +133,22 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
 
     @Override
     public IPage<ArticleView> selectListViewPage(IPage<ArticleView> page, Wrapper<Article> queryWrapper) {
-        return baseMapper.selectListView(page, queryWrapper);
+        Map<String, Object> params = new HashMap<>();
+        
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                Long userId = sessionUtils.getCurrentUserId(request);
+                if (userId != null) {
+                    blockRuleService.injectBlockConditions(userId, params);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("无法获取当前请求上下文，跳过屏蔽规则注入");
+        }
+        
+        return baseMapper.selectListView(page, queryWrapper, params);
     }
 
     @Override
@@ -153,6 +168,19 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
 
     @Override
     public List<ArticleSearchVO> searchByFullText(Map<String, Object> params) {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                Long userId = sessionUtils.getCurrentUserId(request);
+                if (userId != null) {
+                    blockRuleService.injectBlockConditions(userId, params);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("无法获取当前请求上下文，跳过屏蔽规则注入");
+        }
+        
         return baseMapper.searchByFullText(params);
     }
     
@@ -251,7 +279,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
     @Override
     public PageUtils adminQueryPage(Map<String, Object> params, Wrapper<Article> queryWrapper) {
         IPage<ArticleView> articlePage = new Query<ArticleView>(params).getPage();
-        IPage<ArticleView> resultPage = baseMapper.selectListView(articlePage, queryWrapper);
+        IPage<ArticleView> resultPage = baseMapper.selectListView(articlePage, queryWrapper, params);
         
         long totalCount = baseMapper.selectCount(queryWrapper);
         resultPage.setTotal(totalCount);

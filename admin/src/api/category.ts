@@ -75,7 +75,7 @@ export interface CategoryVO {
   categoryName: string
   description?: string
   sort: number
-  status: number
+  status: number | string  // 兼容后端返回的 "ENABLED"/"DISABLED" 字符串
   createTime: string
   updateTime?: string
   children?: CategoryVO[]

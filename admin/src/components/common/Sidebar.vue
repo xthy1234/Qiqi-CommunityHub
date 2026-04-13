@@ -110,6 +110,7 @@ import { useRouter } from 'vue-router'
 import { NMenu, type MenuOption } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 interface MenuItem {
   menu: string
@@ -196,35 +197,29 @@ const menuOptions = computed<MenuOption[]>(() => {
     },
     {
       label: '评论管理',
-      key: 'comments',
-      icon: renderIcon('ri:chat-3-line'),
+      key: '/comments',
+      icon: renderIcon('ri:message-3-line'),
       click: () => navigateToRoute('/comments')
     },
     {
-      label: '系统管理',
-      key: 'system',
-      icon: renderIcon('ri:settings-4-line'),
+      label: '积分管理',
+      key: 'points',
+      icon: renderIcon('ri:article-line'),
       children: [
         {
-          label: '角色管理',
-          key: 'system-roles',
-          icon: renderIcon('ri:shield-user-line'),
-          click: () => navigateToRoute('/admin/roles')
+          label: '积分规则',
+          key: '/points-rules',
+          icon: renderIcon('ri:coin-line'),
+          click: () => navigateToRoute('/points-rules')
         },
         {
-          label: '菜单管理',
-          key: 'system-menus',
-          icon: renderIcon('ri:menu-fold-line'),
-          click: () => navigateToRoute('/admin/menus')
-        },
-        {
-          label: '分类管理',
-          key: 'system-categories',
-          icon: renderIcon('ri:folder-shield-line'),
-          click: () => navigateToRoute('/admin/categories')
+          label: '积分流水',
+          key: '/points-transactions',
+          icon: renderIcon('ri:exchange-line'),
+          click: () => navigateToRoute('/points-transactions')
         }
       ]
-    }
+    },
   ]
 
   // 添加动态菜单
@@ -429,23 +424,11 @@ const loadUserInfo = (): void => {
   const account = appContext?.$toolUtil?.storageGet('account')
 
   if (avatar) {
-    const baseUrl = appContext?.$config?.url || 'http://localhost:8080'
-    userAvatarUrl.value = getFullUrl(avatar, baseUrl)
+    userAvatarUrl.value = normalizeFileUrl(avatar)
   }
 
   userNickname.value = nickname || ''
   userAccount.value = account || ''
-}
-
-const getFullUrl = (path: string, baseUrl?: string): string => {
-  if (!path) return ''
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path
-  }
-  if (baseUrl) {
-    return `${baseUrl}/${path}`
-  }
-  return path
 }
 
 onMounted(() => {
@@ -556,14 +539,27 @@ const handleManualToggle = (): void => {
 
     .sidebar-menu-wrapper {
       flex: 1;
-      overflow-y: hidden;
+      overflow-y: auto;
       overflow-x: hidden;
       min-height: 0;
       position: relative;
-      transition: overflow-y 0.3s ease;
 
-      &.menu-scrollable:hover {
-        overflow-y: auto;
+      // 自定义滚动条样式
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #dcdfe6;
+        border-radius: 2px;
+
+        &:hover {
+          background: #c0c4cc;
+        }
       }
 
       .sidebar-menu {
@@ -588,24 +584,6 @@ const handleManualToggle = (): void => {
             &.n-menu-item-content--selected {
               background-color: rgba(24, 160, 88, 0.1);
             }
-          }
-        }
-
-        // 滚动条美化
-        &::-webkit-scrollbar {
-          width: 4px;
-        }
-
-        &::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
-        &::-webkit-scrollbar-thumb {
-          background: #dcdfe6;
-          border-radius: 2px;
-
-          &:hover {
-            background: #c0c4cc;
           }
         }
       }

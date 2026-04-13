@@ -22,7 +22,7 @@ public interface ArticleDao extends BaseMapper<Article> {
 
     List<ArticleView> selectListView(@Param("ew") Wrapper<Article> wrapper);
 
-    IPage<ArticleView> selectListView(IPage<ArticleView> page, @Param("ew") Wrapper<Article> wrapper);
+    IPage<ArticleView> selectListView(IPage<ArticleView> page, @Param("ew") Wrapper<Article> wrapper, @Param("params") Map<String, Object> params);
 
     ArticleView selectView(@Param("ew") Wrapper<Article> wrapper);
 

@@ -297,6 +297,8 @@ const goBack = () => {
 const loadData = async () => {
   loading.value = true
   try {
+
+
     const res = await categoryApi.getCategoryList({
       page: pagination.page,
       limit: pagination.pageSize,
@@ -305,18 +307,41 @@ const loadData = async () => {
         status: searchForm.value.status !== null ? searchForm.value.status : undefined
       }
     })
-    
+
+
+
+
     if (res.code === 0 || res.code === 200) {
-      tableData.value = res.data.list
-      pagination.itemCount = res.data.totalCount
+      // 兼容两种返回格式
+      if (Array.isArray(res.data)) {
+
+        tableData.value = res.data
+        pagination.itemCount = res.data.length
+      } else if (res.data?.list) {
+
+
+        // 转换 status 字段：ENABLED -> 0, DISABLED -> 1
+        tableData.value = res.data.list.map(item => ({
+          ...item,
+          status: item.status === 'ENABLED' ? 0 : 1
+        }))
+        pagination.itemCount = res.data.totalCount
+
+      } else {
+        console.warn('⚠️ [分类列表] 未知的数据格式')
+        tableData.value = []
+        pagination.itemCount = 0
+      }
     } else {
+      console.error('❌ [分类列表] 接口返回错误:', res.msg)
       message.error(res.msg || '加载失败')
     }
   } catch (error) {
+    console.error('❌ [分类列表] 请求异常:', error)
     message.error('加载失败')
-    console.error(error)
   } finally {
     loading.value = false
+
   }
 }
 

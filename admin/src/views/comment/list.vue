@@ -369,10 +369,10 @@ const loadData = async () => {
 
     const response = await commentApi.getCommentList(params)
 
-    if (response.data.code === 0 || response.data.code === 200) {
+    if (response.code === 0 || response.code === 200) {
       // 处理图片 URL 和数据映射
       const baseUrl = appContext?.$config?.url || 'http://localhost:8080'
-      tableData.value = (response.data.data.list || []).map((item: any) => ({
+      tableData.value = (response.data.list || []).map((item: any) => ({
         id: item.id,
         content: item.content,
         userId: item.userId,
@@ -387,9 +387,10 @@ const loadData = async () => {
         createTime: item.createTime,
         updateTime: item.updateTime
       }))
-      pagination.itemCount = response.data.data.totalCount || 0
+      pagination.itemCount = response.data.totalCount || 0
     } else {
-      message.error(response.data.msg || '获取评论列表失败')
+      message.error(
+response.msg || '获取评论列表失败')
     }
   } catch (error: any) {
     console.error('获取评论列表失败:', error)
@@ -452,8 +453,8 @@ const handleViewDetail = async (row: CommentItem) => {
   currentComment.value = row
   try {
     const response = await commentApi.getCommentById(row.id)
-    if (response.data.code === 0 || response.data.code === 200) {
-      currentComment.value = response.data.data
+    if (response.code === 0 || response.code === 200) {
+      currentComment.value = response.data
       detailDialogVisible.value = true
     }
   } catch (error: any) {
@@ -472,11 +473,12 @@ const handleUpdateStatus = async (row: CommentItem, status: number) => {
     onPositiveClick: async () => {
       try {
         const response = await commentApi.updateCommentStatus(row.id, status)
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success(`${actionText}成功`)
           loadData()
         } else {
-          message.error(response.data.msg || `${actionText}失败`)
+          message.error(
+response.msg || `${actionText}失败`)
         }
       } catch (error: any) {
         message.error(error.response?.data?.msg || `${actionText}失败`)
@@ -494,11 +496,12 @@ const handleDelete = async (row: CommentItem) => {
     onPositiveClick: async () => {
       try {
         const response = await commentApi.deleteComment(row.id)
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success('删除成功')
           loadData()
         } else {
-          message.error(response.data.msg || '删除失败')
+          message.error(
+response.msg || '删除失败')
         }
       } catch (error: any) {
         message.error(error.response?.data?.msg || '删除失败')
@@ -522,12 +525,13 @@ const handleBatchUpdateStatus = async (status: number) => {
     onPositiveClick: async () => {
       try {
         const response = await commentApi.batchUpdateStatus({ status, ids: checkedRowKeys.value })
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success(`批量${actionText}成功`)
           checkedRowKeys.value = []
           loadData()
         } else {
-          message.error(response.data.msg || `批量${actionText}失败`)
+          message.error(
+response.msg || `批量${actionText}失败`)
         }
       } catch (error: any) {
         message.error(error.response?.data?.msg || `批量${actionText}失败`)
@@ -550,12 +554,13 @@ const handleBatchDelete = async () => {
     onPositiveClick: async () => {
       try {
         const response = await commentApi.batchDeleteComments(checkedRowKeys.value)
-        if (response.data.code === 0 || response.data.code === 200) {
+        if (response.code === 0 || response.code === 200) {
           message.success('批量删除成功')
           checkedRowKeys.value = []
           loadData()
         } else {
-          message.error(response.data.msg || '批量删除失败')
+          message.error(
+response.msg || '批量删除失败')
         }
       } catch (error: any) {
         message.error(error.response?.data?.msg || '批量删除失败')

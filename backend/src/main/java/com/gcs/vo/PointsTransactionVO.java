@@ -37,5 +37,5 @@ public class PointsTransactionVO {
     private Long sourceId;
     
     @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
-    private LocalDateTime createdAt;
+    private LocalDateTime createTime;
 }

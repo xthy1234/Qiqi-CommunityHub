@@ -31,6 +31,7 @@ import UserPublicProfile from '@/views/user/UserPublicProfile.vue'
 import UserFollowingList from '@/views/user/UserFollowingList.vue'
 import UserFollowersList from '@/views/user/UserFollowersList.vue'
 import UserSignInView from '@/views/user/UserSignIn.vue'
+import BlockRuleManagementView from '@/views/user/BlockRuleManagement.vue'
 import HomeView from "@/views/HomeView.vue";
 
 // 发现相关页面
@@ -187,6 +188,12 @@ const routes: Array<RouteRecordRaw> = [
         component: UserPasswordChangeView,
         meta: { title: '修改密码' }
       },
+      // 屏蔽规则管理
+      {
+        path: 'user/block-rules',
+        component: BlockRuleManagementView,
+        meta: { title: '屏蔽规则管理' }
+      },
 
       // 兼容带 /index 前缀的路径
       {
@@ -323,6 +330,12 @@ const routes: Array<RouteRecordRaw> = [
         path: 'index/user/password-change',
         component: UserPasswordChangeView,
         meta: { title: '修改密码' }
+      },
+      // 兼容带 /index 前缀的屏蔽规则管理路径
+      {
+        path: 'index/user/block-rules',
+        component: BlockRuleManagementView,
+        meta: { title: '屏蔽规则管理' }
       },
       // 用户中心
       {

@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gcs.annotation.IgnoreAuth;
 import com.gcs.converter.ArticleConverter;
 import com.gcs.dto.ArticleUpdateDTO;
+import com.gcs.dto.BatchAuditDTO;
 import com.gcs.entity.Article;
 import com.gcs.entity.ArticleVersion;
 import com.gcs.entity.User;
@@ -356,12 +357,10 @@ public class ArticleController {
      */
     @PostMapping("/batch-audit")
     @Transactional
-    public R batchAudit(@RequestBody Long[] ids,
-                        @RequestParam Integer status,
-                        @RequestParam(required = false) String reply,
+    public R batchAudit(@Valid @RequestBody BatchAuditDTO auditDTO,
                         HttpServletRequest request) {
         try {
-            AuditStatus auditStatus = AuditStatus.valueOf(status);
+            AuditStatus auditStatus = AuditStatus.valueOf(auditDTO.getStatus());
             
             // 获取当前审核员 ID（管理员）
             Long currentUserId = getCurrentUserId(request);
@@ -370,13 +369,13 @@ public class ArticleController {
             }
 
             List<Article> articles = new ArrayList<>();
-            for (Long id : ids) {
+            for (Long id : auditDTO.getIds()) {
                 Article article = articleService.getById(id);
                 if (article != null) {
                     Integer oldStatus = article.getAuditStatus().getCode();
                     
                     article.setAuditStatus(auditStatus);
-                    article.setAuditReply(reply);
+                    article.setAuditReply(auditDTO.getReply());
 
                     // 审核通过时，如果 publishTime 为空，则设置为当前时间
                     if (auditStatus == AuditStatus.APPROVED && article.getPublishTime() == null) {
@@ -396,7 +395,7 @@ public class ArticleController {
                     }
                     
                     // 记录审核历史
-                    articleService.recordAuditHistory(id, currentUserId, oldStatus, status, reply);
+                    articleService.recordAuditHistory(id, currentUserId, oldStatus, auditDTO.getStatus(), auditDTO.getReply());
                 }
             }
             articleService.updateBatchById(articles);

@@ -227,12 +227,12 @@ const formRules: FormRules = {
 const fetchRoles = async () => {
   try {
     const response = await apiService.role.getAllRoles()
-    if (response.data.code === 0 || response.data.code === 200) {
-      roleOptions.value = (response.data.data || []).map((role: any) => ({
+    if (response.code === 0 || response.code === 200) {
+      roleOptions.value = (response.data || []).map((role: any) => ({
         label: role.roleName,
         value: role.id
       }))
-    } else if (response.data.code === 401) {
+    } else if (response.code === 401) {
       message.error('请先登录')
       setTimeout(() => {
         router.push('/login')
@@ -258,8 +258,8 @@ const fetchUserInfo = async () => {
   try {
     const response = await adminUserApi.getAdminUserById(Number(userId))
     
-    if (response.data.code === 0 || response.data.code === 200) {
-      const userData = response.data.data
+    if (response.code === 0 || response.code === 200) {
+      const userData = response.data
       Object.assign(formData, {
         id: userData.id,
         account: userData.account,
@@ -273,7 +273,8 @@ const fetchUserInfo = async () => {
         status: userData.status
       })
     } else {
-      message.error(response.data.msg || '获取用户信息失败')
+      message.error(
+response.msg || '获取用户信息失败')
     }
   } catch (error: any) {
     console.error('获取用户信息失败:', error)
@@ -293,24 +294,26 @@ const handleSubmit = async () => {
       
       const response = await adminUserApi.updateAdminUser(submitData.id!, submitData)
       
-      if (response.data.code === 0 || response.data.code === 200) {
+      if (response.code === 0 || response.code === 200) {
         message.success('更新成功')
         setTimeout(() => {
           router.push('/users')
         }, 500)
       } else {
-        message.error(response.data.msg || '更新失败')
+        message.error(
+response.msg || '更新失败')
       }
     } else {
       const response = await adminUserApi.createUser(submitData)
       
-      if (response.data.code === 0 || response.data.code === 200) {
+      if (response.code === 0 || response.code === 200) {
         message.success('创建成功')
         setTimeout(() => {
           router.push('/users')
         }, 500)
       } else {
-        message.error(response.data.msg || '创建失败')
+        message.error(
+response.msg || '创建失败')
       }
     }
   } catch (error: any) {

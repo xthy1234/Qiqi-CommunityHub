@@ -12,7 +12,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClientInstance {
   // 创建 Axios 实例
   const instance: AxiosInstance = axios.create({
     baseURL: config.baseURL || 'http://localhost:8080',
-    timeout: config.timeout || 30000, // 默认 30 秒，不再是 24 小时！
+    timeout: config.timeout || 30000,
     withCredentials: config.withCredentials ?? true,
     headers: {
       'Content-Type': 'application/json; charset=utf-8'
@@ -24,31 +24,33 @@ export function createHttpClient(config: HttpClientConfig): HttpClientInstance {
   setupInterceptors(instance)
 
   // 返回封装后的 API
+  // 注意：由于拦截器已经将 AxiosResponse<ApiResponse<T>> 解包为 ApiResponse<T>
+  // 这里使用类型断言来同步类型系统和实际行为
   return {
     instance,
     
-    request<T = any>(requestConfig: AxiosRequestConfig) {
-      return instance.request<ApiResponse<T>>(requestConfig)
+    request<T = any>(requestConfig: AxiosRequestConfig): Promise<ApiResponse<T>> {
+      return instance.request(requestConfig) as unknown as Promise<ApiResponse<T>>
     },
     
-    get<T = any>(url: string, requestConfig?: AxiosRequestConfig) {
-      return instance.get<ApiResponse<T>>(url, requestConfig)
+    get<T = any>(url: string, requestConfig?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+      return instance.get(url, requestConfig) as unknown as Promise<ApiResponse<T>>
     },
     
-    post<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig) {
-      return instance.post<ApiResponse<T>>(url, data, requestConfig)
+    post<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+      return instance.post(url, data, requestConfig) as unknown as Promise<ApiResponse<T>>
     },
     
-    put<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig) {
-      return instance.put<ApiResponse<T>>(url, data, requestConfig)
+    put<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+      return instance.put(url, data, requestConfig) as unknown as Promise<ApiResponse<T>>
     },
     
-    delete<T = any>(url: string, requestConfig?: AxiosRequestConfig) {
-      return instance.delete<ApiResponse<T>>(url, requestConfig)
+    delete<T = any>(url: string, requestConfig?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+      return instance.delete(url, requestConfig) as unknown as Promise<ApiResponse<T>>
     },
     
-    patch<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig) {
-      return instance.patch<ApiResponse<T>>(url, data, requestConfig)
+    patch<T = any>(url: string, data?: any, requestConfig?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+      return instance.patch(url, data, requestConfig) as unknown as Promise<ApiResponse<T>>
     }
   }
 }

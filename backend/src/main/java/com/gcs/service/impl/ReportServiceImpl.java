@@ -55,7 +55,7 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
         validateQueryParams(params, queryWrapper);
         
         IPage<ReportView> reportViewPage = new Query<ReportView>(params).getPage();
-        List<ReportView> reportViews = baseMapper.selectListView(reportViewPage, queryWrapper);
+        List<ReportView> reportViews = baseMapper.selectListView(reportViewPage, queryWrapper, params);
         reportViewPage.setRecords(reportViews);
         
         return new PageUtils(reportViewPage);

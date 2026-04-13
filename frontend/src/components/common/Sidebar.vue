@@ -372,6 +372,12 @@ const menuOptions = computed<MenuOption[]>(() => {
           click: () => navigateToRoute('/index/user/password-change')
         },
         {
+          label: '屏蔽规则',
+          key: 'profile-block-rules',
+          icon: renderIcon('ri:shield-ban-line'),
+          click: () => navigateToRoute('/index/user/block-rules')
+        },
+        {
           label: '我的收藏',
           key: 'profile-favorite',
           icon: renderIcon('ri:star-line'),

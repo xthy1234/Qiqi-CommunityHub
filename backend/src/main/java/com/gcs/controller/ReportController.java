@@ -499,11 +499,27 @@ public class ReportController {
     private ReportVO convertToVOWithUserInfo(Report report) {
         ReportVO vo = convertToVO(report);
         
+        // 查询文章标题
+        if (report.getContentId() != null) {
+            Article article = articleService.getById(report.getContentId());
+            if (article != null) {
+                vo.setContentTitle(article.getTitle());
+            }
+        }
+        
         // 设置举报人信息
         if (report.getReporterId() != null) {
             User reporter = userService.getById(report.getReporterId());
             if (reporter != null) {
                 vo.setReporterUserInfo(convertToUserSimpleVO(reporter));
+            }
+        }
+        
+        // 设置被举报人信息
+        if (report.getReportedUserId() != null) {
+            User reportedUser = userService.getById(report.getReportedUserId());
+            if (reportedUser != null) {
+                vo.setReportedUserInfo(convertToUserSimpleVO(reportedUser));
             }
         }
         
@@ -535,11 +551,27 @@ public class ReportController {
         vo.setCreateTime(report.getCreateTime());
         vo.setUpdateTime(report.getUpdateTime());
         
+        // 查询文章标题
+        if (report.getContentId() != null) {
+            Article article = articleService.getById(report.getContentId());
+            if (article != null) {
+                vo.setContentTitle(article.getTitle());
+            }
+        }
+        
         // 设置举报人信息
         if (report.getReporterId() != null) {
             User reporter = userService.getById(report.getReporterId());
             if (reporter != null) {
                 vo.setReporterUserInfo(convertToUserSimpleVO(reporter));
+            }
+        }
+        
+        // 设置被举报人信息
+        if (report.getReportedUserId() != null) {
+            User reportedUser = userService.getById(report.getReportedUserId());
+            if (reportedUser != null) {
+                vo.setReportedUserInfo(convertToUserSimpleVO(reportedUser));
             }
         }
         

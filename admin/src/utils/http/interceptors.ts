@@ -36,9 +36,9 @@ function setupResponseInterceptor(instance: AxiosInstance): void {
         return Promise.reject(response)
       }
 
-      // 处理成功响应
+      // 处理成功响应 - 返回解包后的数据
       if (data && data.code === 0) {
-        return response
+        return data as any
       }
 
       // 处理业务逻辑错误
