@@ -31,7 +31,7 @@ export const videoDanmakuAPI = {
   /**
    * 获取最新弹幕
    */
-  getLatest(videoUrl: string, limit: number = 100, articleId?: number) {
+  getLatest(videoUrl: string, limit = 100, articleId?: number) {
     const params: any = { videoUrl, limit }
     if (articleId) {
       params.articleId = articleId

@@ -1,6 +1,6 @@
 <template>
   <page-container
-      :header-title="'通知'"
+    :header-title="'通知'"
   >
     <template #header>
       <div class="page-header">
@@ -29,10 +29,24 @@
 
     <!-- 筛选标签 -->
     <div class="filter-tabs">
-      <n-tabs v-model:value="activeTab" type="line" animated @update:value="handleTabChange">
-        <n-tab-pane name="all" tab="全部通知" />
-        <n-tab-pane :name="'unread'" :tab="`未读通知 (${unreadCount})`" />
-        <n-tab-pane name="read" tab="已读通知" />
+      <n-tabs
+        v-model:value="activeTab"
+        type="line"
+        animated
+        @update:value="handleTabChange"
+      >
+        <n-tab-pane
+          name="all"
+          tab="全部通知"
+        />
+        <n-tab-pane
+          :name="'unread'"
+          :tab="`未读通知 (${unreadCount})`"
+        />
+        <n-tab-pane
+          name="read"
+          tab="已读通知"
+        />
       </n-tabs>
     </div>
 

@@ -6,7 +6,10 @@
     <div class="block-rule-management">
       <!-- 操作栏 -->
       <div class="action-bar">
-        <n-button type="primary" @click="showAddModal = true">
+        <n-button
+          type="primary"
+          @click="showAddModal = true"
+        >
           <template #icon>
             <Icon icon="ri:add-line" />
           </template>
@@ -21,7 +24,10 @@
           description="暂无屏蔽规则"
         >
           <template #extra>
-            <n-button size="small" @click="showAddModal = true">
+            <n-button
+              size="small"
+              @click="showAddModal = true"
+            >
               添加第一条规则
             </n-button>
           </template>
@@ -52,7 +58,10 @@
         label-placement="left"
         label-width="80"
       >
-        <n-form-item label="规则类型" path="ruleType">
+        <n-form-item
+          label="规则类型"
+          path="ruleType"
+        >
           <n-select
             v-model:value="formData.ruleType"
             :options="ruleTypeOptions"
@@ -101,8 +110,14 @@
 
       <template #footer>
         <n-space justify="end">
-          <n-button @click="showAddModal = false">取消</n-button>
-          <n-button type="primary" :loading="submitting" @click="handleSubmit">
+          <n-button @click="showAddModal = false">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            :loading="submitting"
+            @click="handleSubmit"
+          >
             确定
           </n-button>
         </n-space>

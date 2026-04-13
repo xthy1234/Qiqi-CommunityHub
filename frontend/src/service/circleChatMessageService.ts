@@ -23,7 +23,7 @@ class CircleChatMessageService {
     }
 
     const client = (ws as any).client
-    if (!client) return
+    if (!client) {return}
 
     wsLogger.info('初始化圈子消息服务')
 

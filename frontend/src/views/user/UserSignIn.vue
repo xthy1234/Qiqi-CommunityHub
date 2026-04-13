@@ -8,7 +8,9 @@
       <!-- 签到卡片 -->
       <n-card class="sign-in-card">
         <div class="sign-in-header">
-          <h2 class="card-title">每日签到</h2>
+          <h2 class="card-title">
+            每日签到
+          </h2>
           <n-tag
             :type="signedInToday ? 'success' : 'primary'"
             size="large"
@@ -21,13 +23,21 @@
           <!-- 积分展示 -->
           <div class="points-display">
             <div class="points-item">
-              <div class="points-label">当前积分</div>
-              <div class="points-value">{{ points }}</div>
+              <div class="points-label">
+                当前积分
+              </div>
+              <div class="points-value">
+                {{ points }}
+              </div>
             </div>
-            <div class="divider"></div>
+            <div class="divider" />
             <div class="points-item">
-              <div class="points-label">连续签到</div>
-              <div class="points-value">{{ streak }}<span class="days-unit">天</span></div>
+              <div class="points-label">
+                连续签到
+              </div>
+              <div class="points-value">
+                {{ streak }}<span class="days-unit">天</span>
+              </div>
             </div>
           </div>
 
@@ -62,7 +72,9 @@
 
           <!-- 签到规则说明 -->
           <div class="sign-in-rules">
-            <h4 class="rules-title">签到规则</h4>
+            <h4 class="rules-title">
+              签到规则
+            </h4>
             <ul class="rules-list">
               <li>每日签到可获得 <strong>10 积分</strong></li>
               <li>连续签到 3 天额外奖励 <strong>10 积分</strong></li>
@@ -77,7 +89,9 @@
       <n-card class="transactions-card">
         <template #header>
           <div class="card-header">
-            <h3 class="card-title">积分明细</h3>
+            <h3 class="card-title">
+              积分明细
+            </h3>
             <div class="header-actions">
               <n-select
                 v-model:value="transactionFilter.source"

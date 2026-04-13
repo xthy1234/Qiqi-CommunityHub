@@ -20,7 +20,7 @@ const message = useMessage()
 // 从文档中查找对应的视频节点和注释
 const annotationData = computed(() => {
   const doc = props.editor?.state?.doc
-  if (!doc) return null
+  if (!doc) {return null}
   
   let foundAnnotation = null
   
@@ -61,10 +61,10 @@ const annotationData = computed(() => {
 
 // 计算该引用是第几个引用相同注释的标记
 const refIndex = computed(() => {
-  if (!annotationData.value) return -1
+  if (!annotationData.value) {return -1}
 
   const doc = props.editor?.state?.doc
-  if (!doc) return -1
+  if (!doc) {return -1}
 
   let count = 0
   let currentIndex = -1
@@ -102,7 +102,7 @@ const refDisplay = computed(() => {
 })
 
 const tooltipText = computed(() => {
-  if (!annotationData.value) return '注释不存在'
+  if (!annotationData.value) {return '注释不存在'}
   const { startTime, endTime, title, videoTitle } = annotationData.value
   const timeRange = endTime 
     ? `${formatTime(startTime)}-${formatTime(endTime)}`
@@ -144,9 +144,18 @@ const handleClick = () => {
       :title="tooltipText"
       @click="handleClick"
     >
-      <n-icon size="14" color="#2080f0">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5l-6 4.5z"/>
+      <n-icon
+        size="14"
+        color="#2080f0"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        >
+          <path
+            fill="currentColor"
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5l-6 4.5z"
+          />
         </svg>
       </n-icon>
       <span class="ref-number">{{ refDisplay }}</span>

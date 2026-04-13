@@ -229,7 +229,7 @@ const handleFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
 
-  if (!file) return
+  if (!file) {return}
 
   try {
     const response = await uploadAPI.uploadImage(file)
@@ -274,7 +274,7 @@ const handleVideoInputChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
 
-  if (!file) return
+  if (!file) {return}
 
   try {
     message.loading('视频上传中...', { duration: 0 })

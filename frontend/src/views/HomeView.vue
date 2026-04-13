@@ -36,9 +36,9 @@
 
     <!-- 每日签到组件 -->
     <DailySignIn
-        v-if="isLoggedIn"
-        ref="signInRef"
-        @refresh="handleSignInRefresh"
+      v-if="isLoggedIn"
+      ref="signInRef"
+      @refresh="handleSignInRefresh"
     />
 
     <!-- 热门文章列表 -->

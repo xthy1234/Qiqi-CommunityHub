@@ -49,7 +49,9 @@
 
         <!-- 普通文本内容（新格式） -->
         <template v-else>
-          <div class="plain-text">{{ displayContent }}</div>
+          <div class="plain-text">
+            {{ displayContent }}
+          </div>
         </template>
       </div>
     </div>
@@ -148,7 +150,7 @@ const displayContent = computed(() => {
 
 // 判断是否为富文本内容（JSON 格式，用于兼容旧数据）
 const isRichTextContent = computed(() => {
-  if (!props.notification.content) return false
+  if (!props.notification.content) {return false}
 
   try {
     const content = typeof props.notification.content === 'string'
@@ -167,7 +169,7 @@ const editorReady = ref(false)
 
 // 初始化编辑器
 onMounted(async () => {
-  if (!isRichTextContent.value) return
+  if (!isRichTextContent.value) {return}
 
   try {
     let contentJson: any

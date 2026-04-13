@@ -26,7 +26,6 @@ const hasDiff = ref(true)
 
 const generateDiff = () => {
 
-
   if (!props.source || !props.target) {
     console.warn('[TextDiffViewer] 警告：source 或 target 为空!')
     diffHtml.value = ''
@@ -70,7 +69,6 @@ const generateDiff = () => {
 
     hasDiff.value = true
 
-
   } catch (error) {
     console.error('生成差异失败', error)
     diffHtml.value = '<div class="error">差异生成失败</div>'
@@ -85,19 +83,36 @@ watch(() => [props.source, props.target], generateDiff, { deep: true, immediate:
 
 <template>
   <div class="text-diff-viewer">
-    <div v-if="showHeader" class="diff-header">
+    <div
+      v-if="showHeader"
+      class="diff-header"
+    >
       <div class="version-info">
         <span class="label">{{ sourceLabel }}</span>
-        <span v-if="sourceTime" class="time">{{ sourceTime }}</span>
+        <span
+          v-if="sourceTime"
+          class="time"
+        >{{ sourceTime }}</span>
       </div>
       <div class="version-info">
         <span class="label">{{ targetLabel }}</span>
-        <span v-if="targetTime" class="time">{{ targetTime }}</span>
+        <span
+          v-if="targetTime"
+          class="time"
+        >{{ targetTime }}</span>
       </div>
     </div>
 
-    <div v-if="loading" class="loading">计算差异中...</div>
-    <div v-else-if="!hasDiff" class="no-diff">
+    <div
+      v-if="loading"
+      class="loading"
+    >
+      计算差异中...
+    </div>
+    <div
+      v-else-if="!hasDiff"
+      class="no-diff"
+    >
       <n-result
         status="success"
         title="无差异"
@@ -105,8 +120,17 @@ watch(() => [props.source, props.target], generateDiff, { deep: true, immediate:
         size="small"
       />
     </div>
-    <div v-else-if="diffHtml" class="diff-html" v-html="diffHtml"></div>
-    <div v-else class="no-diff">无差异</div>
+    <div
+      v-else-if="diffHtml"
+      class="diff-html"
+      v-html="diffHtml"
+    />
+    <div
+      v-else
+      class="no-diff"
+    >
+      无差异
+    </div>
   </div>
 </template>
 

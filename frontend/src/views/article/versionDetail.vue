@@ -31,7 +31,8 @@
               <n-tag
                 :type="isMajorVersion ? 'warning' : 'info'"
                 size="medium"
-                bordered: false
+                bordered:
+                false
               >
                 {{ versionDisplay }}
               </n-tag>
@@ -67,8 +68,8 @@
               <n-button
                 type="primary"
                 ghost
-                @click="compareWithPrev"
                 :disabled="!prevVersion"
+                @click="compareWithPrev"
               >
                 <template #icon>
                   <Icon icon="ri:git-compare-line" />
@@ -79,8 +80,8 @@
               <n-button
                 type="primary"
                 ghost
-                @click="compareWithNext"
                 :disabled="!nextVersion"
+                @click="compareWithNext"
               >
                 <template #icon>
                   <Icon icon="ri:git-compare-line" />
@@ -221,7 +222,9 @@
         style="margin-bottom: 16px;"
       >
         <p>回滚后将创建一个新的版本记录，文章内容将恢复到该版本。</p>
-        <p style="margin-top: 8px; color: #f0a020;">此操作不可逆，请谨慎操作！</p>
+        <p style="margin-top: 8px; color: #f0a020;">
+          此操作不可逆，请谨慎操作！
+        </p>
       </n-alert>
       
       <template #action>
@@ -270,7 +273,7 @@ const dialog = useDialog()
 const extensions = [
   StarterKit.configure({ link: false }),
   Image,
-  Link.configure({ openOnClick: false }),
+  Link.configure({ openOnClick: false })
 ]
 
 // 响应式数据
@@ -298,12 +301,12 @@ const compareData = ref({
 
 // 计算属性
 const versionDisplay = computed(() => {
-  if (!versionData.value) return ''
+  if (!versionData.value) {return ''}
   return `${versionData.value.majorVersion ?? 1}.${versionData.value.minorVersion ?? versionData.value.version}`
 })
 
 const isMajorVersion = computed(() => {
-  if (!versionData.value) return false
+  if (!versionData.value) {return false}
   return (versionData.value.majorVersion ?? 1) > 1 && (versionData.value.minorVersion ?? 0) === 0
 })
 
@@ -381,7 +384,6 @@ const loadVersionDetail = async () => {
     if (!articleId || isNaN(version)) {
       throw new Error('参数错误')
     }
-
     
     // 获取文章详情（用于权限判断）
     const articleRes = await articleAPI.getById(articleId)
@@ -391,7 +393,6 @@ const loadVersionDetail = async () => {
     // 获取版本详情
     const response = await articleVersionAPI.getById(articleId, version)
     versionData.value = response.data.data
-
     
     // 转换为 HTML
     if (versionData.value?.content) {
@@ -401,7 +402,6 @@ const loadVersionDetail = async () => {
     // 获取所有版本（用于相邻导航）
     const versionsRes = await articleVersionAPI.getList(articleId, { page: 1, limit: 100 })
     allVersions.value = Array.isArray(versionsRes.data.data) ? versionsRes.data.data : (versionsRes.data.data.list || [])
-
 
   } catch (error) {
     console.error('❌ [加载版本详情失败] error:', error)
@@ -444,15 +444,11 @@ const loadCompareData = async (targetVersion: ArticleVersion) => {
     const articleId = route.params.articleId as string
     const sourceVersionNum = versionData.value?.version
 
-    if (!sourceVersionNum) return
-
+    if (!sourceVersionNum) {return}
     
     // 调用后端对比接口
     const response = await articleVersionAPI.compare(articleId, sourceVersionNum, targetVersion.version)
     const compareResult = response.data.data
-
-
-
 
     // 设置对比数据（从 content 字段获取）
     compareData.value = {
@@ -526,7 +522,7 @@ const doRollback = async () => {
     const articleId = route.params.articleId as string
     const version = versionData.value?.version
     
-    if (!version) return
+    if (!version) {return}
     
     await articleVersionAPI.rollback(articleId, version, { version })
     
@@ -548,7 +544,7 @@ const doRollback = async () => {
  * 复制全文
  */
 const copyContent = async () => {
-  if (!versionData.value?.content) return
+  if (!versionData.value?.content) {return}
   
   try {
     const textContent = JSON.stringify(versionData.value.content, null, 2)
@@ -573,7 +569,6 @@ const navigateToVersion = (version: ArticleVersion) => {
   const targetVersion = version.version
 
   const path = `/index/article/${articleId}/version/${targetVersion}`
-
 
   router.push(path).then(() => {
 

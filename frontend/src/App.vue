@@ -8,7 +8,6 @@
   </n-config-provider>
 </template>
 
-
 <script setup lang="ts">
 /**
  * 防抖函数实现
@@ -16,23 +15,21 @@
  * @param delay 延迟时间（毫秒）
  * @returns 防抖后的函数
  */
-const createDebounce = <T extends (...args: any[]) => any>(
+const createDebounce = <T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number
 ): ((...args: Parameters<T>) => void) => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null
 
   return function(...args: Parameters<T>): void {
-    const context = this
-
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
 
     timeoutId = setTimeout(() => {
       try {
-        fn.apply(context, args)
-      } catch (error) {
+        fn.apply(null, args)
+      } catch (error: unknown) {
         // 忽略因 DOM 元素不存在导致的错误
         if (error instanceof TypeError &&
             error.message.includes('parameter 1 is not of type')) {
@@ -51,12 +48,12 @@ const OriginalResizeObserver = window.ResizeObserver
 
 // 重写 ResizeObserver 以添加防抖功能
 window.ResizeObserver = class EnhancedResizeObserver extends OriginalResizeObserver {
-  constructor(callback: ResizeObserverCallback) {
+  constructor(callback: globalThis.ResizeObserverCallback) {
     // 为回调函数添加防抖处理
     const debouncedCallback = createDebounce((entries: ResizeObserverEntry[], observer: ResizeObserver) => {
       try {
         callback(entries, observer)
-      } catch (error) {
+      } catch (error: unknown) {
         // 忽略因 DOM 元素不存在导致的错误
         if (error instanceof TypeError &&
             error.message.includes('parameter 1 is not of type')) {

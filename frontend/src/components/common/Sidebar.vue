@@ -81,7 +81,7 @@
         class="external-links"
       >
         <a
-          href="https://github.com"
+          href="https://github.com/xthy1234/Qiqi-CommunityHub"
           target="_blank"
           class="external-link"
           title="GitHub"

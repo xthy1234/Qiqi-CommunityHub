@@ -53,8 +53,8 @@ const content = ref('')
 const actualDuration = ref(0)
 
 const maxDuration = computed(() => {
-  if (actualDuration.value > 0) return actualDuration.value
-  if (props.videoDuration && props.videoDuration > 0) return props.videoDuration
+  if (actualDuration.value > 0) {return actualDuration.value}
+  if (props.videoDuration && props.videoDuration > 0) {return props.videoDuration}
   return 3600
 })
 
@@ -105,7 +105,7 @@ const handleEndTimeChange = (val: number | null) => {
 }
 
 const captureCurrentTime = () => {
-  if (!previewVideoRef.value) return
+  if (!previewVideoRef.value) {return}
 
   const currentTime = Math.round(previewVideoRef.value.currentTime * 100) / 100
 
@@ -127,7 +127,7 @@ const formatTimeRange = (startTime: number, endTime?: number): string => {
 }
 
 const formatTime = (seconds: number): string => {
-  if (seconds < 0) return '00:00'
+  if (seconds < 0) {return '00:00'}
 
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -258,7 +258,10 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="time-input-section">
-        <n-form-item label="时间范围" required>
+        <n-form-item
+          label="时间范围"
+          required
+        >
           <n-space vertical>
             <n-space align="center">
               <n-checkbox v-model:checked="useTimeRange">
@@ -266,9 +269,18 @@ onBeforeUnmount(() => {
               </n-checkbox>
               <n-tooltip trigger="hover">
                 <template #trigger>
-                  <n-icon size="16" color="#999">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  <n-icon
+                    size="16"
+                    color="#999"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                      />
                     </svg>
                   </n-icon>
                 </template>
@@ -286,7 +298,9 @@ onBeforeUnmount(() => {
                 style="width: 150px"
                 @update:value="handleStartTimeChange"
               >
-                <template #suffix>秒</template>
+                <template #suffix>
+                  秒
+                </template>
               </n-input-number>
 
               <template v-if="useTimeRange">
@@ -300,7 +314,9 @@ onBeforeUnmount(() => {
                   style="width: 150px"
                   @update:value="handleEndTimeChange"
                 >
-                  <template #suffix>秒</template>
+                  <template #suffix>
+                    秒
+                  </template>
                 </n-input-number>
               </template>
 
@@ -310,8 +326,14 @@ onBeforeUnmount(() => {
               >
                 <template #icon>
                   <n-icon>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5l-6 4.5z"/>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5l-6 4.5z"
+                      />
                     </svg>
                   </n-icon>
                 </template>
@@ -321,13 +343,20 @@ onBeforeUnmount(() => {
           </n-space>
         </n-form-item>
 
-        <n-alert type="info" :show-icon="false" style="margin-top: 8px;">
+        <n-alert
+          type="info"
+          :show-icon="false"
+          style="margin-top: 8px;"
+        >
           已添加 {{ existingAnnotations.length }} / {{ MAX_ANNOTATIONS }} 个注释
         </n-alert>
       </div>
 
       <div class="content-section">
-        <n-form-item label="标题" required>
+        <n-form-item
+          label="标题"
+          required
+        >
           <n-input
             v-model:value="title"
             placeholder="请输入注释标题（最多50字）"
@@ -354,8 +383,14 @@ onBeforeUnmount(() => {
       >
         <div class="section-title">
           <n-icon size="16">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="currentColor"
+                d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"
+              />
             </svg>
           </n-icon>
           <span>已有注释 ({{ existingAnnotations.length }}/{{ MAX_ANNOTATIONS }})</span>
@@ -370,7 +405,9 @@ onBeforeUnmount(() => {
               {{ formatTimeRange(annotation.startTime, annotation.endTime) }}
             </div>
             <div class="annotation-content">
-              <div class="annotation-title">{{ annotation.title }}</div>
+              <div class="annotation-title">
+                {{ annotation.title }}
+              </div>
               <div
                 v-if="annotation.content"
                 class="annotation-desc"

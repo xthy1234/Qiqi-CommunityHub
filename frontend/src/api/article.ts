@@ -37,7 +37,7 @@ export interface Article {
   is_checked?: string
   reply?: string
   attach?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -50,7 +50,7 @@ export class ArticleAPI {
   /**
    * 获取文章列表
    */
-  getList(params?: any) {
+  getList(params?: Record<string, unknown>) {
     return http.get(this.endpoint, { params })
   }
   
@@ -143,14 +143,14 @@ export class ArticleAPI {
   /**
    * 搜索文章
    */
-  searchArticles(params?: any) {
+  searchArticles(params?: Record<string, unknown>) {
     return http.get(`${this.endpoint}/search`, { params })
   }
 
   /**
    * 获取文章总数
    */
-  getCount(params?: any) {
+  getCount(params?: Record<string, unknown>) {
     return http.get(`${this.endpoint}/count`, { params })
   }
 
@@ -184,7 +184,7 @@ export class ArticleAPI {
 export const articleAPI = new ArticleAPI()
 
 // 兼容旧的导出方式（逐步迁移）
-export const getArticleList = (params: any) => articleAPI.getList(params)
+export const getArticleList = (params: Record<string, unknown>) => articleAPI.getList(params)
 export const getArticleDetail = (id: number | string) => articleAPI.getById(id)
 export const createArticle = (data: Article) => articleAPI.create(data)
 export const updateArticle = (id: number | string, data: Partial<Article>) => articleAPI.update(id, data)
@@ -193,8 +193,8 @@ export const likeArticle = (id: number | string) => articleAPI.like(id)
 export const batchAuditArticles = (data: { ids: number[], status: number | string, reply?: string }) => articleAPI.batchAudit(data)
 export const batchDeleteArticles = (ids: number[]) => articleAPI.batchDelete(ids)
 export const getPublishedArticleById = (id: number | string) => articleAPI.getPublishedById(id)
-export const searchArticles = (params?: any) => articleAPI.searchArticles(params)
-export const getArticleCount = (params?: any) => articleAPI.getCount(params)
+export const searchArticles = (params?: Record<string, unknown>) => articleAPI.searchArticles(params)
+export const getArticleCount = (params?: Record<string, unknown>) => articleAPI.getCount(params)
 export const getArticleStatsValue = (xColumn: string, yColumn: string) => articleAPI.getStatsValue(xColumn, yColumn)
 export const getArticleStatsValueMultiple = (xColumn: string) => articleAPI.getStatsValueMultiple(xColumn)
 export const getArticleStatsTimeSeries = (xColumn: string, yColumn: string, timeType: string) => articleAPI.getStatsTimeSeries(xColumn, yColumn, timeType)

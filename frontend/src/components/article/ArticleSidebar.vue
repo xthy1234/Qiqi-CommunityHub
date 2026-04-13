@@ -165,12 +165,15 @@
             v-if="totalContributors > 5"
             text
             block
-            @click="showContributorModal = true"
             class="view-more-btn"
+            @click="showContributorModal = true"
           >
             查看全部 {{ totalContributors }} 位贡献者
             <template #icon>
-              <Icon icon="ri:arrow-right-line" width="16" />
+              <Icon
+                icon="ri:arrow-right-line"
+                width="16"
+              />
             </template>
           </n-button>
         </div>
@@ -217,7 +220,7 @@ const articleId = computed(() => {
 
 // 加载贡献者总数
 const loadTotalContributors = async () => {
-  if (!articleId.value) return
+  if (!articleId.value) {return}
 
   try {
     const response = await articleContributorAPI.getCount(articleId.value)

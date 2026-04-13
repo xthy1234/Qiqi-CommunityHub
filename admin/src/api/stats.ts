@@ -61,21 +61,21 @@ export function getAuditOverview(): Promise<ApiResponse<AuditOverviewStats>> {
 /**
  * 获取用户增长趋势
  */
-export function getUserGrowthTrend(days: number = 7): Promise<ApiResponse<TrendDataPoint[]>> {
+export function getUserGrowthTrend(days = 7): Promise<ApiResponse<TrendDataPoint[]>> {
   return httpClient.get('/stats/user-growth-trend', { params: { days } })
 }
 
 /**
  * 获取内容发布趋势
  */
-export function getContentPublishTrend(days: number = 7): Promise<ApiResponse<TrendDataPoint[]>> {
+export function getContentPublishTrend(days = 7): Promise<ApiResponse<TrendDataPoint[]>> {
   return httpClient.get('/stats/content-publish-trend', { params: { days } })
 }
 
 /**
  * 获取互动趋势
  */
-export function getInteractionTrend(days: number = 7): Promise<ApiResponse<TrendDataPoint[]>> {
+export function getInteractionTrend(days = 7): Promise<ApiResponse<TrendDataPoint[]>> {
   return httpClient.get('/stats/interaction-trend', { params: { days } })
 }
 

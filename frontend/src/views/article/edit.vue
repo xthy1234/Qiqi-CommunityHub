@@ -35,7 +35,10 @@
         v-if="isEdit && currentVersion"
         class="version-info"
       >
-        <n-tag type="info" size="small">
+        <n-tag
+          type="info"
+          size="small"
+        >
           当前版本：{{ currentVersion }}
         </n-tag>
       </div>
@@ -110,13 +113,17 @@
               <n-radio :value="0">
                 <div class="radio-content">
                   <div>普通更新（小版本）</div>
-                  <div class="radio-tip">版本号递增：X.Y → X.(Y+1)</div>
+                  <div class="radio-tip">
+                    版本号递增：X.Y → X.(Y+1)
+                  </div>
                 </div>
               </n-radio>
               <n-radio :value="1">
                 <div class="radio-content">
                   <div>重大更新（大版本）</div>
-                  <div class="radio-tip">版本号重置：X.Y → (X+1).0</div>
+                  <div class="radio-tip">
+                    版本号重置：X.Y → (X+1).0
+                  </div>
                 </div>
               </n-radio>
             </n-space>
@@ -236,7 +243,6 @@ const publishData = reactive({
 // 监听文章内容变化
 watch(() => formData.content, (newVal:object) => {
 
-
 }, { deep: true })
 
 // 同步发布表单的封面和分类与主表单
@@ -323,12 +329,10 @@ watch(() => route.fullPath, (newPath: string, oldPath: string) => {
 // 3. 清理草稿ID缓存
 onUnmounted(async () => {
 
-
   // 【重要】离开页面前自动保存一次
   // 场景：用户直接点击侧边栏导航、浏览器后退、关闭标签页等
   // 确保最后一次编辑的内容被保存到后端
   if (formData.title || (formData.content && formData.content.content?.length > 0)) {
-
 
     try {
       await handleAutoSave()
@@ -343,7 +347,6 @@ onUnmounted(async () => {
 
   // 停止自动保存定时器
   stopAutoSave()
-
 
   // 清理草稿ID缓存（注意：只在取消操作时删除，正常保存后保留）
   // 这里不删除 currentDraftId，让用户可以继续编辑
@@ -375,8 +378,6 @@ const stopAutoSave = () => {
 
 const handleAutoSave = async () => {
 
-
-
   try {
     // 如果没有 articleId (即 draftId)，先创建草稿
     if (!articleId.value) {
@@ -388,7 +389,6 @@ const handleAutoSave = async () => {
         return
       }
     }
-
 
     // ✅ 修复：自动保存也传递完整数据（标题、内容、封面、分类）
     const response = await draftAPI.autoSaveDraft(articleId.value, {
@@ -414,7 +414,6 @@ const handleAutoSave = async () => {
 const createNewDraft = async () => {
 
   try {
-
 
     const response = await draftAPI.createDraft({
       title: '未命名草稿',
@@ -558,7 +557,6 @@ const handleShowPublishModal = async () => {
 // 确认发布
 const handleConfirmPublish = async () => {
 
-
   try {
     await publishFormRef.value?.validate()
 
@@ -576,11 +574,7 @@ const handleConfirmPublish = async () => {
   try {
     submitting.value = true
 
-
     // ✅ 步骤 1: 先调用保存接口，保存草稿内容（标题、内容、封面、分类）
-
-
-
 
     const saveResponse = await draftAPI.saveDraft(articleId.value, {
       title: formData.title,
@@ -589,7 +583,6 @@ const handleConfirmPublish = async () => {
       categoryId: publishData.categoryId,
       changeSummary: publishData.changeSummary || ''
     })
-
 
     // ✅ 检查保存是否成功
     if (!(saveResponse.data.code === 200 || saveResponse.data.msg)) {
@@ -600,21 +593,12 @@ const handleConfirmPublish = async () => {
 
     const versionInfo = saveResponse.data.data || saveResponse.data
 
-
-
-
-
-
     // ✅ 步骤 2: 保存成功后，再调用发布接口
-
-
-
 
     const publishResponse = await draftAPI.publishDraft(articleId.value, {
       versionType: publishData.versionType,
       changeSummary: publishData.changeSummary || ''
     })
-
 
     if (publishResponse.data.code === 200 || publishResponse.data.msg) {
       message.success(isEdit.value ? '修改成功' : '发布成功')
@@ -630,12 +614,10 @@ const handleConfirmPublish = async () => {
   } finally {
     submitting.value = false
 
-
   }
 }
 
 const handleSaveMajorVersion = async () => {
-
 
   if (!articleId.value) {
     console.error('❌ [handleSaveMajorVersion] 验证失败：articleId 不存在')
@@ -652,10 +634,6 @@ const handleSaveMajorVersion = async () => {
 
       try {
         savingDraft.value = true
-
-
-
-
 
         const response = await draftAPI.publishDraft(articleId.value, {
           versionType: 1,
@@ -681,7 +659,6 @@ const handleSaveMajorVersion = async () => {
         message.error('标记大版本失败，请重试')
       } finally {
         savingDraft.value = false
-
 
       }
     }
@@ -711,11 +688,8 @@ const handleSubmit = async () => {
     return
   }
 
-
   try {
     submitting.value = true
-
-
 
     if (!articleId.value) {
       console.error('❌ [handleSubmit] 验证失败：articleId 不存在')
@@ -723,14 +697,10 @@ const handleSubmit = async () => {
       return
     }
 
-
-
-
     const response = await draftAPI.publishDraft(articleId.value, {
       versionType: 0,
       changeSummary: ''
     })
-
 
     if (response.data.code === 200 || response.data.msg) {
       const versionInfo = response.data.data || response.data
@@ -755,7 +725,6 @@ const handleSubmit = async () => {
   } finally {
     submitting.value = false
 
-
   }
 }
 
@@ -772,7 +741,7 @@ const loadCategoryOptions = async () => {
 
 const loadArticleDetail = async () => {
   const id = route.query.id
-  if (!id) return
+  if (!id) {return}
 
   try {
     const response = await appContext?.$http.get(`/articles/${id}`)
@@ -809,7 +778,6 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
     try {
       const response = await draftAPI.createDraft({ articleId: passedArticleId })
 
-
       const data = response.data.data || response.data
       const createdDraftId = data.draftId
 
@@ -839,22 +807,16 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
   try {
     articleId.value = id as string
 
-
     const response = await draftAPI.getDraft(id)
     const data = response.data.data || response.data
 
     if (data) {
 
-
-
-
       const versionDisplay = data.versionDisplay ||
                             (data.majorVersion !== undefined ? `${data.majorVersion}.${data.minorVersion || 0}` : '1.0')
 
-
       const draft = data.draft
       let contentJson = data.content || draft?.content
-
 
       if (typeof contentJson === 'string') {
 
@@ -866,8 +828,6 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
 
         contentJson = { type: 'doc', content: [] }
       }
-
-
 
       const coverUrl = draft?.coverUrl || ''
       const categoryId = String(draft?.categoryId) || ''
@@ -906,7 +866,6 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
 
 const createNewDraftImmediately = async () => {
 
-
   try {
     const created = await createNewDraft()
 
@@ -927,11 +886,7 @@ const createNewDraftImmediately = async () => {
 
 onMounted(() => {
 
-
-
-
   isEdit.value = !!route.query.id
-
 
   loadCategoryOptions()
 
@@ -947,10 +902,8 @@ onMounted(() => {
   else {
     const savedDraftId = appContext?.$toolUtil?.storageGet('currentDraftId')
 
-
     if (savedDraftId && savedDraftId !== '' && savedDraftId !== 'null' && savedDraftId !== 'undefined') {
       articleId.value = savedDraftId
-
 
       loadOrCreateDraft(savedDraftId)
     } else {

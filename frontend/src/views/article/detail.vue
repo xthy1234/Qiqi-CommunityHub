@@ -143,8 +143,8 @@
             class="article-content-body"
           >
             <EditorContent
-              :editor="editor"
               v-if="editor"
+              :editor="editor"
             />
           </div>
 
@@ -263,26 +263,26 @@ const extensions = [
   StarterKit.configure({ link: false }),
   Image,
   Link.configure({
-    openOnClick: false,
+    openOnClick: false
   }),
   FileNodeExtension,
   ShareCardNodeExtension,
   VideoNodeExtension,
-  VideoAnnotationRefExtension,
+  VideoAnnotationRefExtension
 ]
 
 // 创建只读编辑器
 const editor = useEditor({
   extensions,
   editable: false,
-  content: '',
+  content: ''
 })
 
 /**
  * 格式化日期
  */
 const formatDate = (dateString: string | null): string => {
-  if (!dateString) return ''
+  if (!dateString) {return ''}
   const date = new Date(dateString)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -337,9 +337,7 @@ const loadArticleDetail = async () => {
       throw new Error('缺少文章 ID')
     }
 
-
     const response = await articleAPI.getById(id)
-
 
     article.value = response.data.data
 
@@ -581,7 +579,7 @@ onBeforeUnmount(() => {
  */
 const incrementViewCount = () => {
   const id = route.query.id as string
-  if (!id) return
+  if (!id) {return}
 
   // 前端去重：检查是否已经计数
   if (!visitedStore.hasViewed(id)) {

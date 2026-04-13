@@ -111,9 +111,6 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import DraftCard from '@/components/editor/DraftCard.vue'
 import { draftAPI } from '@/api/draft'
 
-
-
-
 interface DraftItem {
   id: number | string
   title: string
@@ -271,7 +268,6 @@ const handleDeleteBatch = (): void => {
   currentOperatingItem.value = null
   showDeleteModal.value = true
 }
-
 
 const confirmSubmit = async () => {
   try {

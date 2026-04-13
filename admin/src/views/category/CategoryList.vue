@@ -446,7 +446,7 @@ const handleSubmit = async () => {
       }
       
       if (formData.value.status !== undefined) {
-        ;(submitData as any).status = formData.value.status
+        (submitData as any).status = formData.value.status
       }
       
       let res

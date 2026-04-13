@@ -58,14 +58,6 @@ module.exports = {
     'no-multiple-empty-lines': ['error', { max: 1 }],
     'eol-last': ['error', 'always'],
     
-    // ==================== 导入规则 ====================
-    'import/first': 'error',
-    'import/no-duplicates': 'error',
-    'import/order': ['error', {
-      groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
-      'newlines-between': 'always',
-      alphabetize: { order: 'asc', caseInsensitive: true }
-    }]
   },
   globals: {
     defineProps: 'readonly',

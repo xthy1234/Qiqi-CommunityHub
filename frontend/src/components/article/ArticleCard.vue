@@ -46,7 +46,10 @@
             class="more-btn"
             @click.stop
           >
-            <Icon icon="ri:more-fill" width="16" />
+            <Icon
+              icon="ri:more-fill"
+              width="16"
+            />
           </n-button>
         </n-dropdown>
       </div>
@@ -111,7 +114,10 @@
       label-placement="left"
       label-width="80"
     >
-      <n-form-item label="关键词" path="keyword">
+      <n-form-item
+        label="关键词"
+        path="keyword"
+      >
         <n-input
           v-model:value="keywordForm.keyword"
           placeholder="请输入要屏蔽的关键词"
@@ -123,8 +129,14 @@
 
     <template #footer>
       <n-space justify="end">
-        <n-button @click="showKeywordModal = false">取消</n-button>
-        <n-button type="primary" :loading="submitting" @click="handleKeywordSubmit">
+        <n-button @click="showKeywordModal = false">
+          取消
+        </n-button>
+        <n-button
+          type="primary"
+          :loading="submitting"
+          @click="handleKeywordSubmit"
+        >
           确定
         </n-button>
       </n-space>

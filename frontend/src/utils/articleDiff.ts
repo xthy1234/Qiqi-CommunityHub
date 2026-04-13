@@ -25,7 +25,7 @@ export const jsonToReadableText = (content: object): string => {
     const paragraphs: string[] = []
     
     const extractParagraphs = (node: any) => {
-      if (!node) return
+      if (!node) {return}
       
       if (typeof node === 'string') {
         return
@@ -42,7 +42,7 @@ export const jsonToReadableText = (content: object): string => {
           const blockTexts: string[] = []
           
           const extractFromContent = (contentNode: any) => {
-            if (!contentNode) return
+            if (!contentNode) {return}
             
             if (Array.isArray(contentNode)) {
               contentNode.forEach(extractFromContent)
@@ -149,7 +149,7 @@ const formatDiffAsText = (delta: Delta): string => {
   
   const traverse = (obj: any, path = '') => {
     for (const key in obj) {
-      if (!obj.hasOwnProperty(key)) continue
+      if (!obj.hasOwnProperty(key)) {continue}
 
       const value = obj[key]
       const currentPath = path ? `${path}.${key}` : key

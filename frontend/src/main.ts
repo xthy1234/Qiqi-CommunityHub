@@ -43,7 +43,7 @@ import {
   NDescriptionsItem,
   NBadge,
   NConfigProvider,
-  NDataTable,
+  NDataTable
 } from "naive-ui"
 
 import NDataTableCell from "naive-ui"

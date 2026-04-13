@@ -468,7 +468,10 @@
               description="暂无文章"
             />
 
-            <div v-else class="article-grid">
+            <div
+              v-else
+              class="article-grid"
+            >
               <n-card
                 v-for="article in filteredArticles"
                 :key="article.id"
@@ -493,7 +496,9 @@
 
                   <!-- 文章信息 -->
                   <div class="article-info">
-                    <h3 class="article-title">{{ article.title }}</h3>
+                    <h3 class="article-title">
+                      {{ article.title }}
+                    </h3>
                     <p class="article-summary">
                       {{ article.summary || '暂无摘要' }}
                     </p>
@@ -607,7 +612,11 @@
       :style="{ width: '600px' }"
     >
       <div class="annotation-ref-selector">
-        <n-alert type="info" :show-icon="false" style="margin-bottom: 16px;">
+        <n-alert
+          type="info"
+          :show-icon="false"
+          style="margin-bottom: 16px;"
+        >
           从当前文档的视频中选择要引用的注释
         </n-alert>
 
@@ -617,7 +626,10 @@
             description="当前文档中没有可用的视频注释"
           />
 
-          <div v-else class="annotation-list">
+          <div
+            v-else
+            class="annotation-list"
+          >
             <n-card
               v-for="(item, index) in availableAnnotations"
               :key="`${item.videoNodeId}-${item.annotation.id}`"
@@ -628,13 +640,18 @@
             >
               <div class="annotation-item-content">
                 <div class="annotation-video-title">
-                  <Icon icon="material-symbols:video-file" width="16" />
+                  <Icon
+                    icon="material-symbols:video-file"
+                    width="16"
+                  />
                   <span>{{ item.videoTitle }}</span>
                 </div>
                 <div class="annotation-time">
                   {{ formatTimeRange(item.annotation.startTime, item.annotation.endTime) }}
                 </div>
-                <div class="annotation-title">{{ item.annotation.title }}</div>
+                <div class="annotation-title">
+                  {{ item.annotation.title }}
+                </div>
                 <div
                   v-if="item.annotation.content"
                   class="annotation-content"
@@ -774,7 +791,7 @@ const lowlight = createLowlight(all)
  * 格式化日期
  */
 const formatDate = (dateString: string | null): string => {
-  if (!dateString) return ''
+  if (!dateString) {return ''}
   const date = new Date(dateString)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -786,7 +803,7 @@ const formatDate = (dateString: string | null): string => {
  * 获取文章封面 URL
  */
 const getArticleCoverUrl = (coverUrl: string): string => {
-  if (!coverUrl) return ''
+  if (!coverUrl) {return ''}
 
   // 如果已经是完整 URL，直接返回
   if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) {
@@ -840,7 +857,7 @@ const editor = useEditor({
     FileNodeExtension,
     ShareCardNodeExtension,
     VideoNodeExtension,
-    VideoAnnotationRefExtension,
+    VideoAnnotationRefExtension
   ],
   content: props.modelValue || '',
   editorProps: {
@@ -901,7 +918,7 @@ const editor = useEditor({
   },
   onUpdate: ({ editor }) => {
     // 如果是 setContent 触发的更新，跳过 emit
-    if (isSettingContent.value) return
+    if (isSettingContent.value) {return}
 
     const json = editor.getJSON()
     emit('update:modelValue', json)
@@ -1019,7 +1036,7 @@ watch(currentPage, () => {
 })
 
 watch(() => props.modelValue, (newVal: object) => {
-  if (!editor.value || isSettingContent.value) return
+  if (!editor.value || isSettingContent.value) {return}
 
   const currentJson = editor.value.getJSON()
 
@@ -1342,7 +1359,7 @@ const insertShareCard = () => {
 }
 
 const openVideoDialog = () => {
-  if (!editor.value) return
+  if (!editor.value) {return}
 
   videoForm.src = ''
   videoForm.poster = ''
@@ -1351,7 +1368,7 @@ const openVideoDialog = () => {
 }
 
 const insertVideo = async () => {
-  if (!editor.value) return
+  if (!editor.value) {return}
 
   if (!videoForm.src) {
     message.error('请输入视频地址')
@@ -1380,7 +1397,7 @@ const handleVideoInputChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
 
-  if (!file) return
+  if (!file) {return}
 
   try {
     message.loading('视频上传中...', { duration: 0 })
@@ -1415,7 +1432,7 @@ const handleVideoInputChange = async (event: Event) => {
  * 打开视频注释引用选择器
  */
 const openAnnotationRefDialog = () => {
-  if (!editor.value) return
+  if (!editor.value) {return}
 
   // 扫描文档中的所有视频节点及其注释
   scanVideoAnnotations()
@@ -1433,7 +1450,7 @@ const openAnnotationRefDialog = () => {
  * 扫描文档中的视频注释
  */
 const scanVideoAnnotations = () => {
-  if (!editor.value) return
+  if (!editor.value) {return}
 
   loadingVideos.value = true
   availableAnnotations.value = []

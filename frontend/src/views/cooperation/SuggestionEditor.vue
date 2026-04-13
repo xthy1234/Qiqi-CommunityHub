@@ -32,7 +32,10 @@
         label-width="100px"
       >
         <!-- 标题 -->
-        <n-form-item label="建议标题" path="title">
+        <n-form-item
+          label="建议标题"
+          path="title"
+        >
           <n-input
             v-model:value="formData.title"
             placeholder="请输入建议标题（可选）"
@@ -42,7 +45,10 @@
         </n-form-item>
 
         <!-- 修改摘要 -->
-        <n-form-item label="修改说明" path="changeSummary">
+        <n-form-item
+          label="修改说明"
+          path="changeSummary"
+        >
           <n-input
             v-model:value="formData.changeSummary"
             type="textarea"
@@ -54,7 +60,10 @@
         </n-form-item>
 
         <!-- 富文本编辑器 -->
-        <n-form-item label="修改内容" path="content">
+        <n-form-item
+          label="修改内容"
+          path="content"
+        >
           <div class="editor-container">
             <RichTextEditor
               ref="editorRef"
@@ -138,7 +147,6 @@ const editorRef = ref<any>(null)
 const submitting = ref(false)
 const articleInfo = ref<any>(null)
 const originalContent = ref<object>({})
-
 
 // 表单数据
 const formData = reactive({
@@ -234,7 +242,6 @@ const loadArticleContent = async () => {
     
     // 加载内容为编辑器初始值（深拷贝）
     formData.content = JSON.parse(JSON.stringify(originalData))
-
 
   } catch (error) {
     console.error('❌ 加载文章内容失败:', error)

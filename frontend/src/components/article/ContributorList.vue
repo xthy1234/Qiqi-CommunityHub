@@ -41,8 +41,12 @@
               />
             </template>
             <div class="contributor-tooltip">
-              <div class="tooltip-name">{{ option.nickname }}</div>
-              <div class="tooltip-score">贡献分： {{ option.score?.toFixed(1) }}</div>
+              <div class="tooltip-name">
+                {{ option.nickname }}
+              </div>
+              <div class="tooltip-score">
+                贡献分： {{ option.score?.toFixed(1) }}
+              </div>
             </div>
           </n-tooltip>
         </template>
@@ -77,7 +81,9 @@
             </template>
             
             <div class="contributor-info">
-              <div class="contributor-name">{{ contributor.nickname }}</div>
+              <div class="contributor-name">
+                {{ contributor.nickname }}
+              </div>
               <div class="contributor-stats">
                 <n-tag
                   type="success"

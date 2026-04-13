@@ -1,5 +1,4 @@
 
-
 <template>
   <n-card
     :bordered="false"
@@ -38,7 +37,7 @@
             <span class="label">当前积分</span>
             <span class="value">{{ points }}</span>
           </div>
-          <div class="divider"></div>
+          <div class="divider" />
           <div class="points-item">
             <span class="label">连续签到</span>
             <span class="value streak">{{ streak }}<small>天</small></span>
@@ -47,15 +46,24 @@
 
         <div class="bonus-rules">
           <div class="rule-item">
-            <Icon icon="ri:coin-line" :size="14" />
+            <Icon
+              icon="ri:coin-line"
+              :size="14"
+            />
             <span>基础奖励 <strong>10 积分</strong></span>
           </div>
           <div class="rule-item">
-            <Icon icon="ri:medal-line" :size="14" />
+            <Icon
+              icon="ri:medal-line"
+              :size="14"
+            />
             <span>连续 3 天额外 <strong>+10 积分</strong></span>
           </div>
           <div class="rule-item">
-            <Icon icon="ri:crown-line" :size="14" />
+            <Icon
+              icon="ri:crown-line"
+              :size="14"
+            />
             <span>连续 7 天额外 <strong>+20 积分</strong></span>
           </div>
         </div>

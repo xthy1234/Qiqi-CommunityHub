@@ -64,7 +64,7 @@
               :show="pendingCount > 0"
               :max="99"
             >
-              <span></span>
+              <span />
             </n-badge>
           </n-tab-pane>
           <n-tab-pane
@@ -105,7 +105,9 @@
         >
           <div class="card-header">
             <div class="title-section">
-              <h3 class="card-title">{{ item.articleTitle || `文章 ID: ${item.articleId}` }}</h3>
+              <h3 class="card-title">
+                {{ item.articleTitle || `文章 ID: ${item.articleId}` }}
+              </h3>
               <n-tag
                 :type="getStatusType(item.status)"
                 size="small"
@@ -408,7 +410,7 @@ const getStatusText = (status: number) => {
  * 格式化日期
  */
 const formatDate = (dateStr?: string) => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   return new Date(dateStr).toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',

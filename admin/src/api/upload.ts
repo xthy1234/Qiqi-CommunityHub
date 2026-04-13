@@ -86,8 +86,8 @@ export class UploadAPI {
   async uploadFile(
     file: File,
     fileType: 'image' | 'video' | 'document' = 'image',
-    description: string = '',
-    isPublic: boolean = true
+    description = '',
+    isPublic = true
   ): Promise<UploadResponse> {
     const formData = new FormData()
     formData.append('file', file)
@@ -140,7 +140,7 @@ export class UploadAPI {
    * @param description 图片描述
    * @returns Promise<string | null> 返回图片预览URL或null
    */
-  async uploadImage(file: File, description: string = ''): Promise<string | null> {
+  async uploadImage(file: File, description = ''): Promise<string | null> {
     if (!file.type.startsWith('image/')) {
       console.warn('仅支持上传图片文件')
       return null
@@ -171,7 +171,7 @@ export class UploadAPI {
    * @param description 视频描述
    * @returns Promise<string | null> 返回视频预览URL或null
    */
-  async uploadVideo(file: File, description: string = ''): Promise<string | null> {
+  async uploadVideo(file: File, description = ''): Promise<string | null> {
     if (!file.type.startsWith('video/')) {
       console.warn('仅支持上传视频文件')
       return null
@@ -202,7 +202,7 @@ export class UploadAPI {
    * @param description 文件描述
    * @returns Promise<string | null> 返回文件下载URL或null
    */
-  async uploadAnyFile(file: File, description: string = ''): Promise<string | null> {
+  async uploadAnyFile(file: File, description = ''): Promise<string | null> {
     try {
       const result = await this.uploadFile(file, 'document', description)
       

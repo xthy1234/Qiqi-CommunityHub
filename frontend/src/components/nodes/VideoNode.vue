@@ -1,6 +1,9 @@
 <template>
   <node-view-wrapper class="video-node-wrapper">
-    <div class="video-container" ref="videoContainerRef">
+    <div
+      ref="videoContainerRef"
+      class="video-container"
+    >
       <video
         ref="videoRef"
         :poster="posterUrl"
@@ -19,8 +22,8 @@
       <!-- 注释标记点容器（只读模式显示） -->
       <div
         v-if="annotations.length > 0 && !isEditable"
-        class="annotation-markers"
         ref="markersRef"
+        class="annotation-markers"
       >
         <div
           v-for="annotation in annotations"
@@ -32,9 +35,15 @@
         >
           <div class="marker-dot" />
           <div class="marker-tooltip">
-            <div class="tooltip-title">{{ annotation.title }}</div>
-            <div class="tooltip-time">{{ formatTimeRange(annotation.startTime, annotation.endTime) }}</div>
-            <div class="tooltip-content">{{ annotation.content }}</div>
+            <div class="tooltip-title">
+              {{ annotation.title }}
+            </div>
+            <div class="tooltip-time">
+              {{ formatTimeRange(annotation.startTime, annotation.endTime) }}
+            </div>
+            <div class="tooltip-content">
+              {{ annotation.content }}
+            </div>
           </div>
         </div>
       </div>
@@ -46,9 +55,18 @@
           class="current-annotation-tip"
         >
           <div class="tip-header">
-            <n-icon size="18" color="#2080f0">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            <n-icon
+              size="18"
+              color="#2080f0"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                />
               </svg>
             </n-icon>
             <span class="tip-title">{{ currentAnnotation.title }}</span>
@@ -60,15 +78,25 @@
             >
               <template #icon>
                 <n-icon>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"
+                    />
                   </svg>
                 </n-icon>
               </template>
             </n-button>
           </div>
-          <div class="tip-time">{{ formatTimeRange(currentAnnotation.startTime, currentAnnotation.endTime) }}</div>
-          <div class="tip-content">{{ currentAnnotation.content }}</div>
+          <div class="tip-time">
+            {{ formatTimeRange(currentAnnotation.startTime, currentAnnotation.endTime) }}
+          </div>
+          <div class="tip-content">
+            {{ currentAnnotation.content }}
+          </div>
         </div>
       </transition>
 
@@ -79,9 +107,18 @@
           class="collapsed-annotation-tip"
           @click="toggleAnnotationCollapse"
         >
-          <n-icon size="16" color="#2080f0">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          <n-icon
+            size="16"
+            color="#2080f0"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="currentColor"
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+              />
             </svg>
           </n-icon>
         </div>
@@ -92,7 +129,7 @@
         v-if="showDanmaku && !isEditable"
         ref="danmakuCanvasRef"
         class="danmaku-container"
-      ></canvas>
+      />
     </div>
 
     <!-- 视频信息卡片 -->
@@ -116,8 +153,14 @@
         >
           <template #icon>
             <n-icon>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                />
               </svg>
             </n-icon>
           </template>
@@ -133,8 +176,14 @@
         >
           <template #icon>
             <n-icon>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"
+                />
               </svg>
             </n-icon>
           </template>
@@ -154,8 +203,14 @@
         >
           <template #icon>
             <n-icon>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6zm0 4h2v2H6zm4-4h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6zm0 4h2v2H6zm4-4h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2z"
+                />
               </svg>
             </n-icon>
           </template>
@@ -164,7 +219,10 @@
 
         <!-- 弹幕发送框 -->
         <transition name="slide-down">
-          <div v-if="showDanmaku" class="danmaku-input-area-bottom">
+          <div
+            v-if="showDanmaku"
+            class="danmaku-input-area-bottom"
+          >
             <n-input
               v-model:value="danmakuInput"
               placeholder="输入弹幕内容..."
@@ -182,8 +240,14 @@
                 >
                   <template #icon>
                     <n-icon>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z"
+                        />
                       </svg>
                     </n-icon>
                   </template>
@@ -193,13 +257,25 @@
 
             <!-- 弹幕设置 -->
             <div class="danmaku-settings">
-              <n-popover trigger="click" placement="bottom-end">
+              <n-popover
+                trigger="click"
+                placement="bottom-end"
+              >
                 <template #trigger>
-                  <n-button text size="tiny">
+                  <n-button
+                    text
+                    size="tiny"
+                  >
                     <template #icon>
                       <n-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5L9.99 9.99L6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1s-1.1-.49-1.1-1.1s.49-1.1 1.1-1.1z"/>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            fill="currentColor"
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5L9.99 9.99L6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1s-1.1-.49-1.1-1.1s.49-1.1 1.1-1.1z"
+                          />
                         </svg>
                       </n-icon>
                     </template>
@@ -493,7 +569,7 @@ const initDanmaku = async () => {
     const canvas = danmakuCanvasRef.value
     const container = videoContainerRef.value
 
-    if (!container) return
+    if (!container) {return}
 
     const resizeCanvas = () => {
       const rect = container.getBoundingClientRect()
@@ -559,7 +635,7 @@ const initDanmaku = async () => {
           ctx.fillStyle = danmaku.color
           ctx.textBaseline = 'top'
 
-          let x = danmaku.x!
+          const x = danmaku.x!
           let y = danmaku.y!
 
           if (danmaku.position === 'top') {
@@ -638,7 +714,7 @@ const getPositionText = (position: number): 'top' | 'bottom' | 'scroll' => {
 // 计算标记点样式
 const getMarkerStyle = (annotation: Annotation): Record<string, string> => {
   const duration = videoDuration.value || player?.duration || 0
-  if (!duration || duration === 0) return { left: '0%' }
+  if (!duration || duration === 0) {return { left: '0%' }}
 
   const startPercent = (annotation.startTime / duration) * 100
 
@@ -665,7 +741,7 @@ const formatTimeRange = (startTime: number, endTime?: number): string => {
 
 // 格式化时长
 const formatDuration = (seconds: number): string => {
-  if (!seconds || seconds === 0) return '00:00'
+  if (!seconds || seconds === 0) {return '00:00'}
   
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -674,7 +750,7 @@ const formatDuration = (seconds: number): string => {
 
 // 格式化时间
 const formatTime = (seconds: number): string => {
-  if (!seconds || seconds === 0) return '00:00'
+  if (!seconds || seconds === 0) {return '00:00'}
 
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -698,11 +774,11 @@ const findCurrentAnnotation = (currentTime: number): Annotation | null => {
   const threshold = 5
   return annotations.value.find(annotation => {
     const startDiff = Math.abs(annotation.startTime - currentTime)
-    if (startDiff <= threshold) return true
+    if (startDiff <= threshold) {return true}
 
     if (annotation.endTime) {
       const endDiff = Math.abs(annotation.endTime - currentTime)
-      if (endDiff <= threshold) return true
+      if (endDiff <= threshold) {return true}
 
       // 检查是否在时间段内
       if (currentTime >= annotation.startTime && currentTime <= annotation.endTime) {
@@ -716,7 +792,7 @@ const findCurrentAnnotation = (currentTime: number): Annotation | null => {
 
 // 初始化播放器
 const initPlayer = () => {
-  if (!videoRef.value) return
+  if (!videoRef.value) {return}
 
   try {
     player = new Plyr(videoRef.value, {
@@ -764,7 +840,7 @@ const initPlayer = () => {
 }
 
 const renderAnnotationMarkers = () => {
-  if (!markersRef.value || annotations.value.length === 0) return
+  if (!markersRef.value || annotations.value.length === 0) {return}
 }
 
 const destroyPlayer = () => {
@@ -808,17 +884,11 @@ const handleScrollToAnnotation = (event: Event) => {
   const customEvent = event as CustomEvent
   const { videoNodeId: targetVideoId, annotationId, time, title } = customEvent.detail
 
-
-
-
-
-
   // 检查是否是当前视频节点
   if (!videoNodeId.value || videoNodeId.value !== targetVideoId) {
     console.warn('⚠️ [VideoNode] videoNodeId 不匹配，忽略跳转')
     return
   }
-
 
   // 滚动到视频容器
   if (videoContainerRef.value) {
@@ -850,7 +920,6 @@ onMounted(() => {
   // ⚠️ 关键修复：如果节点没有 ID，立即生成并保存
   if (!props.node?.attrs?.id) {
     const generatedId = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
 
     // 使用 nextTick 确保在下一个 tick 更新
     nextTick(() => {

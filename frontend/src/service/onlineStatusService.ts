@@ -32,7 +32,7 @@ class OnlineStatusService {
     }
 
     const client = (ws as any).client
-    if (!client) return
+    if (!client) {return}
 
     wsLogger.info('初始化在线状态服务', { userId })
 

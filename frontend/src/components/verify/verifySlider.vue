@@ -16,8 +16,8 @@
       {{ sliderMessage }}
     </div>
     <div
-      class="verification_tip"
       v-if="showVerificationPrompt"
+      class="verification_tip"
     >
       请滑动验证
     </div>
@@ -88,8 +88,7 @@ const initializeMaxWidth = (): void => {
  */
 const handleMouseDown = (event: MouseEvent): void => {
 
-
-  if (isVerificationSuccessful.value) return
+  if (isVerificationSuccessful.value) {return}
 
   event.preventDefault()
   isMousePressed.value = true
@@ -101,7 +100,7 @@ const handleMouseDown = (event: MouseEvent): void => {
  * 鼠标移动事件处理
  */
 const handleMouseMove = (event: MouseEvent): void => {
-  if (!isMousePressed.value) return
+  if (!isMousePressed.value) {return}
   const movedDistance = event.clientX - beginClientX.value
 
   if (movedDistance > 0 && movedDistance <= maxWidth.value) {
@@ -118,7 +117,6 @@ const handleMouseMove = (event: MouseEvent): void => {
  * 鼠标释放事件处理
  */
 const handleMouseUp = (event: MouseEvent): void => {
-
 
   isMousePressed.value = false
   const movedDistance = event.clientX - beginClientX.value
@@ -156,7 +154,7 @@ const handleVerificationSuccess = (): void => {
  * 重置滑块到初始状态
  */
 const resetSlider = (): void => {
-  if (!sliderHandle.value || !progressBar.value || !sliderText.value) return
+  if (!sliderHandle.value || !progressBar.value || !sliderText.value) {return}
 
   // 重置样式
   sliderHandle.value.style.left = '0px'

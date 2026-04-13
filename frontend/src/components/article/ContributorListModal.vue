@@ -10,7 +10,10 @@
     <div class="sort-options">
       <n-space>
         <span>排序方式：</span>
-        <n-radio-group v-model:value="orderBy" @update:value="loadContributors">
+        <n-radio-group
+          v-model:value="orderBy"
+          @update:value="loadContributors"
+        >
           <n-radio-button value="score">
             按贡献分
           </n-radio-button>
@@ -26,19 +29,30 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <n-skeleton text :repeat="10" />
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <n-skeleton
+        text
+        :repeat="10"
+      />
     </div>
 
     <!-- 贡献者列表 -->
-    <div v-else-if="contributors.length > 0" class="contributors-list">
+    <div
+      v-else-if="contributors.length > 0"
+      class="contributors-list"
+    >
       <div
         v-for="(contributor, index) in contributors"
         :key="contributor.userId"
         class="contributor-card"
         :class="{ 'top-3': index < 3 }"
       >
-        <div class="rank">{{ index + 1 }}</div>
+        <div class="rank">
+          {{ index + 1 }}
+        </div>
         
         <UserAvatarLink
           :user-id="contributor.userId"
@@ -64,8 +78,12 @@
         </div>
         
         <div class="score-badge">
-          <div class="score">{{ contributor.score.toFixed(1) }}</div>
-          <div class="label">贡献分</div>
+          <div class="score">
+            {{ contributor.score.toFixed(1) }}
+          </div>
+          <div class="label">
+            贡献分
+          </div>
         </div>
       </div>
     </div>

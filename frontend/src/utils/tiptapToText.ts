@@ -1,6 +1,6 @@
 
 export function tiptapToText(doc: any): string {
-  if (!doc || !doc.content) return ''
+  if (!doc || !doc.content) {return ''}
 
   const lines: string[] = []
 

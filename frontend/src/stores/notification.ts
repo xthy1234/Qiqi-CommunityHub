@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
-  notificationAPI,
+  notificationAPI
 } from '@/api/notification'
 import type { Notification, NotificationListParams } from '@/types/notification'
 
@@ -123,7 +123,7 @@ export const useNotificationStore = defineStore('notification', () => {
    */
   function addNotification(notification: Notification) {
     // 处理 content 字段：如果是字符串，尝试解析为 JSON 对象
-    let processedNotification = { ...notification }
+    const processedNotification = { ...notification }
     
     if (notification.content && typeof notification.content === 'string') {
       try {
@@ -197,6 +197,6 @@ export const useNotificationStore = defineStore('notification', () => {
     removeNotification,
     addNotification,
     updateReadStatus,
-    initWebSocketSubscription,
+    initWebSocketSubscription
   }
 })

@@ -37,7 +37,9 @@
 
       <!-- 预览区域 -->
       <div class="preview-section">
-        <p class="preview-title">预览效果：</p>
+        <p class="preview-title">
+          预览效果：
+        </p>
         <div
           v-if="previews.url"
           class="preview-box avatar-preview"
@@ -87,7 +89,9 @@
           </n-space>
         </div>
         <div class="action-buttons">
-          <n-button @click="handleCancel">取消</n-button>
+          <n-button @click="handleCancel">
+            取消
+          </n-button>
           <n-button
             type="primary"
             :loading="uploading"
@@ -129,7 +133,6 @@ const globalProps = useGlobalProperties()
 const cropperRef = ref<any>(null)
 const uploading = ref(false)
 const imageSrc = ref('')
-
 
 // 裁剪配置
 const option = reactive({
@@ -174,7 +177,6 @@ if (props.cropType === 'avatar') {
 
 const previews = ref<any>({})
 const showModal = ref(props.show)
-
 
 // 监听 show 变化
 watch(() => props.show, (newVal) => {
@@ -242,8 +244,6 @@ const handleCancel = () => {
 // 确认裁剪并上传
 const handleConfirm = async () => {
 
-
-
   if (!cropperRef.value) {
     console.error('❌ [ImageCropper] cropperRef 不存在！')
     return
@@ -252,21 +252,17 @@ const handleConfirm = async () => {
   try {
     uploading.value = true
 
-
     // 获取裁剪后的 blob
     cropperRef.value.getCropBlob(async (blob: Blob) => {
-
 
       try {
         // 将 blob 转换为 file
         const fileName = props.imageFile?.name || 'cropped-image.jpg'
         const croppedFile = new File([blob], fileName, { type: blob.type })
 
-
         // 调用上传接口
 
         const response = await uploadAPI.uploadImage(croppedFile, '裁剪后的图片')
-
 
         if (response) {
           const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
@@ -276,7 +272,6 @@ const handleConfirm = async () => {
           if (!response.startsWith('http')) {
             fullUrl = `${baseUrl}${response}`
           }
-
 
           // 触发成功回调
           emit('success', fullUrl)

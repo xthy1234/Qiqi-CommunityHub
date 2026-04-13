@@ -157,7 +157,6 @@ const handleDownload = () => {
   // 输出示例: "http://localhost:8080/api/files/5/download"
   const src = normalizeFileUrl(rawSrc)
 
-
   const link = document.createElement('a')
   link.href = src
   link.download = name

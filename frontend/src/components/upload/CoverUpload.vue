@@ -96,7 +96,6 @@ const coverInputRef = ref<HTMLInputElement | null>(null)
 const showCropper = ref(false)
 const selectedFile = ref<File | null>(null)
 
-
 const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
 const uploadUrl = computed(() => `${baseUrl.value}/files`)
 const uploadHeaders = computed(() => ({
@@ -116,10 +115,8 @@ const triggerUpload = () => {
 
 const handleFileChange = (event: Event) => {
 
-
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-
 
   if (!file) {
 
@@ -140,13 +137,10 @@ const handleFileChange = (event: Event) => {
     return
   }
 
-
   // 打开裁剪窗口
   selectedFile.value = file
 
-
   showCropper.value = true
-
 
   // 清空输入框
   target.value = ''
@@ -154,7 +148,6 @@ const handleFileChange = (event: Event) => {
 }
 
 const handleCropSuccess = (url: string) => {
-
 
   emit('update:modelValue', url)
   message.success('封面上传成功')

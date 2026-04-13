@@ -41,22 +41,22 @@ class WebSocketLogger {
   }
 
   debug(message: string, data?: any): void {
-    if (this.config.level > LogLevel.DEBUG) return
+    if (this.config.level > LogLevel.DEBUG) {return}
     this.log('🔍 DEBUG', message, data, 'color: #3498db')
   }
 
   info(message: string, data?: any): void {
-    if (this.config.level > LogLevel.INFO) return
+    if (this.config.level > LogLevel.INFO) {return}
     this.log('ℹ️ INFO', message, data, 'color: #2ecc71')
   }
 
   warn(message: string, data?: any): void {
-    if (this.config.level > LogLevel.WARN) return
+    if (this.config.level > LogLevel.WARN) {return}
     this.log('⚠️ WARN', message, data, 'color: #f39c12')
   }
 
   error(message: string, data?: any): void {
-    if (this.config.level > LogLevel.ERROR) return
+    if (this.config.level > LogLevel.ERROR) {return}
     this.log('❌ ERROR', message, data, 'color: #e74c3c')
   }
 
@@ -116,5 +116,5 @@ export const wsLogger = new WebSocketLogger()
  * 设置日志级别（供调试使用）
  */
 export function setLogLevel(level: LogLevel): void {
-  ;(wsLogger as any).config.level = level
+  (wsLogger as any).config.level = level
 }

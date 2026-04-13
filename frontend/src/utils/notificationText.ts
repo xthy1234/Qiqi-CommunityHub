@@ -7,7 +7,7 @@ export function getNotificationTitle(notification: Notification): string {
   const { type, extra, title, fromUserNickname } = notification
   
   // 如果有预设标题，直接使用（如系统消息）
-  if (title) return title
+  if (title) {return title}
   
   // 安全获取 extra 中的属性
   const safeExtra = extra || {}

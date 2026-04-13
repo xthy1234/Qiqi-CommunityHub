@@ -109,10 +109,20 @@
               <n-radio-group v-model:value="reviewForm.status">
                 <n-space>
                   <n-radio :value="true">
-                    <n-tag type="success" size="medium">通过</n-tag>
+                    <n-tag
+                      type="success"
+                      size="medium"
+                    >
+                      通过
+                    </n-tag>
                   </n-radio>
                   <n-radio :value="false">
-                    <n-tag type="error" size="medium">拒绝</n-tag>
+                    <n-tag
+                      type="error"
+                      size="medium"
+                    >
+                      拒绝
+                    </n-tag>
                   </n-radio>
                 </n-space>
               </n-radio-group>
@@ -226,7 +236,7 @@ const loadDetail = async () => {
  * 提交审核
  */
 const submitReview = async () => {
-  if (!suggestionData.value) return
+  if (!suggestionData.value) {return}
 
   reviewing.value = true
   try {
@@ -260,7 +270,7 @@ const goBack = () => {
  * 获取状态类型
  */
 const getStatusType = (status?: number) => {
-  if (status === undefined) return 'default'
+  if (status === undefined) {return 'default'}
   const map = {
     0: 'warning',
     1: 'success',
@@ -273,7 +283,7 @@ const getStatusType = (status?: number) => {
  * 获取状态文本
  */
 const getStatusText = (status?: number) => {
-  if (status === undefined) return '未知'
+  if (status === undefined) {return '未知'}
   const map = {
     0: '待审核',
     1: '已通过',
@@ -286,7 +296,7 @@ const getStatusText = (status?: number) => {
  * 格式化日期
  */
 const formatDate = (dateStr?: string) => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   return new Date(dateStr).toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',

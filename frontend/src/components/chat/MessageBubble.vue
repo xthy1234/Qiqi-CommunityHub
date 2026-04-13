@@ -313,7 +313,7 @@ onMounted(() => {
         Image,
         ShareCardNodeExtension,
         FileNodeExtension,
-        VideoNodeExtension,
+        VideoNodeExtension
       ],
       content: contentJson,
       editable: false, // 关键：设置为不可编辑

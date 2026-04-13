@@ -80,7 +80,6 @@ const imageUrl = ref(props.modelValue)
 const showCropper = ref(false)
 const selectedFile = ref<File | null>(null)
 
-
 watch(() => props.modelValue, (newVal : string) => {
 
   if (newVal) {
@@ -99,15 +98,10 @@ watch(() => props.modelValue, (newVal : string) => {
 
 const customUpload = ({ file }: UploadCustomRequestOptions) => {
 
-
-
-
   // 不直接上传，而是打开裁剪窗口
   selectedFile.value = file.file as File
 
-
   showCropper.value = true
-
 
   return {
     abort: () => {
@@ -118,14 +112,11 @@ const customUpload = ({ file }: UploadCustomRequestOptions) => {
 
 const handleCropSuccess = (url: string) => {
 
-
   imageUrl.value = url
 
   // 提取相对路径用于存储
   const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
   const relativePath = url.replace(baseUrl, '')
-
-
 
   emit('update:modelValue', relativePath)
   emit('change', url)
@@ -141,7 +132,6 @@ const handleCropCancel = () => {
 }
 
 const beforeAvatarUpload = ({ file }: { file: File }) => {
-
 
   const isImage = file.type.startsWith('image/')
   const isLt10M = file.size / 1024 / 1024 < 10

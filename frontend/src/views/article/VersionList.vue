@@ -103,7 +103,9 @@
         style="margin-bottom: 16px;"
       >
         <p>回滚后将创建一个新的版本记录，文章内容将恢复到该版本。</p>
-        <p style="margin-top: 8px; color: #f0a020;">此操作不可逆，请谨慎操作！</p>
+        <p style="margin-top: 8px; color: #f0a020;">
+          此操作不可逆，请谨慎操作！
+        </p>
       </n-alert>
       
       <template #action>
@@ -356,7 +358,6 @@ const loadVersions = async () => {
     return
   }
 
-
   loading.value = true
   try {
     // 先获取文章详情，得到作者 ID
@@ -364,10 +365,8 @@ const loadVersions = async () => {
     const articleRes = await articleAPI.getById(articleId)
     articleAuthorId.value = articleRes.data.data?.authorId || ''
 
-
     // 获取当前登录用户 ID
     currentUserId.value = appContext?.$toolUtil?.storageGet('userid') || ''
-
 
     // 获取版本列表（后端已返回 isCurrent 字段，无需手动对比）
 
@@ -376,14 +375,10 @@ const loadVersions = async () => {
       limit: 100 // 获取更多版本
     })
 
-
-
     const data = response.data.data
     // 兼容两种返回格式：数组或包含 list 属性的对象
     versions.value = Array.isArray(data) ? data : (data.list || [])
     filteredVersions.value = [...versions.value]
-
-
 
     // 打印每个版本的信息
     versions.value.forEach((v, index) => {

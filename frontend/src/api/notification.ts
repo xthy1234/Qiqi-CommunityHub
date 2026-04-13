@@ -3,7 +3,7 @@ import type {
   Notification,
   NotificationListParams,
   NotificationListResponse,
-  UnreadCountResponse,
+  UnreadCountResponse
 } from '@/types/notification'
 
 /**

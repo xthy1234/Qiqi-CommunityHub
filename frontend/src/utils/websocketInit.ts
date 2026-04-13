@@ -38,7 +38,7 @@ export function initializeWebSocket(options: WebSocketInitOptions = {}): void {
 
   // 设置日志级别
   if (!debug) {
-    ;(wsLogger as any).config.level = LogLevel.ERROR
+    (wsLogger as any).config.level = LogLevel.ERROR
   }
 
   // 构建 WebSocket URL

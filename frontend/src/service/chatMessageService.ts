@@ -28,7 +28,7 @@ class ChatMessageService {
     }
 
     const client = (ws as any).client
-    if (!client) return
+    if (!client) {return}
 
     wsLogger.info('初始化聊天消息服务', { userId })
 

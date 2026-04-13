@@ -340,7 +340,7 @@ class WebSocketManager {
    * 创建所有消息订阅（核心优化：抽取公共逻辑）
    */
   private createMessageSubscriptions(userId: number): void {
-    if (!this.client) return
+    if (!this.client) {return}
 
     // 定义所有订阅配置
     const subscriptions = [
@@ -445,7 +445,7 @@ class WebSocketManager {
    * 订阅用户列表（批量推送）
    */
   private subscribeUserList(): void {
-    if (!this.client) return
+    if (!this.client) {return}
 
     createStompSubscription(this.client, {
       messageType: 'USER_LIST_UPDATE',

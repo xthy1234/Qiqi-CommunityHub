@@ -89,7 +89,9 @@
         >
           <div class="card-header">
             <div class="title-section">
-              <h3 class="card-title">{{ item.articleTitle || `文章 ID: ${item.articleId}` }}</h3>
+              <h3 class="card-title">
+                {{ item.articleTitle || `文章 ID: ${item.articleId}` }}
+              </h3>
               <n-tag
                 :type="getStatusType(item.status)"
                 size="small"
@@ -170,7 +172,6 @@
     </div>
 
     <!-- 详情查看对话框 -->
-
   </PageContainer>
 </template>
 
@@ -279,7 +280,7 @@ const handlePageSizeChange = (pageSize: number) => {
  * 获取状态类型
  */
 const getStatusType = (status?: number) => {
-  if (status === undefined) return 'default'
+  if (status === undefined) {return 'default'}
   const map = {
     0: 'warning',
     1: 'success',
@@ -292,7 +293,7 @@ const getStatusType = (status?: number) => {
  * 获取状态文本
  */
 const getStatusText = (status?: number) => {
-  if (status === undefined) return '未知'
+  if (status === undefined) {return '未知'}
   const map = {
     0: '待审核',
     1: '已通过',
@@ -305,7 +306,7 @@ const getStatusText = (status?: number) => {
  * 格式化日期
  */
 const formatDate = (dateStr?: string) => {
-  if (!dateStr) return ''
+  if (!dateStr) {return ''}
   return new Date(dateStr).toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',

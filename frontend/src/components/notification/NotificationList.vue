@@ -1,10 +1,16 @@
 <template>
   <div class="notification-list">
     <!-- 空状态 -->
-    <n-empty v-if="!isLoading && notificationList.length === 0" description="暂无通知" />
+    <n-empty
+      v-if="!isLoading && notificationList.length === 0"
+      description="暂无通知"
+    />
 
     <!-- 列表 -->
-    <div v-else class="list-container">
+    <div
+      v-else
+      class="list-container"
+    >
       <NotificationItem
         v-for="notification in notificationList"
         :key="notification.id"
@@ -15,7 +21,10 @@
       />
 
       <!-- 加载更多 -->
-      <div v-if="hasMore" class="load-more">
+      <div
+        v-if="hasMore"
+        class="load-more"
+      >
         <n-button
           :loading="isLoading"
           text
@@ -64,7 +73,7 @@ const loadNotifications = async () => {
   try {
     const res = await notificationStore.loadNotifications({
       page: currentPage.value,
-      limit: pageSize,
+      limit: pageSize
     })
     if (res?.pagination) {
       total.value = res.pagination.total
@@ -126,7 +135,7 @@ const handleNavigate = async (notification: Notification) => {
 
 // 处理通知内容（确保是对象格式）
 const processNotificationContent = (notification: Notification): Notification => {
-  if (!notification.content) return notification
+  if (!notification.content) {return notification}
 
   try {
     // 如果 content 是字符串，尝试解析为 JSON
