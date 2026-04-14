@@ -1,116 +1,113 @@
 <template>
-  <div class="page-container">
-    <NCard title="文章管理" size="large">
-      <template #header-extra>
-        <NSpace>
-          <NButton @click="handleRefresh">
-            <template #icon>
-              <Icon icon="ri:refresh-line" />
-            </template>
-            刷新
-          </NButton>
-        </NSpace>
-      </template>
-
-      <!-- 搜索栏 -->
-      <div class="search-bar">
-        <NInput
-          v-model:value="searchForm.keyword"
-          placeholder="请输入文章标题或内容"
-          clearable
-          style="width: 250px"
-        />
-        
-        <NSelect
-          v-model:value="searchForm.type"
-          placeholder="文章类型"
-          :options="typeOptions"
-          clearable
-          style="width: 150px"
-        />
-        
-        <NSelect
-          v-model:value="searchForm.auditStatus"
-          placeholder="审核状态"
-          :options="auditStatusOptions"
-          clearable
-          style="width: 150px"
-        />
-        
-        <NDatePicker
-          v-model:value="dateRange"
-          type="daterange"
-          placeholder="选择日期范围"
-          clearable
-          style="width: 240px"
-          @update:value="handleDateChange"
-        />
-        
-        <NButton type="primary" @click="handleSearch">
+  <PageContainer header-title="文章管理">
+    <template #header-extra>
+      <NSpace>
+        <NButton @click="handleRefresh">
           <template #icon>
-            <Icon icon="ri:search-line" />
+            <Icon icon="ri:refresh-line" />
           </template>
-          搜索
+          刷新
         </NButton>
-        
-        <NButton @click="handleReset">重置</NButton>
-      </div>
+      </NSpace>
+    </template>
 
-      <!-- 批量操作栏 -->
-      <div class="batch-actions" v-if="checkedRowKeys.length > 0">
-        <NSpace>
-          <span>已选择 {{ checkedRowKeys.length }} 篇文章</span>
-          <NButton 
-            type="success" 
-            size="small"
-            @click="handleBatchAudit(1)"
-          >
-            批量通过
-          </NButton>
-          <NButton 
-            type="warning" 
-            size="small"
-            @click="handleBatchAudit(0)"
-          >
-            批量待审
-          </NButton>
-          <NButton 
-            type="error" 
-            size="small"
-            @click="handleBatchAudit(2)"
-          >
-            批量拒绝
-          </NButton>
-          <NButton 
-            type="error" 
-            size="small"
-            @click="handleBatchDelete"
-          >
-            批量删除
-          </NButton>
-          <NButton 
-            size="small"
-            @click="checkedRowKeys = []"
-          >
-            取消选择
-          </NButton>
-        </NSpace>
-      </div>
-
-      <!-- 表格 -->
-      <NDataTable
-        :columns="columns"
-        :data="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        :remote="true"
-        :row-key="(row) => row.id"
-        :checked-row-keys="checkedRowKeys"
-        @update:checked-row-keys="onChecked"
-        striped
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+      <NInput
+        v-model:value="searchForm.keyword"
+        placeholder="请输入文章标题或内容"
+        clearable
+        style="width: 250px"
       />
-    </NCard>
 
+      <NSelect
+        v-model:value="searchForm.type"
+        placeholder="文章类型"
+        :options="typeOptions"
+        clearable
+        style="width: 150px"
+      />
+
+      <NSelect
+        v-model:value="searchForm.auditStatus"
+        placeholder="审核状态"
+        :options="auditStatusOptions"
+        clearable
+        style="width: 150px"
+      />
+
+      <NDatePicker
+        v-model:value="dateRange"
+        type="daterange"
+        placeholder="选择日期范围"
+        clearable
+        style="width: 240px"
+        @update:value="handleDateChange"
+      />
+
+      <NButton type="primary" @click="handleSearch">
+        <template #icon>
+          <Icon icon="ri:search-line" />
+        </template>
+        搜索
+      </NButton>
+
+      <NButton @click="handleReset">重置</NButton>
+    </div>
+
+    <!-- 批量操作栏 -->
+    <div class="batch-actions" v-if="checkedRowKeys.length > 0">
+      <NSpace>
+        <span>已选择 {{ checkedRowKeys.length }} 篇文章</span>
+        <NButton
+          type="success"
+          size="small"
+          @click="handleBatchAudit(1)"
+        >
+          批量通过
+        </NButton>
+        <NButton
+          type="warning"
+          size="small"
+          @click="handleBatchAudit(0)"
+        >
+          批量待审
+        </NButton>
+        <NButton
+          type="error"
+          size="small"
+          @click="handleBatchAudit(2)"
+        >
+          批量拒绝
+        </NButton>
+        <NButton
+          type="error"
+          size="small"
+          @click="handleBatchDelete"
+        >
+          批量删除
+        </NButton>
+        <NButton
+          size="small"
+          @click="checkedRowKeys = []"
+        >
+          取消选择
+        </NButton>
+      </NSpace>
+    </div>
+
+    <!-- 表格 -->
+    <NDataTable
+      :columns="columns"
+      :data="tableData"
+      :loading="loading"
+      :pagination="pagination"
+      :remote="true"
+      :row-key="(row) => row.id"
+      :checked-row-keys="checkedRowKeys"
+      @update:checked-row-keys="onChecked"
+      striped
+    />
     <!-- 文章详情对话框 -->
     <NModal
       v-model:show="detailVisible"
@@ -175,7 +172,7 @@
         </NSpace>
       </template>
     </NModal>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -185,9 +182,10 @@ import { Icon } from '@iconify/vue'
 import type { DataTableColumns } from 'naive-ui'
 import { 
   NButton, NTag, NSpace, NInput, NSelect, NDatePicker,
-  NModal, NCard, NForm, NFormItem, NRadioGroup, NRadio,
+  NModal, NForm, NFormItem, NRadioGroup, NRadio,
   useMessage, useDialog
 } from 'naive-ui'
+import PageContainer from '@/components/common/PageContainer.vue'
 import apiService from '@/api'
 import { normalizeFileUrl } from '@/utils/fileUrl'
 
@@ -664,10 +662,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.page-container {
-  padding: 0;
-}
-
 .search-bar {
   display: flex;
   gap: 12px;

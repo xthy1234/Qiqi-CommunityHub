@@ -1,10 +1,6 @@
 <template>
-  <PageContainer
-      :header-title="'用户管理'"
-      @back="goBack"
-  >
-
-    <template #headerExtra>
+  <PageContainer header-title="用户管理">
+    <template #header-extra>
       <NButton type="primary" @click="handleCreate">
         <Icon
             icon="ri:add-line"
@@ -14,46 +10,45 @@
       </NButton>
     </template>
 
-
     <!-- 搜索栏 -->
-      <div class="search-bar">
-        <NInput
-            v-model:value="searchForm.account"
-            placeholder="请输入账号"
-            clearable
-            style="width: 200px"
-        />
-        <NInput
-            v-model:value="searchForm.phone"
-            placeholder="请输入手机号"
-            clearable
-            style="width: 200px"
-        />
-        <NSelect
-            v-model:value="searchForm.status"
-            placeholder="用户状态"
-            :options="statusOptions"
-            clearable
-            style="width: 150px"
-        />
-        <NButton type="primary" @click="handleSearch">
-          <template #icon>
-            <Icon icon="ri:search-line" />
-          </template>
-          搜索
-        </NButton>
-        <NButton @click="handleReset">重置</NButton>
-      </div>
-
-      <!-- 表格 -->
-      <NDataTable
-          :columns="columns"
-          :data="tableData"
-          :loading="loading"
-          :pagination="pagination"
-          :remote="true"
-          striped
+    <div class="search-bar">
+      <NInput
+          v-model:value="searchForm.account"
+          placeholder="请输入账号"
+          clearable
+          style="width: 200px"
       />
+      <NInput
+          v-model:value="searchForm.phone"
+          placeholder="请输入手机号"
+          clearable
+          style="width: 200px"
+      />
+      <NSelect
+          v-model:value="searchForm.status"
+          placeholder="用户状态"
+          :options="statusOptions"
+          clearable
+          style="width: 150px"
+      />
+      <NButton type="primary" @click="handleSearch">
+        <template #icon>
+          <Icon icon="ri:search-line" />
+        </template>
+        搜索
+      </NButton>
+      <NButton @click="handleReset">重置</NButton>
+    </div>
+
+    <!-- 表格 -->
+    <NDataTable
+        :columns="columns"
+        :data="tableData"
+        :loading="loading"
+        :pagination="pagination"
+        :remote="true"
+        striped
+    />
   </PageContainer>
 </template>
 
@@ -64,7 +59,6 @@ import { Icon } from '@iconify/vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NTag, NSpace, useMessage, useDialog } from 'naive-ui'
 import { adminUserApi } from '@/api/adminUser'
-
 import PageContainer from "@/components/common/PageContainer.vue";
 
 interface ApiResponse<T = any> {
@@ -344,10 +338,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.page-container {
-  padding: 0;
-}
-
 .search-bar {
   display: flex;
   gap: 12px;
