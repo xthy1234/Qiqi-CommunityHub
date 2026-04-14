@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.gcs.dto.*;
 import com.gcs.enums.AuditStatus;
 import com.gcs.enums.CommonStatus;
 import com.gcs.service.ArticleService;
@@ -18,10 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.gcs.annotation.IgnoreAuth;
-import com.gcs.dto.ReportCreateDTO;
-import com.gcs.dto.ReportCreateSimpleDTO;
-import com.gcs.dto.ReportReviewDTO;
-import com.gcs.dto.ReportBatchReviewDTO;
 import com.gcs.entity.Article;
 import com.gcs.entity.Report;
 import com.gcs.entity.view.ReportView;
@@ -276,6 +273,45 @@ public class ReportController {
             
             String reviewerAccount = getSessionAttribute(request, "account");
             boolean result = reportService.reviewReport(reportId, reviewStatus, replyContent, reviewerAccount);
+            if (result) {
+                return R.ok("审核成功");
+            } else {
+                return R.error("审核失败");
+            }
+        } catch (Exception e) {
+            log.error("审核举报失败，ID: {}", reportId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 审核举报（带处理动作）
+     */
+    @Operation(summary = "审核举报", description = "管理员对举报信息进行审核处理，可选择处理动作（屏蔽/删除/警告/忽略）")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "审核成功"),
+        @ApiResponse(responseCode = "400", description = "审核失败")
+    })
+    @PostMapping("/{id}/review-with-action")
+    @Transactional
+    public R reviewReportWithAction(
+        @Parameter(description = "举报 ID", required = true) @PathVariable("id") Long reportId,
+        @Valid @RequestBody ReportReviewActionDTO actionDTO,
+        @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            AuditStatus.valueOf(actionDTO.getReviewStatus());
+            
+            String reviewerAccount = getSessionAttribute(request, "account");
+            boolean result = reportService.reviewReportWithAction(
+                reportId, 
+                actionDTO.getReviewStatus(), 
+                actionDTO.getReplyContent(), 
+                reviewerAccount,
+                actionDTO.getAction(),
+                actionDTO.getRewardReporter(),
+                actionDTO.getPenalizeReportedUser()
+            );
+            
             if (result) {
                 return R.ok("审核成功");
             } else {

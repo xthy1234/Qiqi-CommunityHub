@@ -2,10 +2,13 @@ package com.gcs.controller;
 
 import com.gcs.annotation.IgnoreAuth;
 import com.gcs.service.PointsService;
+import com.gcs.service.UserService;
 import com.gcs.utils.AuthUtils;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
+import com.gcs.utils.SessionUtils;
 import com.gcs.vo.PointsTransactionVO;
+import com.gcs.vo.UserSimpleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,6 +38,12 @@ public class PointsTransactionController {
     
     @Autowired
     private AuthUtils authUtils;
+    
+    @Autowired
+    private SessionUtils sessionUtils;
+    
+    @Autowired
+    private UserService userService;
 
     /**
      * 分页查询积分流水（管理员）
@@ -69,7 +78,7 @@ public class PointsTransactionController {
             @RequestParam(defaultValue = "20") Integer limit,
             HttpServletRequest request) {
         try {
-            Long userId = (Long) request.getSession().getAttribute("userId");
+            Long userId = sessionUtils.getCurrentUserId(request);
             if (userId == null) {
                 return R.error("请先登录");
             }
@@ -101,7 +110,7 @@ public class PointsTransactionController {
     @GetMapping("/my/balance")
     public R getMyBalance(HttpServletRequest request) {
         try {
-            Long userId = (Long) request.getSession().getAttribute("userId");
+            Long userId = sessionUtils.getCurrentUserId(request);
             if (userId == null) {
                 return R.error("请先登录");
             }
@@ -155,8 +164,7 @@ public class PointsTransactionController {
             @Parameter(description = "调整原因") @RequestParam String reason,
             HttpServletRequest request) {
         try {
-            // 验证管理员权限
-            Long currentUserId = (Long) request.getSession().getAttribute("userId");
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             if (currentUserId == null) {
                 return R.error("请先登录");
             }
@@ -195,6 +203,19 @@ public class PointsTransactionController {
         vo.setSourceId(transaction.getSourceId());
         vo.setDescription(transaction.getDescription());
         vo.setCreateTime(transaction.getCreateTime());
+        
+        if (transaction.getUserId() != null) {
+            com.gcs.entity.User user = userService.getById(transaction.getUserId());
+            if (user != null) {
+                UserSimpleVO userVO = new UserSimpleVO();
+                userVO.setId(user.getId());
+                userVO.setNickname(user.getNickname());
+                userVO.setAvatar(user.getAvatar());
+                userVO.setLastOnlineTime(user.getLastOnlineTime());
+                vo.setUser(userVO);
+            }
+        }
+        
         return vo;
     }
 }

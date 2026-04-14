@@ -3,11 +3,12 @@
       :header-title="'分类管理'"
       @back="goBack"
   >
-    <template #header-extra>
+    <template #headerExtra>
       <NButton type="primary" @click="handleCreate">
-        <template #icon>
-          <Icon icon="ri:add-line" />
-        </template>
+        <Icon
+            icon="ri:add-line"
+            style="margin-right: 4px;"
+        />
         新建分类
       </NButton>
     </template>
@@ -48,81 +49,16 @@
         @update:checked-row-keys="handleCheckAll"
         striped
     />
-
-    <!-- 新增/编辑分类对话框 -->
-    <NModal
-        v-model:show="editDialogVisible"
-        preset="dialog"
-        :title="isEdit ? '编辑分类' : '新建分类'"
-        style="width: 600px"
-    >
-      <NForm
-          ref="formRef"
-          :model="formData"
-          :rules="formRules"
-          label-placement="left"
-          label-width="100px"
-      >
-        <NFormItem label="上级分类" path="parentId">
-          <NTreeSelect
-              v-model:value="formData.parentId"
-              :options="categoryTreeOptions"
-              placeholder="请选择上级分类（可选）"
-              clearable
-              checkable
-              style="width: 100%"
-          />
-        </NFormItem>
-
-        <NFormItem label="分类名称" path="categoryName">
-          <NInput
-              v-model:value="formData.categoryName"
-              placeholder="请输入分类名称"
-          />
-        </NFormItem>
-
-        <NFormItem label="分类描述" path="description">
-          <NInput
-              v-model:value="formData.description"
-              type="textarea"
-              placeholder="请输入分类描述"
-              :rows="3"
-          />
-        </NFormItem>
-
-        <NFormItem label="排序" path="sort">
-          <NInputNumber
-              v-model:value="formData.sort"
-              :min="0"
-              style="width: 100%"
-          />
-        </NFormItem>
-
-        <NFormItem label="状态" path="status">
-          <NRadioGroup v-model:value="formData.status">
-            <NRadioButton :value="0" label="启用" />
-            <NRadioButton :value="1" label="禁用" />
-          </NRadioGroup>
-        </NFormItem>
-      </NForm>
-
-      <template #action>
-        <NButton @click="editDialogVisible = false">取消</NButton>
-        <NButton type="primary" @click="handleSubmit" :loading="submitting">
-          确定
-        </NButton>
-      </template>
-    </NModal>
   </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, h, reactive, onMounted, computed } from 'vue'
+import { ref, h, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
-import type { DataTableColumns, FormRules, FormInst, TreeSelectOption } from 'naive-ui'
-import { NButton, NTag, NSpace, useMessage, useDialog, NSwitch, NForm, NFormItem, NInput, NModal, NRadioGroup, NRadioButton, NTreeSelect, NInputNumber } from 'naive-ui'
-import { categoryApi, type CategoryVO, type CategoryCreateDTO, type CategoryUpdateDTO } from '@/api/category'
+import type { DataTableColumns } from 'naive-ui'
+import { NButton, NTag, NSpace, useMessage, useDialog } from 'naive-ui'
+import { categoryApi, type CategoryVO } from '@/api/category'
 import PageContainer from "@/components/common/PageContainer.vue"
 
 const router = useRouter()
@@ -159,53 +95,6 @@ const pagination = reactive({
 })
 
 const checkedRowKeys = ref<number[]>([])
-
-const editDialogVisible = ref(false)
-const isEdit = ref(false)
-const submitting = ref(false)
-const formRef = ref<FormInst | null>(null)
-const categoryTreeData = ref<CategoryTreeVO[]>([])
-
-const formData = ref<CategoryCreateDTO & { id?: number; status?: number }>({
-  categoryName: '',
-  description: '',
-  sort: 0,
-  parentId: undefined,
-  status: 0
-})
-
-const formRules: FormRules = {
-  categoryName: {
-    required: true,
-    message: '请输入分类名称',
-    trigger: ['blur', 'change']
-  }
-}
-
-const categoryTreeOptions = computed<TreeSelectOption[]>(() => {
-  const buildTreeOptions = (categories: CategoryTreeVO[], level = 0): TreeSelectOption[] => {
-    return categories.map(category => ({
-      label: category.categoryName,
-      value: category.id,
-      key: category.id,
-      children: category.children ? buildTreeOptions(category.children, level + 1) : undefined,
-      disabled: category.status === 1 // 禁用的分类不能作为父分类
-    }))
-  }
-  
-  // 添加根节点选项
-  const options: TreeSelectOption[] = [{
-    label: '顶级分类',
-    value: undefined,
-    key: 0
-  }]
-  
-  // 添加现有分类树（排除当前编辑的分类）
-  const filteredTree = categoryTreeData.value.filter(c => c.id !== formData.value.id)
-  const treeOptions = buildTreeOptions(filteredTree)
-  
-  return [...options, ...treeOptions]
-})
 
 const columns: DataTableColumns = [
   {
@@ -345,17 +234,6 @@ const loadData = async () => {
   }
 }
 
-const loadCategoryTree = async () => {
-  try {
-    const res = await categoryApi.getCategoryTree()
-    if (res.code === 0 || res.code === 200) {
-      categoryTreeData.value = res.data
-    }
-  } catch (error) {
-    console.error('加载分类树失败', error)
-  }
-}
-
 const handleSearch = () => {
   pagination.page = 1
   loadData()
@@ -369,28 +247,11 @@ const handleReset = () => {
 }
 
 const handleCreate = () => {
-  isEdit.value = false
-  formData.value = {
-    categoryName: '',
-    description: '',
-    sort: 0,
-    parentId: undefined,
-    status: 0
-  }
-  editDialogVisible.value = true
+  router.push('/admin/categories/edit')
 }
 
 const handleEdit = (row: CategoryVO) => {
-  isEdit.value = true
-  formData.value = {
-    id: row.id,
-    categoryName: row.categoryName,
-    description: row.description,
-    sort: row.sort,
-    parentId: row.parentId,
-    status: row.status
-  }
-  editDialogVisible.value = true
+  router.push(`/admin/categories/edit?id=${row.id}`)
 }
 
 const handleToggleStatus = async (row: CategoryVO) => {
@@ -432,54 +293,12 @@ const handleDelete = (row: CategoryVO) => {
   })
 }
 
-const handleSubmit = async () => {
-  await formRef.value?.validate(async (errors) => {
-    if (errors) return
-    
-    submitting.value = true
-    try {
-      const submitData: CategoryCreateDTO | CategoryUpdateDTO = {
-        categoryName: formData.value.categoryName,
-        description: formData.value.description,
-        sort: formData.value.sort,
-        parentId: formData.value.parentId
-      }
-      
-      if (formData.value.status !== undefined) {
-        (submitData as any).status = formData.value.status
-      }
-      
-      let res
-      if (isEdit.value && formData.value.id) {
-        res = await categoryApi.updateCategory(formData.value.id, submitData as CategoryUpdateDTO)
-      } else {
-        res = await categoryApi.createCategory(submitData as CategoryCreateDTO)
-      }
-      
-      if (res.code === 0 || res.code === 200) {
-        message.success(isEdit.value ? '更新成功' : '创建成功')
-        editDialogVisible.value = false
-        loadData()
-        loadCategoryTree()
-      } else {
-        message.error(res.msg || '操作失败')
-      }
-    } catch (error) {
-      message.error('操作失败')
-      console.error(error)
-    } finally {
-      submitting.value = false
-    }
-  })
-}
-
 const handleCheckAll = (keys: any) => {
   checkedRowKeys.value = keys as number[]
 }
 
 onMounted(() => {
   loadData()
-  loadCategoryTree()
 })
 </script>
 

@@ -255,22 +255,18 @@ public class ArticleController {
     @IgnoreAuth
     public R get(@PathVariable("id") Long id, HttpServletRequest request) {
         try {
-            // ✅ Service 只负责返回 Entity
             Article article = articleService.getArticleDetail(id);
             if (article == null) {
                 return R.error("文章不存在");
             }
 
-            // ✅ Controller 负责转换为 VO
             ArticleDetailVO vo;
             if (article instanceof ArticleView view) {
-                // 使用 MapStruct 转换（自动处理扩展字段）
                 vo = articleConverter.viewToDetailVO(view);
             } else {
                 vo = articleConverter.toDetailVO(article);
             }
 
-            // ✅ Controller 负责补充业务字段（点赞、收藏状态）
             Long currentUserId = getCurrentUserId(request);
             Boolean isLiked = checkIsLiked(currentUserId, id);
             vo.setIsLiked(isLiked != null && isLiked);
@@ -278,10 +274,8 @@ public class ArticleController {
             Boolean isFavorited = checkIsFavorited(currentUserId, id);
             vo.setIsFavorited(isFavorited != null && isFavorited);
             
-            // ✅ 新增：从 article 实体获取 currentVersion
             vo.setCurrentVersion(article.getCurrentVersion());
             
-            // ✅ 修复：查询 currentVersion 对应的版本，获取 majorVersion 和 minorVersion
             if (article.getCurrentVersion() != null) {
                 ArticleVersion currentVersionEntity = articleVersionService.getVersionDetail(
                     id, 
@@ -291,19 +285,16 @@ public class ArticleController {
                     vo.setMajorVersion(currentVersionEntity.getMajorVersion());
                     vo.setMinorVersion(currentVersionEntity.getMinorVersion());
                 } else {
-                    // 如果找不到对应版本，默认为 1.0
                     vo.setMajorVersion(1);
                     vo.setMinorVersion(0);
                 }
             } else {
-                // 如果 currentVersion 为 null，查询最新版本
                 List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
                 if (versions != null && !versions.isEmpty()) {
                     ArticleVersion latestVersion = versions.get(0);
                     vo.setMajorVersion(latestVersion.getMajorVersion());
                     vo.setMinorVersion(latestVersion.getMinorVersion());
                 } else {
-                    // 如果没有版本记录，默认为 1.0
                     vo.setMajorVersion(1);
                     vo.setMinorVersion(0);
                 }
@@ -312,6 +303,42 @@ public class ArticleController {
             return R.ok().put("data", vo);
         } catch (Exception e) {
             log.error("获取文章详情失败，ID: {}", id, e);
+            return R.error("获取数据失败");
+        }
+    }
+
+    /**
+     * 获取置顶/推荐文章列表
+     */
+    @Operation(summary = "获取置顶/推荐文章列表", description = "获取所有置顶或推荐的文章，按推荐等级排序")
+    @GetMapping("/featured")
+    @IgnoreAuth
+    public R getFeaturedArticles(
+            @Parameter(description = "限制数量") @RequestParam(defaultValue = "10") Integer limit,
+            HttpServletRequest request) {
+        try {
+            QueryWrapper<Article> wrapper = new QueryWrapper<>();
+            wrapper.eq("is_featured", true)
+                   .eq("deleted", false)
+                   .eq("audit_status", AuditStatus.APPROVED.getCode())
+                   .orderByDesc("featured_level")
+                   .orderByDesc("create_time")
+                   .last("LIMIT " + limit);
+            
+            List<Article> featuredArticles = articleService.list(wrapper);
+            
+            List<ArticleVO> voList = featuredArticles.stream()
+                    .map(article -> {
+                        ArticleVO vo = articleConverter.toVO(article);
+                        vo.setIsFeatured(article.getIsFeatured());
+                        vo.setFeaturedLevel(article.getFeaturedLevel());
+                        return vo;
+                    })
+                    .collect(Collectors.toList());
+            
+            return R.ok().put("data", voList);
+        } catch (Exception e) {
+            log.error("获取置顶文章列表失败", e);
             return R.error("获取数据失败");
         }
     }
@@ -915,20 +942,23 @@ public class ArticleController {
         vo.setTitle(articleView.getTitle());
         vo.setCoverUrl(articleView.getCoverUrl());
         vo.setCategoryId(articleView.getCategoryId());
-        vo.setCategoryName(articleView.getCategoryName());  // ✅ 直接使用联表查询的结果
+        vo.setCategoryName(articleView.getCategoryName());
         vo.setAuthorId(articleView.getAuthorId());
-        vo.setAuthorNickname(articleView.getAuthorNickname());  // ✅ 直接使用联表查询的结果
-        vo.setAuthorAvatar(articleView.getAuthorAvatar());  // ✅ 直接使用联表查询的结果
+        vo.setAuthorNickname(articleView.getAuthorNickname());
+        vo.setAuthorAvatar(articleView.getAuthorAvatar());
         
         vo.setLikeCount(articleView.getLikeCount());
         vo.setDislikeCount(articleView.getDislikeCount());
         vo.setViewCount(articleView.getViewCount());
         
-        // 如果 publishTime 为空，则使用 createTime
         vo.setPublishTime(articleView.getPublishTime() != null ? articleView.getPublishTime() : java.util.Date.from(articleView.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
         
         vo.setAuditStatus(articleView.getAuditStatus().getCode());
         vo.setCreateTime(articleView.getCreateTime());
+        
+        vo.setIsFeatured(articleView.getIsFeatured());
+        vo.setFeaturedLevel(articleView.getFeaturedLevel());
+        
         return vo;
     }
 

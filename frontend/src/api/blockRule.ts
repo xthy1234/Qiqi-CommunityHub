@@ -3,7 +3,7 @@
  */
 import http from '@/utils/http'
 import { BaseAPI } from './base'
-import type { BlockRule, AddBlockRuleRequest, ToggleEnableRequest } from '@/types/blockRule'
+import type { BlockRule, AddBlockRuleRequest, ToggleEnableRequest } from '@/types/blockrule'
 
 class BlockRuleAPI extends BaseAPI<BlockRule> {
   constructor() {

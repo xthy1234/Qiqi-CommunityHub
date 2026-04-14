@@ -78,14 +78,14 @@
         v-model:show="auditDialogVisible"
         preset="dialog"
         :title="`审核举报 #${currentReport?.id || ''}`"
-        style="width: 600px"
+        style="width: 650px"
     >
       <NForm
           ref="auditFormRef"
           :model="auditFormData"
           :rules="auditFormRules"
           label-placement="left"
-          label-width="100px"
+          label-width="120px"
       >
         <NAlert title="举报信息" type="info" style="margin-bottom: 16px;">
           <NDescriptions bordered :column="1" size="small">
@@ -110,19 +110,38 @@
         <NFormItem label="审核结果" path="reviewStatus">
           <NRadioGroup v-model:value="auditFormData.reviewStatus">
             <NSpace>
-              <NRadioButton :value="ReviewStatus.APPROVED" label="通过" />
-              <NRadioButton :value="ReviewStatus.REJECTED" label="拒绝" />
+              <NRadioButton :value="ReviewStatus.APPROVED">通过</NRadioButton>
+              <NRadioButton :value="ReviewStatus.REJECTED">拒绝</NRadioButton>
             </NSpace>
           </NRadioGroup>
         </NFormItem>
 
-        <NFormItem label="回复内容" path="replyContent">
+        <NFormItem label="处理动作" path="action" v-if="auditFormData.reviewStatus === ReviewStatus.APPROVED">
+          <NSelect
+              v-model:value="auditFormData.action"
+              :options="actionOptions"
+              placeholder="请选择处理动作"
+          />
+        </NFormItem>
+
+        <NFormItem label="处理备注" path="replyContent">
           <NInput
               v-model:value="auditFormData.replyContent"
               type="textarea"
-              placeholder="请输入审核回复（选填）"
+              placeholder="请说明处理原因..."
               :rows="3"
           />
+        </NFormItem>
+
+        <NFormItem label="积分处理" v-if="auditFormData.reviewStatus === ReviewStatus.APPROVED">
+          <NSpace vertical>
+            <NCheckbox v-model:checked="auditFormData.rewardReporter">
+              奖励举报人 10 积分
+            </NCheckbox>
+            <NCheckbox v-model:checked="auditFormData.penalizeReportedUser">
+              扣除被举报人 20 积分
+            </NCheckbox>
+          </NSpace>
         </NFormItem>
       </NForm>
 
@@ -139,33 +158,52 @@
         v-model:show="batchAuditDialogVisible"
         preset="dialog"
         title="批量审核举报"
-        style="width: 500px"
+        style="width: 650px"
     >
       <NForm
           ref="batchAuditFormRef"
           :model="batchAuditFormData"
           :rules="auditFormRules"
           label-placement="left"
-          label-width="100px"
+          label-width="120px"
       >
         <NAlert :title="`已选择 ${checkedRowKeys.length} 条举报`" type="warning" style="margin-bottom: 16px;" />
 
         <NFormItem label="审核结果" path="reviewStatus">
           <NRadioGroup v-model:value="batchAuditFormData.reviewStatus">
             <NSpace>
-              <NRadioButton :value="ReviewStatus.APPROVED" label="通过" />
-              <NRadioButton :value="ReviewStatus.REJECTED" label="拒绝" />
+              <NRadioButton :value="ReviewStatus.APPROVED">通过</NRadioButton>
+              <NRadioButton :value="ReviewStatus.REJECTED">拒绝</NRadioButton>
             </NSpace>
           </NRadioGroup>
         </NFormItem>
 
-        <NFormItem label="回复内容" path="replyContent">
+        <NFormItem label="处理动作" path="action" v-if="batchAuditFormData.reviewStatus === ReviewStatus.APPROVED">
+          <NSelect
+              v-model:value="batchAuditFormData.action"
+              :options="actionOptions"
+              placeholder="请选择处理动作"
+          />
+        </NFormItem>
+
+        <NFormItem label="处理备注" path="replyContent">
           <NInput
               v-model:value="batchAuditFormData.replyContent"
               type="textarea"
-              placeholder="请输入审核回复（选填）"
+              placeholder="请说明处理原因..."
               :rows="3"
           />
+        </NFormItem>
+
+        <NFormItem label="积分处理" v-if="batchAuditFormData.reviewStatus === ReviewStatus.APPROVED">
+          <NSpace vertical>
+            <NCheckbox v-model:checked="batchAuditFormData.rewardReporter">
+              奖励举报人 10 积分
+            </NCheckbox>
+            <NCheckbox v-model:checked="batchAuditFormData.penalizeReportedUser">
+              扣除被举报人 20 积分
+            </NCheckbox>
+          </NSpace>
         </NFormItem>
       </NForm>
 
@@ -184,8 +222,8 @@ import { ref, h, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import type { DataTableColumns, FormRules, FormInst } from 'naive-ui'
-import { NButton, NTag, NSpace, useMessage, useDialog, NModal, NForm, NFormItem, NInput, NAlert, NDescriptions, NDescriptionsItem, NRadioGroup, NRadioButton, NBadge, NDatePicker } from 'naive-ui'
-import { reportApi, type ReportVO, type ReportReviewDTO, ReviewStatus } from '@/api/report'
+import { NButton, NTag, NSpace, useMessage, useDialog, NModal, NForm, NFormItem, NInput, NAlert, NDescriptions, NDescriptionsItem, NRadioGroup, NRadioButton, NBadge, NDatePicker, NSelect, NCheckbox } from 'naive-ui'
+import { reportApi, type ReportVO, type ReportReviewWithActionDTO, ReviewStatus, ReportAction } from '@/api/report'
 import PageContainer from "@/components/common/PageContainer.vue"
 
 const router = useRouter()
@@ -205,6 +243,13 @@ const reviewStatusOptions = [
   { label: '待审核', value: ReviewStatus.PENDING },
   { label: '已通过', value: ReviewStatus.APPROVED },
   { label: '已拒绝', value: ReviewStatus.REJECTED }
+]
+
+const actionOptions = [
+  { label: '屏蔽文章（作者可见但不可传播）', value: ReportAction.BLOCK },
+  { label: '删除文章（软删除）', value: ReportAction.DELETE },
+  { label: '仅警告（不修改文章状态）', value: ReportAction.WARN },
+  { label: '忽略举报（不处理文章）', value: ReportAction.IGNORE }
 ]
 
 const loading = ref(false)
@@ -236,21 +281,38 @@ const currentReport = ref<ReportVO | null>(null)
 const auditFormRef = ref<FormInst | null>(null)
 const batchAuditFormRef = ref<FormInst | null>(null)
 
-const auditFormData = ref<ReportReviewDTO>({
+const auditFormData = ref<ReportReviewWithActionDTO>({
   reviewStatus: ReviewStatus.APPROVED,
-  replyContent: ''
+  replyContent: '',
+  action: ReportAction.BLOCK,
+  rewardReporter: true,
+  penalizeReportedUser: true
 })
 
-const batchAuditFormData = ref<ReportReviewDTO>({
+const batchAuditFormData = ref<ReportReviewWithActionDTO>({
   reviewStatus: ReviewStatus.APPROVED,
-  replyContent: ''
+  replyContent: '',
+  action: ReportAction.BLOCK,
+  rewardReporter: true,
+  penalizeReportedUser: true
 })
 
 const auditFormRules: FormRules = {
   reviewStatus: {
     required: true,
+    type: 'number',
     message: '请选择审核结果',
+    trigger: 'change'
+  },
+  replyContent: {
+    required: true,
+    message: '请输入处理备注',
     trigger: ['blur', 'change']
+  },
+  action: {
+    required: true,
+    message: '请选择处理动作',
+    trigger: 'change'
   }
 }
 
@@ -427,7 +489,10 @@ const handleAudit = (row: ReportVO) => {
   currentReport.value = row
   auditFormData.value = {
     reviewStatus: ReviewStatus.APPROVED,
-    replyContent: ''
+    replyContent: '',
+    action: ReportAction.BLOCK,
+    rewardReporter: true,
+    penalizeReportedUser: true
   }
   auditDialogVisible.value = true
 }
@@ -440,7 +505,7 @@ const handleAuditSubmit = async () => {
     
     auditing.value = true
     try {
-      const res = await reportApi.reviewReport(currentReport.value.id, auditFormData.value)
+      const res = await reportApi.reviewReportWithAction(currentReport.value.id, auditFormData.value)
       if (res.code === 0 || res.code === 200) {
         message.success('审核成功')
         auditDialogVisible.value = false
@@ -466,7 +531,10 @@ const handleBatchAudit = () => {
   
   batchAuditFormData.value = {
     reviewStatus: ReviewStatus.APPROVED,
-    replyContent: ''
+    replyContent: '',
+    action: ReportAction.BLOCK,
+    rewardReporter: true,
+    penalizeReportedUser: true
   }
   batchAuditDialogVisible.value = true
 }

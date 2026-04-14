@@ -9,11 +9,13 @@ export interface Article {
   categoryName: string
   authorId: number | string
   authorNickname: string
+  authorAvatar?: string | null
   content: string
   attachment?: string | null
   favoriteCount: number
   likeCount: number
   dislikeCount: number
+  shareCount?: number | null
   viewCount: number
   auditStatus: string
   auditReply?: string
@@ -22,7 +24,10 @@ export interface Article {
   createTime?: string
   updateTime?: string
   categoryStrName?: string | null
-  authorAvatar?: string | null
+  
+  // 置顶相关字段
+  isFeatured?: boolean
+  featuredLevel?: 0 | 1 | 2 | 3
   
   // 兼容旧字段名
   cover?: string

@@ -42,6 +42,16 @@ export enum ReviewStatus {
 }
 
 /**
+ * 处理动作枚举
+ */
+export enum ReportAction {
+  BLOCK = 'BLOCK',      // 屏蔽文章（作者可见但不可传播）
+  DELETE = 'DELETE',    // 删除文章（软删除）
+  WARN = 'WARN',        // 仅警告（不修改文章状态）
+  IGNORE = 'IGNORE'     // 忽略举报（不处理文章）
+}
+
+/**
  * Report 实体
  */
 export interface Report {
@@ -74,11 +84,23 @@ export interface ReportCreateDTO {
 }
 
 /**
- * ReportReviewDTO - 审核举报请求
+ * ReportReviewDTO - 审核举报请求（旧接口，保留兼容）
  */
 export interface ReportReviewDTO {
   reviewStatus: ReviewStatus
   replyContent?: string
+}
+
+/**
+ * ReportReviewWithActionDTO - 审核举报并执行处理动作（新接口）
+ */
+export interface ReportReviewWithActionDTO {
+  reportId?: number
+  reviewStatus: ReviewStatus
+  replyContent: string
+  action: ReportAction
+  rewardReporter?: boolean
+  penalizeReportedUser?: boolean
 }
 
 /**
@@ -165,10 +187,17 @@ export const reportApi = {
   },
 
   /**
-   * 审核举报（单条）
+   * 审核举报（单条，旧接口，保留兼容）
    */
   reviewReport: (id: number, data: ReportReviewDTO) => {
     return httpClient.post<ApiResponse<void>>(`/reports/${id}/review`, data)
+  },
+
+  /**
+   * 审核举报并执行处理动作（新接口，推荐使用）
+   */
+  reviewReportWithAction: (id: number, data: ReportReviewWithActionDTO) => {
+    return httpClient.post<ApiResponse<void>>(`/reports/${id}/review-with-action`, data)
   },
 
   /**

@@ -124,9 +124,9 @@ public class Article implements Serializable {
     private Integer shareCount = 0;
 
     /**
-     * 审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿)
+     * 审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿，4:违规屏蔽)
      */
-    @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿)", example = "1")
+    @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝，3:草稿，4:违规屏蔽)", example = "1")
     @TableField(typeHandler = AuditStatusTypeHandler.class)
     private AuditStatus auditStatus;
 

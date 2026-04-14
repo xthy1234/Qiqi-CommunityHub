@@ -1,4 +1,4 @@
-import type { Router, RouteLocationNormalized } from 'vue-router'
+import { useRouter, useRoute, Router, RouteLocationNormalized } from 'vue-router'
 
 /**
  * 返回操作选项
@@ -310,9 +310,6 @@ export class BackNavigationManager {
     this.debounceTimers.clear()
   }
 }
-
-// 导出便捷函数（组合式 API 风格）
-import { useRouter, useRoute } from 'vue-router'
 
 /**
  * 使用返回路径管理（组合式 API）

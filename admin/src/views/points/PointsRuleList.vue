@@ -31,7 +31,7 @@
         style="width: 250px"
       />
       <NSelect
-        v-model:value="searchForm.isEnabled"
+        v-model:value="searchForm.enabled"
         placeholder="状态"
         :options="statusOptions"
         clearable
@@ -61,52 +61,64 @@
 
     <!-- 编辑对话框 -->
     <CrudDialog
-      v-model:show="dialogVisible"
-      :title="dialogTitle"
+      v-model:visible="dialogVisible"
+      :create-title="'新增规则'"
+      :edit-title="'编辑规则'"
+      :is-edit="isEdit"
       :form-data="formData"
       :form-rules="formRules"
-      :loading="submitting"
-      @confirm="handleSubmit"
+      :submitting="submitting"
+      @submit="handleSubmit"
       @cancel="dialogVisible = false"
     >
-      <NFormItem label="规则代码" path="ruleCode">
-        <NInput
-          v-model:value="formData.ruleCode"
-          placeholder="例如：ARTICLE_PUBLISH"
-          :disabled="isEdit"
-        />
-      </NFormItem>
-      <NFormItem label="规则名称" path="ruleName">
-        <NInput v-model:value="formData.ruleName" placeholder="例如：发布文章" />
-      </NFormItem>
-      <NFormItem label="规则描述" path="description">
-        <NInput
-          v-model:value="formData.description"
-          type="textarea"
-          placeholder="规则说明"
-          :rows="3"
-        />
-      </NFormItem>
-      <NFormItem label="积分数量" path="points">
-        <NInputNumber
-          v-model:value="formData.points"
-          placeholder="正数为奖励，负数为扣除"
-          style="width: 100%"
-        />
-      </NFormItem>
-      <NFormItem label="每日限制" path="dailyLimit">
-        <NInputNumber
-          v-model:value="formData.dailyLimit"
-          placeholder="0表示无限制"
-          style="width: 100%"
-        />
-      </NFormItem>
-      <NFormItem label="是否启用" path="isEnabled">
-        <NRadioGroup v-model:value="formData.isEnabled">
-          <NRadioButton :value="true">启用</NRadioButton>
-          <NRadioButton :value="false">禁用</NRadioButton>
-        </NRadioGroup>
-      </NFormItem>
+      <template #form-content>
+        <NFormItem label="规则代码" path="ruleCode">
+          <NInput
+            v-model:value="formData.ruleCode"
+            placeholder="例如：sign_in"
+            :disabled="isEdit"
+          />
+        </NFormItem>
+        <NFormItem label="规则名称" path="ruleName">
+          <NInput v-model:value="formData.ruleName" placeholder="例如：每日签到" />
+        </NFormItem>
+        <NFormItem label="规则说明" path="remark">
+          <NInput
+            v-model:value="formData.remark"
+            type="textarea"
+            placeholder="规则说明"
+            :rows="3"
+          />
+        </NFormItem>
+        <NFormItem label="基础积分" path="basePoints">
+          <NInputNumber
+            v-model:value="formData.basePoints"
+            placeholder="正数为奖励，负数为扣除"
+            style="width: 100%"
+          />
+        </NFormItem>
+        <NFormItem label="每日限制" path="dailyLimit">
+          <NInputNumber
+            v-model:value="formData.dailyLimit"
+            placeholder="-1或0表示无限制"
+            style="width: 100%"
+          />
+        </NFormItem>
+        <NFormItem label="连续奖励" path="streakBonus">
+          <NInput
+            v-model:value="formData.streakBonus"
+            type="textarea"
+            placeholder='JSON格式，如：{"3":5,"7":20}'
+            :rows="2"
+          />
+        </NFormItem>
+        <NFormItem label="是否启用" path="enabled">
+          <NRadioGroup v-model:value="formData.enabled">
+            <NRadioButton :value="true">启用</NRadioButton>
+            <NRadioButton :value="false">禁用</NRadioButton>
+          </NRadioGroup>
+        </NFormItem>
+      </template>
     </CrudDialog>
   </PageContainer>
 </template>
@@ -125,7 +137,7 @@ const dialog = useDialog()
 
 const searchForm = ref({
   keyword: '',
-  isEnabled: null as boolean | null
+  enabled: null as boolean | null
 })
 
 const statusOptions = [
@@ -160,10 +172,11 @@ const submitting = ref(false)
 const formData = ref<Partial<PointsRule>>({
   ruleCode: '',
   ruleName: '',
-  description: '',
-  points: 0,
+  remark: '',
+  basePoints: 0,
   dailyLimit: 0,
-  isEnabled: true
+  streakBonus: null,
+  enabled: true
 })
 
 const formRules: FormRules = {
@@ -177,15 +190,15 @@ const formRules: FormRules = {
     message: '请输入规则名称',
     trigger: ['blur', 'change']
   },
-  points: {
+  basePoints: {
     required: true,
     type: 'number',
-    message: '请输入积分数量',
+    message: '请输入基础积分',
     trigger: ['blur', 'change']
   }
 }
 
-const columns: DataTableColumns = [
+const columns: DataTableColumns<PointsRule> = [
   {
     type: 'selection',
     width: 50
@@ -208,31 +221,51 @@ const columns: DataTableColumns = [
     ellipsis: { tooltip: true }
   },
   {
-    title: '积分数量',
-    key: 'points',
+    title: '基础积分',
+    key: 'basePoints',
     width: 100,
     render: (row) => {
-      const color = row.points > 0 ? '#52c41a' : '#ff4d4f'
-      return h('span', { style: { color, fontWeight: 'bold' } }, row.points > 0 ? `+${row.points}` : row.points)
+      const color = row.basePoints > 0 ? '#52c41a' : '#ff4d4f'
+      return h('span', { style: { color, fontWeight: 'bold' } }, row.basePoints > 0 ? `+${row.basePoints}` : row.basePoints)
     }
   },
   {
     title: '每日限制',
     key: 'dailyLimit',
-    width: 100,
-    render: (row) => row.dailyLimit || '无限制'
+    width: 120,
+    render: (row) => row.dailyLimit === -1 || row.dailyLimit === 0 ? '无限制' : row.dailyLimit
+  },
+  {
+    title: '连续奖励',
+    key: 'streakBonus',
+    width: 120,
+    render: (row) => {
+      if (!row.streakBonus) return '-'
+      try {
+        const bonus = JSON.parse(row.streakBonus)
+        return Object.entries(bonus).map(([days, points]) => `${days}天+${points}`).join(', ')
+      } catch {
+        return row.streakBonus
+      }
+    }
   },
   {
     title: '状态',
-    key: 'isEnabled',
+    key: 'enabled',
     width: 100,
     render: (row) => {
       return h(NTag, {
-        type: row.isEnabled ? 'success' : 'default'
+        type: row.enabled ? 'success' : 'default'
       }, {
-        default: () => row.isEnabled ? '启用' : '禁用'
+        default: () => row.enabled ? '启用' : '禁用'
       })
     }
+  },
+  {
+    title: '说明',
+    key: 'remark',
+    width: 200,
+    ellipsis: { tooltip: true }
   },
   {
     title: '更新时间',
@@ -255,10 +288,10 @@ const columns: DataTableColumns = [
           }),
           h(NButton, {
             size: 'small',
-            type: row.isEnabled ? 'warning' : 'success',
+            type: row.enabled ? 'warning' : 'success',
             onClick: () => handleToggleStatus(row)
           }, {
-            default: () => row.isEnabled ? '禁用' : '启用'
+            default: () => row.enabled ? '禁用' : '启用'
           }),
           h(NButton, {
             size: 'small',
@@ -304,7 +337,7 @@ const handleSearch = () => {
 const handleReset = () => {
   searchForm.value = {
     keyword: '',
-    isEnabled: null
+    enabled: null
   }
   pagination.page = 1
   loadData()
@@ -315,10 +348,11 @@ const handleCreate = () => {
   formData.value = {
     ruleCode: '',
     ruleName: '',
-    description: '',
-    points: 0,
+    remark: '',
+    basePoints: 0,
     dailyLimit: 0,
-    isEnabled: true
+    streakBonus: null,
+    enabled: true
   }
   dialogVisible.value = true
 }

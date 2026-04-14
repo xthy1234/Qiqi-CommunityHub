@@ -70,6 +70,22 @@ public interface ReportService extends IService<Report> {
     boolean reviewReport(Long reportId, Integer reviewStatus, String replyContent, String reviewerAccount);
 
     /**
+     * 审核举报（带处理动作）
+     *
+     * @param reportId 举报 ID
+     * @param reviewStatus 审核状态
+     * @param replyContent 回复内容
+     * @param reviewerAccount 审核人账号
+     * @param action 处理动作（BLOCK/DELETE/WARN/IGNORE）
+     * @param rewardReporter 是否奖励举报人
+     * @param penalizeReportedUser 是否惩罚被举报人
+     * @return 审核结果
+     */
+    boolean reviewReportWithAction(Long reportId, Integer reviewStatus, String replyContent, 
+                                   String reviewerAccount, String action, 
+                                   Boolean rewardReporter, Boolean penalizeReportedUser);
+
+    /**
      * 批量审核举报
      *
      * @param reportIds 举报ID列表

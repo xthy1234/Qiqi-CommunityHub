@@ -70,6 +70,12 @@ public class ArticleVO implements Serializable {
     @Schema(description = "次版本号", example = "3")
     private Integer minorVersion;
     
+    @Schema(description = "是否推荐/置顶", example = "false")
+    private Boolean isFeatured;
+
+    @Schema(description = "推荐等级（0-普通，1-推荐，2-热门，3-重要通知）", example = "0")
+    private Integer featuredLevel;
+    
     @Schema(description = "创建时间（系统自动生成）", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;

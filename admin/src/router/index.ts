@@ -109,6 +109,11 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/category/CategoryList.vue'),
         meta: { title: '分类管理' }
       },
+      {
+        path: 'admin/categories/edit',
+        component: () => import('@/views/category/CategoryEdit.vue'),
+        meta: { title: '分类编辑' }
+      },
       // 举报管理
       {
         path: 'admin/reports',
@@ -161,7 +166,7 @@ const router = createRouter({
 router.beforeEach((to: any, from: any, next: any) => {
   // 设置页面标题
   if (to.meta?.title) {
-    document.title = `${to.meta.title} - 中文社区管理平台`
+    document.title = `${to.meta.title} - 游戏社区管理平台`
   }
 
   // 🔍 调试日志：路由守卫触发

@@ -804,7 +804,7 @@ public class CommentController {
     }
     
     /**
-     * 从数据库查询并转换 Comment 为 CommentDetailVO（包含完整用户信息）
+     * 从数据库查询并转换 Comment 为 CommentDetailVO（包含完整用户信息和内容标题）
      */
     private CommentDetailVO convertToDetailVOWithUserInfo(Comment comment) {
         CommentDetailVO vo = convertToDetailVO(comment);
@@ -825,6 +825,19 @@ public class CommentController {
                 }
             } catch (Exception e) {
                 log.warn("查询用户信息失败，userId: {}", comment.getUserId(), e);
+            }
+        }
+        
+        // 补充内容标题和类型
+        if (comment.getContentId() != null) {
+            try {
+                Article article = articleService.getById(comment.getContentId());
+                if (article != null) {
+                    vo.setContentTitle(article.getTitle());
+                    vo.setContentType("article");
+                }
+            } catch (Exception e) {
+                log.warn("查询文章信息失败，contentId: {}", comment.getContentId(), e);
             }
         }
         

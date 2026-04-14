@@ -10,7 +10,6 @@
       label-width="120px"
       class="edit-form"
     >
-      <!-- 账号（编辑时禁用） -->
       <n-grid :cols="12" :x-gap="20">
         <n-grid-item :span="6">
           <n-form-item label="账号" path="account">
@@ -141,6 +140,7 @@ import { useMessage } from 'naive-ui'
 import type { FormRules } from 'naive-ui'
 import PageContainer from '@/components/common/PageContainer.vue'
 import { adminUserApi } from '@/api/adminUser'
+import { roleApi } from '@/api/role'
 
 const router = useRouter()
 const route = useRoute()
@@ -179,6 +179,26 @@ const formData = reactive<FormData>({
 
 const isEdit = computed(() => !!route.query.id)
 
+const validateAccount = (_rule: any, value: string) => {
+  if (!value) return Promise.resolve()
+  const accountReg = /^[a-zA-Z][a-zA-Z0-9_]{4,19}$/
+  if (!accountReg.test(value)) {
+    return Promise.reject(new Error('账号需以字母开头，长度5-20位，只能包含字母、数字和下划线'))
+  }
+  return Promise.resolve()
+}
+
+const validatePassword = (_rule: any, value: string) => {
+  if (!value) return Promise.resolve()
+  if (value.length < 6 || value.length > 20) {
+    return Promise.reject(new Error('密码长度在 6-20 个字符之间'))
+  }
+  if (!/^[a-zA-Z0-9]+$/.test(value)) {
+    return Promise.reject(new Error('密码只能包含字母和数字'))
+  }
+  return Promise.resolve()
+}
+
 const validatePhone = (_rule: any, value: string) => {
   if (!value) return Promise.resolve()
   const phoneReg = /^1[3-9]\d{9}$/
@@ -199,12 +219,12 @@ const validateEmail = (_rule: any, value: string) => {
 
 const formRules: FormRules = {
   account: [
-    { required: true, message: '请输入账号', trigger: 'blur' }
+    { required: true, message: '请输入账号', trigger: 'blur' },
+    { validator: validateAccount, trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度在 6-20 个字符之间', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9]+$/, message: '密码只能包含字母和数字', trigger: 'blur' }
+    { validator: validatePassword, trigger: 'blur' }
   ],
   nickname: [
     { required: true, message: '请输入昵称', trigger: 'blur' }
@@ -217,16 +237,32 @@ const formRules: FormRules = {
     { validator: validateEmail, trigger: 'blur' }
   ],
   roleId: [
-    { required: true, message: '请选择角色', trigger: 'change' }
+    {
+      validator: (rule: any, value: number) => {
+        if (!value || value === 0) {
+          return Promise.reject(new Error('请选择角色'))
+        }
+        return Promise.resolve()
+      },
+      trigger: 'change'
+    }
   ],
   status: [
-    { required: true, message: '请选择状态', trigger: 'change' }
+    {
+      validator: (rule: any, value: number) => {
+        if (value === undefined || value === null) {
+          return Promise.reject(new Error('请选择状态'))
+        }
+        return Promise.resolve()
+      },
+      trigger: 'change'
+    }
   ]
 }
 
 const fetchRoles = async () => {
   try {
-    const response = await apiService.role.getAllRoles()
+    const response = await roleApi.getAllRoles()
     if (response.code === 0 || response.code === 200) {
       roleOptions.value = (response.data || []).map((role: any) => ({
         label: role.roleName,
@@ -270,11 +306,10 @@ const fetchUserInfo = async () => {
         roleId: userData.roleId,
         birthday: userData.birthday,
         signature: userData.signature,
-        status: userData.status
+        status: userData.status === 'ENABLED' ? 0 : 1
       })
     } else {
-      message.error(
-response.msg || '获取用户信息失败')
+      message.error(response.msg || '获取用户信息失败')
     }
   } catch (error: any) {
     console.error('获取用户信息失败:', error)
@@ -288,7 +323,8 @@ const handleSubmit = async () => {
     
     submitLoading.value = true
     
-    const submitData = { ...formData }
+    const submitData: any = { ...formData }
+
     if (isEdit.value) {
       delete submitData.password
       
@@ -300,8 +336,7 @@ const handleSubmit = async () => {
           router.push('/users')
         }, 500)
       } else {
-        message.error(
-response.msg || '更新失败')
+        message.error(response.msg || '更新失败')
       }
     } else {
       const response = await adminUserApi.createUser(submitData)
@@ -312,8 +347,7 @@ response.msg || '更新失败')
           router.push('/users')
         }, 500)
       } else {
-        message.error(
-response.msg || '创建失败')
+        message.error(response.msg || '创建失败')
       }
     }
   } catch (error: any) {

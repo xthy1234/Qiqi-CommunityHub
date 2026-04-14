@@ -51,7 +51,6 @@ public class PointsRuleController {
     @GetMapping
     public R getPage(@RequestParam Map<String, Object> params, HttpServletRequest request) {
         try {
-            // 验证登录和管理员权限
             Long currentUserId = sessionUtils.getCurrentUserId(request);
             if (currentUserId == null) {
                 return R.error("请先登录");
@@ -69,7 +68,7 @@ public class PointsRuleController {
             return R.ok().put("data", page);
         } catch (Exception e) {
             log.error("查询积分规则失败", e);
-            return R.error("查询失败");
+            return R.error("查询失败：" + e.getMessage());
         }
     }
 

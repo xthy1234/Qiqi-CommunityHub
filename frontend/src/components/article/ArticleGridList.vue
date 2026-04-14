@@ -68,7 +68,7 @@
       class="article-grid"
     >
       <n-grid-item
-        v-for="article in articles"
+        v-for="article in sortedArticles"
         :key="article.id"
       >
         <ArticleCard :article="article" />
@@ -81,6 +81,7 @@
 import { computed } from 'vue'
 import { NGrid, NGridItem, NCard, NSkeleton, NEmpty, NButton } from 'naive-ui'
 import ArticleCard from '@/components/article/ArticleCard.vue'
+import { compareFeaturedPriority } from '@/utils/featuredUtils'
 
 interface Article {
   id: number | string
@@ -98,6 +99,8 @@ interface Article {
   viewCount?: number
   publishTime?: string
   createTime?: string
+  isFeatured?: boolean
+  featuredLevel?: 0 | 1 | 2 | 3
   [key: string]: any
 }
 
@@ -106,33 +109,37 @@ interface ResponsiveCols {
 }
 
 const props = withDefaults(defineProps<{
-  // 文章列表数据
   articles: Article[]
-  // 是否正在加载
   loading?: boolean
-  // 加载时显示的骨架屏数量
   loadingCount?: number
-  // 空状态提示文字
   emptyText?: string
-  // 是否显示空状态操作按钮
   showEmptyAction?: boolean
-  // 空状态操作按钮文字
   emptyActionText?: string
-  // 列数配置（可选，默认响应式）
   cols?: number
+  enableFeaturedSort?: boolean
 }>(), {
   loading: false,
   loadingCount: 6,
   emptyText: '暂无文章',
   showEmptyAction: false,
   emptyActionText: '去逛逛',
-  cols: 3
+  cols: 3,
+  enableFeaturedSort: true
 })
 
-// 定义事件
 const emit = defineEmits<{
   (e: 'empty-action'): void
 }>()
+
+const sortedArticles = computed(() => {
+  if (!props.enableFeaturedSort) {
+    return props.articles
+  }
+
+  return [...props.articles].sort((a, b) => {
+    return compareFeaturedPriority(a, b)
+  })
+})
 
 // 计算响应式列数
 const responsiveCols = computed<ResponsiveCols>(() => {

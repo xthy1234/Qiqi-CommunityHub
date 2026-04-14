@@ -1,5 +1,7 @@
 package com.gcs.dto;
 
+import com.gcs.enums.CategoryStatus;
+import com.gcs.enums.CommonStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,4 +24,7 @@ public class CategoryCreateDTO {
     @NotNull(message = "排序字段不能为空")
     @Schema(description = "排序字段", required = true, example = "1")
     private Integer sort;
+    
+    @Schema(description = "状态 (0:启用，1:禁用)")
+    private CategoryStatus status;
 }

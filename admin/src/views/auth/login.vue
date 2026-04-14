@@ -5,7 +5,7 @@
         <div class="logo-wrapper">
           <Icon icon="ri:admin-line" :size="48" color="#18a058" />
         </div>
-        <h1 class="title">中文社区管理平台</h1>
+        <h1 class="title">游戏社区管理平台</h1>
         <p class="subtitle">管理员登录</p>
       </div>
 

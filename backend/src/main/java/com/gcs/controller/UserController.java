@@ -395,19 +395,42 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "创建失败")
     })
     public R createUser(
-        @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserRegisterDTO registerDTO,
-        @Parameter(description = "角色 ID", required = true) @RequestParam Long roleId) {
+        @Parameter(description = "用户信息", required = true) @Valid @RequestBody AdminUserCreateDTO createDTO) {
         try {
-            User user = userConverter.toEntity(registerDTO);
-            user.setRoleId(roleId);
+            User user = new User();
+            user.setAccount(createDTO.getAccount());
+            user.setPassword(createDTO.getPassword());
+            user.setNickname(createDTO.getNickname());
+            user.setGender(createDTO.getGender());
+            user.setPhone(createDTO.getPhone());
+            user.setEmail(createDTO.getEmail());
+            user.setRoleId(createDTO.getRoleId());
+            user.setBirthday(createDTO.getBirthday());
+            user.setSignature(createDTO.getSignature());
+            user.setAvatar(createDTO.getAvatar());
+            user.setStatus(createDTO.getStatus());
+            
             boolean result = userService.createUser(user);
             if (result) {
                 return R.ok("用户创建成功");
             } else {
                 return R.error("创建失败");
             }
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            String message = e.getMessage();
+            if (message != null && message.contains("users_account_key")) {
+                return R.error("账号已存在");
+            } else if (message != null && message.contains("users_nickname_key")) {
+                return R.error("昵称已存在");
+            } else if (message != null && message.contains("users_phone_key")) {
+                return R.error("手机号已被使用");
+            } else if (message != null && message.contains("users_email_key")) {
+                return R.error("邮箱已被使用");
+            } else {
+                return R.error("数据重复，请检查账号、昵称、手机号或邮箱");
+            }
         } catch (Exception e) {
-            log.error("创建用户失败，账号：{}", registerDTO.getAccount(), e);
+            log.error("创建用户失败，账号：{}", createDTO.getAccount(), e);
             return R.error(e.getMessage());
         }
     }

@@ -185,6 +185,13 @@ public class CategoryController {
             } else {
                 return R.error("创建失败");
             }
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            String message = e.getMessage();
+            if (message != null && message.contains("categories_category_name_key")) {
+                return R.error("分类名称已存在");
+            } else {
+                return R.error("数据重复，请检查分类名称");
+            }
         } catch (Exception e) {
             log.error("保存分类失败，名称：{}", createDTO.getCategoryName(), e);
             return R.error(e.getMessage());
@@ -370,6 +377,9 @@ public class CategoryController {
         category.setCategoryName(dto.getCategoryName());
         category.setDescription(dto.getDescription());
         category.setSort(dto.getSort());
+        if (dto.getStatus() != null) {
+            category.setStatus(dto.getStatus());
+        }
         return category;
     }
     

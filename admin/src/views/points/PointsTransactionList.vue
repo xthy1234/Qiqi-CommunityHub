@@ -169,29 +169,18 @@ const adjustFormRules: FormRules = {
   }
 }
 
-const columns: DataTableColumns = [
+const columns: DataTableColumns<PointsTransaction> = [
   {
     title: 'ID',
     key: 'id',
     width: 80
   },
   {
-    title: '用户ID',
-    key: 'userId',
-    width: 100
-  },
-  {
     title: '用户昵称',
     key: 'userNickname',
     width: 120,
-    ellipsis: { tooltip: true }
-  },
-  {
-    title: '规则名称',
-    key: 'ruleName',
-    width: 150,
     ellipsis: { tooltip: true },
-    render: (row) => row.ruleName || row.ruleCode || '-'
+    render: (row) => row.user?.nickname || '-'
   },
   {
     title: '变动数量',
@@ -203,21 +192,40 @@ const columns: DataTableColumns = [
     }
   },
   {
-    title: '变动后余额',
-    key: 'balanceAfter',
+    title: '当前余额',
+    key: 'balance',
     width: 120
   },
   {
-    title: '调整原因',
-    key: 'reason',
+    title: '积分来源',
+    key: 'source',
+    width: 150,
+    render: (row) => {
+      const sourceMap: Record<string, string> = {
+        sign_in: '每日签到',
+        post_article: '发布文章',
+        comment: '发表评论',
+        like_article: '点赞文章',
+        share_article: '分享文章',
+        admin_adjust: '管理员调整'
+      }
+      return h(NTag, {
+        type: row.source === 'admin_adjust' ? 'warning' : 'success',
+        size: 'small'
+      }, { default: () => sourceMap[row.source] || row.source })
+    }
+  },
+  {
+    title: '说明',
+    key: 'description',
     width: 200,
     ellipsis: { tooltip: true }
   },
   {
     title: '关联ID',
-    key: 'relatedId',
+    key: 'sourceId',
     width: 100,
-    render: (row) => row.relatedId || '-'
+    render: (row) => row.sourceId || '-'
   },
   {
     title: '创建时间',

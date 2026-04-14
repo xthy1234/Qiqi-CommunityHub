@@ -23,6 +23,8 @@
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
         <result property="currentVersion" column="current_version"/>
+        <result property="isFeatured" column="is_featured"/>
+        <result property="featuredLevel" column="featured_level"/>
     </resultMap>
 
     <!-- 文章视图结果映射 -->
@@ -48,6 +50,8 @@
         <result property="authorAvatar" column="author_avatar"/>
         <result property="authorNickname" column="author_nickname"/>
         <result property="currentVersion" column="current_version"/>
+        <result property="isFeatured" column="is_featured"/>
+        <result property="featuredLevel" column="featured_level"/>
     </resultMap>
 
 <!--    &lt;!&ndash; 查询文章列表视图 &ndash;&gt;-->
@@ -101,6 +105,8 @@
             a.create_time,
             a.update_time,
             a.current_version,
+            a.is_featured,
+            a.featured_level,
             c.category_name,
             u.avatar as author_avatar,
             u.nickname as author_nickname
@@ -134,7 +140,10 @@
                 </foreach>
             </if>
         </where>
-        ORDER BY a.create_time DESC
+        ORDER BY
+            CASE WHEN a.is_featured = true THEN 0 ELSE 1 END,
+            a.featured_level DESC,
+            a.create_time DESC
     </select>
 
     <!-- 查询单个文章视图 -->
@@ -157,6 +166,8 @@
            a.create_time,
             a.update_time,
             a.current_version,
+            a.is_featured,
+            a.featured_level,
             c.category_name,
             u.avatar as author_avatar,
             u.nickname as author_nickname
@@ -192,6 +203,8 @@
             a.comment_count,
             a.edit_mode,
             a.current_version,
+            a.is_featured,
+            a.featured_level,
             a.create_time,
             a.update_time,
             c.category_name,

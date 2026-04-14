@@ -44,4 +44,10 @@ public class CommentVO implements Serializable {
     @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+    
+    @Schema(description = "关联内容标题", example = "文章标题示例")
+    private String contentTitle;
+    
+    @Schema(description = "内容类型", example = "article")
+    private String contentType;
 }

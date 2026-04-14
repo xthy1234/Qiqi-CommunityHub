@@ -24,7 +24,9 @@ public enum NotificationType {
     MEMBER_REMOVED(11, "圈子成员被移出"),
     SUGGESTION_SUBMIT(12, "有人为你的文章提交修改建议"),
     SUGGESTION_REVIEW(13, "建议审核结果"),
-    SYSTEM_MESSAGE(14, "系统通知");
+    SYSTEM_MESSAGE(14, "系统通知"),
+    REPORT_RESULT(15, "举报处理结果");
+
 
     private final Integer code;
     private final String description;

@@ -86,19 +86,22 @@ public class PointsRuleServiceImpl extends ServiceImpl<PointsRuleDao, PointsRule
     
     @Override
     public PageUtils queryPage(Map<String, Object> params, Wrapper<PointsRule> queryWrapper) {
-        // 确保 queryWrapper 是 QueryWrapper 类型
         if (!(queryWrapper instanceof QueryWrapper)) {
             queryWrapper = new QueryWrapper<>();
         }
         
-        // 使用 MPUtil 处理查询条件
         queryWrapper = MPUtil.sort(MPUtil.between(MPUtil.likeOrEq((QueryWrapper<PointsRule>) queryWrapper, null), params), params);
         
-        // 执行分页查询
+        if (params.get("sort") == null || params.get("order") == null) {
+            ((QueryWrapper<PointsRule>) queryWrapper).orderByDesc("update_time");
+        }
+        
         com.baomidou.mybatisplus.core.metadata.IPage<PointsRule> page = new com.gcs.utils.Query<PointsRule>(params).getPage();
         com.baomidou.mybatisplus.core.metadata.IPage<PointsRule> resultPage = this.page(page, queryWrapper);
         
-        long totalCount = this.count(queryWrapper);
+        QueryWrapper<PointsRule> countWrapper = new QueryWrapper<>();
+        countWrapper = MPUtil.between(MPUtil.likeOrEq(countWrapper, null), params);
+        long totalCount = this.count(countWrapper);
         resultPage.setTotal(totalCount);
         
         return new PageUtils(resultPage);
@@ -126,6 +129,8 @@ public class PointsRuleServiceImpl extends ServiceImpl<PointsRuleDao, PointsRule
             case "like_given": return "给予点赞";
             case "share": return "分享文章";
             case "follow": return "关注用户";
+            case "report_reward": return "举报奖励";
+            case "report_penalty": return "举报处罚";
             default: return "未知规则";
         }
     }
@@ -139,6 +144,8 @@ public class PointsRuleServiceImpl extends ServiceImpl<PointsRuleDao, PointsRule
             case "like_given": return 1;
             case "share": return 3;
             case "follow": return 2;
+            case "report_reward": return 10;
+            case "report_penalty": return -20;
             default: return 0;
         }
     }

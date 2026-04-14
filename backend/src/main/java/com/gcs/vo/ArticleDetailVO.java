@@ -62,4 +62,10 @@ public class ArticleDetailVO extends ArticleVO {
     @Schema(description = "当前版本号（全局版本 ID）", example = "5")
     private Integer currentVersion;
 
+    @Schema(description = "是否推荐/置顶", example = "false")
+    private Boolean isFeatured;
+
+    @Schema(description = "推荐等级（0-普通，1-推荐，2-热门，3-重要通知）", example = "0")
+    private Integer featuredLevel;
+
 }

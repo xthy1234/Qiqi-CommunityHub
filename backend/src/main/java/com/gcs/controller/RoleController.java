@@ -1,6 +1,7 @@
 package com.gcs.controller;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.validation.Valid;
@@ -76,12 +77,19 @@ public class RoleController {
     @IgnoreAuth
     @GetMapping("/all")
     public R getRoleList(
-        @Parameter(description = "角色查询条件") @RequestParam Map<String, Object> params, 
-        @Parameter(description = "角色查询条件") Role role) {
+        @Parameter(description = "角色名称（可选）") @RequestParam(required = false) String roleName) {
         try {
             QueryWrapper<Role> queryWrapper = new QueryWrapper<>();
-            queryWrapper.allEq(MPUtil.allEQMapPre(role, "role"));
-            return R.ok().put("data", roleService.selectListView(queryWrapper));
+            
+            if (roleName != null && !roleName.isEmpty()) {
+                queryWrapper.like("role_name", roleName);
+            }
+            
+            List<Role> roles = roleService.selectListView(queryWrapper);
+            
+            log.info("获取角色列表成功，数量: {}", roles.size());
+            
+            return R.ok().put("data", roles);
         } catch (Exception e) {
             log.error("获取角色列表失败", e);
             return R.error("获取数据失败");

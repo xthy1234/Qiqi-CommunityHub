@@ -11,7 +11,9 @@ import lombok.Getter;
 public enum AuditStatus {
     PENDING(0, "待审核"),
     APPROVED(1, "已通过"),
-    REJECTED(2, "已拒绝");
+    REJECTED(2, "已拒绝"),
+    DRAFT(3, "草稿"),//弃用
+    BLOCKED(4, "违规屏蔽");
 
     private final Integer code;
     private final String description;

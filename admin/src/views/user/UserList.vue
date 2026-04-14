@@ -3,16 +3,19 @@
       :header-title="'用户管理'"
       @back="goBack"
   >
-      <template #header-extra>
-        <NButton type="primary" @click="handleCreate">
-          <template #icon>
-            <Icon icon="ri:add-line" />
-          </template>
-          新建用户
-        </NButton>
-      </template>
 
-      <!-- 搜索栏 -->
+    <template #headerExtra>
+      <NButton type="primary" @click="handleCreate">
+        <Icon
+            icon="ri:add-line"
+            style="margin-right: 4px;"
+        />
+        创建新用户
+      </NButton>
+    </template>
+
+
+    <!-- 搜索栏 -->
       <div class="search-bar">
         <NInput
             v-model:value="searchForm.account"
@@ -51,14 +54,6 @@
           :remote="true"
           striped
       />
-
-
-    <!-- 新增/编辑用户对话框 -->
-    <UserEditDialog
-        v-model:visible="editDialogVisible"
-        :user-data="currentUserData"
-        @success="loadData"
-    />
   </PageContainer>
 </template>
 
@@ -68,7 +63,6 @@ import { useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NTag, NSpace, useMessage, useDialog } from 'naive-ui'
-import UserEditDialog from '@/components/UserEditDialog.vue'
 import { adminUserApi } from '@/api/adminUser'
 
 import PageContainer from "@/components/common/PageContainer.vue";
@@ -136,9 +130,6 @@ const pagination = reactive({
     loadData()
   }
 })
-
-const editDialogVisible = ref(false)
-const currentUserData = ref<UserItem | null>(null)
 
 const columns: DataTableColumns = [
   {
@@ -294,8 +285,7 @@ response.msg || '获取用户列表失败')
 }
 
 const handleCreate = () => {
-  currentUserData.value = null
-  editDialogVisible.value = true
+  router.push('/users/edit')
 }
 
 const handleEdit = (row: UserItem) => {

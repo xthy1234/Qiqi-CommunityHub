@@ -205,21 +205,17 @@ public interface ArticleConverter {
     
     @AfterMapping
     default void handleAdminVO(Article article, @MappingTarget AdminArticleDetailVO vo) {
-        // 处理发布时间
         if (article.getPublishTime() == null && article.getCreateTime() != null) {
             vo.setPublishTime(java.util.Date.from(
                 article.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()
             ));
         }
         
-        // 处理审核状态枚举转 Integer
         if (article.getAuditStatus() != null) {
             vo.setAuditStatus(article.getAuditStatus().getCode());
         }
         
-        // 设置版本号（从 currentVersion 解析）
         if (article.getCurrentVersion() != null) {
-            // 这里只是简单设置，实际应该在 Controller 中从 ArticleVersion 获取详细的 major/minor version
             vo.setMajorVersion(1);
             vo.setMinorVersion(article.getCurrentVersion());
         } else {
@@ -227,9 +223,7 @@ public interface ArticleConverter {
             vo.setMinorVersion(0);
         }
         
-        // 设置推荐相关字段
         vo.setIsFeatured(article.getIsFeatured() != null ? article.getIsFeatured() : false);
-        // isTop 字段暂时不存在于 Article 实体中，如果需要可以后续添加
-        vo.setIsTop(false);
+        vo.setIsTop(article.getIsFeatured() != null && article.getIsFeatured());
     }
 }

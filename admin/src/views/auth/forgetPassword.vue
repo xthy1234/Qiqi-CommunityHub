@@ -4,7 +4,7 @@
       <n-form :model="resetPasswordForm" class="forget-container">
         <!-- 页面标题 -->
         <div class="forget-title">
-          中文社区交流平台{{ getPageTitle(currentStep) }}
+          游戏社区交流平台{{ getPageTitle(currentStep) }}
         </div>
 
         <!-- 步骤指示器 -->

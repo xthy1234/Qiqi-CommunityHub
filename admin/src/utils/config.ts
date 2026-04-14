@@ -21,7 +21,7 @@ class AppConfig {
      */
     public getProjectInfo(): { projectName: string } {
         return {
-            projectName: '中文社区交流平台'
+            projectName: '游戏社区交流平台'
         }
     }
 }

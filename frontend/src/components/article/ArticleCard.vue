@@ -3,24 +3,45 @@
     class="article-card-component"
     hoverable
     :title="article.title"
+    :class="{ 'featured-article': isFeatured }"
     @click="handleClick"
   >
     <template #cover>
-      <img
-        v-if="article.coverUrl"
-        :src="getCoverImageUrl(article.coverUrl)"
-        alt="封面"
-        class="article-cover-img"
-        @error="handleImageError"
-      />
-      <div
-        v-else
-        class="cover-placeholder"
-      >
-        <Icon
-          icon="ri:image-line"
-          width="40"
+      <div class="cover-wrapper">
+        <img
+          v-if="article.coverUrl"
+          :src="getCoverImageUrl(article.coverUrl)"
+          alt="封面"
+          class="article-cover-img"
+          @error="handleImageError"
         />
+        <div
+          v-else
+          class="cover-placeholder"
+        >
+          <Icon
+            icon="ri:image-line"
+            width="40"
+          />
+        </div>
+
+        <!-- 置顶标识 -->
+        <div
+          v-if="isFeatured"
+          class="featured-badge"
+        >
+          <n-tag
+            :type="featuredConfig.type"
+            size="small"
+            round
+          >
+            <Icon
+              :icon="featuredConfig.icon"
+              style="margin-right: 4px;"
+            />
+            {{ featuredConfig.label }}
+          </n-tag>
+        </div>
       </div>
     </template>
     
@@ -154,6 +175,7 @@ import {useGlobalProperties} from "@/utils/globalProperties";
 import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
 import { normalizeFileUrl } from '@/utils/fileUrl'
 import { blockRuleAPI } from '@/api/blockRule'
+import { isArticleFeatured, getFeaturedLevelConfig, type FeaturedLevel } from '@/utils/featuredUtils'
 
 interface ArticleProps {
   id: number | string
@@ -171,6 +193,8 @@ interface ArticleProps {
   publishTime?: string
   auditStatus?: string
   createTime?: string
+  isFeatured?: boolean
+  featuredLevel?: FeaturedLevel
   [key: string]: any
 }
 
@@ -215,6 +239,13 @@ const dropdownOptions = computed(() => [
     icon: () => h(Icon, { icon: 'ri:chat-off-line', size: 16 })
   }
 ])
+
+const isFeatured = computed(() => isArticleFeatured(props.article))
+
+const featuredConfig = computed(() => {
+  const level = props.article.featuredLevel ?? 0
+  return getFeaturedLevelConfig(level as FeaturedLevel)
+})
 
 const getCoverImageUrl = (coverUrl: string): string => {
   if (!coverUrl || coverUrl === 'null') {return '/placeholder.svg'}
@@ -353,20 +384,36 @@ const handleKeywordSubmit = async () => {
   cursor: pointer;
   transition: all 0.3s;
 
-  .article-cover-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
+  &.featured-article {
+    border: 2px solid #18a058;
+    box-shadow: 0 2px 12px rgba(24, 160, 88, 0.15);
   }
 
-  .cover-placeholder {
-    width: 100%;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
+  .cover-wrapper {
+    position: relative;
+
+    .article-cover-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .cover-placeholder {
+      width: 100%;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+
+    .featured-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+    }
   }
 
   .header-actions {
