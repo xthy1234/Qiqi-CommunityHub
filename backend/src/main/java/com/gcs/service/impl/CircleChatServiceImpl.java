@@ -248,8 +248,8 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
 
             // 4. 执行删除操作（标记 deleted_by_admin=true）
             message.setDeletedByAdmin(true);
-            message.setDeletedBy(userId);  // 🔥 记录删除者 ID
-            message.setDeletedTime(LocalDateTime.now());  // 🔥 记录删除时间
+            message.setDeletedBy(userId);  //  记录删除者 ID
+            message.setDeletedTime(LocalDateTime.now());  //  记录删除时间
             message.setUpdateTime(LocalDateTime.now());
             this.updateById(message);
 
@@ -351,7 +351,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             vo.setSender(convertToUserSimpleVO(sender));
         }
         
-        // 🔥 处理撤回和删除的消息内容：将 contentJson 置为空 Map
+        //  处理撤回和删除的消息内容：将 contentJson 置为空 Map
         if (chat.getDeletedByAdmin()) {
             vo.setContent(new java.util.HashMap<>());  // 删除后内容为空对象
         } else if (chat.getIsRecalled()) {
@@ -364,7 +364,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
         vo.setIsRecalled(chat.getIsRecalled());
         vo.setDeletedByAdmin(chat.getDeletedByAdmin());
         
-        // 🔥 添加删除者信息（如果是删除状态）
+        //  添加删除者信息（如果是删除状态）
         if (chat.getDeletedByAdmin() && chat.getDeletedBy() != null) {
             User deleter = userDao.selectById(chat.getDeletedBy());
             if (deleter != null) {
@@ -388,7 +388,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
         messageVO.setCircleId(chat.getCircleId());
         messageVO.setSenderId(chat.getSenderId());
         
-        // 🔥 处理撤回和删除的消息内容：将 contentJson 置为空 Map
+        //  处理撤回和删除的消息内容：将 contentJson 置为空 Map
         if (Boolean.TRUE.equals(chat.getDeletedByAdmin())) {  //  使用 Boolean.TRUE.equals() 避免空指针
             messageVO.setContent(new java.util.HashMap<>());  // 删除后内容为空对象
         } else if (Boolean.TRUE.equals(chat.getIsRecalled())) {  //  同上
@@ -404,7 +404,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
         messageVO.setIsRecalled(chat.getIsRecalled());
         messageVO.setDeletedByAdmin(chat.getDeletedByAdmin());
         
-        // 🔥 添加删除者信息（如果是删除状态）
+        //  添加删除者信息（如果是删除状态）
         if (chat.getDeletedByAdmin() && chat.getDeletedBy() != null) {
             User deleter = userDao.selectById(chat.getDeletedBy());
             if (deleter != null) {

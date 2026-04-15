@@ -24,7 +24,6 @@ public class UserOnlineStatusService {
     @Autowired
     private UserDao userDao;
     
-    // 🔥 使用 @Lazy 延迟加载，打破循环依赖
     @Lazy
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -44,7 +43,7 @@ public class UserOnlineStatusService {
         
         onlineUsers.put(userId, sessionInfo);
         
-        // 🔥 更新数据库中的最后在线时间
+        //  更新数据库中的最后在线时间
         try {
             userDao.updateLastOnlineTime(userId);
             log.debug(" 已更新数据库最后在线时间：userId={}", userId);
@@ -52,7 +51,7 @@ public class UserOnlineStatusService {
             log.error("更新最后在线时间失败：userId={}", userId, e);
         }
         
-        // 🔥 推送在线状态变更给有会话的人
+        //  推送在线状态变更给有会话的人
         try {
             notifyOnlineStatusChange(userId, true);
         } catch (Exception e) {
@@ -68,9 +67,9 @@ public class UserOnlineStatusService {
     public void userOffline(Long userId) {
         UserSessionInfo removed = onlineUsers.remove(userId);
         if (removed != null) {
-            log.info("🔴 用户下线：userId={}, sessionId={}", userId, removed.getSessionId());
+            log.info(" 用户下线：userId={}, sessionId={}", userId, removed.getSessionId());
             
-            // 🔥 更新数据库中的最后下线时间（可选，如果需要记录最后一次在线时间）
+            //  更新数据库中的最后下线时间（可选，如果需要记录最后一次在线时间）
             try {
                 userDao.updateLastOnlineTime(userId);
                 log.debug(" 已更新数据库最后离线时间：userId={}", userId);
@@ -78,7 +77,7 @@ public class UserOnlineStatusService {
                 log.error("更新最后离线时间失败：userId={}", userId, e);
             }
             
-            // 🔥 推送离线状态变更给有会话的人
+            //  推送离线状态变更给有会话的人
             try {
                 notifyOnlineStatusChange(userId, false);
             } catch (Exception e) {
@@ -95,7 +94,7 @@ public class UserOnlineStatusService {
         if (sessionInfo != null) {
             sessionInfo.updateHeartbeat();
             
-            // 🔥 可选：定期更新数据库中的最后在线时间（例如每 5 分钟）
+            //  可选：定期更新数据库中的最后在线时间（例如每 5 分钟）
             // 避免频繁写数据库
             long now = System.currentTimeMillis();
             if (sessionInfo.getLastHeartbeat() != null && 
@@ -160,7 +159,7 @@ public class UserOnlineStatusService {
             if (info.getLastHeartbeat() != null && 
                 now - info.getLastHeartbeat() > timeoutMillis) {
                 
-                // 🔥 清理前先更新数据库
+                //  清理前先更新数据库
                 try {
                     userDao.updateLastOnlineTime(userId);
                 } catch (Exception e) {
@@ -202,7 +201,7 @@ public class UserOnlineStatusService {
             statusVO.setIsOnline(isOnline);
             statusVO.setTimestamp(System.currentTimeMillis());
             
-            // 📤 推送给每个有会话的人
+            //  推送给每个有会话的人
             for (Long relatedUserId : relatedUserIds) {
                 if (!userId.equals(relatedUserId)) {  // 不推送给自己
                     String destination = "/user/" + relatedUserId + "/queue/online-status-changes";
@@ -238,7 +237,7 @@ public class UserOnlineStatusService {
             List<Long> messageUserIds = userDao.selectRelatedUserIds(userId);
             if (messageUserIds != null && !messageUserIds.isEmpty()) {
                 relatedUserSet.addAll(messageUserIds);
-                log.debug("📩 从私信表找到 {} 个相关用户", messageUserIds.size());
+                log.debug(" 从私信表找到 {} 个相关用户", messageUserIds.size());
             }
         } catch (Exception e) {
             log.error("查找相关用户失败：userId={}", userId, e);

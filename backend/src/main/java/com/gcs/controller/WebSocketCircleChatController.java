@@ -51,7 +51,7 @@ public class WebSocketCircleChatController {
         //  从 Session 获取真实用户 ID
         Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
         
-        log.info("🚀 [圈子消息] 收到 WebSocket 消息：circleId={}, sessionUserId={}", 
+        log.info(" [圈子消息] 收到 WebSocket 消息：circleId={}, sessionUserId={}",
                  chatMessage.getCircleId(), currentUserId);
 
         try {
@@ -95,7 +95,7 @@ public class WebSocketCircleChatController {
 
             // 广播给圈子所有成员
             String destination = "/topic/circles/" + chatMessage.getCircleId() + "/messages";
-            log.info("📤 [圈子消息] 推送到主题：{}", destination);
+            log.info(" [圈子消息] 推送到主题：{}", destination);
 
             messagingTemplate.convertAndSend(destination, messageVO);
 
@@ -200,7 +200,7 @@ public class WebSocketCircleChatController {
                 return;
             }
 
-            // 🔥 获取删除者信息（用于推送）
+            //  获取删除者信息（用于推送）
             User deleter = userDao.selectById(currentUserId);
 
             // 组装删除通知消息
@@ -212,7 +212,7 @@ public class WebSocketCircleChatController {
             deleteNotification.setContent(new java.util.HashMap<>()); // 删除后内容为空
             deleteNotification.setDeletedByAdmin(true);
             
-            // 🔥 设置删除者信息（UserSimpleVO 格式）
+            //  设置删除者信息（UserSimpleVO 格式）
             if (deleter != null) {
                 UserSimpleVO deleterVO = new UserSimpleVO();
                 deleterVO.setId(deleter.getId());

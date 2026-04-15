@@ -305,7 +305,7 @@ public class MessageController {
             vo.setFromUserId(message.getFromUserId());
             vo.setToUserId(message.getToUserId());
             
-            // 🔥 处理撤回和删除的消息内容
+            //  处理撤回和删除的消息内容
             if (Boolean.TRUE.equals(message.getIsRecalled())) {
                 vo.setContent(new java.util.HashMap<>());  // 撤回后内容为空对象
             } else if (Boolean.TRUE.equals(message.getDeletedBySender()) || 
@@ -315,7 +315,7 @@ public class MessageController {
                 vo.setContent(message.getContent());
             }
             
-            // 🔥 设置 extra 字段
+            //  设置 extra 字段
             vo.setExtra(message.getExtra());
             
             vo.setMsgType(message.getMsgType());

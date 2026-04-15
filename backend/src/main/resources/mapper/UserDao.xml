@@ -244,7 +244,7 @@
         WHERE id = #{userId}
     </update>
 
-    <!-- 🔥 查询与指定用户有会话的所有用户 ID -->
+    <!--  查询与指定用户有会话的所有用户 ID -->
     <select id="selectRelatedUserIds" resultType="java.lang.Long">
         SELECT DISTINCT related_user_id FROM (
             SELECT to_user_id as related_user_id

@@ -232,11 +232,11 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
                                                  ArticleEditSuggestion suggestion, 
                                                  Long operatorId) {
         try {
-            // 1️⃣ 获取当前版本号并 +1（用于 article.current_version）
+            //  获取当前版本号并 +1（用于 article.current_version）
             Integer currentVersion = article.getCurrentVersion() != null ? article.getCurrentVersion() : 0;
             Integer newVersion = currentVersion + 1;
             
-            // 2️⃣  使用带贡献者参数的 createMinorVersion，贡献者为建议提出者
+            //   使用带贡献者参数的 createMinorVersion，贡献者为建议提出者
             String changeSummary = "采纳修改建议 #" + suggestion.getId() + ": " + suggestion.getChangeSummary();
             Integer versionNumber = articleVersionService.createMinorVersion(
                 article, 
@@ -245,13 +245,13 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
                 suggestion.getProposerId()  //  贡献者为建议提出者
             );
             
-            // 3️⃣ 更新文章的当前内容为建议的内容
+            //  更新文章的当前内容为建议的内容
             article.setContent(suggestion.getContent());
             article.setCurrentVersion(newVersion);  // 更新文章版本号
             article.setUpdateTime(LocalDateTime.now());
             articleDao.updateById(article);
             
-            // 4️⃣ 在建议的 extra 中记录版本信息
+            //  在建议的 extra 中记录版本信息
             Map<String, Object> extra = suggestion.getExtra() != null 
                 ? new HashMap<>(suggestion.getExtra()) 
                 : new HashMap<>();

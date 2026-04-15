@@ -265,13 +265,13 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void rollbackToVersion(Long articleId, Integer version, Long operatorId) {
-        // 1️⃣ 查询目标版本
+        //  查询目标版本
         ArticleVersion targetVersion = articleVersionDao.selectByVersion(articleId, version);
         if (targetVersion == null) {
             throw new IllegalArgumentException("版本不存在");
         }
 
-        // 2️⃣ 获取当前文章和最新版本
+        //   获取当前文章和最新版本
         Article article = articleDao.selectById(articleId);
         if (article == null) {
             throw new IllegalArgumentException("文章不存在");
@@ -288,16 +288,16 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
                 latestVersion.getVersion(), latestVersion.getMajorVersion(), latestVersion.getMinorVersion(),
                 targetVersion.getVersion(), targetVersion.getMajorVersion(), targetVersion.getMinorVersion());
 
-        // 3️⃣ 更新文章内容为目标版本的内容
+        //  更新文章内容为目标版本的内容
         article.setTitle(targetVersion.getTitle());
         article.setContent(targetVersion.getContent());
         
-        // 4️⃣ 使用 createMinorVersion 创建回滚版本
+        //  使用 createMinorVersion 创建回滚版本
         //  createMinorVersion 会自动基于当前最大版本号计算，不会冲突
         String changeSummary = "回滚到版本 " + targetVersion.getMajorVersion() + "." + targetVersion.getMinorVersion();
         Integer rollbackVersion = createMinorVersion(article, operatorId, changeSummary);
         
-        // 5️⃣ 更新文章的 currentVersion
+        //  更新文章的 currentVersion
         article.setCurrentVersion(rollbackVersion);
         articleDao.updateById(article);
 
@@ -455,19 +455,19 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteVersion(Long articleId, Integer version, Long operatorId) {
-        // 1️⃣ 查询目标版本
+        //  查询目标版本
         ArticleVersion targetVersion = articleVersionDao.selectByVersion(articleId, version);
         if (targetVersion == null) {
             throw new IllegalArgumentException("版本不存在");
         }
 
-        // 2️⃣ 检查是否为最新版本
+        //   检查是否为最新版本
         Integer maxVersion = articleVersionDao.getMaxVersion(articleId);
         if (version.equals(maxVersion)) {
             throw new IllegalArgumentException("不能删除最新版本，请先回滚到其他版本");
         }
 
-        // 3️⃣ 执行软删除
+        //  执行软删除
         targetVersion.setIsDeleted(true);
         baseMapper.updateById(targetVersion);
 

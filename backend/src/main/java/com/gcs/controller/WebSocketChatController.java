@@ -59,7 +59,7 @@ public class WebSocketChatController {
             //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
-            log.info("🚀 [私聊消息] 收到 WebSocket 消息：from={}, to={}", 
+            log.info(" [私聊消息] 收到 WebSocket 消息：from={}, to={}",
                     chatMessage.getFromUserId(), chatMessage.getToUserId());
 
             //  验证用户是否已登录
@@ -68,14 +68,14 @@ public class WebSocketChatController {
                 throw new IllegalStateException("用户未登录");
             }
 
-            // 🔥 1. 验证必填字段 - content 不能为空
+            //  1. 验证必填字段 - content 不能为空
             if (chatMessage.getContent() == null || chatMessage.getContent().isEmpty()) {
                 log.error("[私聊消息] 发送失败：消息内容不能为空，from={}, to={}",
                          chatMessage.getFromUserId(), chatMessage.getToUserId());
                 throw new IllegalArgumentException("消息内容不能为空");
             }
             
-            // 🔥 2. 如果 msgType 为空，设置默认值
+            //  2. 如果 msgType 为空，设置默认值
             if (chatMessage.getMsgType() == null) {
                 chatMessage.setMsgType(0); // 默认为文本类型
                 log.warn(" [私聊消息] msgType 为空，使用默认值 0");
@@ -139,7 +139,7 @@ public class WebSocketChatController {
             
             log.info(" 推送完成");
 
-            log.info("🎉 消息推送完成，接收方：{}", chatMessage.getToUserId());
+            log.info(" 消息推送完成，接收方：{}", chatMessage.getToUserId());
 
         } catch (IllegalArgumentException e) {
             log.error("[私聊消息] 参数错误：{}", e.getMessage());
@@ -332,10 +332,10 @@ public class WebSocketChatController {
                 log.info("📊 [在线状态] 用户 {} 在线状态：{}", userId, isOnline ? "在线" : "离线");
             }
             
-            // 📤 将结果推送回发起查询的客户端
+            //  将结果推送回发起查询的客户端
             if (currentUserId != null) {
                 String replyDestination = "/user/" + currentUserId + "/queue/user-online-status";
-                log.info("📤 [在线状态] 推送查询结果到：{}, 结果数：{}", replyDestination, statusList.size());
+                log.info(" [在线状态] 推送查询结果到：{}, 结果数：{}", replyDestination, statusList.size());
                 
                 messagingTemplate.convertAndSend(replyDestination, statusList);
                 log.info(" [在线状态] 已推送查询结果");
