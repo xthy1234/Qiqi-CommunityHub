@@ -20,8 +20,10 @@ public class HeartbeatCleanupTask {
     /**
      * 每 30 秒执行一次清理
      * 清理超过 60 秒未心跳的用户
+     * 
+     * ⚠️ 已临时禁用（注释掉 @Scheduled 注解）
      */
-    @Scheduled(fixedDelay = 30000)
+    // @Scheduled(fixedDelay = 30000)
     public void cleanOfflineUsers() {
         log.debug("⏰ 开始执行心跳清理任务...");
         int cleanedCount = onlineStatusService.cleanupTimeoutUsers(60000);

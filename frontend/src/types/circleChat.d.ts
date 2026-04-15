@@ -78,6 +78,20 @@ export interface CircleMessage {
   _tempId?: string
 }
 
+/**
+ * 圈子消息删除通知 Payload
+ */
+export interface CircleMessageDeletePayload {
+  type: 'CIRCLE_CHAT_MESSAGE_DELETE'
+  data: {
+    messageId: number
+    circleId: number
+    deleterId: number
+    deleterNickname?: string
+    deletedAt: string
+  }
+}
+
 /** 分页参数 */
 export interface PaginationParams {
   page: number

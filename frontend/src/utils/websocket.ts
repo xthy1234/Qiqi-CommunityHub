@@ -3,6 +3,62 @@ import { Client, IMessage } from '@stomp/stompjs'
 import type { IFrame } from '@stomp/stompjs'
 import { createStompSubscription } from './websocketSubscription'
 import { wsLogger } from './websocketLogger'
+import type { 
+  Message,
+  NotificationPayload,
+  UserOnlineStatusPayload,
+  UserListUpdatePayload,
+  MessageStatusPayload,
+  MessageRecallPayload,
+  MessageDeletePayload,
+  NewConversationPayload,
+  UnreadCountUpdatePayload
+} from '@/types/message'
+import type { 
+  CircleMessage,
+  CircleMessageDeletePayload 
+} from '@/types/circleChat'
+
+/**
+ * WebSocket 消息类型枚举
+ */
+export type WsMessageType = 
+  | 'CHAT_MESSAGE'
+  | 'MESSAGE_STATUS'
+  | 'MESSAGE_RECALL'
+  | 'MESSAGE_DELETE'
+  | 'USER_ONLINE_STATUS'
+  | 'USER_LIST_UPDATE'
+  | 'CIRCLE_CHAT_MESSAGE'
+  | 'CIRCLE_CHAT_MESSAGE_DELETE'
+  | 'NOTIFICATION'
+  | 'NOTIFICATION_READ_UPDATE'
+  | 'NEW_CONVERSATION'
+  | 'UNREAD_COUNT_UPDATE'
+
+
+/**
+ * WebSocket 消息类型映射表
+ */
+export interface WsMessageMap {
+  'CHAT_MESSAGE': Message
+  'MESSAGE_STATUS': MessageStatusPayload['data']
+  'MESSAGE_RECALL': MessageRecallPayload['data']
+  'MESSAGE_DELETE': MessageDeletePayload['data']
+  'USER_ONLINE_STATUS': UserOnlineStatusPayload['data']
+  'USER_LIST_UPDATE': UserListUpdatePayload['data']
+  'CIRCLE_CHAT_MESSAGE': CircleMessage
+  'CIRCLE_CHAT_MESSAGE_DELETE': CircleMessageDeletePayload['data']
+  'NOTIFICATION': NotificationPayload['data']
+  'NOTIFICATION_READ_UPDATE': NotificationPayload['data']
+  'NEW_CONVERSATION': NewConversationPayload['data']
+  'UNREAD_COUNT_UPDATE': UnreadCountUpdatePayload['data']
+}
+
+/**
+ * WebSocket 消息处理器类型
+ */
+export type WsMessageHandler<T extends WsMessageType> = (data: WsMessageMap[T]) => void
 
 /**
  * WebSocket连接状态
@@ -103,53 +159,45 @@ class WebSocketManager {
   }
 
   /**
-   * 获取当前用户 ID（优化版：修复竞态条件和用户切换问题）
+   * 获取当前用户 ID（简化版）
+   * 统一从 UserInfo 中获取，确保数据一致性
    */
   private getCurrentUserId(): number | null {
-    // 1. 优先使用缓存的用户 ID（但不为 0）
-    if (this.currentUserId !== null && this.currentUserId !== undefined && this.currentUserId > 0) {
-      return this.currentUserId
-    }
-    
-    // 2. 尝试从 UserInfo 中获取（推荐方式）
-    const userInfoStr = toolUtil.storageGet('UserInfo')
-    if (userInfoStr) {
-      try {
-        const userInfo = JSON.parse(userInfoStr)
-        const userId = userInfo?.id
-        
-        // 验证 userId 有效性
-        if (userId !== undefined && userId !== null && userId > 0) {
-          this.currentUserId = userId
-          this.lastKnownUserId = userId
-          return userId
-        }
-      } catch (error) {
-        console.error('[WebSocket] 解析 UserInfo 失败:', error)
+    try {
+      // 优先使用缓存的用户 ID（避免重复解析 JSON）
+      if (this.currentUserId !== null && this.currentUserId > 0) {
+        return this.currentUserId
       }
-    }
-    
-    // 3. 降级方案：尝试从 userid 获取（兼容旧数据）
-    const userIdStr = toolUtil.storageGet('userid')
-    if (userIdStr) {
-      const userId = parseInt(userIdStr, 10)
+      
+      // 从 UserInfo 中获取（唯一可信来源）
+      const userInfoStr = toolUtil.storageGet('UserInfo')
+      if (!userInfoStr) {
+        wsLogger.warn('未找到 UserInfo，请检查是否已登录')
+        return null
+      }
+      
+      const userInfo = JSON.parse(userInfoStr)
+      const userId = userInfo?.id
       
       // 验证 userId 有效性
-      if (!isNaN(userId) && userId > 0) {
-        this.currentUserId = userId
-        this.lastKnownUserId = userId
-        return userId
+      if (!userId || typeof userId !== 'number' || userId <= 0) {
+        wsLogger.error('UserInfo 中的 userId 无效', { userId })
+        return null
       }
+      
+      // 缓存用户 ID
+      this.currentUserId = userId
+      this.lastKnownUserId = userId
+      
+      wsLogger.debug('成功获取用户 ID', { userId })
+      return userId
+      
+    } catch (error) {
+      wsLogger.error('解析 UserInfo 失败', { 
+        error: error instanceof Error ? error.message : error 
+      })
+      return null
     }
-    
-    // 4. 如果都失败了，返回 lastKnownUserId（用于诊断）
-    if (this.lastKnownUserId) {
-      console.warn('⚠️ [WebSocket] 无法获取当前用户 ID，使用上次已知 ID:', this.lastKnownUserId)
-      return this.lastKnownUserId
-    }
-    
-    console.warn('⚠️ [WebSocket] 未获取到有效的用户 ID')
-    return null
   }
 
   /**
@@ -233,8 +281,8 @@ class WebSocketManager {
         }
         
 
-        const wsUrl = `${this.config.url}?userId=${userId}&token=${encodeURIComponent(token)}`
-        
+        const wsUrl = `${this.config.url}?userId=${userId}`
+
         // 如果已有连接，先关闭
         if (this.client) {
           wsLogger.warn('检测到已有连接，正在关闭...')
@@ -273,6 +321,12 @@ class WebSocketManager {
           },
           
           onStompError: (frame: IFrame) => {
+            console.error('❌ [WebSocket 调试] STOMP 错误:')
+            console.error('  - Command:', frame.command)
+            console.error('  - Headers:', JSON.stringify(frame.headers, null, 2))
+            console.error('  - Message:', frame.headers?.message)
+            console.error('  - Body:', frame.body)
+            
             wsLogger.error('STOMP 错误', {
               command: frame.command,
               headers: frame.headers,
@@ -285,6 +339,7 @@ class WebSocketManager {
           },
           
           onWebSocketError: (error) => {
+            console.error('❌ [WebSocket 调试] WebSocket 错误:', error)
             wsLogger.error('WebSocket 错误', { error })
             this.notifyStateChange(WsReadyState.CLOSED)
             reject(error)
@@ -308,8 +363,17 @@ class WebSocketManager {
           }
         })
 
+        // 🔍 输出实际发送的 Connect Headers
+
+        const connectHeaders = {
+          Authorization: `Bearer ${token}`,
+          token: token,
+          userId: String(userId)
+        }
+
         this.client.activate()
       } catch (error) {
+        console.error('❌ [WebSocket 调试] 连接异常:', error)
         wsLogger.error('连接异常', { error })
         reject(error)
       }
@@ -317,14 +381,13 @@ class WebSocketManager {
   }
 
   /**
-   * 连接成功后订阅消息队列（重构版）
+   * 连接成功后订阅消息队列
    */
   private subscribeToMessages(): void {
     if (!this.client) {return}
 
     const currentUserId = this.getCurrentUserId()
     
-
     if (!currentUserId) {
       wsLogger.error('无法订阅消息：未获取到有效的用户 ID')
       return
@@ -332,12 +395,12 @@ class WebSocketManager {
   
     wsLogger.info('开始订阅消息队列', { userId: currentUserId })
 
-    // 使用标准化工具创建订阅，消除重复代码
+    // 订阅所有必要的消息通道
     this.createMessageSubscriptions(currentUserId)
   }
 
   /**
-   * 创建所有消息订阅（核心优化：抽取公共逻辑）
+   * 创建所有消息订阅
    */
   private createMessageSubscriptions(userId: number): void {
     if (!this.client) {return}
@@ -528,9 +591,10 @@ class WebSocketManager {
   }
 
   /**
-   * 发送已读回执
+   * 发送已读回执（私聊）
+   * @param messageSenderUserId 消息发送者的 ID
    */
-  sendReadReceipt(fromUserId: number): void {
+  sendReadReceipt(messageSenderUserId: number): void {
     if (!this.client || !this.client.connected) {
       wsLogger.warn('WebSocket 未连接，无法发送已读回执')
       return
@@ -543,13 +607,14 @@ class WebSocketManager {
       return
     }
     
+    // 🔧 修复：使用后端期望的字段名
     const receipt = {
-      fromUserId: currentUserId,      // 我（阅读者）
-      toUserId: fromUserId,           // 对方（发送者）
-      timestamp: Date.now()
-      // lastReadMessageId: 123       // 可选：最后一条已读消息 ID
+      fromUserId: currentUserId,        // 当前用户（阅读者）
+      toUserId: messageSenderUserId     // 消息发送方
+      // lastReadMessageId: xxx         // 可选：最后一条已读消息 ID
     }
-    
+
+
     try {
       this.client.publish({
         destination: '/app/read-receipt',
@@ -660,30 +725,36 @@ class WebSocketManager {
   }
 
   /**
-   * 注册消息处理器（兼容旧接口）
-   * @param type 消息类型：CHAT_MESSAGE | MESSAGE_STATUS | MESSAGE_RECALL | MESSAGE_DELETE | USER_ONLINE_STATUS | USER_LIST_UPDATE | CIRCLE_CHAT_MESSAGE | CIRCLE_CHAT_MESSAGE_DELETE | NOTIFICATION | NOTIFICATION_READ_UPDATE
+   * 注册消息处理器（类型安全版本）
+   * @param type 消息类型
+   * @param handler 消息处理器，自动推断参数类型
    */
-  on(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE' | 'NOTIFICATION' | 'NOTIFICATION_READ_UPDATE', handler: (data: any) => void): () => void {
+  on<T extends WsMessageType>(
+    type: T, 
+    handler: WsMessageHandler<T>
+  ): () => void {
     if (!this.messageHandlers.has(type)) {
       this.messageHandlers.set(type, new Set())
     }
     
-    this.messageHandlers.get(type)!.add(handler)
+    this.messageHandlers.get(type)!.add(handler as any)
     
     // 返回取消订阅函数
     return () => {
-      this.offMessage(type, handler)
+      this.offMessage(type, handler as any)
     }
   }
 
   /**
    * 移除消息处理器
    */
-  offMessage(type: 'CHAT_MESSAGE' | 'MESSAGE_STATUS' | 'MESSAGE_RECALL' | 'MESSAGE_DELETE' | 'USER_ONLINE_STATUS' | 'USER_LIST_UPDATE' | 'CIRCLE_CHAT_MESSAGE' | 'CIRCLE_CHAT_MESSAGE_DELETE' | 'NOTIFICATION' | 'NOTIFICATION_READ_UPDATE', handler: (data: any) => void): void {
+  offMessage<T extends WsMessageType>(
+    type: T, 
+    handler: WsMessageHandler<T>
+  ): void {
     const handlers = this.messageHandlers.get(type)
     if (handlers) {
-      handlers.delete(handler)
-
+      handlers.delete(handler as any)
     }
   }
 

@@ -5,56 +5,13 @@ import { wsLogger } from '@/utils/websocketLogger'
 
 /**
  * 圈子消息服务（纯业务逻辑，无 Vue 依赖）
+ * 职责：提供事件监听接口，不负责订阅管理
+ * 订阅由 WebSocketManager 统一管理
  */
 class CircleChatMessageService {
   private messageHandlers: Set<(message: CircleMessage) => void> = new Set()
   private deleteHandlers: Set<(data: { messageId: number; deleterId: number; deleterNickname?: string }) => void> = new Set()
-  private unsubscribeMessages: (() => void) | null = null
-  private unsubscribeDelete: (() => void) | null = null
-
-  /**
-   * 初始化圈子消息订阅
-   */
-  init(): void {
-    const ws = getWebSocket()
-    if (!ws || !ws.isConnected()) {
-      wsLogger.warn('WebSocket 未连接，无法初始化圈子消息服务')
-      return
-    }
-
-    const client = (ws as any).client
-    if (!client) {return}
-
-    wsLogger.info('初始化圈子消息服务')
-
-    // 订阅圈子消息（使用通配符订阅所有圈子）
-    this.unsubscribeMessages = createStompSubscription(client, {
-      messageType: 'CIRCLE_CHAT_MESSAGE',
-      destination: '/topic/circles/*/messages',
-      handler: (data: CircleMessage) => {
-        wsLogger.logMessageReceived('CIRCLE_CHAT_MESSAGE', JSON.stringify(data).length)
-        wsLogger.debug('收到圈子消息', {
-          circleId: data.circleId,
-          senderId: data.senderId,
-          msgType: data.msgType
-        })
-        this.messageHandlers.forEach(h => h(data))
-      },
-      logPrefix: 'CircleChatService'
-    })
-
-    // 订阅圈子消息删除通知
-    this.unsubscribeDelete = createStompSubscription(client, {
-      messageType: 'CIRCLE_CHAT_MESSAGE_DELETE',
-      destination: '/topic/circles/*/messages/delete',
-      handler: (data) => {
-        wsLogger.debug('收到圈子消息删除通知', data)
-        this.deleteHandlers.forEach(h => h(data))
-      },
-      logPrefix: 'CircleChatService'
-    })
-  }
-
+  
   /**
    * 监听新消息
    */
@@ -75,8 +32,6 @@ class CircleChatMessageService {
    * 清理订阅
    */
   destroy(): void {
-    this.unsubscribeMessages?.()
-    this.unsubscribeDelete?.()
     this.messageHandlers.clear()
     this.deleteHandlers.clear()
 

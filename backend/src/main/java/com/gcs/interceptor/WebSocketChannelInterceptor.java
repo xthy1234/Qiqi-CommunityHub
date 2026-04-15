@@ -37,15 +37,32 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
 
         // 在 CONNECT 时验证用户并标记上线
         if (StompCommand.CONNECT.equals(command)) {
-            String userIdStr = accessor.getFirstNativeHeader("userId");
-            String token = accessor.getFirstNativeHeader("token");
+            // ✅ 方式 1：优先从 Authorization Header 获取 Token
+            String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
+            String token = null;
             
-            log.debug("🔵 [CONNECT] userId: {}", userIdStr);
-            log.debug("🔵 [CONNECT] token: {}", token);
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                token = authorizationHeader.substring(7);
+                log.debug("🔵 [CONNECT] 从 Authorization Header 获取 Token");
+            }
+            
+            // 🔒 降级方案：如果 Header 中没有，尝试从原生 header 获取
+            if (token == null || token.isEmpty()) {
+                token = accessor.getFirstNativeHeader("token");
+                if (token != null && !token.isEmpty()) {
+                    log.warn("⚠️ [CONNECT] 使用 token header（不推荐，建议改用 Authorization Header）");
+                }
+            }
+            
+            // 获取 userId（从 Session Attributes，由握手拦截器设置）
+            Long userId = (Long) accessor.getSessionAttributes().get("userId");
+            
+            log.debug("🔵 [CONNECT] userId: {}", userId);
+            log.debug("🔵 [CONNECT] token: {}", token != null ? "***" : "null");
 
             // 验证参数完整性
-            if (userIdStr == null || userIdStr.isEmpty()) {
-                log.warn("CONNECT 消息验证失败：缺少 userId 参数");
+            if (userId == null) {
+                log.warn("CONNECT 消息验证失败：缺少 userId（Session Attributes 中未找到）");
                 throw new IllegalArgumentException("用户 ID 不能为空");
             }
 
@@ -58,12 +75,11 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                 // 验证 Token 有效性（查询数据库）
                 Token tokenEntity = tokenService.validateAndGetToken(token);
                 if (tokenEntity == null) {
-                    log.warn("CONNECT 消息验证失败：Token 无效或已过期，userId={}", userIdStr);
+                    log.warn("CONNECT 消息验证失败：Token 无效或已过期，userId={}", userId);
                     throw new IllegalArgumentException("认证令牌无效或已过期");
                 }
 
                 // 验证 userId 是否匹配
-                Long userId = Long.parseLong(userIdStr);
                 if (!tokenEntity.getUserId().equals(userId)) {
                     log.warn("CONNECT 消息验证失败：userId 与 Token 不匹配，userId={}, tokenUserId={}", 
                              userId, tokenEntity.getUserId());
@@ -77,7 +93,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                 }
 
                 // 设置用户上下文（用于后续消息处理）
-                accessor.setUser(() -> userIdStr);
+                accessor.setUser(() -> userId.toString());
                 
                 // ✅ 标记用户上线
                 String sessionId = accessor.getSessionId();
@@ -87,7 +103,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                 log.debug("CONNECT 消息验证成功：userId={}", userId);
 
             } catch (NumberFormatException e) {
-                log.error("CONNECT 消息验证失败：userId 格式错误，userId={}", userIdStr, e);
+                log.error("CONNECT 消息验证失败：userId 格式错误，userId={}", userId, e);
                 throw new IllegalArgumentException("用户 ID 格式错误");
             }
         }

@@ -124,6 +124,43 @@ export interface WsUnreadCountUpdate {
 }
 
 /**
+ * 消息状态更新 Payload（兼容 STOMP 格式）
+ */
+export interface MessageStatusPayload {
+  type: 'MESSAGE_STATUS'
+  data: {
+    messageId: number
+    status: 'SENT' | 'DELIVERED' | 'READ'
+    readAt?: string
+  }
+}
+
+/**
+ * 消息撤回通知 Payload
+ */
+export interface MessageRecallPayload {
+  type: 'MESSAGE_RECALL'
+  data: {
+    messageId: number
+    userId: number
+    reason?: string
+    recalledAt: string
+  }
+}
+
+/**
+ * 消息删除通知 Payload
+ */
+export interface MessageDeletePayload {
+  type: 'MESSAGE_DELETE'
+  data: {
+    messageId: number
+    userId: number
+    deletedAt: string
+  }
+}
+
+/**
  * 用户在线状态信息
  */
 export interface UserOnlineStatus {
@@ -279,4 +316,73 @@ export function isSendingMessage(status?: string | number): boolean {
  */
 export function isFailedMessage(status?: string | number): boolean {
     return status === MessageStatus.FAILED || status === 'FAILED' || status === 3
+}
+
+/**
+ * 用户在线状态 Payload
+ */
+export interface UserOnlineStatusPayload {
+  type: 'USER_ONLINE_STATUS'
+  data: {
+    userId: number
+    isOnline: boolean
+    lastSeenAt?: string
+    timestamp: number
+  }
+}
+
+/**
+ * 用户列表更新 Payload
+ */
+export interface UserListUpdatePayload {
+  type: 'USER_LIST_UPDATE'
+  data: {
+    users: Array<{
+      userId: number
+      online: boolean
+      lastSeenAt?: string
+    }>
+    timestamp: number
+  }
+}
+
+/**
+ * 新会话通知 Payload
+ */
+export interface NewConversationPayload {
+  type: 'NEW_CONVERSATION'
+  data: {
+    conversationId: number
+    userId: number
+    username: string
+    createdAt: string
+  }
+}
+
+/**
+ * 未读数更新通知 Payload
+ */
+export interface UnreadCountUpdatePayload {
+  type: 'UNREAD_COUNT_UPDATE'
+  data: {
+    conversationId: number
+    unreadCount: number
+    totalCount: number
+  }
+}
+
+/**
+ * 通知 Payload
+ */
+export interface NotificationPayload {
+  type: 'NOTIFICATION' | 'NOTIFICATION_READ_UPDATE'
+  data: {
+    id: number
+    title: string
+    content: string
+    type: string
+    isRead: boolean
+    createdAt: string
+    [key: string]: any
+  }
 }

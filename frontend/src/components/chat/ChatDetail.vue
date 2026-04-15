@@ -144,6 +144,7 @@ import { getWebSocket } from '@/utils/websocket'
 import { MessageStatus, isUnreadMessage } from '@/types/message'
 import { debounce } from '@/utils/function'
 import type { WsUserOnlineStatus } from '@/types/message'
+import { tiptapToText } from '@/utils/tiptapToText'
 
 const appContext = useGlobalProperties()
 const store = useChatStore()
@@ -273,6 +274,7 @@ const scrollToBottom = () => {
 
 const debouncedSendReadReceipt = debounce((userId: number, reason = '用户操作') => {
     const ws = getWebSocket()
+
     if (ws && ws.isConnected()) {
         ws.sendReadReceipt(userId)
 
@@ -290,14 +292,28 @@ const debouncedSendReadReceipt = debounce((userId: number, reason = '用户操�
             const lastMessage = messagesFromUser[messagesFromUser.length - 1]
             lastReadTimestamp.value.set(userId, Date.now())
 
-            // // console.log('✅ [已读回执] 已发送给用户:', userId,
-            //     '- 原因:', reason,
-            //     '- 消息数:', messagesFromUser.length,
-            //     '- 最后消息 ID:', lastMessage.id)
+            // 🔧 修复：安全地获取 content 字符串（TipTap JSON 对象）
+            let contentPreview = ''
+            if (lastMessage.content) {
+                if (typeof lastMessage.content === 'string') {
+                    // 纯文本消息
+                    contentPreview = lastMessage.content.substring(0, 50)
+                } else if (typeof lastMessage.content === 'object') {
+                    // TipTap JSON 对象，转换为纯文本
+                    try {
+                        const textContent = tiptapToText(lastMessage.content as any)
+                        contentPreview = textContent.substring(0, 50)
+                    } catch (e) {
+                        console.warn('⚠️ [已读回执] TipTap 转换失败:', e)
+                        contentPreview = '[富文本内容]'
+                    }
+                }
+            }
+
         }
     } else {
         pendingReadReceipts.value.add(userId)
-        console.warn('⚠️ [sendReadReceipt] WebSocket 未连接，已加入待发送队列:', userId)
+        console.error('❌ [已读回执] WebSocket 未连接，已加入待发送队列:', userId)
     }
 }, 300)
 
@@ -324,9 +340,6 @@ const sendReadReceiptIfNeed = (userId: number, reason = '检查未读消息') =>
     if (hasUnread) {
         debouncedSendReadReceipt(userId, reason)
     }
-    // else {
-    //     // console.log('ℹ️ [sendReadReceiptIfNeed] 无未读消息，跳过:', userId, '- 原因:', reason)
-    // }
 }
 
 const retryPendingReadReceipts = () => {
@@ -619,6 +632,36 @@ const registerWebSocketHandlers = () => {
     return
   }
 
+  //  注册消息状态更新处理器（已读回执）
+  const unsubscribeStatus = ws.on('MESSAGE_STATUS', (data: any) => {
+
+
+    // 🔧 兼容两种数据格式
+
+    // 格式1: 后端推送的 { fromUserId, toUserId, lastReadMessageId }
+    if (data.fromUserId && data.toUserId) {
+
+
+      // 调用 Store 更新消息状态
+      store.updateMessageStatus(data)
+
+      return
+    }
+
+    // 格式2: 直接推送 { messageId, status }
+    if (data.messageId && data.status) {
+
+
+      store.updateMessageStatus(data)
+
+      return
+    }
+
+    // 未知格式
+    console.warn('⚠️ [MESSAGE_STATUS] 数据格式错误:', data)
+  })
+  wsUnsubscribeFunctions.value.push(unsubscribeStatus)
+
   //  注册撤回消息处理器 - 使用 store 的方法
   const unsubscribeRecall = ws.on('MESSAGE_RECALL', (data: any) => {
 
@@ -712,6 +755,7 @@ const setupOnlineStatusListener = () => {
 
   // 订阅用户在线状态
   const handler = (data: any) => {
+)
 
     // 兼容处理：后端可能返回数组或单个对象
     let statusData
@@ -733,12 +777,13 @@ const setupOnlineStatusListener = () => {
     const isOnline = statusData.isOnline ?? statusData.online
     const lastSeenAtValue = statusData.lastSeenAt
 
+
     if (userId === otherUserId) {
       isOtherUserOnline.value = isOnline
       lastSeenAt.value = lastSeenAtValue
 
     } else {
-
+      console.warn('⚠️ [USER_ONLINE_STATUS] 用户 ID 不匹配，忽略此消息')
     }
   }
 
@@ -777,7 +822,7 @@ const lastSeenAtText = computed(() => {
 })
 
 // 监听当前会话变化，重新订阅在线状态
-watch(() => store.currentConversation?.userId, async (newUserId, oldUserId) => {
+watch(() => store.currentConversation?.userId, async (newUserId : number, oldUserId: number) => {
   if (newUserId && newUserId !== oldUserId) {
     // 取消旧的订阅
     unsubscribeOnlineStatus?.()

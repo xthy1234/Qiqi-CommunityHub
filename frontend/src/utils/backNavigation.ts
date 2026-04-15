@@ -1,4 +1,4 @@
-import { useRouter, useRoute, Router, RouteLocationNormalized } from 'vue-router'
+import { useRouter, useRoute, Router, type RouteLocationNormalizedLoaded } from 'vue-router'
 
 /**
  * 返回操作选项
@@ -37,7 +37,7 @@ export class BackNavigationManager {
    * @param route 当前路由对象
    * @returns 编码后的路径字符串
    */
-  static getCurrentBackUrl(route: RouteLocationNormalized): string {
+  static getCurrentBackUrl(route: RouteLocationNormalizedLoaded): string {
     return encodeURIComponent(route.fullPath)
   }
 
@@ -51,7 +51,7 @@ export class BackNavigationManager {
    */
   static goBack(
     router: Router,
-    route: RouteLocationNormalized,
+    route: RouteLocationNormalizedLoaded,
     options?: BackNavigationOptions
   ): void {
     const {
@@ -135,7 +135,7 @@ export class BackNavigationManager {
    * @returns 包含 backUrl 的路由配置对象
    */
   static buildRouteWithBackUrl(
-    route: RouteLocationNormalized,
+    route: RouteLocationNormalizedLoaded,
     targetPath: string | { path: string; query?: Record<string, any> },
     options?: NavigateWithBackOptions
   ): { path: string; query: Record<string, any> } {
@@ -171,7 +171,7 @@ export class BackNavigationManager {
    */
   static navigateWithBackUrl(
     router: Router,
-    route: RouteLocationNormalized,
+    route: RouteLocationNormalizedLoaded,
     targetPath: string | { path: string; query?: Record<string, any> },
     options?: NavigateWithBackOptions
   ): void {
@@ -194,7 +194,7 @@ export class BackNavigationManager {
    */
   static returnAfterPublish(
     router: Router,
-    route: RouteLocationNormalized,
+    route: RouteLocationNormalizedLoaded,
     toolUtil?: any,
     options?: Omit<BackNavigationOptions, 'replace'>
   ): void {
@@ -223,7 +223,7 @@ export class BackNavigationManager {
    */
   static async returnAfterCancel(
     router: Router,
-    route: RouteLocationNormalized,
+    route: RouteLocationNormalizedLoaded,
     articleId?: string | number,
     draftApi?: any,
     options?: BackNavigationOptions
@@ -255,7 +255,7 @@ export class BackNavigationManager {
    */
   static async returnAfterRollback(
     router: Router,
-    route: RouteLocationNormalized,
+    route: RouteLocationNormalizedLoaded,
     articleId: string | number,
     reloadCallback?: () => Promise<void>,
     options?: Omit<BackNavigationOptions, 'replace' | 'fallbackPath'>
@@ -283,7 +283,7 @@ export class BackNavigationManager {
    */
   static navigateFromNotification(
     router: Router,
-    route: RouteLocationNormalized,
+    route: RouteLocationNormalizedLoaded,
     targetPath: string | { path: string; query?: Record<string, any> },
     options?: NavigateWithBackOptions
   ): void {

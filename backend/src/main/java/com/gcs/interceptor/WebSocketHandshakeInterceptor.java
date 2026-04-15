@@ -34,17 +34,26 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
             ServletServerHttpRequest serverRequest = (ServletServerHttpRequest) request;
             HttpServletRequest servletRequest = serverRequest.getServletRequest();
             
-            // 方式 1：优先尝试 Token 认证（最可靠）
-            String userIdStr = servletRequest.getParameter("userId");
-            String token = servletRequest.getParameter("token");
+            // ✅ 方式 1：优先从 Header 获取 Token（推荐，更安全）
+            String authorizationHeader = request.getHeaders().getFirst("Authorization");
+            String token = null;
             
-            if (userIdStr != null && !userIdStr.isEmpty() && 
-                token != null && !token.isEmpty()) {
-                log.info("🔑 使用 Token 认证，userId={}", userIdStr);
-                
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                token = authorizationHeader.substring(7);
+                log.info("🔑 从 Authorization Header 获取 Token");
+            }
+            
+            // 🔒 降级方案：如果 Header 中没有，尝试从 URL 参数获取（兼容旧代码）
+            if (token == null || token.isEmpty()) {
+                token = servletRequest.getParameter("token");
+                if (token != null && !token.isEmpty()) {
+                    log.warn("⚠️ 使用 URL 参数获取 Token（不推荐，建议改用 Header）");
+                }
+            }
+            
+            // 验证 Token
+            if (token != null && !token.isEmpty()) {
                 try {
-                    Long userId = Long.parseLong(userIdStr);
-                    
                     // 验证 Token 有效性（查询数据库）
                     Token tokenEntity = tokenService.validateAndGetToken(token);
                     if (tokenEntity == null) {
@@ -52,20 +61,22 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
                         return false;
                     }
                     
+                    Long userId = tokenEntity.getUserId();
+                    
                     // 验证用户状态
                     if (tokenEntity.getStatus() != com.gcs.enums.CommonStatus.ENABLED) {
                         log.warn("❌ 用户账号已被禁用，userId={}", userId);
                         return false;
                     }
                     
-                    // 验证通过
+                    // 验证通过，将用户信息存入 Session Attributes
                     attributes.put("userId", userId);
                     attributes.put("token", token);
                     attributes.put("account", tokenEntity.getAccount());
                     attributes.put("roleId", tokenEntity.getRoleId());
                     attributes.put("authType", "TOKEN");
                     
-                    log.info("✅ Token 认证成功：userId={}, account={}", 
+                    log.info("✅ Token 认证成功：userId={}, account={}, authMethod=HEADER", 
                              userId, tokenEntity.getAccount());
                     return true;
                     
@@ -75,7 +86,7 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
                 }
             }
             
-            // 方式 2：Token 缺失时，尝试 Session 认证（兼容性）
+            // ⚠️ 方式 2：Token 缺失时，尝试 Session 认证（兼容性）
             log.info("⚠️ 未提供 Token，尝试 Session 认证");
             var session = servletRequest.getSession(false);
             

@@ -51,8 +51,6 @@ import NDataTableCell from "naive-ui"
 import VueAMap, { initAMapApiLoader } from "@vuemap/vue-amap"
 import "@vuemap/vue-amap/dist/style.css"
 
-// WebSocket 初始化
-import { connectWebSocketOnStartup } from '@/utils/websocketInit'
 
 // vue3-tiptap-editor 编辑器
 
@@ -157,6 +155,29 @@ app.config.globalProperties.$menu = menu
 // 挂载应用
 app.use(pinia)
 app.use(router)
+
+// 🔧 页面刷新后自动重连 WebSocket
+const initializeWebSocketOnRefresh = async () => {
+  const token = utilityTools.storageGet('Token')
+  const userInfo = utilityTools.storageGet('UserInfo')
+  
+  if (token && userInfo) {
+    try {
+      const { connectWebSocketOnStartup } = await import('@/utils/websocketInit')
+      await connectWebSocketOnStartup({
+        debug: process.env.NODE_ENV === 'development',
+        heartbeatInterval: 30000,
+        reconnectInterval: 5000,
+        maxReconnectAttempts: 5
+      })
+    } catch (error) {
+    }
+  }
+}
+
+// 在挂载后立即执行（不阻塞 UI）
+initializeWebSocketOnRefresh().catch(console.error)
+
 app.mount('#app')
 
 // 添加全局消息工具（在应用挂载后）
@@ -166,28 +187,3 @@ app.config.globalProperties.$notification = app.config.globalProperties.$notific
 
 // 导出应用实例供测试使用
 export default app
-
-async function bootstrap() {
-  const app = createApp(App)
-  
-  // 设置全局 Vue 实例引用（供 WebSocket 使用）
-  ;(window as any).__vue_app__ = app
-  
-  // 挂载 Pinia
-  app.use(pinia)
-  
-  // 挂载路由
-  app.use(router)
-  
-  // 初始化 WebSocket（异步，不阻塞应用启动）
-  connectWebSocketOnStartup({
-    debug: process.env.NODE_ENV === 'development',
-    heartbeatInterval: 30000,
-    reconnectInterval: 5000,
-    maxReconnectAttempts: 5
-  }).catch(error => {
-    console.error('WebSocket 初始化失败:', error)
-  })
-
-  app.mount('#app')
-}

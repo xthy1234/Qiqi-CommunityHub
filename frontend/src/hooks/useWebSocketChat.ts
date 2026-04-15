@@ -1,7 +1,12 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import chatService from '@/api/chat'
-import chatMessageService from '@/service/chatMessageService'
-import type { Message, ConversationVO } from '@/types/message'
+import type { 
+  Message, 
+  ConversationVO,
+  MessageStatusPayload,
+  NewConversationPayload,
+  UnreadCountUpdatePayload
+} from '@/types/message'
 import { WsConnectionState } from '@/types/message'
 import { getWebSocket } from '@/utils/websocket'
 import { wsLogger } from '@/utils/websocketLogger'
@@ -21,7 +26,11 @@ export function useWebSocketChat() {
     try {
       connectionState.value = WsConnectionState.CONNECTING
       wsLogger.logConnectionState('CONNECTING')
-      await chatService.connect(wsUrl)
+      // 注意：WebSocket 应该在登录时已初始化，这里只是确保连接
+      const ws = getWebSocket()
+      if (ws && !ws.isConnected()) {
+        await ws.connect()
+      }
     } catch (error) {
       wsLogger.error('WebSocket 连接失败', { error })
       connectionState.value = WsConnectionState.DISCONNECTED
@@ -30,7 +39,10 @@ export function useWebSocketChat() {
   }
 
   const disconnect = () => {
-    chatService.disconnect()
+    const ws = getWebSocket()
+    if (ws) {
+      ws.close()
+    }
     connectionState.value = WsConnectionState.DISCONNECTED
     isConnected.value = false
     wsLogger.logConnectionState('DISCONNECTED')
@@ -116,50 +128,31 @@ export function useWebSocketChat() {
   }
 
   const setupListeners = () => {
-    // 使用新的消息服务（私聊）
-    const userId = currentChatUserId.value
-    if (userId) {
-      chatMessageService.init(userId)
-      
-      // 订阅私聊消息
-      cleanupFns.push(
-        chatMessageService.onMessage((message: Message) => {
-          messages.value.push(message)
-          loadConversations()
-          wsLogger.debug('收到私聊消息', { 
-            fromUserId: message.fromUserId,
-            toUserId: message.toUserId,
-            content: typeof message.content === 'string' ? message.content.substring(0, 50) : '[object]' 
-          })
-        }),
-        
-        chatMessageService.onStatusUpdate(({ messageId, status }: { messageId: number; status: string }) => {
-          updateMessageStatus(messageId, status)
-          wsLogger.debug('消息状态更新', { messageId, status })
-        }),
-        
-        chatMessageService.onRecall(({ messageId, reason }: { messageId: number; reason?: string }) => {
-          wsLogger.info('消息被撤回', { messageId, reason })
-          // TODO: 处理撤回逻辑
-        }),
-        
-        chatMessageService.onDelete(({ messageId }: { messageId: number }) => {
-          wsLogger.debug('消息被删除', { messageId })
-          // TODO: 处理删除逻辑
-        })
-      )
-    }
-
     // 保留原有的其他监听器
     cleanupFns.push(
-      chatService.onNewConversation(({ conversationId }) => {
-        updateConversation(conversationId)
-        wsLogger.debug('新会话创建', { conversationId })
+      chatService.onNewMessage((message: Message) => {
+        messages.value.push(message)
+        loadConversations()
+        wsLogger.debug('收到私聊消息', { 
+          fromUserId: message.fromUserId,
+          toUserId: message.toUserId,
+          content: typeof message.content === 'string' ? message.content.substring(0, 50) : '[object]' 
+        })
       }),
 
-      chatService.onUnreadCountUpdate(({ conversationId, unreadCount: count }) => {
+      chatService.onMessageStatusUpdate((data: MessageStatusPayload['data']) => {
+        updateMessageStatus(data.messageId, data.status)
+        wsLogger.debug('消息状态更新', { messageId: data.messageId, status: data.status })
+      }),
+
+      chatService.onNewConversation((data: NewConversationPayload['data']) => {
+        updateConversation(data.conversationId)
+        wsLogger.debug('新会话创建', { conversationId: data.conversationId })
+      }),
+
+      chatService.onUnreadCountUpdate((data: UnreadCountUpdatePayload['data']) => {
         loadConversations()
-        wsLogger.debug('未读数更新', { conversationId, count })
+        wsLogger.debug('未读数更新', { conversationId: data.conversationId, count: data.unreadCount })
       }),
 
       chatService.onConnectionChange((state: WsConnectionState) => {
@@ -184,7 +177,6 @@ export function useWebSocketChat() {
   const cleanupListeners = () => {
     cleanupFns.forEach(fn => fn())
     cleanupFns = []
-    chatMessageService.destroy()
     wsLogger.info('清理所有监听器')
   }
 

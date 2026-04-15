@@ -6,12 +6,20 @@ import type {
   MessageSendDTO, 
   MessageSendResponseVO, 
   ConversationVO,
-  WsChatMessageType
+  WsChatMessageType,
+  UserOnlineStatusPayload,
+  UserListUpdatePayload,
+  MessageStatusPayload,
+  NewConversationPayload,
+  UnreadCountUpdatePayload
 } from '@/types/message'
+import type { CircleMessage } from '@/types/circleChat'
 import { WsConnectionState } from '@/types/message'
 import WebSocketManager, {
   initWebSocket,
-  getWebSocket
+  getWebSocket,
+  type WsMessageType,
+  type WsMessageHandler
 } from '@/utils/websocket'
 
 /**
@@ -20,34 +28,7 @@ import WebSocketManager, {
  */
 class ChatService {
   private baseUrl = '/messages'
-  private wsManager: WebSocketManager | null = null
-  private messageHandlers: Map<string, Set<(data: any) => void>> = new Map()
-
-  /**
-   * 初始化 WebSocket 连接
-   * @param wsUrl WebSocket 服务器地址，默认使用项目配置
-   */
-  connect(wsUrl?: string): Promise<void> {
-    this.wsManager = initWebSocket(wsUrl)
-    return this.wsManager.connect()
-  }
-
-  /**
-   * 断开 WebSocket 连接
-   */
-  disconnect(): void {
-    if (this.wsManager) {
-      this.wsManager.close()
-      this.wsManager = null
-    }
-  }
-
-  /**
-   * 获取 WebSocket 实例
-   */
-  getWebSocket(): WebSocketManager | null {
-    return getWebSocket()
-  }
+  private messageHandlers: Map<WsMessageType, Set<WsMessageHandler<WsMessageType>>> = new Map()
 
   /**
    * 检查 WebSocket 连接状态
@@ -78,51 +59,51 @@ class ChatService {
   }
 
   /**
-   * 监听新消息
+   * 监听新消息（类型安全）
    */
   onNewMessage(handler: (message: Message) => void): () => void {
     return this.registerHandler('CHAT_MESSAGE', handler)
   }
 
   /**
-   * 监听消息状态更新
+   * 监听消息状态更新（类型安全）
    */
-  onMessageStatusUpdate(handler: (data: { messageId: number; status: string }) => void): () => void {
+  onMessageStatusUpdate(handler: (data: MessageStatusPayload['data']) => void): () => void {
     return this.registerHandler('MESSAGE_STATUS', handler)
   }
 
   /**
-   * 监听新会话
+   * 监听新会话（类型安全）
    */
-  onNewConversation(handler: (data: { conversationId: number }) => void): () => void {
+  onNewConversation(handler: (data: NewConversationPayload['data']) => void): () => void {
     return this.registerHandler('NEW_CONVERSATION', handler)
   }
 
   /**
-   * 监听未读消息数更新
+   * 监听未读消息数更新（类型安全）
    */
-  onUnreadCountUpdate(handler: (data: { conversationId: number; unreadCount: number }) => void): () => void {
+  onUnreadCountUpdate(handler: (data: UnreadCountUpdatePayload['data']) => void): () => void {
     return this.registerHandler('UNREAD_COUNT_UPDATE', handler)
   }
 
   /**
-   * 监听用户在线状态更新
+   * 监听用户在线状态更新（类型安全）
    */
-  onUserOnlineStatus(handler: (data: { userId: number; online: boolean; timestamp?: number; lastSeenAt?: string }) => void): () => void {
+  onUserOnlineStatus(handler: (data: UserOnlineStatusPayload['data']) => void): () => void {
     return this.registerHandler('USER_ONLINE_STATUS', handler)
   }
 
   /**
-   * 监听用户列表更新
+   * 监听用户列表更新（类型安全）
    */
-  onUserListUpdate(handler: (data: { users: Array<{ userId: number; online: boolean; lastSeenAt?: string }>; timestamp: number }) => void): () => void {
+  onUserListUpdate(handler: (data: UserListUpdatePayload['data']) => void): () => void {
     return this.registerHandler('USER_LIST_UPDATE', handler)
   }
 
   /**
-   * 监听圈子消息（群聊）
+   * 监听圈子消息（群聊）（类型安全）
    */
-  onCircleChatMessage(handler: (message: any) => void): () => void {
+  onCircleChatMessage(handler: (message: CircleMessage) => void): () => void {
     return this.registerHandler('CIRCLE_CHAT_MESSAGE', handler)
   }
 
@@ -151,16 +132,19 @@ class ChatService {
   }
 
   /**
-   * 注册消息处理器
+   * 注册消息处理器（类型安全）
    */
-  private registerHandler(messageType: string, handler: (data: any) => void): () => void {
+  private registerHandler<T extends WsMessageType>(
+    messageType: T, 
+    handler: WsMessageHandler<T>
+  ): () => void {
     const ws = getWebSocket()
     if (!ws) {
       console.warn('WebSocket not initialized')
       return () => {}
     }
 
-    return ws.on(messageType as any, handler)
+    return ws.on(messageType, handler)
   }
 
   /**

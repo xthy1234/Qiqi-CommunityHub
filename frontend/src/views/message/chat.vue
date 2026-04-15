@@ -99,8 +99,53 @@ const cleanupWebSocketListeners = () => {
 /** 初始化 WebSocket连接 */
 const initializeWebSocket = async () => {
   try {
+    // 修复：WebSocket 应该在登录时已初始化，这里只需检查连接状态
+    let ws = getWebSocket()
 
-    await chatService.connect()
+    // 🔧 兜底逻辑：如果 WebSocket 未初始化但用户已登录，尝试重新初始化
+    if (!ws) {
+      const token = appContext?.$toolUtil?.storageGet('Token')
+      const userInfo = appContext?.$toolUtil?.storageGet('UserInfo')
+
+      if (token && userInfo) {
+        console.warn('[私聊] WebSocket 实例丢失，尝试重新初始化...')
+
+        try {
+          const { connectWebSocketOnStartup } = await import('@/utils/websocketInit')
+          await connectWebSocketOnStartup({
+            debug: process.env.NODE_ENV === 'development',
+            heartbeatInterval: 30000,
+            reconnectInterval: 5000,
+            maxReconnectAttempts: 5
+          })
+
+          ws = getWebSocket()
+
+        } catch (error) {
+          console.error('❌ [私聊] WebSocket 重新初始化失败:', error)
+          isConnected.value = false
+          return
+        }
+      } else {
+        console.warn('[私聊] WebSocket 未初始化，请检查是否已登录')
+        isConnected.value = false
+        return
+      }
+    }
+
+    if (!ws) {
+      console.error('[私聊] WebSocket 仍然为 null，无法继续')
+      isConnected.value = false
+      return
+    }
+
+    // 如果未连接，尝试连接
+    if (!ws.isConnected()) {
+
+      await ws.connect()
+    } else {
+
+    }
 
     isConnected.value = true
 
@@ -114,7 +159,11 @@ const initializeWebSocket = async () => {
 /** 断开 WebSocket 连接 */
 const disconnectWebSocket = () => {
   cleanupWebSocketListeners()
-  chatService.disconnect()
+  // 修复：使用全局实例关闭连接
+  const ws = getWebSocket()
+  if (ws) {
+    ws.close()
+  }
   isConnected.value = false
 }
 

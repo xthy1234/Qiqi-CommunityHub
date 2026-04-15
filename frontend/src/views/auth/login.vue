@@ -240,12 +240,14 @@ const fetchAndStoreUserInfo = async (isAdmin: boolean): Promise<void> => {
  */
 const initializeWebSocket = async (): Promise<void> => {
   try {
+
     await connectWebSocketOnStartup({
       debug: process.env.NODE_ENV === 'development',
       heartbeatInterval: 30000,
       reconnectInterval: 5000,
       maxReconnectAttempts: 5
     })
+
   } catch (error) {
     console.error('[登录] WebSocket连接失败:', error)
     // WebSocket 连接失败不影响登录流程

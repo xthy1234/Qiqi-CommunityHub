@@ -97,9 +97,6 @@ export const useCircleChatStore = defineStore('circleChat', {
 
       wsLogger.info('初始化圈子消息服务')
 
-      // 使用新的圈子消息服务
-      circleChatMessageService.init()
-      
       // 订阅圈子消息
       circleChatMessageService.onMessage((message) => {
         this.receiveMessage(message)
