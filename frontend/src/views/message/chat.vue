@@ -102,7 +102,7 @@ const initializeWebSocket = async () => {
     // 修复：WebSocket 应该在登录时已初始化，这里只需检查连接状态
     let ws = getWebSocket()
 
-    // 🔧 兜底逻辑：如果 WebSocket 未初始化但用户已登录，尝试重新初始化
+    // 兜底逻辑：如果 WebSocket 未初始化但用户已登录，尝试重新初始化
     if (!ws) {
       const token = appContext?.$toolUtil?.storageGet('Token')
       const userInfo = appContext?.$toolUtil?.storageGet('UserInfo')
@@ -122,7 +122,7 @@ const initializeWebSocket = async () => {
           ws = getWebSocket()
 
         } catch (error) {
-          console.error('❌ [私聊] WebSocket 重新初始化失败:', error)
+          console.error('[私聊] WebSocket 重新初始化失败:', error)
           isConnected.value = false
           return
         }
@@ -198,7 +198,7 @@ const initializeChatWithUser = async (userId: number) => {
       unreadCount: 0
     }
 
-    //  关键：只设置为当前会话，不添加到 conversations 列表
+    //   只设置为当前会话，不添加到 conversations 列表
     store.currentConversation = tempConv
     store.messages = []
 

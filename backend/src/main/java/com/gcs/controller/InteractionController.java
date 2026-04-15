@@ -189,7 +189,7 @@ public class InteractionController {
             Long userId = (Long) request.getSession().getAttribute("userId");
             InteractionActionType type = InteractionActionType.valueOf(actionType);
             
-            // ✅ 修复：使用 ContentType.fromName() 方法支持大小写不敏感
+            //  修复：使用 ContentType.fromName() 方法支持大小写不敏感
             ContentType contentType = ContentType.fromName(tableName);
             if (contentType == null) {
                 return R.error("无效的内容类型：" + tableName);
@@ -258,7 +258,7 @@ public class InteractionController {
         try {
             Long userId = (Long) request.getSession().getAttribute("userId");
             
-            // ✅ 确保 tableName 有值（默认为 article）
+            //  确保 tableName 有值（默认为 article）
             if (cancelDTO.getTableName() == null) {
                 cancelDTO.setTableName(ContentType.ARTICLE);
             }
@@ -421,7 +421,7 @@ public class InteractionController {
                 return R.error("无效的操作类型");
             }
             
-            // ✅ 确保 tableName 有值（默认为 article）
+            //  确保 tableName 有值（默认为 article）
             if (likeDTO.getTableName() == null) {
                 likeDTO.setTableName(ContentType.ARTICLE);
             }
@@ -476,7 +476,7 @@ public class InteractionController {
                 return R.error("无效的操作类型");
             }
 
-            // ✅ 确保 tableName 有值（默认为 article）
+            //  确保 tableName 有值（默认为 article）
             if (cancelDTO.getTableName() == null) {
                 cancelDTO.setTableName(ContentType.ARTICLE);
             }

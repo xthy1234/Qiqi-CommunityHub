@@ -156,7 +156,7 @@ app.config.globalProperties.$menu = menu
 app.use(pinia)
 app.use(router)
 
-// 🔧 页面刷新后自动重连 WebSocket
+// 页面刷新后自动重连 WebSocket
 const initializeWebSocketOnRefresh = async () => {
   const token = utilityTools.storageGet('Token')
   const userInfo = utilityTools.storageGet('UserInfo')

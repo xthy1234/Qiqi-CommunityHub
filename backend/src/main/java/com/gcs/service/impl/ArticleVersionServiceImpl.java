@@ -77,15 +77,15 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         // 查询版本历史
         List<ArticleVersion> versions = articleVersionDao.selectByArticleId(articleId);
         
-        // ✅ 获取当前版本号
+        //  获取当前版本号
         Article article = articleDao.selectById(articleId);
         Integer currentVersion = (article != null) ? article.getCurrentVersion() : null;
         
-        // ✅ 使用 Converter 转换为简略 VO
+        //  使用 Converter 转换为简略 VO
         List<ArticleVersionSimpleVO> voList = versions.stream()
             .map(version -> {
                 ArticleVersionSimpleVO simpleVO = buildSimpleVO(version);
-                // ✅ 设置 isCurrent
+                //  设置 isCurrent
                 simpleVO.setIsCurrent(currentVersion != null && version.getVersion().equals(currentVersion));
                 return simpleVO;
             })
@@ -102,13 +102,13 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             throw new IllegalArgumentException("版本不存在");
         }
         
-        // ✅ 获取当前版本号
+        //  获取当前版本号
         Article article = articleDao.selectById(articleId);
         Integer currentVersion = (article != null) ? article.getCurrentVersion() : null;
         
-        // ✅ 使用 Converter 构建详细 VO
+        //  使用 Converter 构建详细 VO
         ArticleVersionVO vo = buildDetailVO(articleVersion, articleId);
-        // ✅ 设置 isCurrent
+        //  设置 isCurrent
         vo.setIsCurrent(currentVersion != null && articleVersion.getVersion().equals(currentVersion));
         
         return vo;
@@ -157,7 +157,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             throw new IllegalArgumentException("版本不存在");
         }
 
-        // ✅ 使用 Converter 转换为详细 VO
+        //  使用 Converter 转换为详细 VO
         ArticleVersionVO sourceVO = buildDetailVO(va, articleId);
         ArticleVersionVO targetVO = buildDetailVO(vb, articleId);
 
@@ -177,10 +177,10 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             return null;
         }
         
-        // ✅ 第一步：使用 Converter 进行基础转换
+        //  第一步：使用 Converter 进行基础转换
         ArticleVersionSimpleVO vo = articleVersionConverter.toSimpleVO(version);
         
-        // ✅ 第二步：补充操作人信息
+        //  第二步：补充操作人信息
         if (version.getOperatorId() != null) {
             User operator = userDao.selectById(version.getOperatorId());
             if (operator != null) {
@@ -189,7 +189,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             }
         }
         
-        // ✅ 第三步：补充贡献者信息
+        //  第三步：补充贡献者信息
         if (version.getContributorId() != null) {
             User contributor = userDao.selectById(version.getContributorId());
             if (contributor != null) {
@@ -198,11 +198,11 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             }
         }
         
-        // ✅ 第四步：判断是否为最新版本
+        //  第四步：判断是否为最新版本
         Integer maxVersion = articleVersionDao.getMaxVersion(version.getArticleId());
         vo.setIsLatest(version.getVersion().equals(maxVersion));
         
-        // ⚠️ isCurrent 由调用方设置（因为需要 article 的 currentVersion）
+        //  isCurrent 由调用方设置（因为需要 article 的 currentVersion）
         
         return vo;
     }
@@ -215,10 +215,10 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             return null;
         }
         
-        // ✅ 第一步：使用 Converter 进行基础转换
+        //  第一步：使用 Converter 进行基础转换
         ArticleVersionVO vo = articleVersionConverter.toDetailVO(version);
         
-        // ✅ 第二步：补充操作人信息
+        //  第二步：补充操作人信息
         if (version.getOperatorId() != null) {
             User operator = userDao.selectById(version.getOperatorId());
             if (operator != null) {
@@ -227,7 +227,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             }
         }
         
-        // ✅ 第三步：补充贡献者信息
+        //  第三步：补充贡献者信息
         if (version.getContributorId() != null) {
             User contributor = userDao.selectById(version.getContributorId());
             if (contributor != null) {
@@ -236,11 +236,11 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
             }
         }
         
-        // ✅ 第四步：判断是否为最新版本
+        //  第四步：判断是否为最新版本
         Integer maxVersion = articleVersionDao.getMaxVersion(articleId);
         vo.setIsLatest(version.getVersion().equals(maxVersion));
         
-        // ⚠️ isCurrent 由调用方设置（因为需要 article 的 currentVersion）
+        //  isCurrent 由调用方设置（因为需要 article 的 currentVersion）
         
         return vo;
     }
@@ -293,7 +293,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         article.setContent(targetVersion.getContent());
         
         // 4️⃣ 使用 createMinorVersion 创建回滚版本
-        // ✅ createMinorVersion 会自动基于当前最大版本号计算，不会冲突
+        //  createMinorVersion 会自动基于当前最大版本号计算，不会冲突
         String changeSummary = "回滚到版本 " + targetVersion.getMajorVersion() + "." + targetVersion.getMinorVersion();
         Integer rollbackVersion = createMinorVersion(article, operatorId, changeSummary);
         
@@ -325,7 +325,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         version.setMinorVersion(minorVersion);
         version.setChangeSummary(changeSummary);
         version.setOperatorId(operatorId);
-        // ✅ 默认贡献者为操作者（作者自己）
+        //  默认贡献者为操作者（作者自己）
         version.setContributorId(operatorId);
 
         baseMapper.insert(version);
@@ -356,7 +356,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         version.setMinorVersion(minorVersion);
         version.setChangeSummary(changeSummary);
         version.setOperatorId(operatorId);
-        // ✅ 默认贡献者为操作者（作者自己）
+        //  默认贡献者为操作者（作者自己）
         version.setContributorId(operatorId);
 
         baseMapper.insert(version);
@@ -389,7 +389,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         version.setMinorVersion(minorVersion);
         version.setChangeSummary(changeSummary);
         version.setOperatorId(operatorId);
-        // ✅ 设置实际贡献者
+        //  设置实际贡献者
         version.setContributorId(contributorId);
 
         baseMapper.insert(version);
@@ -422,7 +422,7 @@ public class ArticleVersionServiceImpl extends ServiceImpl<ArticleVersionDao, Ar
         version.setMinorVersion(minorVersion);
         version.setChangeSummary(changeSummary);
         version.setOperatorId(operatorId);
-        // ✅ 设置实际贡献者
+        //  设置实际贡献者
         version.setContributorId(contributorId);
 
         baseMapper.insert(version);

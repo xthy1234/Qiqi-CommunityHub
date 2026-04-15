@@ -385,12 +385,12 @@ const loadData = async () => {
         console.table(tableData.value[0])
       }
     } else {
-      console.error('❌ [SwiperList] 加载失败 - 错误码:', res?.code)
-      console.error('❌ [SwiperList] 错误信息:', res?.msg)
+      console.error('[SwiperList] 加载失败 - 错误码:', res?.code)
+      console.error('[SwiperList] 错误信息:', res?.msg)
       message.error(res?.msg || '加载失败')
     }
   } catch (error) {
-    console.error('❌ [SwiperList] 加载异常:', error)
+    console.error('[SwiperList] 加载异常:', error)
     message.error('加载失败')
   } finally {
     loading.value = false
@@ -454,16 +454,16 @@ const handleToggleStatus = async (row: SwiperVO) => {
       message.success('更新成功')
       loadData()
     } else {
-      console.error('❌ [SwiperList] 状态更新失败 - 错误码:', res?.code)
-      console.error('❌ [SwiperList] 错误信息:', res?.msg)
+      console.error('[SwiperList] 状态更新失败 - 错误码:', res?.code)
+      console.error('[SwiperList] 错误信息:', res?.msg)
       message.error(res?.msg || '更新失败')
     }
   } catch (error) {
-    console.error('❌ [SwiperList] 状态更新异常:', error)
+    console.error('[SwiperList] 状态更新异常:', error)
 
     // 如果是 CORS 错误，尝试使用 PUT 全量更新
     if (error.message.includes('CORS') || error.message.includes('Network Error')) {
-      console.warn('⚠️ [SwiperList] CORS 错误，尝试使用全量更新...')
+      console.warn(' [SwiperList] CORS 错误，尝试使用全量更新...')
       try {
         const updateData = {
           title: row.title,
@@ -483,7 +483,7 @@ const handleToggleStatus = async (row: SwiperVO) => {
           message.error(res?.msg || '更新失败')
         }
       } catch (putError) {
-        console.error('❌ [SwiperList] PUT 更新也失败了:', putError)
+        console.error('[SwiperList] PUT 更新也失败了:', putError)
         message.error('更新失败，可能是后端 CORS 配置问题')
       }
     } else {
@@ -511,12 +511,12 @@ const handleDelete = (row: SwiperVO) => {
           message.success('删除成功')
           loadData()
         } else {
-          console.error('❌ [SwiperList] 删除失败 - 错误码:', res?.code)
-          console.error('❌ [SwiperList] 错误信息:', res?.msg)
+          console.error('[SwiperList] 删除失败 - 错误码:', res?.code)
+          console.error('[SwiperList] 错误信息:', res?.msg)
           message.error(res?.msg || '删除失败')
         }
       } catch (error) {
-        console.error('❌ [SwiperList] 删除异常:', error)
+        console.error('[SwiperList] 删除异常:', error)
         message.error('删除失败')
       }
     },
@@ -550,12 +550,12 @@ const handleBatchDelete = () => {
           checkedRowKeys.value = []
           loadData()
         } else {
-          console.error('❌ [SwiperList] 批量删除失败 - 错误码:', res?.code)
-          console.error('❌ [SwiperList] 错误信息:', res?.msg)
+          console.error('[SwiperList] 批量删除失败 - 错误码:', res?.code)
+          console.error('[SwiperList] 错误信息:', res?.msg)
           message.error(res?.msg || '批量删除失败')
         }
       } catch (error) {
-        console.error('❌ [SwiperList] 批量删除异常:', error)
+        console.error('[SwiperList] 批量删除异常:', error)
         message.error('批量删除失败')
       }
     }
@@ -594,19 +594,19 @@ const handleSubmit = async (validatedData: Record<string, any>) => {
       editDialogVisible.value = false
       loadData()
     } else {
-      console.error('❌ [SwiperList] 操作失败 - 错误码:', res?.code)
-      console.error('❌ [SwiperList] 错误信息:', res?.msg)
+      console.error('[SwiperList] 操作失败 - 错误码:', res?.code)
+      console.error('[SwiperList] 错误信息:', res?.msg)
       message.error(res?.msg || '操作失败')
     }
   } catch (error: any) {
-    console.error('❌ [SwiperList] 操作异常:', error)
+    console.error('[SwiperList] 操作异常:', error)
 
     // 如果是 400 错误，打印详细的错误信息
     if (error.response) {
-      console.error('❌ [SwiperList] 错误响应状态:', error.response.status)
-      console.error('❌ [SwiperList] 错误响应数据:', error.response.data)
-      console.error('❌ [SwiperList] 请求的 URL:', error.config?.url)
-      console.error('❌ [SwiperList] 请求的数据:', JSON.stringify(error.config?.data))
+      console.error('[SwiperList] 错误响应状态:', error.response.status)
+      console.error('[SwiperList] 错误响应数据:', error.response.data)
+      console.error('[SwiperList] 请求的 URL:', error.config?.url)
+      console.error('[SwiperList] 请求的数据:', JSON.stringify(error.config?.data))
     }
 
     message.error(error.response?.data?.msg || '操作失败')

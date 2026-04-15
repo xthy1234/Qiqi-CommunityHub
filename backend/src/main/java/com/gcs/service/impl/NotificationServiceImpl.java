@@ -51,7 +51,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
     public Notification createNotification(Long userId, Integer type, Long sourceId, Map<String, Object> content, Map<String, Object> extra) {
 
         if (content != null && !content.isEmpty()) {
-            log.warn("⚠️ content 参数已废弃，请使用 extra 字段传递通知数据。userId: {}, type: {}", userId, type);
+            log.warn(" content 参数已废弃，请使用 extra 字段传递通知数据。userId: {}, type: {}", userId, type);
         }
         
         Notification notification = new Notification();
@@ -99,11 +99,11 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
                 message
             );
             
-            log.info("✅ [WebSocket 推送] 推送完成：notificationId={}, userId={}", 
+            log.info(" [WebSocket 推送] 推送完成：notificationId={}, userId={}", 
                      notification.getId(), notification.getUserId());
                      
         } catch (Exception e) {
-            log.error("❌ [WebSocket 推送] 失败，notificationId: {}", notification.getId(), e);
+            log.error("[WebSocket 推送] 失败，notificationId: {}", notification.getId(), e);
             // 不抛出异常，避免影响通知创建流程
         }
     }
@@ -136,7 +136,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
 
     @Override
     public List<Notification> getUserNotifications(Long userId, Boolean isRead, Integer page, Integer limit) {
-        // 🔧 修复：使用 XML 中定义的分页查询方法，确保 extra 字段正确反序列化
+        // 修复：使用 XML 中定义的分页查询方法，确保 extra 字段正确反序列化
         int offset = (page - 1) * limit;
         
         List<Notification> notifications = notificationDao.selectByUserIdPage(userId, isRead, offset, limit);
@@ -192,10 +192,10 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
                 message
             );
             
-            log.info("✅ [已读状态推送] 推送完成：userId={}, count={}", userId, notificationIds.size());
+            log.info(" [已读状态推送] 推送完成：userId={}, count={}", userId, notificationIds.size());
             
         } catch (Exception e) {
-            log.error("❌ [已读状态推送] 失败，userId: {}", userId, e);
+            log.error("[已读状态推送] 失败，userId: {}", userId, e);
         }
     }
 
@@ -227,10 +227,10 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
                 message
             );
             
-            log.info("✅ [清空推送] 推送完成：userId={}", userId);
+            log.info(" [清空推送] 推送完成：userId={}", userId);
             
         } catch (Exception e) {
-            log.error("❌ [清空推送] 失败，userId: {}", userId, e);
+            log.error("[清空推送] 失败，userId: {}", userId, e);
         }
     }
 

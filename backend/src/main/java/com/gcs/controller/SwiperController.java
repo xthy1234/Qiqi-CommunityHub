@@ -403,7 +403,7 @@ public class SwiperController {
         swiper.setLinkUrl(dto.getLinkUrl());
         swiper.setSort(dto.getSort());
         
-        // 🔧 将 Integer 转换为 CommonStatus 枚举
+        // 将 Integer 转换为 CommonStatus 枚举
         if (dto.getStatus() != null) {
             try {
                 CommonStatus status = dto.getStatus();

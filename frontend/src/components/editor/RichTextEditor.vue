@@ -1334,7 +1334,7 @@ const handleUpload = async (file: File) => {
       throw new Error('文件上传失败')
     }
 
-    // 【修复】使用正确的命令名 setFileNode
+    //  使用正确的命令名 setFileNode
     editor.value.commands.setFileNode({
       src: response,
       name: file.name,

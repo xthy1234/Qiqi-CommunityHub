@@ -35,7 +35,7 @@ const generateDiff = () => {
 
   loading.value = true
   try {
-    // 【调试】转换为文本并打印
+    //  转换为文本并打印
     const sourceText = tiptapToText(props.source)
     const targetText = tiptapToText(props.target)
 

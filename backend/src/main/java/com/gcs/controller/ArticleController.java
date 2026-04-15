@@ -355,20 +355,20 @@ public class ArticleController {
                 return R.error("请先登录");
             }
 
-            // ✅ 使用 Converter 转换 DTO → Entity
+            //  使用 Converter 转换 DTO → Entity
             Article article = articleConverter.toEntity(createDTO);
             article.setAuthorId(userId);
             article.setAuditStatus(AuditStatus.PENDING);
 
-            // ✅ Service 负责保存
+            //  Service 负责保存
             articleService.insertArticle(article);
 
-            // ✅ Controller 负责转换为 VO 并返回
+            //  Controller 负责转换为 VO 并返回
             ArticleDetailVO vo = articleConverter.toDetailVO(
                     articleService.getArticleDetail(article.getId())
             );
             
-            // ✅ 新增：查询最新版本并设置版本号（新文章第一个版本为 1.0）
+            //  新增：查询最新版本并设置版本号（新文章第一个版本为 1.0）
             vo.setMajorVersion(1);
             vo.setMinorVersion(0);
 
@@ -476,18 +476,18 @@ public class ArticleController {
                 return R.error("无权限修改他人文章");
             }
 
-            // ✅ 使用 Converter 更新 Entity 字段
+            //  使用 Converter 更新 Entity 字段
             articleConverter.updateEntity(updateDTO, originalArticle);
 
-            // ✅ Service 负责保存
+            //  Service 负责保存
             articleService.updateById(originalArticle);
 
-            // ✅ Controller 负责转换为 VO 并返回
+            //  Controller 负责转换为 VO 并返回
             ArticleDetailVO vo = articleConverter.toDetailVO(
                     articleService.getArticleDetail(id)
             );
             
-            // ✅ 新增：查询最新版本并设置版本号
+            //  新增：查询最新版本并设置版本号
             List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
             if (versions != null && !versions.isEmpty()) {
                 ArticleVersion latestVersion = versions.get(0);

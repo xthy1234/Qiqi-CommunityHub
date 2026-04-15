@@ -46,18 +46,18 @@ public class WebSocketNotificationController {
     public void triggerNotification(@Payload Map<String, Object> notificationRequest,
                                     StompHeaderAccessor accessor) {
         try {
-            // ✅ 从 Session 获取真实用户 ID
+            //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
             log.info("🚀 [通知推送] 收到触发请求：userId={}, request={}", 
                      currentUserId, notificationRequest);
 
             if (currentUserId == null) {
-                log.error("❌ [通知推送] 失败：用户未登录或 Session 已过期");
+                log.error("[通知推送] 失败：用户未登录或 Session 已过期");
                 return;
             }
 
-            // 🔒 验证必填字段
+            //  验证必填字段
             Integer type = (Integer) notificationRequest.get("type");
             String contentStr = (String) notificationRequest.get("content");
             Long targetUserId = ((Number) notificationRequest.get("targetUserId")).longValue();
@@ -66,7 +66,7 @@ public class WebSocketNotificationController {
                 : null;
 
             if (type == null || targetUserId == null) {
-                log.error("❌ [通知推送] 失败：缺少必填字段（type 或 targetUserId）");
+                log.error("[通知推送] 失败：缺少必填字段（type 或 targetUserId）");
                 return;
             }
 
@@ -104,11 +104,11 @@ public class WebSocketNotificationController {
                 message
             );
 
-            log.info("✅ [通知推送] 推送完成：notificationId={}, targetUserId={}", 
+            log.info(" [通知推送] 推送完成：notificationId={}, targetUserId={}", 
                      notification.getId(), targetUserId);
 
         } catch (Exception e) {
-            log.error("❌ [通知推送] 失败", e);
+            log.error("[通知推送] 失败", e);
             log.error("   错误类型：{}", e.getClass().getName());
             log.error("   错误消息：{}", e.getMessage());
         }
@@ -124,11 +124,11 @@ public class WebSocketNotificationController {
     public void markNotificationAsRead(@Payload Map<String, Object> markReadRequest,
                                        StompHeaderAccessor accessor) {
         try {
-            // ✅ 从 Session 获取真实用户 ID
+            //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
             if (currentUserId == null) {
-                log.error("❌ [标记已读] 失败：用户未登录或 Session 已过期");
+                log.error("[标记已读] 失败：用户未登录或 Session 已过期");
                 return;
             }
 
@@ -136,7 +136,7 @@ public class WebSocketNotificationController {
             var notificationIds = (java.util.List<Long>) markReadRequest.get("notificationIds");
 
             if (notificationIds == null || notificationIds.isEmpty()) {
-                log.error("❌ [标记已读] 失败：notificationIds 不能为空");
+                log.error("[标记已读] 失败：notificationIds 不能为空");
                 return;
             }
 
@@ -160,11 +160,11 @@ public class WebSocketNotificationController {
                 message
             );
 
-            log.info("✅ [标记已读] 推送完成：userId={}, count={}", 
+            log.info(" [标记已读] 推送完成：userId={}, count={}", 
                      currentUserId, notificationIds.size());
 
         } catch (Exception e) {
-            log.error("❌ [标记已读] 失败", e);
+            log.error("[标记已读] 失败", e);
         }
     }
 

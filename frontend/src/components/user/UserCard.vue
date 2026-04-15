@@ -186,7 +186,7 @@ const setupOnlineStatusListener = () => {
 
   const ws = getWebSocket()
   if (!ws || !ws.isConnected()) {
-    console.warn('⚠️ [UserCard] WebSocket 未连接')
+    console.warn(' [UserCard] WebSocket 未连接')
     return
   }
 

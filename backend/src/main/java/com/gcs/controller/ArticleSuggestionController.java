@@ -143,7 +143,7 @@ public class ArticleSuggestionController {
         @Parameter(description = "每页数量", example = "10") 
         @RequestParam(defaultValue = "10") Integer limit) {
         try {
-            // ✅ 调用 Service 构建完整的 VO 列表
+            //  调用 Service 构建完整的 VO 列表
             var voPage = articleEditSuggestionService.getSuggestionsWithDetails(
                 articleId, status, page, limit);
             
@@ -173,7 +173,7 @@ public class ArticleSuggestionController {
         @Parameter(description = "建议 ID", example = "1", required = true) 
         @PathVariable Long suggestionId) {
         try {
-            // ✅ 调用 Service 构建完整的 VO
+            //  调用 Service 构建完整的 VO
             ArticleSuggestionVO vo = articleEditSuggestionService.getSuggestionDetailWithVo(suggestionId);
             return R.ok().put("data", vo);
         } catch (IllegalArgumentException e) {
@@ -277,7 +277,7 @@ public class ArticleSuggestionController {
                 return R.error("请先登录");
             }
             
-            // ✅ 调用 Service 构建完整的 VO 列表
+            //  调用 Service 构建完整的 VO 列表
             var voPage = articleEditSuggestionService.getMySuggestionsWithDetails(
                 currentUserId, status, page, limit);
             
@@ -319,7 +319,7 @@ public class ArticleSuggestionController {
                 return R.error("请先登录");
             }
             
-            // ✅ 调用 Service 构建完整的 VO 列表
+            //  调用 Service 构建完整的 VO 列表
             var voPage = articleEditSuggestionService.getReceivedSuggestionsWithDetails(
                 currentUserId, status, page, limit);
             

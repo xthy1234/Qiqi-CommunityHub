@@ -66,7 +66,7 @@ public class ArticleVersionController {
         @Parameter(description = "文章 ID", example = "1", required = true) 
         @PathVariable Long articleId) {
         try {
-            // ✅ 使用新的 Service 方法，返回包含详细信息的简略 VO 列表
+            //  使用新的 Service 方法，返回包含详细信息的简略 VO 列表
             List<ArticleVersionSimpleVO> versions = articleVersionService.getVersionHistoryWithDetails(articleId);
             
             return R.ok().put("data", versions);
@@ -98,7 +98,7 @@ public class ArticleVersionController {
         @Parameter(description = "版本号", example = "1", required = true) 
         @PathVariable Integer version) {
         try {
-            // ✅ 使用新的 Service 方法，返回完整的详细 VO
+            //  使用新的 Service 方法，返回完整的详细 VO
             ArticleVersionVO vo = articleVersionService.getVersionDetailWithVo(articleId, version);
             if (vo == null) {
                 return R.error("版本不存在");
@@ -135,7 +135,7 @@ public class ArticleVersionController {
         @Parameter(description = "版本 B", example = "2", required = true) 
         @RequestParam Integer versionB) {
         try {
-            // ✅ 使用新的 Service 方法，返回两个版本的完整 VO
+            //  使用新的 Service 方法，返回两个版本的完整 VO
             Map<String, Object> result = articleVersionService.compareVersionsWithVo(articleId, versionA, versionB);
             
             return R.ok().put("data", result);
@@ -189,7 +189,7 @@ public class ArticleVersionController {
                 return R.error("无权限执行回滚操作");
             }
 
-            // ✅ 调用 Service 层处理事务
+            //  调用 Service 层处理事务
             articleVersionService.rollbackToVersion(articleId, version, currentUserId);
 
             return R.ok("回滚成功");
@@ -260,10 +260,10 @@ public class ArticleVersionController {
             Map<String, Object> content = (Map<String, Object>) params.get("content");
             String changeSummary = (String) params.get("changeSummary");
 
-            // ✅ 创建小版本并更新文章
+            //  创建小版本并更新文章
             articleService.saveWithMinorVersion(articleId, userId, title, content, changeSummary);
 
-            // ✅ 删除草稿
+            //  删除草稿
             articleDraftService.deleteDraft(articleId, userId);
 
             return R.ok("保存成功");
@@ -297,11 +297,11 @@ public class ArticleVersionController {
                 return R.error("无权限修改此文章");
             }
 
-            // ✅ 创建大版本
+            //  创建大版本
             articleVersionService.createMajorVersion(article, userId,
                     changeSummary != null ? changeSummary : "标记为大版本");
 
-            // ✅ 删除草稿
+            //  删除草稿
             articleDraftService.deleteDraft(articleId, userId);
 
             return R.ok("已成功标记为大版本");
@@ -339,13 +339,13 @@ public class ArticleVersionController {
                 return R.error("请先登录");
             }
 
-            // ✅ 验证是否为管理员
+            //  验证是否为管理员
             boolean isAdmin = checkIsAdmin(currentUserId);
             if (!isAdmin) {
                 return R.error("无权限执行此操作");
             }
 
-            // ✅ 调用 Service 删除版本
+            //  调用 Service 删除版本
             articleVersionService.deleteVersion(articleId, version, currentUserId);
 
             return R.ok("版本已删除");

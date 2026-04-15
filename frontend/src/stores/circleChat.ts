@@ -333,7 +333,7 @@ export const useCircleChatStore = defineStore('circleChat', {
         }
 
       } else {
-        console.warn('⚠️ [CircleChat] 未找到要删除的消息:', messageId)
+        console.warn(' [CircleChat] 未找到要删除的消息:', messageId)
       }
     },
 
@@ -357,7 +357,7 @@ export const useCircleChatStore = defineStore('circleChat', {
         })
 
       } else {
-        console.warn('⚠️ [CircleChat] 未找到要处理删除通知的消息:', messageId)
+        console.warn(' [CircleChat] 未找到要处理删除通知的消息:', messageId)
       }
     },
 
@@ -482,7 +482,7 @@ export const useCircleChatStore = defineStore('circleChat', {
 
         }
       } else {
-        console.warn('⚠️ [CircleChat] WebSocket 未连接，无法发送已读回执')
+        console.warn(' [CircleChat] WebSocket 未连接，无法发送已读回执')
       }
     },
 

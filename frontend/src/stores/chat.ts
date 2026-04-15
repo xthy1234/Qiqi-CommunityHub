@@ -309,7 +309,7 @@ export const useChatStore = defineStore('chat', {
             if (ws && ws.isConnected()) {
                 ws.sendReadReceipt((conversation as any).userId)
             } else {
-                console.warn('⚠️ [chatStore] WebSocket 未连接，无法发送已读回执')
+                console.warn(' [chatStore] WebSocket 未连接，无法发送已读回执')
             }
             
             this.unreadCount -= (conversation as any).unreadCount
@@ -491,7 +491,7 @@ export const useChatStore = defineStore('chat', {
         } as any
 
       } else {
-        console.warn('⚠️ [Store.recallMessageOptimistic] 未找到消息:', messageId)
+        console.warn(' [Store.recallMessageOptimistic] 未找到消息:', messageId)
       }
     },
 
@@ -512,7 +512,7 @@ export const useChatStore = defineStore('chat', {
         //  返回被删除的消息（用于可能的回滚）
         return deletedMsg
       } else {
-        console.warn('⚠️ [Store.deleteMessageOptimistic] 未找到消息:', messageId)
+        console.warn(' [Store.deleteMessageOptimistic] 未找到消息:', messageId)
         return null
       }
     },
@@ -538,7 +538,7 @@ export const useChatStore = defineStore('chat', {
         } as any
 
       } else {
-        console.warn('⚠️ [Store.receiveRecallNotification] 未找到消息:', data.messageId)
+        console.warn(' [Store.receiveRecallNotification] 未找到消息:', data.messageId)
       }
     },
 

@@ -48,34 +48,34 @@ public class WebSocketCircleChatController {
     @MessageMapping("/circle-message")
     public void sendCircleMessage(@Payload CircleChatMessage chatMessage, 
                                    StompHeaderAccessor accessor) {
-        // ✅ 从 Session 获取真实用户 ID
+        //  从 Session 获取真实用户 ID
         Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
         
         log.info("🚀 [圈子消息] 收到 WebSocket 消息：circleId={}, sessionUserId={}", 
                  chatMessage.getCircleId(), currentUserId);
 
         try {
-            // 🔒 验证用户是否已登录
+            //  验证用户是否已登录
             if (currentUserId == null) {
-                log.error("❌ [圈子消息] 发送失败：用户未登录或 Session 已过期");
+                log.error("[圈子消息] 发送失败：用户未登录或 Session 已过期");
                 return;
             }
 
-            // 🔒 验证必填字段
+            //  验证必填字段
             if (chatMessage.getCircleId() == null) {
-                log.error("❌ [圈子消息] 发送失败：circleId 不能为空");
+                log.error("[圈子消息] 发送失败：circleId 不能为空");
                 return;
             }
 
             if (chatMessage.getContent() == null || chatMessage.getContent().isEmpty()) {
-                log.error("❌ [圈子消息] 发送失败：消息内容不能为空");
+                log.error("[圈子消息] 发送失败：消息内容不能为空");
                 return;
             }
 
-            // 🔒 验证消息类型合法性
+            //  验证消息类型合法性
             if (chatMessage.getMsgType() != null && 
                 (chatMessage.getMsgType() < 0 || chatMessage.getMsgType() > 2)) {
-                log.error("❌ [圈子消息] 发送失败：不支持的消息类型 {}", chatMessage.getMsgType());
+                log.error("[圈子消息] 发送失败：不支持的消息类型 {}", chatMessage.getMsgType());
                 return;
             }
             
@@ -90,7 +90,7 @@ public class WebSocketCircleChatController {
 
             messageVO.setIsSelf(null);
 
-            log.info("✅ [圈子消息] 消息已发送：messageId={}, senderId={}", 
+            log.info(" [圈子消息] 消息已发送：messageId={}, senderId={}", 
                      messageVO.getId(), messageVO.getSenderId());
 
             // 广播给圈子所有成员
@@ -99,10 +99,10 @@ public class WebSocketCircleChatController {
 
             messagingTemplate.convertAndSend(destination, messageVO);
 
-            log.info("✅ [圈子消息] 推送完成");
+            log.info(" [圈子消息] 推送完成");
 
         } catch (Exception e) {
-            log.error("❌ [圈子消息] 发送失败", e);
+            log.error("[圈子消息] 发送失败", e);
             log.error("   错误类型：{}", e.getClass().getName());
             log.error("   错误消息：{}", e.getMessage());
         }
@@ -115,18 +115,18 @@ public class WebSocketCircleChatController {
     public void recallCircleMessage(@Payload RecallMessageRequest recallRequest,
                                      StompHeaderAccessor accessor) {
         try {
-            // ✅ 从 Session 获取真实用户 ID
+            //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
             if (currentUserId == null) {
-                log.error("❌ [撤回消息] 失败：用户未登录或 Session 已过期");
+                log.error("[撤回消息] 失败：用户未登录或 Session 已过期");
                 return;
             }
 
             log.info("收到撤回请求：messageId={}, requestUserId={}, sessionUserId={}", 
                     recallRequest.getMessageId(), recallRequest.getUserId(), currentUserId);
 
-            // 🔒 使用 Session 中的真实用户 ID（忽略前端传来的 userId）
+            //  使用 Session 中的真实用户 ID（忽略前端传来的 userId）
             boolean success = circleChatService.recallMessage(
                 recallRequest.getMessageId(), 
                 currentUserId  // 使用 Session 中的 ID，安全可靠
@@ -156,7 +156,7 @@ public class WebSocketCircleChatController {
             String destination = "/topic/circles/" + message.getCircleId() + "/messages";
             messagingTemplate.convertAndSend(destination, recallNotification);
 
-            log.info("✅ 圈子消息撤回成功并已推送：messageId={}, circleId={}", 
+            log.info(" 圈子消息撤回成功并已推送：messageId={}, circleId={}", 
                     recallRequest.getMessageId(), message.getCircleId());
 
         } catch (Exception e) {
@@ -171,18 +171,18 @@ public class WebSocketCircleChatController {
     public void deleteCircleMessage(@Payload DeleteMessageRequest deleteRequest,
                                      StompHeaderAccessor accessor) {
         try {
-            // ✅ 从 Session 获取真实用户 ID
+            //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
             if (currentUserId == null) {
-                log.error("❌ [删除消息] 失败：用户未登录或 Session 已过期");
+                log.error("[删除消息] 失败：用户未登录或 Session 已过期");
                 return;
             }
 
             log.info("收到删除请求：messageId={}, requestUserId={}, sessionUserId={}", 
                     deleteRequest.getMessageId(), deleteRequest.getUserId(), currentUserId);
 
-            // 🔒 使用 Session 中的真实用户 ID
+            //  使用 Session 中的真实用户 ID
             boolean success = circleChatService.deleteMessage(
                 deleteRequest.getMessageId(), 
                 currentUserId
@@ -227,7 +227,7 @@ public class WebSocketCircleChatController {
             String destination = "/topic/circles/" + message.getCircleId() + "/messages";
             messagingTemplate.convertAndSend(destination, deleteNotification);
 
-            log.info("✅ 圈子消息已删除并推送：messageId={}, circleId={}, deletedBy={}", 
+            log.info(" 圈子消息已删除并推送：messageId={}, circleId={}, deletedBy={}", 
                     deleteRequest.getMessageId(), message.getCircleId(), currentUserId);
 
         } catch (Exception e) {

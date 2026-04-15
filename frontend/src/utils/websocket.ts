@@ -220,7 +220,7 @@ class WebSocketManager {
       
       // 如果已连接，需要重新建立连接（因为 URL 中包含 userId）
       if (this.client && this.client.connected) {
-        console.warn('⚠️ [WebSocket] 用户 ID 变更，正在重新建立连接...')
+        console.warn(' [WebSocket] 用户 ID 变更，正在重新建立连接...')
         this.close()
         setTimeout(() => {
           this.connect().catch((error) => {
@@ -243,7 +243,7 @@ class WebSocketManager {
     }
     
     if (this.currentUserId && this.currentUserId !== currentUserId) {
-      console.warn('⚠️ [WebSocket] 检测到用户 ID 不一致，缓存:', this.currentUserId, '实际:', currentUserId)
+      console.warn(' [WebSocket] 检测到用户 ID 不一致，缓存:', this.currentUserId, '实际:', currentUserId)
       this.currentUserId = currentUserId
       this.lastKnownUserId = currentUserId
       return false // 不一致，需要重新连接
@@ -321,7 +321,7 @@ class WebSocketManager {
           },
           
           onStompError: (frame: IFrame) => {
-            console.error('❌ [WebSocket 调试] STOMP 错误:')
+            console.error('[WebSocket 调试] STOMP 错误:')
             console.error('  - Command:', frame.command)
             console.error('  - Headers:', JSON.stringify(frame.headers, null, 2))
             console.error('  - Message:', frame.headers?.message)
@@ -339,7 +339,7 @@ class WebSocketManager {
           },
           
           onWebSocketError: (error) => {
-            console.error('❌ [WebSocket 调试] WebSocket 错误:', error)
+            console.error('[WebSocket 调试] WebSocket 错误:', error)
             wsLogger.error('WebSocket 错误', { error })
             this.notifyStateChange(WsReadyState.CLOSED)
             reject(error)
@@ -373,7 +373,7 @@ class WebSocketManager {
 
         this.client.activate()
       } catch (error) {
-        console.error('❌ [WebSocket 调试] 连接异常:', error)
+        console.error('[WebSocket 调试] 连接异常:', error)
         wsLogger.error('连接异常', { error })
         reject(error)
       }
@@ -524,7 +524,7 @@ class WebSocketManager {
    */
   public queryUserOnlineStatus(userIds: number[]): void {
     if (!this.client || !this.client.connected) {
-      console.warn('⚠️ [WebSocket] 未连接，无法查询用户在线状态')
+      console.warn(' [WebSocket] 未连接，无法查询用户在线状态')
       return
     }
 
@@ -543,7 +543,7 @@ class WebSocketManager {
    */
   public subscribeFriendsOnlineStatus(): void {
     if (!this.client || !this.client.connected) {
-      console.warn('⚠️ [WebSocket] 未连接，无法订阅好友在线状态')
+      console.warn(' [WebSocket] 未连接，无法订阅好友在线状态')
       return
     }
     
@@ -607,7 +607,7 @@ class WebSocketManager {
       return
     }
     
-    // 🔧 修复：使用后端期望的字段名
+    // 修复：使用后端期望的字段名
     const receipt = {
       fromUserId: currentUserId,        // 当前用户（阅读者）
       toUserId: messageSenderUserId     // 消息发送方
@@ -710,7 +710,7 @@ class WebSocketManager {
    */
   send(message: WsMessage): void {
     if (!this.client || !this.client.connected) {
-      console.warn('⚠️ [WebSocket] 未连接，消息已跳过:', message)
+      console.warn(' [WebSocket] 未连接，消息已跳过:', message)
       return
     }
     
@@ -870,7 +870,7 @@ export function getWebSocket(): WebSocketManager | null {
  */
 export function getOrCreateWebSocket(url?: string): WebSocketManager {
   if (!wsManager) {
-    console.warn('⚠️ [WebSocket] WebSocket 实例不存在，正在创建...')
+    console.warn(' [WebSocket] WebSocket 实例不存在，正在创建...')
     return initWebSocket(url)
   }
   return wsManager

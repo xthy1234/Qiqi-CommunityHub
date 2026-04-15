@@ -266,12 +266,12 @@ const loadPointsInfo = async () => {
     // 更新本地状态
     points.value = pointsData.points
     streak.value = pointsData.streak
-    signedInToday.value = statusData.signedIn  // ✅ 使用正确的字段名
+    signedInToday.value = statusData.signedIn  //  使用正确的字段名
 
     // 同时更新 Store
     pointsStore.points = pointsData.points
     pointsStore.streak = pointsData.streak
-    pointsStore.signedInToday = statusData.signedIn  // ✅ 使用正确的字段名
+    pointsStore.signedInToday = statusData.signedIn  //  使用正确的字段名
 
   } catch (error: any) {
     console.error('加载积分信息失败:', error)

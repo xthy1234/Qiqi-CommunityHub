@@ -124,7 +124,7 @@
         </div>
       </transition>
 
-      <!-- ⚠️ 关键修复：使用 Canvas 作为弹幕容器 -->
+      <!--   使用 Canvas 作为弹幕容器 -->
       <canvas
         v-if="showDanmaku && !isEditable"
         ref="danmakuCanvasRef"
@@ -183,12 +183,12 @@
                 <path
                   fill="currentColor"
                   d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"
-              />
-            </svg>
-          </n-icon>
-        </template>
-        管理注释
-      </n-button>
+                />
+              </svg>
+            </n-icon>
+          </template>
+          管理注释
+        </n-button>
       </div>
 
       <!-- 弹幕控制区域（移到信息卡片下方） -->
@@ -387,12 +387,12 @@ let player: Plyr | null = null
 
 // 生成唯一的视频节点ID（用于注释引用跳转）
 const videoNodeId = computed(() => {
-  // ⚠️ 优先使用已保存的 ID
+  //  优先使用已保存的 ID
   if (props.node?.attrs?.id) {
     return props.node.attrs.id
   }
 
-  // ⚠️ 如果没有 ID，使用视频 URL 的哈希作为稳定 ID
+  //  如果没有 ID，使用视频 URL 的哈希作为稳定 ID
   const src = props.node?.attrs?.src || ''
   if (src) {
     let hash = 0
@@ -447,7 +447,7 @@ if (savedDanmakuState === 'true') {
 const isEditable = computed(() => {
   return props.editor?.isEditable === true
 })
-// ⚠️ 关键修复：判断是否在聊天场景中
+//   判断是否在聊天场景中
 const isInChatContext = computed(() => {
   // 检查路由是否包含 chat
   const path = window.location.pathname
@@ -535,7 +535,7 @@ const sendDanmaku = async () => {
       const newDanmaku = response.data.data
       danmakuData.value.push(newDanmaku)
 
-      // ⚠️ 关键修复：立即添加到活跃弹幕列表，使其显示在屏幕上
+      //   立即添加到活跃弹幕列表，使其显示在屏幕上
       const canvas = danmakuCanvasRef.value
       if (canvas) {
         activeDanmakus.value.push({
@@ -897,7 +897,7 @@ const handleScrollToAnnotation = (event: Event) => {
 
   // 检查是否是当前视频节点
   if (!videoNodeId.value || videoNodeId.value !== targetVideoId) {
-    console.warn('⚠️ [VideoNode] videoNodeId 不匹配，忽略跳转')
+    console.warn(' [VideoNode] videoNodeId 不匹配，忽略跳转')
     return
   }
 
@@ -928,7 +928,7 @@ onMounted(() => {
     initPlayer()
   }, 100)
 
-  // ⚠️ 关键修复：如果节点没有 ID，立即生成并保存
+  //   如果节点没有 ID，立即生成并保存
   if (!props.node?.attrs?.id) {
     const generatedId = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -939,8 +939,6 @@ onMounted(() => {
       })
 
     })
-  } else {
-
   }
 
   // 监听来自引用节点的跳转事件

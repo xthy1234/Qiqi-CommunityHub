@@ -58,7 +58,7 @@ public class ArticleDraftController {
     private ArticleDraftConverter articleDraftConverter;
     
     @Autowired
-    private ArticleConverter articleConverter;  // ✅ 新增：添加 articleConverter 注入
+    private ArticleConverter articleConverter;  //  新增：添加 articleConverter 注入
 
     @Autowired
     private SessionUtils sessionUtils;
@@ -85,7 +85,7 @@ public class ArticleDraftController {
             String coverUrl = data != null ? (String) data.get("coverUrl") : null;
             Long categoryId = data != null ? convertToLong(data.get("categoryId")) : null;
 
-            // ✅ 无论是否编辑已有文章，都先检查是否存在草稿
+            //  无论是否编辑已有文章，都先检查是否存在草稿
             if (articleId != null) {
                 // 1. 编辑已有文章：验证文章权限 + 检查草稿
                 Article article = articleService.getById(articleId);
@@ -108,7 +108,7 @@ public class ArticleDraftController {
                     return R.ok().put("data", result);
                 }
                 
-                // ✅ 新增：如果没有草稿，使用文章内容初始化草稿
+                //  新增：如果没有草稿，使用文章内容初始化草稿
                 title = article.getTitle() != null ? article.getTitle() : "未命名草稿";
                 content = article.getContent() != null ? article.getContent() : new HashMap<>();
                 coverUrl = article.getCoverUrl();
@@ -240,7 +240,7 @@ public class ArticleDraftController {
             String title = (String) saveData.get("title");
             Map<String, Object> extra = (Map<String, Object>) saveData.get("extra");
             
-            // ✅ 修复：使用 convertToLong 处理 categoryId 的类型转换
+            //  修复：使用 convertToLong 处理 categoryId 的类型转换
             String coverUrl = (String) saveData.get("coverUrl");
             Long categoryId = convertToLong(saveData.get("categoryId"));
 
@@ -304,7 +304,7 @@ public class ArticleDraftController {
                 article.setCategoryId(draft.getCategoryId());
                 article.setAuditStatus(AuditStatus.PENDING); // 待审核
                 article.setPublishTime(null); // 发布后设置为当前时间
-                article.setCurrentVersion(1); // ✅ 初始化版本号为 1
+                article.setCurrentVersion(1); //  初始化版本号为 1
                 
                 articleService.save(article);
                 articleId = article.getId();
@@ -341,14 +341,14 @@ public class ArticleDraftController {
 
             }
 
-            // ✅ 新增：提取 versionType 参数
+            //  新增：提取 versionType 参数
             String changeSummary = publishData != null ? (String) publishData.get("changeSummary") : draft.getChangeSummary();
             Integer versionType = publishData != null ? 
                 (publishData.get("versionType") instanceof Integer ? 
                     (Integer) publishData.get("versionType") : 
                     Integer.parseInt(publishData.get("versionType").toString())) : null;
             
-            // ✅ 根据 versionType 决定创建大版本还是小版本
+            //  根据 versionType 决定创建大版本还是小版本
             // versionType: 0=小版本，1=大版本，null=自动判断
             Integer version;
             if (versionType != null) {
@@ -368,7 +368,7 @@ public class ArticleDraftController {
                 }
             }
 
-            // ✅ 新增：创建版本后，更新 article.currentVersion 为最新版本号
+            //  新增：创建版本后，更新 article.currentVersion 为最新版本号
             article.setCurrentVersion(version);
             articleService.updateById(article);
 
@@ -387,11 +387,11 @@ public class ArticleDraftController {
                 result.put("versionType", versionEntity.getVersionType());
             }
             
-            // ✅ 新增：获取文章详情并设置版本号
+            //  新增：获取文章详情并设置版本号
             Article articleDetail = articleService.getArticleDetail(articleId);
             ArticleDetailVO articleVO = articleConverter.toDetailVO(articleDetail);
             
-            // ✅ 使用刚创建的版本信息设置版本号
+            //  使用刚创建的版本信息设置版本号
             if (versionEntity != null) {
                 articleVO.setMajorVersion(versionEntity.getMajorVersion());
                 articleVO.setMinorVersion(versionEntity.getMinorVersion());
@@ -432,7 +432,7 @@ public class ArticleDraftController {
                 return R.error("无权限保存此草稿");
             }
 
-            // ✅ 提取数据（为 null 时使用草稿原值）
+            //  提取数据（为 null 时使用草稿原值）
             String title = saveData.get("title") != null ? 
                 (String) saveData.get("title") : draft.getTitle();
             Map<String, Object> content = saveData.get("content") != null ? 

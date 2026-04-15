@@ -8,7 +8,7 @@
   >
     <div class="cropper-container">
       <div class="cropper-wrapper">
-        <!-- 【修复】添加 @change 事件监听裁剪框变化 -->
+        <!--  添加 @change 事件监听裁剪框变化 -->
         <VueCropper
           ref="cropperRef"
           :img="imageSrc"
@@ -212,7 +212,7 @@ watch(showModal, (newVal: boolean) => {
   emit('update:show', newVal)
 })
 
-// 【简化】实时预览 - 只更新 URL
+//  实时预览 - 只更新 URL
 const handleRealTime = (data: any) => {
   // 只保留 url，其他的不需要
   previews.value = {
@@ -220,7 +220,7 @@ const handleRealTime = (data: any) => {
   }
 }
 
-// 【简化】@change 事件
+//  @change 事件
 const handleChange = (data: any) => {
   previews.value = {
     url: data.url
@@ -390,7 +390,7 @@ const handleConfirm = async () => {
     max-width: 200px;
     max-height: 200px;
     border: 1px solid #ddd;
-    border-radius: 8px;  // 【统一】圆角矩形
+    border-radius: 8px;  //  圆角矩形
     overflow: hidden;
     background: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);

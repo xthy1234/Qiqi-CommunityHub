@@ -1,6 +1,6 @@
 <template>
   <div class="cover-upload-wrapper">
-    <!-- 【调试】显示当前 imageUrl 的值 -->
+    <!--  显示当前 imageUrl 的值 -->
     <!-- <div style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #fff; padding: 10px; z-index: 9999; font-size: 12px;">
       imageUrl: {{ imageUrl }}
     </div> -->
@@ -11,7 +11,7 @@
       class="cover-preview"
       @click="triggerUpload"
     >
-      <!-- 【调试】添加加载状态和错误提示 -->
+      <!--  添加加载状态和错误提示 -->
       <img
         :src="imageUrl"
         alt="封面预览"
@@ -21,7 +21,7 @@
         :style="{ opacity: imageLoaded ? 1 : 0 }"
       />
 
-      <!-- 【调试】图片加载中的占位 -->
+      <!--  图片加载中的占位 -->
       <div v-if="!imageLoaded" class="loading-placeholder">
         <n-spin size="small" />
         <span>加载中...</span>
@@ -169,7 +169,7 @@ const handleFileChange = (event: Event) => {
     return
   }
 
-  // 【修复】限制为常见图片格式
+  //  限制为常见图片格式
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
   const isAllowedType = allowedTypes.includes(file.type.toLowerCase())
 
@@ -214,17 +214,17 @@ const handleCropSuccess = (url: string) => {
   } else {
     // 其他情况，直接使用
     relativePath = url
-    console.warn('  - ⚠️ URL 格式异常，直接使用:', relativePath)
+    console.warn('  -  URL 格式异常，直接使用:', relativePath)
   }
 
-  // 【关键】先触发更新，再重置状态
+  //  先触发更新，再重置状态
 
   emit('update:modelValue', relativePath)
 
 
   message.success('封面上传成功')
 
-  // 【修复】不要立即重置 selectedFile，等待下一个 tick
+  //  不要立即重置 selectedFile，等待下一个 tick
   setTimeout(() => {
     selectedFile.value = null
 
@@ -242,7 +242,7 @@ const handleRemove = () => {
   message.success('封面已删除')
 }
 
-// 【新增】图片加载成功处理
+//  图片加载成功处理
 const handleImageLoad = () => {
 
   imageLoaded.value = true
@@ -278,7 +278,7 @@ const handleImageError = (e: Event) => {
     cursor: pointer;
     transition: all 0.3s;
 
-    // 【修复】强制确保是圆角矩形，不是圆形
+    //  强制确保是圆角矩形，不是圆形
     border-radius: 8px !important;
 
     &:hover {
@@ -300,11 +300,11 @@ const handleImageError = (e: Event) => {
       object-fit: cover;
       display: block;
 
-      // 【修复】确保图片不会变成圆形
+      //  确保图片不会变成圆形
       border-radius: 0 !important;
     }
 
-    // 【新增】加载占位样式
+    //  加载占位样式
     .loading-placeholder {
       position: absolute;
       top: 0;

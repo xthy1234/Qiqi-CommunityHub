@@ -135,7 +135,7 @@ const total = ref(0)
 const orderBy = ref<'score' | 'lastContributedAt'>('score')
 
 // 监听 show 属性变化
-watch(() => props.show, (newVal) => {
+watch(() => props.show, (newVal : boolean) => {
   modalVisible.value = newVal
   if (newVal) {
     loadContributors()
@@ -143,7 +143,7 @@ watch(() => props.show, (newVal) => {
 }, { immediate: true })
 
 // 监听 modalVisible 变化，同步到父组件
-watch(modalVisible, (newVal) => {
+watch(modalVisible, (newVal :boolean) => {
   emit('update:show', newVal)
 })
 

@@ -80,12 +80,12 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
 
 
             this.save(chat);
-            log.info("✅ 圈子消息已保存，messageId={}, circleId={}, senderId={}",
+            log.info(" 圈子消息已保存，messageId={}, circleId={}, senderId={}",
                     chat.getId(), circleId, senderId);
 
 
             circleMemberDao.updateLastReadTime(senderId, circleId);
-            log.debug("✅ 已更新发送者的最后阅读时间：userId={}, circleId={}", senderId, circleId);
+            log.debug(" 已更新发送者的最后阅读时间：userId={}, circleId={}", senderId, circleId);
 
 
             return convertToWebSocketMessage(chat, senderId);
@@ -207,7 +207,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             message.setUpdateTime(LocalDateTime.now());
             this.updateById(message);
 
-            log.info("✅ 圈子消息已撤回：messageId={}, circleId={}", messageId, message.getCircleId());
+            log.info(" 圈子消息已撤回：messageId={}, circleId={}", messageId, message.getCircleId());
             return true;
         } catch (Exception e) {
             log.error("撤回圈子消息失败，messageId: {}, userId: {}", messageId, userId, e);
@@ -253,7 +253,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             message.setUpdateTime(LocalDateTime.now());
             this.updateById(message);
 
-            log.info("✅ 圈子消息已删除（管理员操作）：messageId={}, circleId={}, operatorId={}, role={}", 
+            log.info(" 圈子消息已删除（管理员操作）：messageId={}, circleId={}, operatorId={}, role={}", 
                     messageId, message.getCircleId(), userId, role);
             return true;
         } catch (Exception e) {
@@ -328,7 +328,7 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
             // 更新最后阅读时间
             int rows = circleMemberDao.updateLastReadTime(userId, circleId);
             
-            log.info("✅ 圈子消息已标记为已读：userId={}, circleId={}", userId, circleId);
+            log.info(" 圈子消息已标记为已读：userId={}, circleId={}", userId, circleId);
             return rows > 0;
         } catch (Exception e) {
             log.error("标记已读失败，userId: {}, circleId: {}", userId, circleId, e);
@@ -389,9 +389,9 @@ public class CircleChatServiceImpl extends ServiceImpl<CircleChatDao, CircleChat
         messageVO.setSenderId(chat.getSenderId());
         
         // 🔥 处理撤回和删除的消息内容：将 contentJson 置为空 Map
-        if (Boolean.TRUE.equals(chat.getDeletedByAdmin())) {  // ✅ 使用 Boolean.TRUE.equals() 避免空指针
+        if (Boolean.TRUE.equals(chat.getDeletedByAdmin())) {  //  使用 Boolean.TRUE.equals() 避免空指针
             messageVO.setContent(new java.util.HashMap<>());  // 删除后内容为空对象
-        } else if (Boolean.TRUE.equals(chat.getIsRecalled())) {  // ✅ 同上
+        } else if (Boolean.TRUE.equals(chat.getIsRecalled())) {  //  同上
             messageVO.setContent(new java.util.HashMap<>());  // 撤回后内容为空对象
         } else {
             messageVO.setContent(chat.getContent());

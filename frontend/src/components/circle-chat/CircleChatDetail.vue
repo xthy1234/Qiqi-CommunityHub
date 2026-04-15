@@ -419,7 +419,7 @@ const cleanupWebSocketHandlers = () => {
 const registerWebSocketHandlers = () => {
   const ws = getWebSocket()
   if (!ws) {
-    console.warn('⚠️ [圈子聊天] WebSocket 未初始化，无法注册处理器')
+    console.warn(' [圈子聊天] WebSocket 未初始化，无法注册处理器')
     return
   }
 

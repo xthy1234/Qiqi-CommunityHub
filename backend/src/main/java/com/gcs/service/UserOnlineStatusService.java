@@ -47,19 +47,19 @@ public class UserOnlineStatusService {
         // 🔥 更新数据库中的最后在线时间
         try {
             userDao.updateLastOnlineTime(userId);
-            log.debug("✅ 已更新数据库最后在线时间：userId={}", userId);
+            log.debug(" 已更新数据库最后在线时间：userId={}", userId);
         } catch (Exception e) {
-            log.error("❌ 更新最后在线时间失败：userId={}", userId, e);
+            log.error("更新最后在线时间失败：userId={}", userId, e);
         }
         
         // 🔥 推送在线状态变更给有会话的人
         try {
             notifyOnlineStatusChange(userId, true);
         } catch (Exception e) {
-            log.error("❌ 推送上线状态失败：userId={}", userId, e);
+            log.error("推送上线状态失败：userId={}", userId, e);
         }
         
-        log.info("✅ 用户上线：userId={}, sessionId={}", userId, sessionId);
+        log.info(" 用户上线：userId={}, sessionId={}", userId, sessionId);
     }
     
     /**
@@ -73,16 +73,16 @@ public class UserOnlineStatusService {
             // 🔥 更新数据库中的最后下线时间（可选，如果需要记录最后一次在线时间）
             try {
                 userDao.updateLastOnlineTime(userId);
-                log.debug("✅ 已更新数据库最后离线时间：userId={}", userId);
+                log.debug(" 已更新数据库最后离线时间：userId={}", userId);
             } catch (Exception e) {
-                log.error("❌ 更新最后离线时间失败：userId={}", userId, e);
+                log.error("更新最后离线时间失败：userId={}", userId, e);
             }
             
             // 🔥 推送离线状态变更给有会话的人
             try {
                 notifyOnlineStatusChange(userId, false);
             } catch (Exception e) {
-                log.error("❌ 推送离线状态失败：userId={}", userId, e);
+                log.error("推送离线状态失败：userId={}", userId, e);
             }
         }
     }
@@ -103,7 +103,7 @@ public class UserOnlineStatusService {
                 try {
                     userDao.updateLastOnlineTime(userId);
                 } catch (Exception e) {
-                    log.error("❌ 更新心跳时间失败：userId={}", userId, e);
+                    log.error("更新心跳时间失败：userId={}", userId, e);
                 }
             }
         }
@@ -164,18 +164,18 @@ public class UserOnlineStatusService {
                 try {
                     userDao.updateLastOnlineTime(userId);
                 } catch (Exception e) {
-                    log.error("❌ 清理前更新时间失败：userId={}", userId, e);
+                    log.error("清理前更新时间失败：userId={}", userId, e);
                 }
                 
                 onlineUsers.remove(userId);
                 cleanedCount++;
-                log.info("⏰ 清理超时用户：userId={}, 超时时长={}ms", 
+                log.info(" 清理超时用户：userId={}, 超时时长={}ms",
                         userId, now - info.getLastHeartbeat());
             }
         }
         
         if (cleanedCount > 0) {
-            log.info("✅ 清理超时用户完成，共清理 {} 人", cleanedCount);
+            log.info(" 清理超时用户完成，共清理 {} 人", cleanedCount);
         }
         
         return cleanedCount;
@@ -212,16 +212,16 @@ public class UserOnlineStatusService {
                     try {
                         messagingTemplate.convertAndSend(destination, statusVO);
                     } catch (Exception e) {
-                        log.error("❌ 推送失败：destination={}", destination, e);
+                        log.error("推送失败：destination={}", destination, e);
                     }
                 }
             }
             
-            log.info("✅ 已推送在线状态变更：userId={}, isOnline={}, 接收人数={}", 
+            log.info(" 已推送在线状态变更：userId={}, isOnline={}, 接收人数={}", 
                     userId, isOnline, relatedUserIds.size());
                     
         } catch (Exception e) {
-            log.error("❌ 推送在线状态变更失败：userId={}, isOnline={}", userId, isOnline, e);
+            log.error("推送在线状态变更失败：userId={}, isOnline={}", userId, isOnline, e);
         }
     }
     
@@ -241,7 +241,7 @@ public class UserOnlineStatusService {
                 log.debug("📩 从私信表找到 {} 个相关用户", messageUserIds.size());
             }
         } catch (Exception e) {
-            log.error("❌ 查找相关用户失败：userId={}", userId, e);
+            log.error("查找相关用户失败：userId={}", userId, e);
         }
         
         return new ArrayList<>(relatedUserSet);

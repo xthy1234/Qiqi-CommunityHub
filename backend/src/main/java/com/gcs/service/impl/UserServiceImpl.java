@@ -547,7 +547,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
     @Override
     public User getPublicProfile(Long userId, Long currentUserId) {
-        // ✅ Service 只负责返回 Entity
+        //  Service 只负责返回 Entity
         return getById(userId);
     }
     
@@ -563,7 +563,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             return null;
         }
         
-        // ✅ 使用 Converter 转换基础字段
+        //  使用 Converter 转换基础字段
         UserPublicProfileVO vo = new UserPublicProfileVO();
         vo.setId(user.getId());
         vo.setNickname(user.getNickname());
@@ -573,11 +573,11 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         vo.setBirthday(user.getBirthday());
         vo.setCreateTime(user.getCreateTime());
         
-        // ✅ 补充业务字段：粉丝数、关注数、文章数
+        //  补充业务字段：粉丝数、关注数、文章数
         Integer followerCount = followService != null ? followService.countFollowers(user.getId()) : 0;
         Integer followingCount = followService != null ? followService.countFollowing(user.getId()) : 0;
         
-        // ✅ 修复类型转换问题：count() 返回 long，需要转为 Integer
+        //  修复类型转换问题：count() 返回 long，需要转为 Integer
         Long articleCountLong = articleService != null ? 
             articleService.count(new LambdaQueryWrapper<Article>()
                 .eq(Article::getAuthorId, user.getId())
@@ -588,7 +588,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         vo.setFollowingCount(followingCount);
         vo.setArticleCount(articleCount);
         
-        // ✅ 补充业务字段：是否已关注（仅登录后）
+        //  补充业务字段：是否已关注（仅登录后）
         if (currentUserId != null && !currentUserId.equals(user.getId())) {
             Boolean isFollowed = followService != null ? followService.isFollowing(currentUserId, user.getId()) : false;
             vo.setIsFollowed(isFollowed);

@@ -5,7 +5,7 @@ import { normalizeFileUrl, getFileViewUrl } from '@/utils/fileUrl'
 /**
  * 文件上传响应类型
  * 
- * 【重要】根据后端实际响应结构调整
+ *  根据后端实际响应结构调整
  * 当前后端返回格式（嵌套结构）：
  * {
  *   "code": 0,
@@ -129,7 +129,7 @@ export class UploadAPI {
       
       return result
     } catch (error) {
-      console.error('❌ [UploadAPI] 文件上传失败:', error)
+      console.error('[UploadAPI] 文件上传失败:', error)
       throw error
     }
   }
@@ -160,7 +160,7 @@ export class UploadAPI {
         return null
       }
     } catch (error) {
-      console.error('❌ [UploadAPI] 图片上传异常:', error)
+      console.error('[UploadAPI] 图片上传异常:', error)
       return null
     }
   }
@@ -191,7 +191,7 @@ export class UploadAPI {
         return null
       }
     } catch (error) {
-      console.error('❌ [UploadAPI] 视频上传异常:', error)
+      console.error('[UploadAPI] 视频上传异常:', error)
       return null
     }
   }
@@ -213,7 +213,7 @@ export class UploadAPI {
         return null
       }
     } catch (error) {
-      console.error('❌ [UploadAPI] 文件上传异常:', error)
+      console.error('[UploadAPI] 文件上传异常:', error)
       return null
     }
   }
@@ -228,7 +228,7 @@ export class UploadAPI {
       const response = await http.get(`/api/files/${fileId}`)
       return response.data as unknown as any
     } catch (error) {
-      console.error('❌ [UploadAPI] 获取文件信息失败:', error)
+      console.error('[UploadAPI] 获取文件信息失败:', error)
       throw error
     }
   }
@@ -243,7 +243,7 @@ export class UploadAPI {
       const response = await http.delete(`/api/files/${fileId}`)
       return response.data
     } catch (error) {
-      console.error('❌ [UploadAPI] 删除文件失败:', error)
+      console.error('[UploadAPI] 删除文件失败:', error)
       throw error
     }
   }

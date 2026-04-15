@@ -368,13 +368,13 @@ public class UserController {
                 UserDetailVO vo = userConverter.toDetailVO(user);
                 return R.ok().put("data", vo);
             } else {
-                // ✅ Service 返回 Entity
+                //  Service 返回 Entity
                 User user = userService.getById(id);
                 if (user == null) {
                     return R.error("用户不存在");
                 }
                 
-                // ✅ Controller 调用 Service 方法构建公开主页 VO（包含统计数据）
+                //  Controller 调用 Service 方法构建公开主页 VO（包含统计数据）
                 UserPublicProfileVO profileVO = ((UserServiceImpl) userService).buildPublicProfileVO(user, currentUserId);
                 
                 return R.ok().put("data", profileVO);

@@ -276,7 +276,7 @@ export type MessageStatusType = typeof MessageStatus[keyof typeof MessageStatus]
  * @returns 是否为未读状态
  */
 export function isUnreadMessage(status?: string | number): boolean {
-    //  关键修复：同时检查数字和字符串类型
+    //   同时检查数字和字符串类型
     return status === MessageStatus.SENT ||        // 'SENT' 字符串
            status === MessageStatus.DELIVERED ||   // 'DELIVERED' 字符串
            status === 0 ||                         // 数字 0 (SENT)
@@ -293,7 +293,7 @@ export function isUnreadMessage(status?: string | number): boolean {
  * @returns 是否为已读状态
  */
 export function isReadMessage(status?: string | number): boolean {
-    //  关键修复：同时检查数字和字符串类型
+    //   同时检查数字和字符串类型
     return status === MessageStatus.READ ||    // 'READ' 字符串
            status === 1                        // 数字 1 (READ)
 }

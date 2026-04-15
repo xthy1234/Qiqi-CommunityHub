@@ -226,8 +226,8 @@ const handleRegister = async () => {
         message.error(responseData.msg || '注册失败')
       }
     } catch (error: any) {
-      console.error('❌ [注册请求] 注册失败:', error)
-      console.error('❌ [注册请求] 错误详情:', {
+      console.error('[注册请求] 注册失败:', error)
+      console.error('[注册请求] 错误详情:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,

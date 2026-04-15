@@ -152,7 +152,7 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
             }
         }
         
-        // ✅ 第三步：如果没有找到相同条件的记录，创建新记录
+        //  第三步：如果没有找到相同条件的记录，创建新记录
         // 设置默认值
         interaction.setStatus(InteractionStatus.VALID);
         interaction.setIsDeleted(false);
@@ -179,7 +179,7 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
             throw new IllegalArgumentException("参数不能为空");
         }
 
-        // ✅ 正确：传递 tableName 参数
+        //  正确：传递 tableName 参数
         Interaction interaction = baseMapper.selectByUserAndContent(userId, contentId, actionType, tableName);
         if (interaction != null) {
             // 将状态标记为无效（status 从 0 变为 1）
@@ -225,7 +225,7 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
             return false;
         }
 
-        // ✅ 正确：传递 tableName 参数
+        //  正确：传递 tableName 参数
         Interaction interaction = baseMapper.selectByUserAndContent(userId, contentId, actionType, tableName);
         return interaction != null;
     }

@@ -4,7 +4,7 @@ import http from '@/utils/http'
 /**
  * 文件上传响应类型
  * 
- * 【重要】根据后端实际响应结构调整
+ *  根据后端实际响应结构调整
  * 当前后端返回格式（嵌套结构）：
  * {
  *   "code": 0,
@@ -111,22 +111,22 @@ export class UploadAPI {
         }
       })
 
-      // console.log('📥 [UploadAPI] HTTP 响应对象:', response)
-      // console.log('📥 [UploadAPI] response.data:', response.data)
+      // console.log(' [UploadAPI] HTTP 响应对象:', response)
+      // console.log(' [UploadAPI] response.data:', response.data)
 
-      // 【关键】后端将文件信息嵌套在 response.data.file 中
+      //  后端将文件信息嵌套在 response.data.file 中
       const backendData = response.data as unknown as BackendUploadResponse
       
-      // console.log('📥 [UploadAPI] backendData:', backendData)
-      // console.log('📥 [UploadAPI] backendData.code:', backendData.code)
-      // console.log('📥 [UploadAPI] backendData.file:', backendData.file)
+      // console.log(' [UploadAPI] backendData:', backendData)
+      // console.log(' [UploadAPI] backendData.code:', backendData.code)
+      // console.log(' [UploadAPI] backendData.file:', backendData.file)
       
       if (!backendData.file) {
         console.error('[UploadAPI] 后端响应中缺少 file 对象')
         throw new Error('上传响应格式错误：缺少 file 对象')
       }
 
-      // 【重要】映射字段说明：
+      //  映射字段说明：
       // - viewUrl: 用于 img/video 标签直接显示（如 <img src="/api/files/4/view" />）
       // - fileUrl: 用于获取文件元数据（返回JSON）
       // - downloadUrl: 用于触发下载
@@ -149,10 +149,10 @@ export class UploadAPI {
         md5: '' // 后端未返回 MD5，留空
       }
       
-      // console.log('📥 [UploadAPI] 映射后的结果:', result)
-      // console.log('📥 [UploadAPI] result.code:', result.code)
-      // console.log('📥 [UploadAPI] result.viewUrl:', result.viewUrl)
-      // console.log('📥 [UploadAPI] result.fileUrl:', result.fileUrl)
+      // console.log(' [UploadAPI] 映射后的结果:', result)
+      // console.log(' [UploadAPI] result.code:', result.code)
+      // console.log(' [UploadAPI] result.viewUrl:', result.viewUrl)
+      // console.log(' [UploadAPI] result.fileUrl:', result.fileUrl)
       
       return result
     } catch (error) {
@@ -168,31 +168,31 @@ export class UploadAPI {
    * @returns Promise<string | null> 返回图片预览URL或null
    */
   async uploadImage(file: File, description = ''): Promise<string | null> {
-    // console.log('🖼️ [UploadAPI] 开始上传图片')
-    // console.log('🖼️ [UploadAPI] 文件名:', file.name)
-    // console.log('🖼️ [UploadAPI] 文件大小:', (file.size / 1024 / 1024).toFixed(2), 'MB')
+    // console.log(' [UploadAPI] 开始上传图片')
+    // console.log(' [UploadAPI] 文件名:', file.name)
+    // console.log(' [UploadAPI] 文件大小:', (file.size / 1024 / 1024).toFixed(2), 'MB')
 
     if (!file.type.startsWith('image/')) {
-      console.warn('⚠️ [UploadAPI] 文件类型不是图片:', file.type)
+      console.warn(' [UploadAPI] 文件类型不是图片:', file.type)
       return null
     }
     if (file.size > 10 * 1024 * 1024) { // 10MB
-      console.warn('⚠️ [UploadAPI] 图片大小超过限制:', file.size)
+      console.warn(' [UploadAPI] 图片大小超过限制:', file.size)
       return null
     }
 
     try {
       const result = await this.uploadFile(file, 'image', description)
       
-      // console.log('🖼️ [UploadAPI] uploadFile 返回结果:', result)
-      // console.log('🖼️ [UploadAPI] result.code:', result.code)
+      // console.log(' [UploadAPI] uploadFile 返回结果:', result)
+      // console.log(' [UploadAPI] result.code:', result.code)
       
-      // 【关键】检查后端返回的状态码
+      //  检查后端返回的状态码
       if (result.code === 0) {
-        // 【重要】返回 viewUrl 而不是 fileUrl
+        //  返回 viewUrl 而不是 fileUrl
         // viewUrl: /api/files/4/view （可直接用于 <img> 标签）
         // fileUrl: /api/files/4 （返回JSON元数据）
-        // console.log('✅ [UploadAPI] 上传成功，viewUrl:', result.viewUrl)
+        // console.log(' [UploadAPI] 上传成功，viewUrl:', result.viewUrl)
         return result.viewUrl
       } else {
         // 后端返回错误

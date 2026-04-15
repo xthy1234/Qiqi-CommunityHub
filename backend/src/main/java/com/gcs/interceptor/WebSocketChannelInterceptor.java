@@ -31,34 +31,34 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
         StompCommand command = accessor.getCommand();
 
-        log.info("🔵 [拦截器] 收到 STOMP 命令：{}", command);
-        log.info("🔵 [拦截器] 消息目的地：{}", accessor.getDestination());
-        log.info("🔵 [拦截器] Session Attributes: {}", accessor.getSessionAttributes());
+        log.info(" [拦截器] 收到 STOMP 命令：{}", command);
+        log.info(" [拦截器] 消息目的地：{}", accessor.getDestination());
+        log.info(" [拦截器] Session Attributes: {}", accessor.getSessionAttributes());
 
         // 在 CONNECT 时验证用户并标记上线
         if (StompCommand.CONNECT.equals(command)) {
-            // ✅ 方式 1：优先从 Authorization Header 获取 Token
+            //  方式 1：优先从 Authorization Header 获取 Token
             String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
             String token = null;
             
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
                 token = authorizationHeader.substring(7);
-                log.debug("🔵 [CONNECT] 从 Authorization Header 获取 Token");
+                log.debug(" [CONNECT] 从 Authorization Header 获取 Token");
             }
             
-            // 🔒 降级方案：如果 Header 中没有，尝试从原生 header 获取
+            //  降级方案：如果 Header 中没有，尝试从原生 header 获取
             if (token == null || token.isEmpty()) {
                 token = accessor.getFirstNativeHeader("token");
                 if (token != null && !token.isEmpty()) {
-                    log.warn("⚠️ [CONNECT] 使用 token header（不推荐，建议改用 Authorization Header）");
+                    log.warn(" [CONNECT] 使用 token header（不推荐，建议改用 Authorization Header）");
                 }
             }
             
             // 获取 userId（从 Session Attributes，由握手拦截器设置）
             Long userId = (Long) accessor.getSessionAttributes().get("userId");
             
-            log.debug("🔵 [CONNECT] userId: {}", userId);
-            log.debug("🔵 [CONNECT] token: {}", token != null ? "***" : "null");
+            log.debug(" [CONNECT] userId: {}", userId);
+            log.debug(" [CONNECT] token: {}", token != null ? "***" : "null");
 
             // 验证参数完整性
             if (userId == null) {
@@ -95,10 +95,10 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                 // 设置用户上下文（用于后续消息处理）
                 accessor.setUser(() -> userId.toString());
                 
-                // ✅ 标记用户上线
+                //  标记用户上线
                 String sessionId = accessor.getSessionId();
                 userOnlineStatusService.userOnline(userId, sessionId);
-                log.info("✅ 用户上线：userId={}, sessionId={}", userId, sessionId);
+                log.info(" 用户上线：userId={}, sessionId={}", userId, sessionId);
                 
                 log.debug("CONNECT 消息验证成功：userId={}", userId);
 
@@ -108,18 +108,18 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             }
         }
 
-        // ✅ 监听 DISCONNECT 事件，标记用户下线
+        //  监听 DISCONNECT 事件，标记用户下线
         if (StompCommand.DISCONNECT.equals(command)) {
             Long userId = (Long) accessor.getSessionAttributes().get("userId");
             if (userId != null) {
                 userOnlineStatusService.userOffline(userId);
                 log.info("🔴 用户断开连接：userId={}", userId);
             } else {
-                log.warn("⚠️ DISCONNECT 事件但未找到 userId");
+                log.warn(" DISCONNECT 事件但未找到 userId");
             }
         }
         
-        // ✅ 在任何客户端消息时更新心跳时间
+        //  在任何客户端消息时更新心跳时间
         if (StompCommand.CONNECT.equals(command) || StompCommand.SEND.equals(command) || 
             StompCommand.SUBSCRIBE.equals(command)) {
             Long userId = (Long) accessor.getSessionAttributes().get("userId");
@@ -133,7 +133,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             Object userIdObj = accessor.getSessionAttributes().get("userId");
             String userId = userIdObj != null ? userIdObj.toString() : null;
             
-            log.debug("🔵 [{}] 从 Session 获取 userId: {}", command, userId);
+            log.debug(" [{}] 从 Session 获取 userId: {}", command, userId);
             
             if (userId == null) {
                 log.warn("{} 消息被拒绝：用户未认证", command);
@@ -144,7 +144,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             // 可选：如果 getUser() 为 null，同步设置一下
             if (accessor.getUser() == null) {
                 accessor.setUser(() -> userId);
-                log.debug("🔵 [{}] 已同步设置 User: {}", command, userId);
+                log.debug(" [{}] 已同步设置 User: {}", command, userId);
             }
         }
 

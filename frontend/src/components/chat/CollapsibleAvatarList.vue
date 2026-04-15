@@ -118,7 +118,7 @@ onMounted(() => {
 
     }
   } catch (error) {
-    console.warn('⚠️ [CollapsibleAvatarList] 读取 localStorage 失败:', error)
+    console.warn(' [CollapsibleAvatarList] 读取 localStorage 失败:', error)
   } finally {
     isInitialized.value = true //  标记初始化完成
   }

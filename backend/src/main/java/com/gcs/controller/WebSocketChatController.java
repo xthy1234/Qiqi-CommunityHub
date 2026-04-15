@@ -56,21 +56,21 @@ public class WebSocketChatController {
     @MessageMapping("/private-message")
     public void sendPrivateMessage(@Payload ChatMessage chatMessage, StompHeaderAccessor accessor) {
         try {
-            // ✅ 从 Session 获取真实用户 ID
+            //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
             log.info("🚀 [私聊消息] 收到 WebSocket 消息：from={}, to={}", 
                     chatMessage.getFromUserId(), chatMessage.getToUserId());
 
-            // 🔒 验证用户是否已登录
+            //  验证用户是否已登录
             if (currentUserId == null) {
-                log.error("❌ [私聊消息] 发送失败：用户未登录或 Session 已过期");
+                log.error("[私聊消息] 发送失败：用户未登录或 Session 已过期");
                 throw new IllegalStateException("用户未登录");
             }
 
             // 🔥 1. 验证必填字段 - content 不能为空
             if (chatMessage.getContent() == null || chatMessage.getContent().isEmpty()) {
-                log.error("❌ [私聊消息] 发送失败：消息内容不能为空，from={}, to={}", 
+                log.error("[私聊消息] 发送失败：消息内容不能为空，from={}, to={}",
                          chatMessage.getFromUserId(), chatMessage.getToUserId());
                 throw new IllegalArgumentException("消息内容不能为空");
             }
@@ -78,25 +78,25 @@ public class WebSocketChatController {
             // 🔥 2. 如果 msgType 为空，设置默认值
             if (chatMessage.getMsgType() == null) {
                 chatMessage.setMsgType(0); // 默认为文本类型
-                log.warn("⚠️ [私聊消息] msgType 为空，使用默认值 0");
+                log.warn(" [私聊消息] msgType 为空，使用默认值 0");
             }
 
-            // 🔒 验证其他必填字段
+            //  验证其他必填字段
             if (chatMessage.getToUserId() == null) {
-                log.error("❌ [私聊消息] 发送失败：toUserId 不能为空");
+                log.error("[私聊消息] 发送失败：toUserId 不能为空");
                 throw new IllegalArgumentException("接收方用户 ID 不能为空");
             }
 
             // 保存消息到数据库
             PrivateMessage message = new PrivateMessage();
-            message.setFromUserId(currentUserId);  // ✅ 使用 Session 中的真实 ID
+            message.setFromUserId(currentUserId);  //  使用 Session 中的真实 ID
             message.setToUserId(chatMessage.getToUserId());
-            message.setContent(chatMessage.getContent());  // ✅ 确保不为 null
+            message.setContent(chatMessage.getContent());  //  确保不为 null
             message.setMsgType(chatMessage.getMsgType());
             message.setStatus(MessageStatus.UNREAD);
 
             privateMessageService.save(message);
-            log.info("✅ 消息已保存到数据库，messageId={}", message.getId());
+            log.info(" 消息已保存到数据库，messageId={}", message.getId());
 
             // 2. 查询发送方用户信息
             User fromUser = userService.getById(chatMessage.getFromUserId());
@@ -137,15 +137,15 @@ public class WebSocketChatController {
             messageVO.setIsSelf(true);
             messagingTemplate.convertAndSend(senderPath, messageVO);
             
-            log.info("✅ 推送完成");
+            log.info(" 推送完成");
 
             log.info("🎉 消息推送完成，接收方：{}", chatMessage.getToUserId());
 
         } catch (IllegalArgumentException e) {
-            log.error("❌ [私聊消息] 参数错误：{}", e.getMessage());
+            log.error("[私聊消息] 参数错误：{}", e.getMessage());
             throw e;  // 抛出异常让前端知道错误
         } catch (Exception e) {
-            log.error("❌ [私聊消息] 发送失败", e);
+            log.error("[私聊消息] 发送失败", e);
             throw e;  // 抛出异常让前端知道错误
         }
     }
@@ -158,7 +158,7 @@ public class WebSocketChatController {
         try {
             log.info("收到已读回执：from={} to={}", receipt.getFromUserId(), receipt.getToUserId());
 
-            // ✅ 添加详细日志，帮助调试
+            //  添加详细日志，帮助调试
             //由于fromid是标记了toId发送的信息，所以这里fromid是消息的接收方，toid是消息的发送方
             log.info("📖 [已读回执] 用户 {} 标记了来自用户 {} 的消息为已读",
                     receipt.getFromUserId()  , receipt.getToUserId());
@@ -169,17 +169,17 @@ public class WebSocketChatController {
                     receipt.getToUserId()
             );
 
-            // ✅ 添加成功/失败的详细日志
+            //  添加成功/失败的详细日志
             if (success) {
-                log.info("✅ [已读回执] 更新成功：用户 {} -> 用户 {}", 
+                log.info(" [已读回执] 更新成功：用户 {} -> 用户 {}", 
                         receipt.getFromUserId(), receipt.getToUserId());
             } else {
-                log.warn("⚠️ [已读回执] 更新失败或无需更新：用户 {} -> 用户 {}，可能原因：", 
+                log.warn(" [已读回执] 更新失败或无需更新：用户 {} -> 用户 {}，可能原因：", 
                         receipt.getFromUserId(), receipt.getToUserId());
                 log.warn("   1. 没有未读消息");
                 log.warn("   2. 参数可能传反了（fromUserId 应该是阅读者，toUserId 应该是消息发送者）");
                 
-                // ✅ 查询一下实际有多少未读消息
+                //  查询一下实际有多少未读消息
                 Integer unreadCount = privateMessageService.countUnreadMessages(
                     receipt.getFromUserId(), 
                     receipt.getToUserId()
@@ -313,7 +313,7 @@ public class WebSocketChatController {
                     request.getUserIds(), currentUserId);
             
             if (request.getUserIds() == null || request.getUserIds().isEmpty()) {
-                log.warn("⚠️ [在线状态] 查询的用户 ID 列表为空");
+                log.warn(" [在线状态] 查询的用户 ID 列表为空");
                 return;
             }
             
@@ -338,14 +338,14 @@ public class WebSocketChatController {
                 log.info("📤 [在线状态] 推送查询结果到：{}, 结果数：{}", replyDestination, statusList.size());
                 
                 messagingTemplate.convertAndSend(replyDestination, statusList);
-                log.info("✅ [在线状态] 已推送查询结果");
+                log.info(" [在线状态] 已推送查询结果");
             } else {
-                log.error("❌ [在线状态] 无法推送结果：未找到当前用户 Session，accessor.sessionId={}", 
+                log.error("[在线状态] 无法推送结果：未找到当前用户 Session，accessor.sessionId={}",
                         accessor.getSessionId());
             }
             
         } catch (Exception e) {
-            log.error("❌ [在线状态] 查询失败", e);
+            log.error("[在线状态] 查询失败", e);
         }
     }
     

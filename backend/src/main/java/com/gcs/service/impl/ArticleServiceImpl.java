@@ -79,7 +79,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
-        // 【新增】通过 Spring 上下文获取当前请求并注入屏蔽条件
+        //  通过 Spring 上下文获取当前请求并注入屏蔽条件
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {

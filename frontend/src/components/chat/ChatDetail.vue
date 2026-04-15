@@ -189,7 +189,7 @@ const currentUserId = computed(() => {
     return userId
   }
 
-  console.warn('⚠️ [currentUserId] 未获取到用户 ID')
+  console.warn(' [currentUserId] 未获取到用户 ID')
   return null
 })
 
@@ -292,7 +292,7 @@ const debouncedSendReadReceipt = debounce((userId: number, reason = '用户操�
             const lastMessage = messagesFromUser[messagesFromUser.length - 1]
             lastReadTimestamp.value.set(userId, Date.now())
 
-            // 🔧 修复：安全地获取 content 字符串（TipTap JSON 对象）
+            // 修复：安全地获取 content 字符串（TipTap JSON 对象）
             let contentPreview = ''
             if (lastMessage.content) {
                 if (typeof lastMessage.content === 'string') {
@@ -304,7 +304,7 @@ const debouncedSendReadReceipt = debounce((userId: number, reason = '用户操�
                         const textContent = tiptapToText(lastMessage.content as any)
                         contentPreview = textContent.substring(0, 50)
                     } catch (e) {
-                        console.warn('⚠️ [已读回执] TipTap 转换失败:', e)
+                        console.warn(' [已读回执] TipTap 转换失败:', e)
                         contentPreview = '[富文本内容]'
                     }
                 }
@@ -313,7 +313,7 @@ const debouncedSendReadReceipt = debounce((userId: number, reason = '用户操�
         }
     } else {
         pendingReadReceipts.value.add(userId)
-        console.error('❌ [已读回执] WebSocket 未连接，已加入待发送队列:', userId)
+        console.error('[已读回执] WebSocket 未连接，已加入待发送队列:', userId)
     }
 }, 300)
 
@@ -326,7 +326,7 @@ const sendReadReceiptIfNeed = (userId: number, reason = '检查未读消息') =>
     const currentUserId = userInfo ? JSON.parse(userInfo).id : null
 
     if (!currentUserId) {
-        console.warn('⚠️ [sendReadReceiptIfNeed] 未获取到当前用户 ID')
+        console.warn(' [sendReadReceiptIfNeed] 未获取到当前用户 ID')
         return
     }
 
@@ -428,7 +428,7 @@ onUnmounted(() => {
 const checkIsAtBottom = () => {
     const messageListEl = messageListRef.value
     if (!messageListEl) {
-        // // console.log('⚠️ [checkIsAtBottom] messageListEl 为 null')
+        // // console.log(' [checkIsAtBottom] messageListEl 为 null')
         return false
     }
 
@@ -593,7 +593,7 @@ const handleDeleteMessage = (messageId: number) => {  //  1. 乐观删除：立�
   if (deletedMsg) {
 
   } else {
-    console.warn('⚠️ [步骤 1] 未找到要删除的消息')
+    console.warn(' [步骤 1] 未找到要删除的消息')
 
     return
   }
@@ -628,7 +628,7 @@ const handleCopyMessage = (content: string) => {
 const registerWebSocketHandlers = () => {
   const ws = getWebSocket()
   if (!ws) {
-    console.warn('⚠️ [ChatDetail] WebSocket 未初始化，无法注册处理器')
+    console.warn(' [ChatDetail] WebSocket 未初始化，无法注册处理器')
     return
   }
 
@@ -636,7 +636,7 @@ const registerWebSocketHandlers = () => {
   const unsubscribeStatus = ws.on('MESSAGE_STATUS', (data: any) => {
 
 
-    // 🔧 兼容两种数据格式
+    // 兼容两种数据格式
 
     // 格式1: 后端推送的 { fromUserId, toUserId, lastReadMessageId }
     if (data.fromUserId && data.toUserId) {
@@ -658,7 +658,7 @@ const registerWebSocketHandlers = () => {
     }
 
     // 未知格式
-    console.warn('⚠️ [MESSAGE_STATUS] 数据格式错误:', data)
+    console.warn(' [MESSAGE_STATUS] 数据格式错误:', data)
   })
   wsUnsubscribeFunctions.value.push(unsubscribeStatus)
 
@@ -713,7 +713,7 @@ const processRecalledMessages = () => {
   store.messages.forEach((msg: any, index: number) => {
     if (msg.isRecalled === true && !msg._isSystemTip) {
 
-      //  关键：创建新对象并替换，确保触发响应式更新
+      //   创建新对象并替换，确保触发响应式更新
       const newMsg = {
         ...msg,
         content: 'recall',
@@ -747,7 +747,7 @@ const processRecalledMessages = () => {
 const setupOnlineStatusListener = () => {
   const ws = getWebSocket()
   if (!ws || !ws.isConnected()) {
-    console.warn('⚠️ [OnlineStatus] WebSocket 未连接')
+    console.warn(' [OnlineStatus] WebSocket 未连接')
     return
   }
 
@@ -768,7 +768,7 @@ const setupOnlineStatusListener = () => {
     }
 
     if (!otherUserId) {
-      console.warn('⚠️ [OnlineStatus] 当前聊天对象 ID 为空')
+      console.warn(' [OnlineStatus] 当前聊天对象 ID 为空')
       return
     }
 
@@ -783,7 +783,7 @@ const setupOnlineStatusListener = () => {
       lastSeenAt.value = lastSeenAtValue
 
     } else {
-      console.warn('⚠️ [USER_ONLINE_STATUS] 用户 ID 不匹配，忽略此消息')
+      console.warn(' [USER_ONLINE_STATUS] 用户 ID 不匹配，忽略此消息')
     }
   }
 
@@ -794,7 +794,7 @@ const setupOnlineStatusListener = () => {
 
     ws.queryUserOnlineStatus([store.currentConversation.userId])
   } else {
-    console.warn('⚠️ [OnlineStatus] 当前会话为空，无法查询')
+    console.warn(' [OnlineStatus] 当前会话为空，无法查询')
   }
 }
 

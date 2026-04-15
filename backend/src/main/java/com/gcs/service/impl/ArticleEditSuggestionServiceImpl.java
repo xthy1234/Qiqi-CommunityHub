@@ -84,11 +84,11 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         suggestion.setChangeSummary(changeSummary);
         suggestion.setStatus(SuggestionStatus.PENDING.getCode());
         
-        // ✅ 记录建议是基于哪个版本提出的
+        //  记录建议是基于哪个版本提出的
         Integer currentVersion = article.getCurrentVersion() != null ? article.getCurrentVersion() : 0;
         suggestion.setVersion(currentVersion);
         
-        // ✅ 初始化 extra 信息
+        //  初始化 extra 信息
         Map<String, Object> extra = new HashMap<>();
         extra.put("baseVersion", currentVersion);
         suggestion.setExtra(extra);
@@ -195,7 +195,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         }
 
         if (approved) {
-            // ✅ 采纳建议，创建新版本并更新文章内容
+            //  采纳建议，创建新版本并更新文章内容
             createVersionAndApplySuggestion(article, suggestion, reviewerId);
             
             // 记录贡献者（统计贡献次数）
@@ -210,7 +210,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             log.info("审核建议通过，suggestionId: {}, articleId: {}", suggestionId, article.getId());
 
         } else {
-            // ❌ 拒绝建议
+            // 拒绝建议
             suggestion.setStatus(SuggestionStatus.REJECTED.getCode());
             log.info("审核建议拒绝，suggestionId: {}, reason: {}", suggestionId, reason);
         }
@@ -236,13 +236,13 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             Integer currentVersion = article.getCurrentVersion() != null ? article.getCurrentVersion() : 0;
             Integer newVersion = currentVersion + 1;
             
-            // 2️⃣ ✅ 使用带贡献者参数的 createMinorVersion，贡献者为建议提出者
+            // 2️⃣  使用带贡献者参数的 createMinorVersion，贡献者为建议提出者
             String changeSummary = "采纳修改建议 #" + suggestion.getId() + ": " + suggestion.getChangeSummary();
             Integer versionNumber = articleVersionService.createMinorVersion(
                 article, 
                 operatorId,           // 操作者（审核员/作者）
                 changeSummary,
-                suggestion.getProposerId()  // ✅ 贡献者为建议提出者
+                suggestion.getProposerId()  //  贡献者为建议提出者
             );
             
             // 3️⃣ 更新文章的当前内容为建议的内容
@@ -260,7 +260,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             suggestion.setExtra(extra);
             baseMapper.updateById(suggestion);
             
-            log.info("✅ 已创建文章新版本 v{} 并应用建议，articleId: {}, suggestionId: {}, contributorId: {}", 
+            log.info(" 已创建文章新版本 v{} 并应用建议，articleId: {}, suggestionId: {}, contributorId: {}", 
                      newVersion, article.getId(), suggestion.getId(), suggestion.getProposerId());
             
         } catch (Exception e) {
@@ -278,7 +278,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         // 先查询基础数据
         IPage<ArticleEditSuggestion> suggestionPage = getSuggestions(articleId, status, page, limit);
         
-        // ✅ 使用 Converter 转换为列表 VO 列表
+        //  使用 Converter 转换为列表 VO 列表
         List<ArticleSuggestionSimpleVO> voList = suggestionPage.getRecords().stream()
             .map(this::buildListVO)
             .collect(Collectors.toList());
@@ -296,7 +296,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         // 查询基础数据
         ArticleEditSuggestion suggestion = getSuggestionDetail(suggestionId);
         
-        // ✅ 使用 Converter 构建完整的详细信息 VO
+        //  使用 Converter 构建完整的详细信息 VO
         return buildDetailVO(suggestion);
     }
 
@@ -306,7 +306,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         // 先查询基础数据
         IPage<ArticleEditSuggestion> suggestionPage = getSuggestionsByProposer(proposerId, status, page, limit);
         
-        // ✅ 使用 Converter 转换为列表 VO 列表
+        //  使用 Converter 转换为列表 VO 列表
         List<ArticleSuggestionSimpleVO> voList = suggestionPage.getRecords().stream()
             .map(this::buildListVO)
             .collect(Collectors.toList());
@@ -325,7 +325,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         // 先查询基础数据
         IPage<ArticleEditSuggestion> suggestionPage = getSuggestionsByAuthor(authorId, status, page, limit);
         
-        // ✅ 使用 Converter 转换为列表 VO 列表
+        //  使用 Converter 转换为列表 VO 列表
         List<ArticleSuggestionSimpleVO> voList = suggestionPage.getRecords().stream()
             .map(this::buildListVO)
             .collect(Collectors.toList());
@@ -346,10 +346,10 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             return null;
         }
         
-        // ✅ 第一步：使用 Converter 进行基础转换
+        //  第一步：使用 Converter 进行基础转换
         ArticleSuggestionSimpleVO vo = articleSuggestionConverter.toListVO(suggestion);
         
-        // ✅ 第二步：补充关联数据
+        //  第二步：补充关联数据
         
         // 补充文章信息
         Article article = articleDao.selectById(suggestion.getArticleId());
@@ -374,7 +374,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             }
         }
         
-        // ✅ 补充版本信息
+        //  补充版本信息
         if (suggestion.getExtra() != null && suggestion.getExtra().containsKey("appliedVersion")) {
             vo.setAppliedVersion((Integer) suggestion.getExtra().get("appliedVersion"));
         }
@@ -390,12 +390,12 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             return null;
         }
         
-        // ✅ 第一步：使用 Converter 进行基础转换
+        //  第一步：使用 Converter 进行基础转换
         ArticleSuggestionVO vo = articleSuggestionConverter.toDetailVO(suggestion);
         
-        // ✅ 第二步：补充关联数据
+        //  第二步：补充关联数据
         
-        // ✅ 使用 selectViewById 确保 JSONB 字段正确映射
+        //  使用 selectViewById 确保 JSONB 字段正确映射
         Map<String, Object> params = new HashMap<>();
         params.put("id", suggestion.getArticleId());
         ArticleView articleView = articleDao.selectViewById(params);
@@ -403,7 +403,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         if (articleView != null) {
             vo.setArticleTitle(articleView.getTitle());
             vo.setArticleCoverUrl(articleView.getCoverUrl());
-            // ✅ 从 articleView 中获取 content（已经是正确的 Map 类型）
+            //  从 articleView 中获取 content（已经是正确的 Map 类型）
             vo.setOriginalContent(articleView.getContent());
         }
         
@@ -423,7 +423,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             }
         }
         
-        // ✅ 补充版本信息和 extra
+        //  补充版本信息和 extra
         if (suggestion.getExtra() != null) {
             Map<String, Object> extra = new HashMap<>(suggestion.getExtra());
             Integer addedLines = (Integer) extra.get("addedLines");
@@ -431,7 +431,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
             if (addedLines != null) vo.setAddedLines(addedLines);
             if (removedLines != null) vo.setRemovedLines(removedLines);
             
-            // ✅ 提取 appliedVersion
+            //  提取 appliedVersion
             if (extra.containsKey("appliedVersion")) {
                 vo.setAppliedVersion((Integer) extra.get("appliedVersion"));
             }

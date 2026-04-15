@@ -52,7 +52,7 @@ class WebSocketLogger {
 
   warn(message: string, data?: any): void {
     if (this.config.level > LogLevel.WARN) {return}
-    this.log('⚠️ WARN', message, data, 'color: #f39c12')
+    this.log(' WARN', message, data, 'color: #f39c12')
   }
 
   error(message: string, data?: any): void {

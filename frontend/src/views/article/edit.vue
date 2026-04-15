@@ -322,14 +322,14 @@ watch(() => route.fullPath, (newPath: string, oldPath: string) => {
   }
 })
 
-// 【组件卸载时清理】
+//
 // 作用：
 // 1. 离开页面前自动保存草稿，确保数据不丢失
 // 2. 停止自动保存定时器，防止内存泄漏
 // 3. 清理草稿ID缓存
 onUnmounted(async () => {
 
-  // 【重要】离开页面前自动保存一次
+  //  离开页面前自动保存一次
   // 场景：用户直接点击侧边栏导航、浏览器后退、关闭标签页等
   // 确保最后一次编辑的内容被保存到后端
   if (formData.title || (formData.content && formData.content.content?.length > 0)) {
@@ -390,7 +390,7 @@ const handleAutoSave = async () => {
       }
     }
 
-    // ✅ 修复：自动保存也传递完整数据（标题、内容、封面、分类）
+    //  修复：自动保存也传递完整数据（标题、内容、封面、分类）
     const response = await draftAPI.autoSaveDraft(articleId.value, {
       title: formData.title,
       content: formData.content,
@@ -443,7 +443,7 @@ const createNewDraft = async () => {
     }
 
     if (draftId !== null && draftId !== undefined) {
-      // ✅ 修复：使用局部变量存储，然后再赋值给 ref
+      //  修复：使用局部变量存储，然后再赋值给 ref
       const draftIdStr = String(draftId)
       articleId.value = draftIdStr
 
@@ -468,7 +468,7 @@ const createNewDraft = async () => {
 
 const handleSaveDraft = async () => {
   if (!formData.title) {
-    console.warn('⚠️ [handleSaveDraft] 验证失败：缺少文章标题')
+    console.warn(' [handleSaveDraft] 验证失败：缺少文章标题')
     message.warning('请输入文章标题')
     return
   }
@@ -480,7 +480,7 @@ const handleSaveDraft = async () => {
      !(formData.content.content[0] as any)?.content)
 
   if (isEmptyContent) {
-    console.warn('⚠️ [handleSaveDraft] 验证失败：内容为空')
+    console.warn(' [handleSaveDraft] 验证失败：内容为空')
     message.warning('请输入文章内容')
     return
   }
@@ -542,7 +542,7 @@ const handleShowPublishModal = async () => {
      !(formData.content.content[0] as any)?.content)
 
   if (isEmptyContent) {
-    console.warn('⚠️ [handleShowPublishModal] 验证失败：内容为空')
+    console.warn(' [handleShowPublishModal] 验证失败：内容为空')
     message.warning('请输入文章内容')
     return
   }
@@ -574,7 +574,7 @@ const handleConfirmPublish = async () => {
   try {
     submitting.value = true
 
-    // ✅ 步骤 1: 先调用保存接口，保存草稿内容（标题、内容、封面、分类）
+    //  步骤 1: 先调用保存接口，保存草稿内容（标题、内容、封面、分类）
 
     const saveResponse = await draftAPI.saveDraft(articleId.value, {
       title: formData.title,
@@ -584,7 +584,7 @@ const handleConfirmPublish = async () => {
       changeSummary: publishData.changeSummary || ''
     })
 
-    // ✅ 检查保存是否成功
+    //  检查保存是否成功
     if (!(saveResponse.data.code === 200 || saveResponse.data.msg)) {
       console.error('[handleConfirmPublish] 保存草稿失败:', saveResponse.data.msg)
       message.error(saveResponse.data.msg || '保存草稿失败')
@@ -593,7 +593,7 @@ const handleConfirmPublish = async () => {
 
     const versionInfo = saveResponse.data.data || saveResponse.data
 
-    // ✅ 步骤 2: 保存成功后，再调用发布接口
+    //  步骤 2: 保存成功后，再调用发布接口
 
     const publishResponse = await draftAPI.publishDraft(articleId.value, {
       versionType: publishData.versionType,
@@ -683,7 +683,7 @@ const handleSubmit = async () => {
      !(formData.content.content[0] as any)?.content)
 
   if (isEmptyContent) {
-    console.warn('⚠️ [handleSubmit] 验证失败：内容为空')
+    console.warn(' [handleSubmit] 验证失败：内容为空')
     message.warning('请输入文章内容')
     return
   }
@@ -853,7 +853,7 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
       }
       startAutoSave()
     } else {
-      console.warn('⚠️ [loadOrCreateDraft] 草稿数据为空')
+      console.warn(' [loadOrCreateDraft] 草稿数据为空')
     }
   } catch (error: unknown) {
     console.error('[loadOrCreateDraft] 加载草稿失败:', error)

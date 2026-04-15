@@ -130,7 +130,7 @@ export const useNotificationStore = defineStore('notification', () => {
         const parsed = JSON.parse(notification.content)
         processedNotification.content = parsed
       } catch (error) {
-        console.warn('⚠️ [NotificationStore] Content parse failed:', error)
+        console.warn(' [NotificationStore] Content parse failed:', error)
         // 解析失败，保持原样
       }
     }

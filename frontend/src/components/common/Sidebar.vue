@@ -544,10 +544,10 @@ const toggleSidebarLock = () => {
   appContext?.$toolUtil?.storageSet('sidebarLocked', sidebarLocked.value)
 
   if (sidebarLocked.value) {
-    // 🔒 锁定时：保存当前展开状态到 localStorage
+    //  锁定时：保存当前展开状态到 localStorage
     appContext?.$toolUtil?.storageSet('sidebarExpanded', isExpanded.value)
   } else {
-    // 🔓 解锁时：清除展开状态记录，并强制收起
+    //  解锁时：清除展开状态记录，并强制收起
     isExpanded.value = false
     expandedKeys.value = []
     appContext?.$toolUtil?.storageRemove('sidebarExpanded')
@@ -572,7 +572,7 @@ const initializeComponent = async (): Promise<void> => {
   const token = appContext?.$toolUtil?.storageGet('Token')
   authToken.value = !!token
 
-  // 🔒 读取锁定状态
+  //  读取锁定状态
   const locked = appContext?.$toolUtil?.storageGet('sidebarLocked')
 
   if(locked===null){
@@ -739,12 +739,12 @@ watch(isExpanded, (newVal: boolean, oldVal: boolean) => {
 watch(sidebarLocked, (newLocked: boolean, oldLocked: boolean) => {
   if (newLocked !== oldLocked) {
     if (!newLocked) {
-      // 🔓 解锁时，强制收起并清除状态记录
+      //  解锁时，强制收起并清除状态记录
       isExpanded.value = false
       expandedKeys.value = []
       appContext?.$toolUtil?.storageRemove('sidebarExpanded')
     } else {
-      // 🔒 锁定时，保存当前展开状态
+      //  锁定时，保存当前展开状态
       appContext?.$toolUtil?.storageSet('sidebarExpanded', isExpanded.value)
     }
   }

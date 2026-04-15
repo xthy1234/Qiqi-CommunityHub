@@ -217,16 +217,16 @@ const loadData = async () => {
         pagination.itemCount = res.data.totalCount
 
       } else {
-        console.warn('⚠️ [分类列表] 未知的数据格式')
+        console.warn(' [分类列表] 未知的数据格式')
         tableData.value = []
         pagination.itemCount = 0
       }
     } else {
-      console.error('❌ [分类列表] 接口返回错误:', res.msg)
+      console.error('[分类列表] 接口返回错误:', res.msg)
       message.error(res.msg || '加载失败')
     }
   } catch (error) {
-    console.error('❌ [分类列表] 请求异常:', error)
+    console.error('[分类列表] 请求异常:', error)
     message.error('加载失败')
   } finally {
     loading.value = false

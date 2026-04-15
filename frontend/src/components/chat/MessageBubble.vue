@@ -79,7 +79,7 @@
         </template>
         <template v-else>
           <!-- 统一使用 TipTap 渲染所有消息（包括文本、图片、富文本） -->
-          <!-- 关键修复：只有在 editor 初始化完成后才渲染 EditorContent -->
+          <!--  只有在 editor 初始化完成后才渲染 EditorContent -->
           <EditorContent
             v-if="editorReady && readonlyEditor"
             :editor="readonlyEditor"
@@ -266,7 +266,7 @@ const fileInfo = computed(() => {
       const result = {
         name: attrs.name || '未知文件',
         size: formatFileSize(attrs.size),
-        url: attrs.src || '',  // ⚠️ 这里存储的是 downloadUrl，如 /api/files/14/download
+        url: attrs.src || '',  //  这里存储的是 downloadUrl，如 /api/files/14/download
         type: getFileType(attrs.extension, attrs.mimeType)
       }
 
@@ -321,7 +321,7 @@ onMounted(() => {
         VideoNodeExtension
       ],
       content: contentJson,
-      editable: false, // 关键：设置为不可编辑
+      editable: false, //  设置为不可编辑
       editorProps: {
         attributes: {
           class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none'
@@ -360,7 +360,7 @@ onBeforeUnmount(() => {
     try {
       readonlyEditor.destroy()
     } catch (error) {
-      console.error('⚠️ [MessageBubble] 销毁编辑器时出错:', error)
+      console.error(' [MessageBubble] 销毁编辑器时出错:', error)
     }
     readonlyEditor = null
     editorReady.value = false
@@ -535,7 +535,7 @@ const downloadFile = () => {
 
   if (!rawUrl) {
     messageApi.warning('文件链接无效')
-    console.warn('⚠️ [MessageBubble] 文件 URL 为空')
+    console.warn(' [MessageBubble] 文件 URL 为空')
     return
   }
 
@@ -559,7 +559,7 @@ const downloadFile = () => {
       link.href = blobUrl
       link.download = fileInfo.value.name  // 强制指定下载文件名
 
-      // 【关键】不设置 target="_blank"，避免浏览器预览
+      //  不设置 target="_blank"，避免浏览器预览
       document.body.appendChild(link)
       link.click()
 

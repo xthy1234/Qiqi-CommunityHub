@@ -41,7 +41,7 @@ const $http = appContext?.$http
 const selectedValue = ref<number | string | undefined>(props.modelValue)
 const categoryOptions = ref<any[]>([])
 
-watch(() => props.modelValue, (newVal) => {
+watch(() => props.modelValue, (newVal : number | string | undefined) => {
   selectedValue.value = newVal
 })
 

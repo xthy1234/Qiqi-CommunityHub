@@ -561,7 +561,7 @@ const copyContent = async () => {
  */
 const navigateToVersion = (version: ArticleVersion) => {
   if (!version) {
-    console.warn('⚠️ [导航] 版本为空')
+    console.warn(' [导航] 版本为空')
     return
   }
   

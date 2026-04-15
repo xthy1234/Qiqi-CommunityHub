@@ -224,7 +224,7 @@ onBeforeUnmount(() => {
     try {
       readonlyEditor.destroy()
     } catch (error) {
-      console.error('⚠️ [NotificationItem] 销毁编辑器失败:', error)
+      console.error(' [NotificationItem] 销毁编辑器失败:', error)
     }
     readonlyEditor = null
     editorReady.value = false

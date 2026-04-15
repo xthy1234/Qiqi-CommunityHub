@@ -262,7 +262,7 @@ const handleCreateCircle = async () => {
 
 // 生命周期
 onMounted(async () => {
-  // ✅ 新增：确保 WebSocket 已连接
+  //  新增：确保 WebSocket 已连接
   await ensureCircleWebSocketConnected().catch((error) => {
     console.error('[圈子聊天] WebSocket连接失败:', error)
   })

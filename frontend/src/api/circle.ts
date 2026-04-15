@@ -24,7 +24,7 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
     
     if (!ws) {
       // WebSocket 实例不存在，需要初始化
-      console.warn('⚠️ [圈子聊天] WebSocket 实例不存在，正在初始化...')
+      console.warn(' [圈子聊天] WebSocket 实例不存在，正在初始化...')
       
       try {
         const wsManager = initWebSocket()
@@ -43,7 +43,7 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
       }
     } else if (!ws.isConnected()) {
       // WebSocket 实例存在但未连接
-      console.warn('⚠️ [圈子聊天] WebSocket 未连接，正在重新连接...')
+      console.warn(' [圈子聊天] WebSocket 未连接，正在重新连接...')
       
       ws.connect()
         .then(() => {
@@ -302,7 +302,7 @@ export const circleWebSocket = {
     // 1. 获取 WebSocket 实例
     const ws = getWebSocket()
     if (!ws) {
-      console.warn('⚠️ [圈子 WebSocket] WebSocket 实例不存在')
+      console.warn(' [圈子 WebSocket] WebSocket 实例不存在')
 
       return () => {}
     }
@@ -312,7 +312,7 @@ export const circleWebSocket = {
     const isWsConnected = ws.isConnected()
     
     if (!isWsConnected) {
-      console.warn('⚠️ [圈子 WebSocket] WebSocket 未连接')
+      console.warn(' [圈子 WebSocket] WebSocket 未连接')
 
       return () => {}
     }
@@ -321,7 +321,7 @@ export const circleWebSocket = {
     const client = (ws as any).client
 
     if (!client || !client.connected) {
-      console.warn('⚠️ [圈子 WebSocket] STOMP 客户端未连接')
+      console.warn(' [圈子 WebSocket] STOMP 客户端未连接')
       return () => {}
     }
 
