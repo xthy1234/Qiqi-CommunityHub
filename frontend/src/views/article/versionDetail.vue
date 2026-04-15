@@ -404,7 +404,7 @@ const loadVersionDetail = async () => {
     allVersions.value = Array.isArray(versionsRes.data.data) ? versionsRes.data.data : (versionsRes.data.data.list || [])
 
   } catch (error) {
-    console.error('❌ [加载版本详情失败] error:', error)
+    console.error('[加载版本详情失败] error:', error)
     message.error('加载版本详情失败')
     versionData.value = null
   } finally {
@@ -464,7 +464,7 @@ const loadCompareData = async (targetVersion: ArticleVersion) => {
     compareModalVisible.value = true
 
   } catch (error) {
-    console.error('❌ [版本对比失败] error:', error)
+    console.error('[版本对比失败] error:', error)
     message.error('加载版本对比失败')
   }
 }
@@ -573,7 +573,7 @@ const navigateToVersion = (version: ArticleVersion) => {
   router.push(path).then(() => {
 
   }).catch(err => {
-    console.error('❌ [版本导航] 跳转失败:', err)
+    console.error('[版本导航] 跳转失败:', err)
   })
 }
 

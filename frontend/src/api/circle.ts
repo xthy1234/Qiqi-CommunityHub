@@ -34,11 +34,11 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
             resolve()
           })
           .catch((error) => {
-            console.error('❌ [圈子聊天] WebSocket 初始化失败:', error)
+            console.error('[圈子聊天] WebSocket 初始化失败:', error)
             reject(error)
           })
       } catch (error) {
-        console.error('❌ [圈子聊天] WebSocket 初始化异常:', error)
+        console.error('[圈子聊天] WebSocket 初始化异常:', error)
         reject(error)
       }
     } else if (!ws.isConnected()) {
@@ -51,7 +51,7 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
           resolve()
         })
         .catch((error) => {
-          console.error('❌ [圈子聊天] WebSocket 重连失败:', error)
+          console.error('[圈子聊天] WebSocket 重连失败:', error)
           reject(error)
         })
     } else {
@@ -336,8 +336,8 @@ export const circleWebSocket = {
 
           callback(chatMessage)
         } catch (error) {
-          console.error('❌ [圈子 WebSocket] 解析圈子消息失败:', error)
-          console.error('❌ [圈子 WebSocket] 原始消息体:', message.body)
+          console.error('[圈子 WebSocket] 解析圈子消息失败:', error)
+          console.error('[圈子 WebSocket] 原始消息体:', message.body)
         }
       }, {})
       
@@ -347,7 +347,7 @@ export const circleWebSocket = {
         subscription?.unsubscribe()
       }
     } catch (error) {
-      console.error('❌ [圈子 WebSocket] 订阅失败:', error)
+      console.error('[圈子 WebSocket] 订阅失败:', error)
       return () => {}
     }
   },
@@ -360,7 +360,7 @@ export const circleWebSocket = {
   const ws = getWebSocket()
   
   if (!ws || !ws.isConnected()) {
-    console.error('❌ [圈子 WebSocket] WebSocket 未连接，无法发送消息')
+    console.error('[圈子 WebSocket] WebSocket 未连接，无法发送消息')
     return
   }
 
@@ -373,22 +373,22 @@ export const circleWebSocket = {
     extra: chatMessage.extra || {}
   }
 
-  // 关键新增：详细的日志输出
+
   
   // 验证 content 是否为完整的 TipTap 文档对象
   if (typeof message.content !== 'object' || message.content === null) {
-    console.error('❌ [圈子 API] content 不是对象:', typeof message.content)
+    console.error('[圈子 API] content 不是对象:', typeof message.content)
     return
   }
   
   if (!message.content.type) {
-    console.error('❌ [圈子 API] content 缺少 type 字段，这不是有效的 TipTap JSON')
+    console.error('[圈子 API] content 缺少 type 字段，这不是有效的 TipTap JSON')
     console.error('   实际内容:', message.content)
     return
   }
   
   if (message.content.type !== 'doc') {
-    console.error('❌ [圈子 API] content.type 不是 "doc"，而是:', message.content.type)
+    console.error('[圈子 API] content.type 不是 "doc"，而是:', message.content.type)
     console.error('   这可能导致后端反序列化失败')
   }
 
@@ -407,10 +407,10 @@ export const circleWebSocket = {
       })
 
     } catch (error) {
-      console.error('❌ [圈子 WebSocket] 消息发送失败:', error)
+      console.error('[圈子 WebSocket] 消息发送失败:', error)
     }
   } else {
-    console.error('❌ [圈子 WebSocket] STOMP 客户端未连接')
+    console.error('[圈子 WebSocket] STOMP 客户端未连接')
   }
 },
 
@@ -421,7 +421,7 @@ export const circleWebSocket = {
     
     const ws = getWebSocket()
     if (!ws || !ws.isConnected()) {
-      console.error('❌ [圈子 WebSocket] WebSocket 未连接，无法撤回消息')
+      console.error('[圈子 WebSocket] WebSocket 未连接，无法撤回消息')
       return
     }
 
@@ -440,10 +440,10 @@ export const circleWebSocket = {
         })
 
       } catch (error) {
-        console.error('❌ [圈子 WebSocket] 撤回消息失败:', error)
+        console.error('[圈子 WebSocket] 撤回消息失败:', error)
       }
     } else {
-      console.error('❌ [圈子 WebSocket] STOMP 客户端未连接')
+      console.error('[圈子 WebSocket] STOMP 客户端未连接')
     }
   },
 
@@ -454,7 +454,7 @@ export const circleWebSocket = {
     
     const ws = getWebSocket()
     if (!ws || !ws.isConnected()) {
-      console.error('❌ [圈子 WebSocket] WebSocket 未连接，无法删除消息')
+      console.error('[圈子 WebSocket] WebSocket 未连接，无法删除消息')
       return
     }
 
@@ -472,10 +472,10 @@ export const circleWebSocket = {
         })
 
       } catch (error) {
-        console.error('❌ [圈子 WebSocket] 删除消息失败:', error)
+        console.error('[圈子 WebSocket] 删除消息失败:', error)
       }
     } else {
-      console.error('❌ [圈子 WebSocket] STOMP 客户端未连接')
+      console.error('[圈子 WebSocket] STOMP 客户端未连接')
     }
   }
 }

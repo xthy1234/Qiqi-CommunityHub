@@ -8,6 +8,7 @@
   >
     <div class="cropper-container">
       <div class="cropper-wrapper">
+        <!-- 【修复】添加 @change 事件监听裁剪框变化 -->
         <VueCropper
           ref="cropperRef"
           :img="imageSrc"
@@ -32,27 +33,29 @@
           :enlarge="option.enlarge"
           :mode="option.mode"
           @real-time="handleRealTime"
+          @change="handleChange"
         />
       </div>
 
       <!-- 预览区域 -->
       <div class="preview-section">
-        <p class="preview-title">
-          预览效果：
-        </p>
+
+        <!-- 显示裁剪信息 -->
+        <div class="crop-info-box">
+          <div class="tip">
+            · 拖动边框调整裁剪区域<br/>
+            · 最终上传的图片会是裁剪框内的内容<br/>
+            · 下方是图片的缩略图
+          </div>
+        </div>
+
         <div
           v-if="previews.url"
-          class="preview-box avatar-preview"
-          :style="{
-            width: previews.w + 'px',
-            height: previews.h + 'px',
-            overflow: 'hidden'
-          }"
+          class="thumbnail-preview"
         >
           <img
             :src="previews.url"
-            :style="previews.img"
-            alt="预览"
+            alt="缩略图"
           />
         </div>
       </div>
@@ -106,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { VueCropper } from 'vue-cropper'
 import 'vue-cropper/dist/index.css'
@@ -166,12 +169,17 @@ if (props.cropType === 'avatar') {
   option.autoCropHeight = 200
   option.centerBox = true
 
+
 } else if (props.cropType === 'cover') {
   option.fixed = true
   option.fixedNumber = [4, 3]
-  option.autoCropWidth = 400
-  option.autoCropHeight = 300
+  option.autoCropWidth = 800
+  option.autoCropHeight = 600
   option.centerBox = false
+
+
+
+
 
 }
 
@@ -179,7 +187,7 @@ const previews = ref<any>({})
 const showModal = ref(props.show)
 
 // 监听 show 变化
-watch(() => props.show, (newVal) => {
+watch(() => props.show, (newVal:  boolean) => {
 
   showModal.value = newVal
   if (newVal && props.imageFile) {
@@ -190,7 +198,7 @@ watch(() => props.show, (newVal) => {
 
     }
     reader.onerror = (err) => {
-      console.error('❌ [ImageCropper] 文件读取失败:', err)
+      console.error('[ImageCropper] 文件读取失败:', err)
     }
     reader.readAsDataURL(props.imageFile)
   } else {
@@ -199,15 +207,24 @@ watch(() => props.show, (newVal) => {
 })
 
 // 监听内部状态变化同步到父组件
-watch(showModal, (newVal) => {
+watch(showModal, (newVal: boolean) => {
 
   emit('update:show', newVal)
 })
 
-// 实时预览
+// 【简化】实时预览 - 只更新 URL
 const handleRealTime = (data: any) => {
-  previews.value = data
+  // 只保留 url，其他的不需要
+  previews.value = {
+    url: data.url
+  }
+}
 
+// 【简化】@change 事件
+const handleChange = (data: any) => {
+  previews.value = {
+    url: data.url
+  }
 }
 
 // 左旋转
@@ -245,24 +262,30 @@ const handleCancel = () => {
 const handleConfirm = async () => {
 
   if (!cropperRef.value) {
-    console.error('❌ [ImageCropper] cropperRef 不存在！')
+    console.error('[ImageCropper] cropperRef 不存在！')
     return
   }
 
   try {
     uploading.value = true
 
+
+
     // 获取裁剪后的 blob
     cropperRef.value.getCropBlob(async (blob: Blob) => {
 
       try {
+
+
+
+
         // 将 blob 转换为 file
         const fileName = props.imageFile?.name || 'cropped-image.jpg'
         const croppedFile = new File([blob], fileName, { type: blob.type })
 
         // 调用上传接口
-
         const response = await uploadAPI.uploadImage(croppedFile, '裁剪后的图片')
+
 
         if (response) {
           const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
@@ -273,6 +296,7 @@ const handleConfirm = async () => {
             fullUrl = `${baseUrl}${response}`
           }
 
+
           // 触发成功回调
           emit('success', fullUrl)
           showModal.value = false
@@ -281,11 +305,11 @@ const handleConfirm = async () => {
             globalProps.$toolUtil.message('图片上传成功', 'success')
           }
         } else {
-          console.error('❌ [ImageCropper] 上传返回为空')
+          console.error('[ImageCropper] 上传返回为空')
           throw new Error('上传失败')
         }
       } catch (error) {
-        console.error('❌ [ImageCropper] 图片上传失败:', error)
+        console.error('[ImageCropper] 图片上传失败:', error)
         if (globalProps.$toolUtil?.message) {
           globalProps.$toolUtil.message('图片上传失败', 'error')
         }
@@ -295,7 +319,7 @@ const handleConfirm = async () => {
       }
     })
   } catch (error) {
-    console.error('❌ [ImageCropper] 裁剪失败:', error)
+    console.error('[ImageCropper] 裁剪失败:', error)
     uploading.value = false
   }
 }
@@ -317,34 +341,70 @@ const handleConfirm = async () => {
 }
 
 .preview-section {
-  width: 200px;
+  width: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 12px;
 
   .preview-title {
     font-size: 14px;
     color: #666;
-    margin-bottom: 12px;
+    margin: 0;
   }
 
-  .preview-box {
-    width: 150px;
-    height: 150px;
+  // 裁剪信息框
+  .crop-info-box {
+    width: 100%;
+    padding: 12px;
+    background: #f5f5f5;
+    border-radius: 6px;
+    font-size: 12px;
+
+    .info-item {
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+
+      .label {
+        color: #666;
+      }
+
+      .value {
+        color: #333;
+        font-weight: 500;
+      }
+    }
+
+    .tip {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+      color: #999;
+      line-height: 1.6;
+    }
+  }
+
+  // 缩略图预览（统一为长方形）
+  .thumbnail-preview {
+    max-width: 200px;
+    max-height: 200px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 8px;  // 【统一】圆角矩形
     overflow: hidden;
     background: #fff;
-    position: relative;
-
-    &.avatar-preview {
-      border-radius: 50%;
-    }
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     img {
       max-width: 100%;
       max-height: 100%;
+      width: auto;
+      height: auto;
       object-fit: contain;
+      display: block;
     }
   }
 }

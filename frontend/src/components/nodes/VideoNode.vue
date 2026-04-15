@@ -169,7 +169,7 @@
 
         <!-- 编辑器模式下显示管理按钮 -->
         <n-button
-          v-if="isEditable"
+          v-if="showAnnotationManager"
           size="small"
           type="primary"
           @click="openAnnotationEditor"
@@ -183,12 +183,12 @@
                 <path
                   fill="currentColor"
                   d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"
-                />
-              </svg>
-            </n-icon>
-          </template>
-          管理注释
-        </n-button>
+              />
+            </svg>
+          </n-icon>
+        </template>
+        管理注释
+      </n-button>
       </div>
 
       <!-- 弹幕控制区域（移到信息卡片下方） -->
@@ -447,7 +447,18 @@ if (savedDanmakuState === 'true') {
 const isEditable = computed(() => {
   return props.editor?.isEditable === true
 })
+// ⚠️ 关键修复：判断是否在聊天场景中
+const isInChatContext = computed(() => {
+  // 检查路由是否包含 chat
+  const path = window.location.pathname
+  const hash = window.location.hash
+  return path.includes('/chat') || hash.includes('chat')
+})
 
+// 是否显示管理注释按钮（仅在文章编辑模式显示）
+const showAnnotationManager = computed(() => {
+  return isEditable.value && !isInChatContext.value
+})
 // 从 node.attrs 读取属性并标准化 URL
 const videoSrc = computed(() => {
   const src = props.node?.attrs?.src || ''
@@ -545,7 +556,7 @@ const sendDanmaku = async () => {
       message.error(response.data.msg || '弹幕发送失败')
     }
   } catch (error: any) {
-    console.error('❌ [弹幕] 发送失败:', error)
+    console.error('[弹幕] 发送失败:', error)
 
     if (error.response?.status === 401) {
       message.error('请先登录')
@@ -829,12 +840,12 @@ const initPlayer = () => {
     })
 
     player.on('error', (error : Error) => {
-      console.error('❌ [VideoNode] 视频播放错误:', error)
+      console.error('[VideoNode] 视频播放错误:', error)
       message.error('视频加载失败，请检查网络连接')
     })
 
   } catch (error) {
-    console.error('❌ [VideoNode] 播放器初始化失败:', error)
+    console.error('[VideoNode] 播放器初始化失败:', error)
     message.error('视频播放器初始化失败')
   }
 }
@@ -906,7 +917,7 @@ const handleScrollToAnnotation = (event: Event) => {
       jumpToTime(time)
       message.success(`已跳转到注释: ${title}`)
     } else {
-      console.error('❌ [VideoNode] 播放器未就绪')
+      console.error('[VideoNode] 播放器未就绪')
       message.error('视频播放器未就绪')
     }
   }, 500)

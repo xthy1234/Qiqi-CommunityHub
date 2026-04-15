@@ -156,6 +156,7 @@ import Image from '@tiptap/extension-image'
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { VideoNodeExtension } from '@/utils/tiptap-video-node'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 const appContext = useGlobalProperties()
 const messageApi = useMessage()
@@ -233,6 +234,8 @@ const fileInfo = computed(() => {
     if (fileNode?.attrs) {
       const attrs = fileNode.attrs
 
+
+
       // 格式化文件大小
       const formatFileSize = (bytes: number): string => {
         if (!bytes || bytes === 0) {return '0 B'}
@@ -260,12 +263,14 @@ const fileInfo = computed(() => {
         return 'file'
       }
 
-      return {
+      const result = {
         name: attrs.name || '未知文件',
         size: formatFileSize(attrs.size),
-        url: attrs.src || '',
+        url: attrs.src || '',  // ⚠️ 这里存储的是 downloadUrl，如 /api/files/14/download
         type: getFileType(attrs.extension, attrs.mimeType)
       }
+
+      return result
     }
   }
 
@@ -294,7 +299,7 @@ const editorReady = ref(false)
 onMounted(() => {
 
   try {
-    // 关键修复：使用 toRaw 去除响应式包装，确保使用纯 JSON 对象
+
     let contentJson: any
 
     if (typeof props.message.content === 'string') {
@@ -338,7 +343,7 @@ onMounted(() => {
     })
 
   } catch (error) {
-    console.error('❌ [MessageBubble] Failed to create TipTap editor:', error)
+    console.error('[MessageBubble] Failed to create TipTap editor:', error)
     console.error('  - 错误类型:', error instanceof Error ? error.name : 'Unknown')
     console.error('  - 错误信息:', error instanceof Error ? error.message : error)
     console.error('  - 原始内容:', props.message.content)
@@ -427,7 +432,7 @@ const handleDeleteMessage = (messageId: number) => {
 
 const handleCopyMessage = async (content: any) => {
   try {
-    // 关键修复：提取纯文本，而不是复制 JSON
+
     let plainText = ''
 
     if (typeof content === 'string') {
@@ -448,7 +453,7 @@ const handleCopyMessage = async (content: any) => {
     messageApi.success('复制成功')
     emit('copy', plainText)
   } catch (error) {
-    console.error('❌ [MessageBubble] 复制失败:', error)
+    console.error('[MessageBubble] 复制失败:', error)
     messageApi.error('复制失败')
   }
 }
@@ -525,22 +530,57 @@ const getFileName = (url: string) => {
 }
 
 const downloadFile = () => {
-  const url = fileInfo.value.url
-  if (!url) {
+  const rawUrl = fileInfo.value.url
+
+
+  if (!rawUrl) {
     messageApi.warning('文件链接无效')
+    console.warn('⚠️ [MessageBubble] 文件 URL 为空')
     return
   }
 
-  // 创建临时链接触发下载
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileInfo.value.name
-  link.target = '_blank'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  // 使用 normalizeFileUrl 处理 URL，确保包含完整的 baseUrl
+  const url = normalizeFileUrl(rawUrl)
 
-  messageApi.success('开始下载文件')
+
+  fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return response.blob()
+    })
+    .then(blob => {
+      // 创建 blob URL
+      const blobUrl = window.URL.createObjectURL(blob)
+
+      // 创建临时链接触发下载
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = fileInfo.value.name  // 强制指定下载文件名
+
+      // 【关键】不设置 target="_blank"，避免浏览器预览
+      document.body.appendChild(link)
+      link.click()
+
+      // 清理
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+
+      messageApi.success('开始下载文件')
+    })
+    .catch(error => {
+      console.error('[MessageBubble] 下载失败:', error)
+      messageApi.error('文件下载失败，请重试')
+
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileInfo.value.name
+      // 注意：不使用 target="_blank"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    })
 }
 
 const handleAvatarClick = () => {
@@ -598,7 +638,7 @@ const handleAvatarClick = () => {
   word-wrap: break-word;
   word-break: break-all;
 
-  // 关键修复：移除 TipTap 产生的空段落间距
+
   :deep(.ProseMirror) {
     p {
       margin: 0;  // 移除段落默认边距

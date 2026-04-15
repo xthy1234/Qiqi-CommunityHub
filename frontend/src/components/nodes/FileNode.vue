@@ -2,7 +2,8 @@
   <node-view-wrapper class="file-node-wrapper">
     <div
       class="file-card"
-      @click="handleDownload"
+      :class="{ 'is-editable': isEditable, 'is-chat-context': isInChatContext }"
+      @click="handleCardClick"
     >
       <div class="file-icon">
         <n-icon
@@ -26,11 +27,73 @@
         <div class="file-name">
           {{ fileInfo.name }}
         </div>
-        <div class="file-size">
-          {{ fileInfo.size }}
+        <div class="file-meta">
+          <span class="file-size">{{ fileInfo.size }}</span>
+          <span
+            v-if="fileInfo.extension"
+            class="file-extension"
+          >· {{ fileInfo.extension.toUpperCase() }}</span>
         </div>
       </div>
-      <div class="file-action">
+
+      <!-- 编辑模式：显示操作按钮 -->
+      <div
+        v-if="isEditable"
+        class="file-actions"
+      >
+        <n-button
+          size="small"
+          type="error"
+          secondary
+          @click.stop="handleDelete"
+        >
+          <template #icon>
+            <n-icon>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                />
+              </svg>
+            </n-icon>
+          </template>
+          删除
+        </n-button>
+        <n-button
+          size="small"
+          type="primary"
+          secondary
+          @click.stop="handleReplace"
+        >
+          <template #icon>
+            <n-icon>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M9 16h6v-6h4l-7-7l-7 7h4v6zm-4 2h14v2H5v-2z"
+                />
+              </svg>
+            </n-icon>
+          </template>
+          替换
+        </n-button>
+      </div>
+
+      <!-- 只读模式：显示下载按钮 -->
+      <div
+        v-else
+        class="file-action"
+      >
         <n-button
           size="small"
           type="primary"
@@ -55,19 +118,26 @@
         </n-button>
       </div>
     </div>
+
+    <!-- 隐藏的文件选择器（用于替换） -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      style="display: none"
+      @change="handleFileInputChange"
+    />
   </node-view-wrapper>
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, ref } from 'vue'
 import { NIcon, NButton, useMessage } from 'naive-ui'
 import { NodeViewWrapper } from '@tiptap/vue-3'
 import { normalizeFileUrl } from '@/utils/fileUrl'
+import { uploadAPI } from '@/api/upload'
 
-// 【修复】直接在组件中使用 useMessage
 const message = useMessage()
 
-// 关键修复：接收完整的 NodeView props（包括 node 对象）
 interface Props {
   editor: any
   node: {
@@ -80,16 +150,31 @@ interface Props {
     }
   }
   decorations: any[]
+  selected: boolean
+  updateAttributes: (attrs: Record<string, any>) => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   editor: null,
   node: () => ({ attrs: {} }),
-  decorations: () => []
+  decorations: () => [],
+  selected: false,
+  updateAttributes: () => {}
 })
 
-// 关键新增：添加日志检查 node.attrs
-console.log('🔍 [FileNode] node.attrs:', props.node?.attrs)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+// 判断是否为可编辑模式
+const isEditable = computed(() => {
+  return props.editor?.isEditable === true
+})
+
+// 判断是否在聊天场景中
+const isInChatContext = computed(() => {
+  const path = window.location.pathname
+  const hash = window.location.hash
+  return path.includes('/chat') || hash.includes('chat')
+})
 
 // 格式化文件大小
 const formatFileSize = (bytes: number): string => {
@@ -102,9 +187,8 @@ const formatFileSize = (bytes: number): string => {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
 }
 
-// 获取文件类型（关键修复：添加类型转换）
+// 获取文件类型
 const getFileType = (extension?: string | null, mimeType?: string | null): string => {
-  // 关键修复：强制转换为字符串并处理空值
   const ext = String(extension || '').toLowerCase()
   const mime = String(mimeType || '').toLowerCase()
 
@@ -135,12 +219,20 @@ const getFileIconColor = (type: string): string => {
   return colors[type] || '#666666'
 }
 
-// 计算文件信息（关键修改：从 node.attrs 读取）
+// 计算文件信息
 const fileInfo = computed(() => ({
   name: props.node?.attrs?.name || '未知文件',
   size: formatFileSize(props.node?.attrs?.size || 0),
+  extension: props.node?.attrs?.extension || '',
   type: getFileType(props.node?.attrs?.extension, props.node?.attrs?.mimeType)
 }))
+
+// 处理卡片点击（只读模式下触发下载）
+const handleCardClick = () => {
+  if (!isEditable.value) {
+    handleDownload()
+  }
+}
 
 // 处理下载
 const handleDownload = () => {
@@ -152,9 +244,6 @@ const handleDownload = () => {
     return
   }
 
-  // 【修复】使用 normalizeFileUrl 确保 URL 正确拼接 baseUrl
-  // 输入示例: "/api/files/5/download"
-  // 输出示例: "http://localhost:8080/api/files/5/download"
   const src = normalizeFileUrl(rawSrc)
 
   const link = document.createElement('a')
@@ -166,6 +255,61 @@ const handleDownload = () => {
   document.body.removeChild(link)
 
   message.success('开始下载文件')
+}
+
+// 处理删除
+const handleDelete = () => {
+  if (!props.editor) {return}
+
+  // 获取当前节点的位置并删除
+  const { state } = props.editor
+  const { selection } = state
+  const { from, to } = selection
+
+  props.editor.chain().focus().deleteRange({ from, to }).run()
+  message.success('文件已删除')
+}
+
+// 处理替换文件
+const handleReplace = () => {
+  fileInputRef.value?.click()
+}
+
+// 处理文件选择
+const handleFileInputChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) {return}
+
+  try {
+    message.loading('文件上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadAnyFile(file)
+
+    if (!response) {
+      throw new Error('文件上传失败')
+    }
+
+    // 更新当前节点属性
+    props.updateAttributes({
+      src: response,
+      name: file.name,
+      size: file.size,
+      mimeType: file.type,
+      extension: file.name.split('.').pop() || ''
+    })
+
+    message.destroyAll()
+    message.success('文件替换成功')
+  } catch (error: any) {
+    console.error('[FileNode] 文件上传失败:', error)
+    message.destroyAll()
+    message.error(`文件上传失败：${error.message}`)
+  } finally {
+    if (target) {
+      target.value = ''
+    }
+  }
 }
 </script>
 
@@ -181,15 +325,22 @@ const handleDownload = () => {
   padding: 12px 16px;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
-  cursor: pointer;
   transition: all 0.3s ease;
-  max-width: 320px;
+  max-width: 400px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
-  &:hover {
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    transform: translateY(-2px);
+  &.is-editable {
+    cursor: default;
+  }
+
+  &:not(.is-editable) {
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+    }
   }
 
   .file-icon {
@@ -219,10 +370,23 @@ const handleDownload = () => {
       white-space: nowrap;
     }
 
-    .file-size {
+    .file-meta {
       font-size: 12px;
       color: #999;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .file-extension {
+        text-transform: uppercase;
+      }
     }
+  }
+
+  .file-actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
   }
 
   .file-action {

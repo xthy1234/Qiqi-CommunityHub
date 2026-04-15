@@ -62,7 +62,7 @@ let isInitialized = false
 /** 设置 WebSocket 消息监听 */
 const setupWebSocketListeners = () => {
   // 监听新消息
-  unsubscribeMessage = chatService.onNewMessage((message: Message) => {    //  关键：使用 isSelf 字段判断
+  unsubscribeMessage = chatService.onNewMessage((message: Message) => {
     if (message.isSelf) {
 
       store.confirmSentMessage(message)
@@ -106,7 +106,7 @@ const initializeWebSocket = async () => {
 
     setupWebSocketListeners()
   } catch (error) {
-    console.error('❌ WebSocket连接失败:', error)
+    console.error('WebSocket连接失败:', error)
     isConnected.value = false
   }
 }
@@ -180,7 +180,7 @@ watch(() => route.params.userId, async (newUserId: string | undefined, oldUserId
       await initializeChatWithUser(userId)
 
     } catch (error) {
-      console.error('❌ initializeChatWithUser 执行失败:', error)
+      console.error('initializeChatWithUser 执行失败:', error)
     }
   }
 }, { immediate: true })
@@ -190,7 +190,7 @@ onMounted(async () => {  try {
     await store.loadConversations()
 
   } catch (error) {
-    console.error('❌ [onMounted] 加载会话列表失败:', error)
+    console.error('[onMounted] 加载会话列表失败:', error)
   }
 
   //  连接 WebSocket
@@ -208,7 +208,7 @@ onMounted(async () => {  try {
           await initializeChatWithUser(userId)
 
         } catch (error) {
-          console.error('❌ [setTimeout] 初始化聊天失败:', error)
+          console.error('[setTimeout] 初始化聊天失败:', error)
         }
       }, 100)
     }

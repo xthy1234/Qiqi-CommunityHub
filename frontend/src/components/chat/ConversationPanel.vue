@@ -207,7 +207,7 @@ const parseTipTapContent = (content: any): string => {
     const text = extractText(json)
     return text.trim().replace(/\n/g, ' ') // 换行符替换为空格
   } catch (error) {
-    console.error('❌ [ConversationPanel] 解析消息内容失败:', error)
+    console.error('[ConversationPanel] 解析消息内容失败:', error)
     // 解析失败，直接返回原文本（截断）
     return typeof content === 'string' ? content.substring(0, 50) : String(content)
   }

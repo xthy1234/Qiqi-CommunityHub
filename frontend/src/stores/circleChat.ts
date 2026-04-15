@@ -194,7 +194,7 @@ export const useCircleChatStore = defineStore('circleChat', {
     /** 确认发送的消息 */
     confirmSentMessage(realMessage: CircleMessage): void {
       
-      // 关键修复：比较时需要统一格式，都转换为字符串进行比较
+
       const normalizeContent = (content: any): string => {
         return typeof content === 'string' ? content : JSON.stringify(content)
       }
@@ -246,7 +246,7 @@ export const useCircleChatStore = defineStore('circleChat', {
 
     /** 接收新消息（WebSocket） */
     receiveMessage(message: CircleMessage) {
-      // 关键修改：不再检查 message.isSelf，由组件层处理
+
       
       wsLogger.debug('收到圈子消息', {
         circleId: message.circleId,
@@ -265,7 +265,7 @@ export const useCircleChatStore = defineStore('circleChat', {
           this.conversations[convIndex].unreadCount = 0
         }
         
-        // 关键修复：立即调用后端 API 标记为已读（更新数据库的 last_read_time）
+
         // 使用防抖，避免频繁调用
         this.debounceMarkAsRead(message.circleId)
         
@@ -501,7 +501,7 @@ export const useCircleChatStore = defineStore('circleChat', {
 
         }
       } catch (error) {
-        console.error('❌ [CircleChat] 获取未读数失败:', error)
+        console.error('[CircleChat] 获取未读数失败:', error)
       }
     },
 
@@ -518,7 +518,7 @@ export const useCircleChatStore = defineStore('circleChat', {
         }
 
       } catch (error) {
-        console.error('❌ [CircleChat] 标记已读失败:', error)
+        console.error('[CircleChat] 标记已读失败:', error)
       }
     },
 

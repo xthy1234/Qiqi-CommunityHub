@@ -82,7 +82,7 @@ export class BackNavigationManager {
           try {
             targetPath = decodeURIComponent(backUrl)
           } catch (error) {
-            console.error('❌ [BackNavigation] 解码 backUrl 失败:', error)
+            console.error('[BackNavigation] 解码 backUrl 失败:', error)
           }
         }
       }
@@ -233,7 +233,7 @@ export class BackNavigationManager {
       try {
         await draftApi.deleteDraft(articleId)
       } catch (error) {
-        console.error('❌ [BackNavigation] 删除草稿失败:', error)
+        console.error('[BackNavigation] 删除草稿失败:', error)
       }
     }
 

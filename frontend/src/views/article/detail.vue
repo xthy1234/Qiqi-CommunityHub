@@ -377,7 +377,7 @@ const loadArticleDetail = async () => {
     loadContributors()
 
   } catch (error) {
-    console.error('❌ [加载文章失败] error:', error)
+    console.error('[加载文章失败] error:', error)
     message.error('加载文章失败')
     article.value = null
     // 清除全局变量

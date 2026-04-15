@@ -125,7 +125,7 @@ class WebSocketManager {
           return userId
         }
       } catch (error) {
-        console.error('❌ [WebSocket] 解析 UserInfo 失败:', error)
+        console.error('[WebSocket] 解析 UserInfo 失败:', error)
       }
     }
     
@@ -176,7 +176,7 @@ class WebSocketManager {
         this.close()
         setTimeout(() => {
           this.connect().catch((error) => {
-            console.error('❌ [WebSocket] 重连失败:', error)
+            console.error('[WebSocket] 重连失败:', error)
           })
         }, 1000)
       }
@@ -190,7 +190,7 @@ class WebSocketManager {
     const currentUserId = this.getCurrentUserId()
     
     if (!currentUserId) {
-      console.error('❌ [WebSocket] 用户 ID 一致性检查失败：未获取到用户 ID')
+      console.error('[WebSocket] 用户 ID 一致性检查失败：未获取到用户 ID')
       return false
     }
     
@@ -232,7 +232,7 @@ class WebSocketManager {
           throw new Error(errorMsg)
         }
         
-        // 关键：按照文档构建完整的 URL
+
         const wsUrl = `${this.config.url}?userId=${userId}&token=${encodeURIComponent(token)}`
         
         // 如果已有连接，先关闭
@@ -252,7 +252,7 @@ class WebSocketManager {
           heartbeatIncoming: this.config.heartbeatInterval! / 2,
           heartbeatOutgoing: this.config.heartbeatInterval! / 2,
           
-          // 关键：在 STOMP CONNECT 帧的 headers 中添加认证信息
+
           connectHeaders: {
             Authorization: `Bearer ${token}`,  // 标准认证头（推荐）
             token: token,                      // 兼容当前后端拦截器
@@ -324,7 +324,7 @@ class WebSocketManager {
 
     const currentUserId = this.getCurrentUserId()
     
-    // 关键修复：检查 userId 有效性
+
     if (!currentUserId) {
       wsLogger.error('无法订阅消息：未获取到有效的用户 ID')
       return
@@ -505,7 +505,7 @@ class WebSocketManager {
       return
     }
     
-    // 关键：content 应该是 JSON 对象，不要二次序列化
+
     const message: PrivateMessageDTO = {
       fromUserId,
       toUserId,
@@ -732,7 +732,7 @@ class WebSocketManager {
     
     this.reconnectTimer = setTimeout(() => {
       this.connect().catch((error) => {
-        console.error('❌ [WebSocket] 重连失败:', error)
+        console.error('[WebSocket] 重连失败:', error)
       })
     }, this.config.reconnectInterval)
   }
@@ -755,7 +755,7 @@ class WebSocketManager {
       try {
         listener(state)
       } catch (error) {
-        console.error('❌ [WebSocket] 状态监听器执行出错:', error)
+        console.error('[WebSocket] 状态监听器执行出错:', error)
       }
     })
   }

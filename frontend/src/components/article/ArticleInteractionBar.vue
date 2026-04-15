@@ -460,7 +460,7 @@ const loadCircles = async () => {
     circles.value = result.list || []
 
   } catch (error) {
-    console.error('❌ [ArticleInteractionBar] 加载圈子列表失败:', error)
+    console.error('[ArticleInteractionBar] 加载圈子列表失败:', error)
     circles.value = []
   }
 }
@@ -477,10 +477,10 @@ const loadConversations = async () => {
     // 主动调用 API 获取会话列表
     const result = await messageAPI.getConversations()
 
-    // 关键修复：result 就是 ConversationVO[] 数组，不需要 .list
+
     chatStore.conversations = result as ConversationVO[] || []
   } catch (error) {
-    console.error('❌ [ArticleInteractionBar] 加载会话列表失败:', error)
+    console.error('[ArticleInteractionBar] 加载会话列表失败:', error)
   } finally {
     loadingConversations.value = false
   }
@@ -569,11 +569,11 @@ const circleOptions = computed(() => {
 
 // 将文章分享到聊天
 const sendArticleToChat = () => {
-  // 关键修复：优先从 window 获取，如果没有则尝试从父组件获取
+
   const articleData = window.detailArticleData
 
   if (!articleData) {
-    console.error('❌ [ArticleInteractionBar] 文章信息加载失败，window.detailArticleData 未定义')
+    console.error('[ArticleInteractionBar] 文章信息加载失败，window.detailArticleData 未定义')
     message.error('文章信息加载失败，请刷新页面重试')
     return
   }
@@ -605,7 +605,7 @@ const sendArticleToChat = () => {
     const tempMsg = chatStore.addSendingMessage(articleJsonContent, selectedUserId.value)
     const ws = getWebSocket()
     if (ws && ws.isConnected()) {
-      // 关键修复：构建完整的消息对象，不要直接传 content
+
       const chatMessage = articleJsonContent  // TipTap JSON 对象
 
       ws.sendPrivateMessage(tempMsg.toUserId, chatMessage)
@@ -618,7 +618,7 @@ const sendArticleToChat = () => {
     const tempMsg = circleChatStore.addSendingMessage(articleJsonContent, selectedCircleId.value)
     const ws = getWebSocket()
     if (ws && ws.isConnected()) {
-      // 关键修复：构建完整的消息对象
+
       circleChatApi.sendMessage(selectedCircleId.value, articleJsonContent, 0)
       message.success('文章已分享到圈子')
     } else {
@@ -677,7 +677,7 @@ const submitReport = async () => {
     showReportModal.value = false
     reportForm.value.reportReason = ''
   } catch (error: any) {
-    console.error('❌ [ArticleInteractionBar] 提交举报失败:', error)
+    console.error('[ArticleInteractionBar] 提交举报失败:', error)
 
     if (error?.errors) {
       // 验证错误

@@ -219,7 +219,7 @@ const handleMenuClick = async (key: string) => {
 
 // 类型转换：CircleMessage -> Message (适配 MessageBubble 组件)
 const convertToMessage = (circleMsg: CircleMessage): Message => {
-  // 关键修改：前端计算 isSelf 字段
+
   const isSelf = circleMsg.senderId === currentUserId.value
 
   return {
@@ -395,7 +395,7 @@ watch(() => store.currentCircle, async (newCircle) => {
     nextTick(() => {
       scrollToBottom()
 
-      // 关键修改：先标记为已读，再发送已读回执
+
       if (newCircle.id) {
         // 1. 调用后端 API 标记为已读（更新 last_read_time）
         store.markAsReadByAPI(newCircle.id)
@@ -465,7 +465,7 @@ const registerWebSocketHandlers = () => {
       }
       store.receiveMessage(messageWithSelfFlag)
 
-      // 关键修复：如果是在当前圈子收到的消息，立即标记为已读
+
       if (store.currentCircle && data.circleId === store.currentCircle.id) {
         // 延迟一下，确保消息已经添加到列表
         setTimeout(() => {

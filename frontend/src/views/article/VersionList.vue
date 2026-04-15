@@ -354,7 +354,7 @@ const loadVersions = async () => {
   
   if (!articleId) {
     message.error('缺少文章 ID 参数')
-    console.error('❌ [加载版本列表] articleId 缺失')
+    console.error('[加载版本列表] articleId 缺失')
     return
   }
 
@@ -386,7 +386,7 @@ const loadVersions = async () => {
     })
 
   } catch (error) {
-    console.error('❌ [加载版本列表失败] error:', error)
+    console.error('[加载版本列表失败] error:', error)
     message.error('加载版本列表失败')
   } finally {
     loading.value = false
@@ -447,7 +447,7 @@ const confirmRollback = async () => {
     await returnAfterRollback(router, route, articleId)
 
   } catch (error) {
-    console.error('❌ [回滚失败] error:', error)
+    console.error('[回滚失败] error:', error)
     message.error('回滚失败，请重试')
   } finally {
     rollingBack.value = false

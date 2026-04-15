@@ -984,7 +984,7 @@ const loadUserArticles = async () => {
       message.error('加载文章列表失败')
     }
   } catch (error: any) {
-    console.error('❌ [RichTextEditor] 加载用户文章失败:', error)
+    console.error('[RichTextEditor] 加载用户文章失败:', error)
     message.error('加载文章列表失败')
   } finally {
     loadingArticles.value = false
@@ -1158,7 +1158,7 @@ const handleDocumentPaste = async (file: File) => {
     message.destroyAll()
     message.success('文件粘贴成功')
   } catch (error: any) {
-    console.error('❌ [RichTextEditor] 粘贴文件失败:', error)
+    console.error('[RichTextEditor] 粘贴文件失败:', error)
     message.destroyAll()
     message.error('文件粘贴失败')
   }
@@ -1178,7 +1178,7 @@ const handleImagePaste = async (file: File) => {
     message.destroyAll()
     message.success('图片粘贴成功')
   } catch (error: any) {
-    console.error('❌ [RichTextEditor] 粘贴图片失败:', error)
+    console.error('[RichTextEditor] 粘贴图片失败:', error)
     message.destroyAll()
     message.error('图片粘贴失败')
   }
@@ -1207,7 +1207,7 @@ const handleVideoPaste = async (file: File) => {
     message.destroyAll()
     message.success('视频粘贴成功')
   } catch (error: any) {
-    console.error('❌ [RichTextEditor] 粘贴视频失败:', error)
+    console.error('[RichTextEditor] 粘贴视频失败:', error)
     message.destroyAll()
     message.error('视频粘贴失败')
   }
@@ -1294,7 +1294,7 @@ const handleFileInputChange = async (event: Event) => {
     })
     message.success('文件上传成功')
   } catch (error: any) {
-    console.error('❌ [RichTextEditor] 文件上传失败:', error)
+    console.error('[RichTextEditor] 文件上传失败:', error)
     message.error(`文件上传失败：${error.message}`)
   } finally {
     if (target) {
@@ -1345,7 +1345,7 @@ const handleUpload = async (file: File) => {
 
     message.success('文件上传成功')
   } catch (error: any) {
-    console.error('❌ [RichTextEditor] 文件上传失败:', error)
+    console.error('[RichTextEditor] 文件上传失败:', error)
     message.error(`文件上传失败：${error.message}`)
   }
 }
@@ -1418,7 +1418,7 @@ const handleVideoInputChange = async (event: Event) => {
     message.destroyAll()
     message.success('视频上传成功')
   } catch (error: any) {
-    console.error('❌ [RichTextEditor] 视频上传失败:', error)
+    console.error('[RichTextEditor] 视频上传失败:', error)
     message.destroyAll()
     message.error(`视频上传失败：${error.message}`)
   } finally {

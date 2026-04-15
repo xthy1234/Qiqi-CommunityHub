@@ -212,7 +212,7 @@ onMounted(async () => {
       }
     })
   } catch (error) {
-    console.error('❌ [NotificationItem] TipTap 编辑器创建失败:', error)
+    console.error('[NotificationItem] TipTap 编辑器创建失败:', error)
     readonlyEditor = null
     editorReady.value = false
   }

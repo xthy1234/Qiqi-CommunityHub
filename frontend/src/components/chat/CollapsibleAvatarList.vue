@@ -138,7 +138,7 @@ watch(isCollapsed, (newVal:boolean, oldVal: boolean) => {
 
       emit('collapse-change', newVal)
     } catch (error) {
-      console.error('❌ [CollapsibleAvatarList] 保存至 localStorage 失败:', error)
+      console.error('[CollapsibleAvatarList] 保存至 localStorage 失败:', error)
     }
   }
 })

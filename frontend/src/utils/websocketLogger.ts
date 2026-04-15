@@ -57,7 +57,7 @@ class WebSocketLogger {
 
   error(message: string, data?: any): void {
     if (this.config.level > LogLevel.ERROR) {return}
-    this.log('❌ ERROR', message, data, 'color: #e74c3c')
+    this.log('ERROR', message, data, 'color: #e74c3c')
   }
 
   private log(level: string, message: string, data?: any, color?: string): void {

@@ -247,7 +247,7 @@ const initializeWebSocket = async (): Promise<void> => {
       maxReconnectAttempts: 5
     })
   } catch (error) {
-    console.error('❌ [登录] WebSocket连接失败:', error)
+    console.error('[登录] WebSocket连接失败:', error)
     // WebSocket 连接失败不影响登录流程
   }
 }

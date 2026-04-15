@@ -124,6 +124,7 @@ import {uploadAPI} from "@/api/upload";
 import { FileNodeExtension } from '@/utils/tiptap-file-node'
 import { ShareCardNodeExtension } from '@/utils/tiptap-share-card-node'
 import { VideoNodeExtension } from '@/utils/tiptap-video-node'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 const message = useMessage()
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -131,6 +132,27 @@ const videoInputRef = ref<HTMLInputElement | null>(null)
 
 // 最大字符数限制
 const MAX_CHAR_COUNT = 500
+
+// 判断是否为文档类型文件
+const isDocumentType = (mimeType: string): boolean => {
+  if (!mimeType) {return false}
+
+  const documentTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'application/zip',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed'
+  ]
+
+  return documentTypes.includes(mimeType) || mimeType.startsWith('application/') || mimeType.startsWith('text/')
+}
 
 // 创建轻量化的 TipTap 编辑器实例
 const editor = useEditor({
@@ -172,6 +194,16 @@ const editor = useEditor({
             if (file) {
               event.preventDefault()
               handleVideoPaste(file)
+              return true
+            }
+          }
+
+          // 处理文档类文件粘贴（PDF、Word、Excel 等）
+          if (isDocumentType(item.type)) {
+            const file = item.getAsFile()
+            if (file) {
+              event.preventDefault()
+              handleDocumentPaste(file)
               return true
             }
           }
@@ -238,10 +270,10 @@ const handleFileChange = async (event: Event) => {
       throw new Error('图片上传失败')
     }
 
-    editor.value.chain().focus().setImage({ src: response }).run()
+    editor.value.chain().focus().setImage({ src: normalizeFileUrl(response) }).run()
     message.success('图片上传成功')
   } catch (error: any) {
-    console.error('❌ [ChatInput] 图片上传失败:', error)
+    console.error('[ChatInput] 图片上传失败:', error)
     message.error('图片上传失败')
   } finally {
     if (target) {
@@ -258,10 +290,10 @@ const handleImagePaste = async (file: File) => {
       throw new Error('图片上传失败')
     }
 
-    editor.value.chain().focus().setImage({ src: response }).run()
+    editor.value.chain().focus().setImage({ src: normalizeFileUrl(response) }).run()
     message.success('图片粘贴成功')
   } catch (error: any) {
-    console.error('❌ [ChatInput] 粘贴图片失败:', error)
+    console.error('[ChatInput] 粘贴图片失败:', error)
     message.error('图片粘贴失败')
   }
 }
@@ -294,7 +326,7 @@ const handleVideoInputChange = async (event: Event) => {
     message.destroyAll()
     message.success('视频上传成功')
   } catch (error: any) {
-    console.error('❌ [ChatInput] 视频上传失败:', error)
+    console.error('[ChatInput] 视频上传失败:', error)
     message.destroyAll()
     message.error(`视频上传失败：${error.message}`)
   } finally {
@@ -323,9 +355,37 @@ const handleVideoPaste = async (file: File) => {
     message.destroyAll()
     message.success('视频粘贴成功')
   } catch (error: any) {
-    console.error('❌ [ChatInput] 粘贴视频失败:', error)
+    console.error('[ChatInput] 粘贴视频失败:', error)
     message.destroyAll()
     message.error('视频粘贴失败')
+  }
+}
+
+// 处理文档类文件粘贴
+const handleDocumentPaste = async (file: File) => {
+  try {
+    message.loading('文件上传中...', { duration: 0 })
+    const response = await uploadAPI.uploadAnyFile(file)
+
+    if (!response) {
+      throw new Error('文件上传失败')
+    }
+
+    // 插入文件节点
+    editor.value.commands.setFileNode({
+      src: response,
+      name: file.name,
+      size: file.size,
+      mimeType: file.type,
+      extension: file.name.split('.').pop() || ''
+    })
+
+    message.destroyAll()
+    message.success('文件粘贴成功')
+  } catch (error: any) {
+    console.error('[ChatInput] 粘贴文件失败:', error)
+    message.destroyAll()
+    message.error('文件粘贴失败')
   }
 }
 

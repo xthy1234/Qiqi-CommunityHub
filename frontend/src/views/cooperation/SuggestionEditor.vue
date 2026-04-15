@@ -226,7 +226,7 @@ const loadArticleContent = async () => {
 
   if (!articleId) {
     message.error('缺少文章 ID 参数')
-    console.error('❌ articleId 为空:', articleId)
+    console.error('articleId 为空:', articleId)
     return
   }
 
@@ -244,7 +244,7 @@ const loadArticleContent = async () => {
     formData.content = JSON.parse(JSON.stringify(originalData))
 
   } catch (error) {
-    console.error('❌ 加载文章内容失败:', error)
+    console.error('加载文章内容失败:', error)
     message.error('加载文章内容失败')
   }
 }

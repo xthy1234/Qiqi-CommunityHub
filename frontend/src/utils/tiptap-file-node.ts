@@ -74,7 +74,7 @@ export const FileNodeExtension = Node.create<FileNodeOptions>({
   },
   
   renderHTML({ HTMLAttributes }) {
-    // 关键修复：原子节点不应该有内容占位符 (0)
+
     return ['file-node', mergeAttributes(HTMLAttributes)]
   },
   

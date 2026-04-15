@@ -176,7 +176,7 @@ const currentUserId = computed(() => {
         return userId
       }
     } catch (error) {
-      console.error('❌ [currentUserId] 解析 UserInfo 失败:', error)
+      console.error('[currentUserId] 解析 UserInfo 失败:', error)
     }
   }
 
@@ -252,7 +252,7 @@ const handleSendMessage = async (content: any, msgType = 0) => {
       // 私聊消息格式
       ws.sendPrivateMessage(store.currentConversation.userId, content)
     } else {
-      console.error('❌ [私聊] WebSocket 未连接')
+      console.error('[私聊] WebSocket 未连接')
       message.error('网络连接异常，消息发送失败')
     }
 
@@ -457,7 +457,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
     //  如果是加载历史消息（一次性添加≥15 条）
     if (addedCount >= 15) {
 
-        // 关键修复：保存当前滚动位置和高度
+
         const messageListEl = messageListRef.value
         if (messageListEl) {
             // 临时禁用平滑滚动
@@ -499,7 +499,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
             // 临时禁用平滑滚动
             messageListEl.style.scrollBehavior = 'auto'
 
-            // 关键修复：保存当前滚动位置和可视区域
+
             const currentScrollTop = messageListEl.scrollTop
             const currentScrollHeight = messageListEl.scrollHeight
 
@@ -566,7 +566,7 @@ const handleRecallMessage = (messageId: number) => {  //  1. 乐观更新：立�
     ws.recallMessage(messageId)
 
   } else {
-    console.error('❌ [步骤 2] WebSocket 未连接，无法发送撤回请求')
+    console.error('[步骤 2] WebSocket 未连接，无法发送撤回请求')
     message.error('网络连接异常，撤回失败')
   }
 
@@ -592,7 +592,7 @@ const handleDeleteMessage = (messageId: number) => {  //  1. 乐观删除：立�
     ws.deleteMessage(messageId)
 
   } else {
-    console.error('❌ [步骤 2] WebSocket 未连接，无法发送删除请求')
+    console.error('[步骤 2] WebSocket 未连接，无法发送删除请求')
     message.error('网络连接异常，删除失败')
 
     //  如果 WebSocket 未连接，可以选择回滚或删除失败提示
@@ -650,7 +650,7 @@ const cleanupWebSocketHandlers = () => {
     try {
       unsubscribe()
     } catch (error) {
-      console.error('❌ [ChatDetail] 清理处理器失败:', error)
+      console.error('[ChatDetail] 清理处理器失败:', error)
     }
   })
   wsUnsubscribeFunctions.value = []

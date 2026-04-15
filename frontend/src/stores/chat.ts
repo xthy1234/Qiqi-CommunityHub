@@ -168,7 +168,7 @@ export const useChatStore = defineStore('chat', {
      */
     confirmSentMessage(realMessage: Message): void {
 
-      // 关键修复：比较时需要统一格式，都转换为字符串进行比较
+
       const normalizeContent = (content: any): string => {
         return typeof content === 'string' ? content : JSON.stringify(content)
       }
@@ -188,7 +188,7 @@ export const useChatStore = defineStore('chat', {
         
         const oldTempMessage = this.messages[tempIndex]
         
-        // 关键修改：保留完整的消息结构，包括 fromUser 和 toUser
+
         this.messages[tempIndex] = {
           ...realMessage,  // 使用真实消息的完整数据
           _tempId: undefined,
@@ -250,7 +250,7 @@ export const useChatStore = defineStore('chat', {
         this.unreadCount = this.conversations.reduce((sum: number, conv: ConversationVO) => sum + (conv.unreadCount || 0), 0)
 
       } catch (error) {
-        console.error('❌ [chatStore] 加载会话列表失败:', error)
+        console.error('[chatStore] 加载会话列表失败:', error)
         this.conversations = []
         this.unreadCount = 0
         throw error
@@ -265,7 +265,7 @@ export const useChatStore = defineStore('chat', {
 
       try {
         if (!conversation || !(conversation as any).userId) {
-          console.error('❌ [chatStore] 无效的会话对象')
+          console.error('[chatStore] 无效的会话对象')
           return
         }
         
@@ -295,7 +295,7 @@ export const useChatStore = defineStore('chat', {
 
             }
           } catch (error) {
-            console.error('❌ [chatStore] 获取用户信息失败:', error)
+            console.error('[chatStore] 获取用户信息失败:', error)
           }
         }
         
@@ -321,7 +321,7 @@ export const useChatStore = defineStore('chat', {
             }
         }
       } catch (error) {
-        console.error('❌ [chatStore] 切换会话失败:', error)
+        console.error('[chatStore] 切换会话失败:', error)
         throw error
       }
     },
@@ -612,7 +612,7 @@ export const useChatStore = defineStore('chat', {
           avatar: sessionData.avatar
         }
       } catch (error) {
-        console.error('❌ [Store] 解析会话信息失败:', error)
+        console.error('[Store] 解析会话信息失败:', error)
         sessionStorage.removeItem('lastChatSession')
         return null
       }

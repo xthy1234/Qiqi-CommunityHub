@@ -306,7 +306,7 @@ const handleCancel = () => {
           await draftAPI.deleteDraft(articleId.value)
           appContext?.$toolUtil?.storageRemove('currentDraftId')
         } catch (error) {
-          console.error('❌ [handleCancel] 删除草稿失败:', error)
+          console.error('[handleCancel] 删除草稿失败:', error)
         }
       }
 
@@ -338,7 +338,7 @@ onUnmounted(async () => {
       await handleAutoSave()
 
     } catch (error) {
-      console.error('❌ [edit.vue] 离页前自动保存失败:', error)
+      console.error('[edit.vue] 离页前自动保存失败:', error)
       // 不阻断卸载流程，只记录错误
     }
   } else {
@@ -385,7 +385,7 @@ const handleAutoSave = async () => {
       const created = await createNewDraft()
 
       if (!created || !articleId.value) {
-        console.error('❌ [handleAutoSave] 创建草稿失败，无法进行自动保存')
+        console.error('[handleAutoSave] 创建草稿失败，无法进行自动保存')
         return
       }
     }
@@ -402,10 +402,10 @@ const handleAutoSave = async () => {
 
       message.success('已自动保存')
     } else {
-      console.error('❌ [handleAutoSave] 自动保存失败:', response.data.msg)
+      console.error('[handleAutoSave] 自动保存失败:', response.data.msg)
     }
   } catch (error) {
-    console.error('❌ [handleAutoSave] 自动保存异常:', error)
+    console.error('[handleAutoSave] 自动保存异常:', error)
   } finally {
 
   }
@@ -451,15 +451,15 @@ const createNewDraft = async () => {
 
       return true
     } else {
-      console.error('❌ [createNewDraft] 创建草稿失败：无法解析响应数据')
-      console.error('❌ [createNewDraft] 完整响应:', JSON.stringify(response, null, 2))
+      console.error('[createNewDraft] 创建草稿失败：无法解析响应数据')
+      console.error('[createNewDraft] 完整响应:', JSON.stringify(response, null, 2))
       return false
     }
   } catch (error: any) {
-    console.error('❌ [createNewDraft] 创建草稿异常:', error)
-    console.error('❌ [createNewDraft] error.name:', error.name)
-    console.error('❌ [createNewDraft] error.message:', error.message)
-    console.error('❌ [createNewDraft] error.stack:', error.stack)
+    console.error('[createNewDraft] 创建草稿异常:', error)
+    console.error('[createNewDraft] error.name:', error.name)
+    console.error('[createNewDraft] error.message:', error.message)
+    console.error('[createNewDraft] error.stack:', error.stack)
     return false
   } finally {
 
@@ -492,7 +492,7 @@ const handleSaveDraft = async () => {
       const created = await createNewDraft()
 
       if (!created || !articleId.value) {
-        console.error('❌ [handleSaveDraft] 创建草稿失败')
+        console.error('[handleSaveDraft] 创建草稿失败')
         message.error('创建草稿失败')
         return
       }
@@ -513,11 +513,11 @@ const handleSaveDraft = async () => {
 
       appContext?.$toolUtil?.storageSet('currentDraftId', String(articleId.value))
     } else {
-      console.error('❌ [handleSaveDraft] 保存失败:', response.data.msg)
+      console.error('[handleSaveDraft] 保存失败:', response.data.msg)
       message.error(response.data.msg || '保存草稿失败')
     }
   } catch (error: unknown) {
-    console.error('❌ [handleSaveDraft] 保存异常:', error)
+    console.error('[handleSaveDraft] 保存异常:', error)
     message.error('保存草稿失败，请重试')
   } finally {
     savingDraft.value = false
@@ -530,7 +530,7 @@ const handleShowPublishModal = async () => {
     await formRef.value?.validate()
 
   } catch (errors) {
-    console.error('❌ [handleShowPublishModal] 表单验证失败:', errors)
+    console.error('[handleShowPublishModal] 表单验证失败:', errors)
     message.warning('请填写完整的表单信息')
     return
   }
@@ -561,12 +561,12 @@ const handleConfirmPublish = async () => {
     await publishFormRef.value?.validate()
 
   } catch (errors) {
-    console.error('❌ [handleConfirmPublish] 发布表单验证失败:', errors)
+    console.error('[handleConfirmPublish] 发布表单验证失败:', errors)
     return
   }
 
   if (!articleId.value) {
-    console.error('❌ [handleConfirmPublish] 验证失败：articleId 不存在')
+    console.error('[handleConfirmPublish] 验证失败：articleId 不存在')
     message.error('文章 ID 不存在')
     return
   }
@@ -586,7 +586,7 @@ const handleConfirmPublish = async () => {
 
     // ✅ 检查保存是否成功
     if (!(saveResponse.data.code === 200 || saveResponse.data.msg)) {
-      console.error('❌ [handleConfirmPublish] 保存草稿失败:', saveResponse.data.msg)
+      console.error('[handleConfirmPublish] 保存草稿失败:', saveResponse.data.msg)
       message.error(saveResponse.data.msg || '保存草稿失败')
       return
     }
@@ -607,8 +607,8 @@ const handleConfirmPublish = async () => {
       returnAfterPublish(appContext?.$toolUtil)
     }
   } catch (error) {
-    console.error('❌ [handleConfirmPublish] 提交异常:', error)
-    console.error('❌ [handleConfirmPublish] 错误详情:', error.response?.data || error.message)
+    console.error('[handleConfirmPublish] 提交异常:', error)
+    console.error('[handleConfirmPublish] 错误详情:', error.response?.data || error.message)
     const errorMsg = error.response?.data?.message || error.message || (isEdit.value ? '修改失败' : '发布失败')
     message.error(errorMsg)
   } finally {
@@ -620,7 +620,7 @@ const handleConfirmPublish = async () => {
 const handleSaveMajorVersion = async () => {
 
   if (!articleId.value) {
-    console.error('❌ [handleSaveMajorVersion] 验证失败：articleId 不存在')
+    console.error('[handleSaveMajorVersion] 验证失败：articleId 不存在')
     message.error('文章 ID 不存在')
     return
   }
@@ -651,11 +651,11 @@ const handleSaveMajorVersion = async () => {
             router.push('/index/articleList')
           }, 500)
         } else {
-          console.error('❌ [handleSaveMajorVersion] 标记失败:', response.data.msg)
+          console.error('[handleSaveMajorVersion] 标记失败:', response.data.msg)
           message.error(response.data.msg || '标记大版本失败')
         }
       } catch (error) {
-        console.error('❌ [handleSaveMajorVersion] 标记异常:', error)
+        console.error('[handleSaveMajorVersion] 标记异常:', error)
         message.error('标记大版本失败，请重试')
       } finally {
         savingDraft.value = false
@@ -671,7 +671,7 @@ const handleSubmit = async () => {
     await formRef.value?.validate()
 
   } catch (errors) {
-    console.error('❌ [handleSubmit] 表单验证失败:', errors)
+    console.error('[handleSubmit] 表单验证失败:', errors)
     message.warning('请填写完整的表单信息')
     return
   }
@@ -692,7 +692,7 @@ const handleSubmit = async () => {
     submitting.value = true
 
     if (!articleId.value) {
-      console.error('❌ [handleSubmit] 验证失败：articleId 不存在')
+      console.error('[handleSubmit] 验证失败：articleId 不存在')
       message.error('文章 ID 不存在')
       return
     }
@@ -714,12 +714,12 @@ const handleSubmit = async () => {
         router.push('/index/articleList')
       }, 500)
     } else {
-      console.error('❌ [handleSubmit] 发布失败:', response.data.msg)
+      console.error('[handleSubmit] 发布失败:', response.data.msg)
       message.error(response.data.msg || (isEdit.value ? '修改失败' : '发布失败'))
     }
   } catch (error: unknown) {
-    console.error('❌ [handleSubmit] 提交异常:', error)
-    console.error('❌ [handleSubmit] 错误详情:', (error as any).response?.data || (error as any).message)
+    console.error('[handleSubmit] 提交异常:', error)
+    console.error('[handleSubmit] 错误详情:', (error as any).response?.data || (error as any).message)
     const errorMsg = (error as any).response?.data?.message || (error as any).message || (isEdit.value ? '修改失败' : '发布失败')
     message.error(errorMsg)
   } finally {
@@ -735,7 +735,7 @@ const loadCategoryOptions = async () => {
     categoryOptions.value = response.data.data || []
 
   } catch (error) {
-    console.error('❌ [loadCategoryOptions] 加载分类失败:', error)
+    console.error('[loadCategoryOptions] 加载分类失败:', error)
   }
 }
 
@@ -787,13 +787,13 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
 
         return loadOrCreateDraft(String(createdDraftId), passedArticleId)
       } else {
-        console.error('❌ [loadOrCreateDraft] 未获取到草稿 ID')
+        console.error('[loadOrCreateDraft] 未获取到草稿 ID')
         message.error('无法创建草稿，请重试')
         return
       }
     } catch (error: unknown) {
-      console.error('❌ [loadOrCreateDraft] 检查/创建草稿失败:', error)
-      console.error('❌ [loadOrCreateDraft] 错误详情:', (error as any).response?.data || (error as any).message)
+      console.error('[loadOrCreateDraft] 检查/创建草稿失败:', error)
+      console.error('[loadOrCreateDraft] 错误详情:', (error as any).response?.data || (error as any).message)
       message.error('加载草稿失败')
       return
     }
@@ -856,8 +856,8 @@ const loadOrCreateDraft = async (draftId?: string | number, articleIdParam?: str
       console.warn('⚠️ [loadOrCreateDraft] 草稿数据为空')
     }
   } catch (error: unknown) {
-    console.error('❌ [loadOrCreateDraft] 加载草稿失败:', error)
-    console.error('❌ [loadOrCreateDraft] 错误详情:', (error as any).response?.data || (error as any).message)
+    console.error('[loadOrCreateDraft] 加载草稿失败:', error)
+    console.error('[loadOrCreateDraft] 错误详情:', (error as any).response?.data || (error as any).message)
     message.error('获取草稿信息失败')
   } finally {
 
@@ -873,11 +873,11 @@ const createNewDraftImmediately = async () => {
 
       startAutoSave()
     } else {
-      console.error('❌ [createNewDraftImmediately] 草稿创建失败')
+      console.error('[createNewDraftImmediately] 草稿创建失败')
       message.error('创建草稿失败，请刷新页面重试')
     }
   } catch (error) {
-    console.error('❌ [createNewDraftImmediately] 创建草稿异常:', error)
+    console.error('[createNewDraftImmediately] 创建草稿异常:', error)
     message.error('创建草稿失败，请刷新页面重试')
   } finally {
 

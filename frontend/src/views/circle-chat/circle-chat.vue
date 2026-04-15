@@ -140,7 +140,7 @@ const loadConversations = async () => {
     store.setConversations(result.list)
 
   } catch (error: any) {
-    console.error('❌ [圈子聊天] 加载会话列表失败:', error)
+    console.error('[圈子聊天] 加载会话列表失败:', error)
     message.error(error.message || '加载失败')
   } finally {
     store.loading = false
@@ -172,7 +172,7 @@ const handleSelectCircle = async (conv: CircleConversation) => {
     // 5. 不再在这里单独订阅，因为 WebSocketManager 已经全局订阅了
 
   } catch (error: any) {
-    console.error('❌ [圈子聊天] 切换圈子失败:', error)
+    console.error('[圈子聊天] 切换圈子失败:', error)
     message.error(error.message || '切换失败')
   }
 }
@@ -193,7 +193,7 @@ const loadChatHistory = async (circleId: number) => {
     store.processDeletedMessages(store.messages)
 
   } catch (error: any) {
-    console.error('❌ [圈子聊天] 加载聊天记录失败:', error)
+    console.error('[圈子聊天] 加载聊天记录失败:', error)
   }
 }
 
@@ -208,7 +208,7 @@ const loadMembers = async (circleId: number) => {
     store.setMembers(result.list)
 
   } catch (error: any) {
-    console.error('❌ [圈子聊天] 加载成员列表失败:', error)
+    console.error('[圈子聊天] 加载成员列表失败:', error)
   }
 }
 
@@ -253,7 +253,7 @@ const handleCreateCircle = async () => {
       // 表单验证失败
       return
     }
-    console.error('❌ [圈子聊天] 创建圈子失败:', error)
+    console.error('[圈子聊天] 创建圈子失败:', error)
     message.error(error.message || '创建失败')
   } finally {
     creatingLoading.value = false
@@ -264,7 +264,7 @@ const handleCreateCircle = async () => {
 onMounted(async () => {
   // ✅ 新增：确保 WebSocket 已连接
   await ensureCircleWebSocketConnected().catch((error) => {
-    console.error('❌ [圈子聊天] WebSocket连接失败:', error)
+    console.error('[圈子聊天] WebSocket连接失败:', error)
   })
 
   await loadConversations()

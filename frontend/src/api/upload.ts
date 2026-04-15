@@ -122,7 +122,7 @@ export class UploadAPI {
       // console.log('📥 [UploadAPI] backendData.file:', backendData.file)
       
       if (!backendData.file) {
-        console.error('❌ [UploadAPI] 后端响应中缺少 file 对象')
+        console.error('[UploadAPI] 后端响应中缺少 file 对象')
         throw new Error('上传响应格式错误：缺少 file 对象')
       }
 
@@ -156,7 +156,7 @@ export class UploadAPI {
       
       return result
     } catch (error) {
-      console.error('❌ [UploadAPI] 文件上传失败:', error)
+      console.error('[UploadAPI] 文件上传失败:', error)
       throw error
     }
   }
@@ -196,11 +196,11 @@ export class UploadAPI {
         return result.viewUrl
       } else {
         // 后端返回错误
-        console.error('❌ [UploadAPI] 上传失败，错误信息:', result.msg)
+        console.error('[UploadAPI] 上传失败，错误信息:', result.msg)
         return null
       }
     } catch (error) {
-      console.error('❌ [UploadAPI] 图片上传异常:', error)
+      console.error('[UploadAPI] 图片上传异常:', error)
       return null
     }
   }
@@ -232,7 +232,7 @@ export class UploadAPI {
         return null
       }
     } catch (error) {
-      console.error('❌ [UploadAPI] 视频上传异常:', error)
+      console.error('[UploadAPI] 视频上传异常:', error)
       return null
     }
   }
@@ -255,7 +255,7 @@ export class UploadAPI {
         return null
       }
     } catch (error) {
-      console.error('❌ [UploadAPI] 文件上传异常:', error)
+      console.error('[UploadAPI] 文件上传异常:', error)
       return null
     }
   }
@@ -271,7 +271,7 @@ export class UploadAPI {
       // 后端直接返回数据在响应根级别
       return response.data as unknown as any
     } catch (error) {
-      console.error('❌ [UploadAPI] 获取文件信息失败:', error)
+      console.error('[UploadAPI] 获取文件信息失败:', error)
       throw error
     }
   }
@@ -286,7 +286,7 @@ export class UploadAPI {
       const response = await http.delete(`/api/files/${fileId}`)
       return response.data
     } catch (error) {
-      console.error('❌ [UploadAPI] 删除文件失败:', error)
+      console.error('[UploadAPI] 删除文件失败:', error)
       throw error
     }
   }

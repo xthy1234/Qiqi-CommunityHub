@@ -5,6 +5,7 @@
       :show-file-list="false"
       :before-upload="beforeAvatarUpload"
       :disabled="isDisabled"
+      accept="image/jpeg,image/jpg,image/png,image/webp"
     >
       <n-button
         v-if="false"
@@ -132,19 +133,20 @@ const handleCropCancel = () => {
 }
 
 const beforeAvatarUpload = ({ file }: { file: File }) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  const isAllowedType = allowedTypes.includes(file.type.toLowerCase())
 
   const isImage = file.type.startsWith('image/')
   const isLt10M = file.size / 1024 / 1024 < 10
 
-  if (!isImage) {
-
+  if (!isAllowedType) {
     if (globalProps.$toolUtil?.message) {
-      globalProps.$toolUtil.message('只能上传图片文件!', 'error')
+      globalProps.$toolUtil.message('只支持 JPG、PNG、WebP 格式的图片!', 'error')
     }
     return false
   }
-  if (!isLt10M) {
 
+  if (!isLt10M) {
     if (globalProps.$toolUtil?.message) {
       globalProps.$toolUtil.message('图片大小不能超过 10MB!', 'error')
     }
