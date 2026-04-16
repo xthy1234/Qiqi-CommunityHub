@@ -139,16 +139,19 @@ const initializeWebSocket = async () => {
       return
     }
 
-    // 如果未连接，尝试连接
-    if (!ws.isConnected()) {
+    // 修复：如果已连接，直接返回，避免重复连接
+    if (ws.isConnected()) {
 
-      await ws.connect()
-    } else {
-
+      isConnected.value = true
+      setupWebSocketListeners()
+      return
     }
 
-    isConnected.value = true
+    // 如果未连接，尝试连接
 
+    await ws.connect()
+
+    isConnected.value = true
     setupWebSocketListeners()
   } catch (error) {
     console.error('WebSocket连接失败:', error)

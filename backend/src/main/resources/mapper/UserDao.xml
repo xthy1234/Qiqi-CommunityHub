@@ -21,6 +21,7 @@
         <result property="updateTime" column="update_time"/>
         <result property="lastLoginTime" column="last_login_time"/>
         <result property="lastLoginIp" column="last_login_ip"/>
+        <result property="lastOnlineTime" column="last_online_time"/>
     </resultMap>
 
     <!-- 用户视图结果映射 -->
@@ -166,7 +167,8 @@
             create_time,
             update_time,
             last_login_time,
-            last_login_ip
+            last_login_ip,
+            last_online_time
         FROM users
         WHERE account = #{account}
     </select>
@@ -189,7 +191,8 @@
             create_time,
             update_time,
             last_login_time,
-            last_login_ip
+            last_login_ip,
+            last_online_time
         FROM users
         WHERE phone = #{phone}
     </select>
@@ -212,7 +215,8 @@
             create_time,
             update_time,
             last_login_time,
-            last_login_ip
+            last_login_ip,
+            last_online_time
         FROM users
         WHERE email = #{email}
     </select>
@@ -243,6 +247,13 @@
         SET last_online_time = NOW()
         WHERE id = #{userId}
     </update>
+
+    <!-- 查询用户的最后在线时间 -->
+    <select id="selectLastOnlineTime" resultType="java.time.LocalDateTime">
+        SELECT last_online_time
+        FROM users
+        WHERE id = #{userId}
+    </select>
 
     <!--  查询与指定用户有会话的所有用户 ID -->
     <select id="selectRelatedUserIds" resultType="java.lang.Long">

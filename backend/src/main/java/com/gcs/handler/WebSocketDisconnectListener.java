@@ -26,7 +26,7 @@ public class WebSocketDisconnectListener implements ApplicationListener<SessionD
         
         if (userId != null) {
             String sessionId = accessor.getSessionId();
-            log.info("🔴 [Session 断开] 检测到会话关闭：userId={}, sessionId={}", userId, sessionId);
+            log.info("[Session 断开] 检测到会话关闭：userId={}, sessionId={}", userId, sessionId);
             onlineStatusService.userOffline(userId);
             log.info(" [Session 断开] 已清理在线状态：userId={}", userId);
         } else {

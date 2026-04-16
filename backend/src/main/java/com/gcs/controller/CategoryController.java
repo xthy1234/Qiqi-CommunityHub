@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -185,7 +186,7 @@ public class CategoryController {
             } else {
                 return R.error("创建失败");
             }
-        } catch (org.springframework.dao.DuplicateKeyException e) {
+        } catch (DuplicateKeyException e) {
             String message = e.getMessage();
             if (message != null && message.contains("categories_category_name_key")) {
                 return R.error("分类名称已存在");

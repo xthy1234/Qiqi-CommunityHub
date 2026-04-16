@@ -60,7 +60,7 @@ public class SwiperController {
         try {
             QueryWrapper<Swiper> queryWrapper = new QueryWrapper<>();
             
-            // 🔍 只使用 params 中的条件，不传 Swiper 实体对象避免过度过滤
+            // 只使用 params 中的条件，不传 Swiper 实体对象避免过度过滤
             PageUtils page = swiperService.queryPage(params, 
                 MPUtil.sort(MPUtil.between(queryWrapper, params), params));
             

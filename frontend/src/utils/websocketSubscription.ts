@@ -30,8 +30,7 @@ export function createStompSubscription(
   const subscription = client.subscribe(config.destination, (message: IMessage) => {
     try {
       const data = JSON.parse(message.body)
-      
-      // 统一错误处理
+
       try {
         config.handler(data)
       } catch (handlerError) {
@@ -51,8 +50,10 @@ export function createStompSubscription(
     }
   }, {})
 
+
   // 返回取消订阅函数
   return () => {
+
     subscription.unsubscribe()
   }
 }

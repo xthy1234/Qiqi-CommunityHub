@@ -42,12 +42,12 @@ class WebSocketLogger {
 
   debug(message: string, data?: any): void {
     if (this.config.level > LogLevel.DEBUG) {return}
-    this.log('🔍 DEBUG', message, data, 'color: #3498db')
+    this.log('DEBUG', message, data, 'color: #3498db')
   }
 
   info(message: string, data?: any): void {
     if (this.config.level > LogLevel.INFO) {return}
-    this.log('ℹ️ INFO', message, data, 'color: #2ecc71')
+    this.log('INFO', message, data, 'color: #2ecc71')
   }
 
   warn(message: string, data?: any): void {

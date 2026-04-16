@@ -98,7 +98,8 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                 //  标记用户上线
                 String sessionId = accessor.getSessionId();
                 userOnlineStatusService.userOnline(userId, sessionId);
-                log.info(" 用户上线：userId={}, sessionId={}", userId, sessionId);
+                log.info("用户上线：userId={}, sessionId={}, 当前在线人数：{}",
+                        userId, sessionId, userOnlineStatusService.getOnlineCount());
                 
                 log.debug("CONNECT 消息验证成功：userId={}", userId);
 
@@ -108,17 +109,6 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             }
         }
 
-        //  监听 DISCONNECT 事件，标记用户下线
-        if (StompCommand.DISCONNECT.equals(command)) {
-            Long userId = (Long) accessor.getSessionAttributes().get("userId");
-            if (userId != null) {
-                userOnlineStatusService.userOffline(userId);
-                log.info("🔴 用户断开连接：userId={}", userId);
-            } else {
-                log.warn(" DISCONNECT 事件但未找到 userId");
-            }
-        }
-        
         //  在任何客户端消息时更新心跳时间
         if (StompCommand.CONNECT.equals(command) || StompCommand.SEND.equals(command) || 
             StompCommand.SUBSCRIBE.equals(command)) {

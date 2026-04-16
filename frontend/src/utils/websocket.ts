@@ -363,7 +363,7 @@ class WebSocketManager {
           }
         })
 
-        // 🔍 输出实际发送的 Connect Headers
+        // 输出实际发送的 Connect Headers
 
         const connectHeaders = {
           Authorization: `Bearer ${token}`,
@@ -434,7 +434,13 @@ class WebSocketManager {
       {
         messageType: 'USER_ONLINE_STATUS',
         destination: `/user/${userId}/queue/user-online-status`,
-        description: '在线状态',
+        description: '在线状态查询结果',
+        handler: (data: any) => this.dispatchMessage('USER_ONLINE_STATUS', data)
+      },
+      {
+        messageType: 'ONLINE_STATUS_CHANGE',
+        destination: `/user/${userId}/queue/online-status-changes`,
+        description: '在线状态变更通知',
         handler: (data: any) => this.dispatchMessage('USER_ONLINE_STATUS', data)
       },
       {
@@ -491,6 +497,7 @@ class WebSocketManager {
       try {
         handler(data)
         successCount++
+
       } catch (error) {
         wsLogger.error(`${type} 处理器执行失败`, { 
           error: error instanceof Error ? error.message : error 

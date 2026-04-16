@@ -8,6 +8,7 @@ import com.gcs.entity.view.UserView;
 
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -81,6 +82,13 @@ public interface UserDao extends BaseMapper<User> {
      * @param userId 用户 ID
      */
     void updateLastOnlineTime(@Param("userId") Long userId);
+
+    /**
+     * 查询用户的最后在线时间
+     * @param userId 用户 ID
+     * @return 最后在线时间
+     */
+    LocalDateTime selectLastOnlineTime(@Param("userId") Long userId);
 
     /**
      * 查询与指定用户有会话的所有用户 ID

@@ -141,7 +141,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
         
         List<Notification> notifications = notificationDao.selectByUserIdPage(userId, isRead, offset, limit);
         
-        // 🔍 添加调试日志
+        // 添加调试日志
         log.info("📋 [查询通知] userId: {}, isRead: {}, page: {}, limit: {}, 查询结果数量：{}", 
                  userId, isRead, page, limit, notifications.size());
         for (Notification notification : notifications) {

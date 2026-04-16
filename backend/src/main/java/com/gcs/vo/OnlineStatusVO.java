@@ -18,4 +18,7 @@ public class OnlineStatusVO {
     
     @Schema(description = "上线/下线时间", example = "2024-01-01 12:00:00")
     private Long timestamp;
+    
+    @Schema(description = "最后在线时间", example = "1704067200000")
+    private Long lastSeenAt;
 }

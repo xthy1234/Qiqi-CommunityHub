@@ -1,12 +1,12 @@
 package com.gcs.controller;
 
-import com.gcs.dao.UserDao;
 import com.gcs.entity.User;
 import com.gcs.vo.CircleChatMessage;
 import com.gcs.dto.DeleteMessageRequest;
 import com.gcs.dto.RecallMessageRequest;
 import com.gcs.entity.CircleChat;
 import com.gcs.service.CircleChatService;
+import com.gcs.service.UserService;
 import com.gcs.vo.UserSimpleVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ public class WebSocketCircleChatController {
     private CircleChatService circleChatService;
 
     @Autowired
-    private UserDao userDao;
+    private UserService userService;
 
     /**
      * 构造函数日志
@@ -201,7 +201,7 @@ public class WebSocketCircleChatController {
             }
 
             //  获取删除者信息（用于推送）
-            User deleter = userDao.selectById(currentUserId);
+            User deleter = userService.getById(currentUserId);
 
             // 组装删除通知消息
             CircleChatMessage deleteNotification = new CircleChatMessage();

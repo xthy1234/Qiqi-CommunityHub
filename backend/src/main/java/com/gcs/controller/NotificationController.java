@@ -404,7 +404,7 @@ public class NotificationController {
         vo.setSourceId(notification.getSourceId());
         vo.setContent(notification.getContent());
         
-        // 🔍 添加调试日志
+        // 添加调试日志
         log.info("🔄 [转换 VO] notificationId: {}, extra: {}", notification.getId(), notification.getExtra());
         if (notification.getExtra() instanceof Map) {
             Map<?, ?> extraMap = (Map<?, ?>) notification.getExtra();

@@ -50,7 +50,7 @@ public class SwiperServiceImpl extends ServiceImpl<SwiperDao, Swiper> implements
 
         QueryWrapper<Swiper> queryWrapper = (QueryWrapper<Swiper>) wrapper;
         
-        // 🔍 添加调试日志
+        // 添加调试日志
         System.out.println("=== SwiperService.queryPage 调试信息 ===");
         System.out.println("params: " + params);
         System.out.println("page: " + page + ", limit: " + limit);

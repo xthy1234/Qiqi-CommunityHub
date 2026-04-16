@@ -582,7 +582,7 @@ const initializeComponent = async (): Promise<void> => {
     sidebarLocked.value = Boolean(locked)
   }
 
-  // 📦 读取展开/收起状态
+  // 读取展开/收起状态
   const savedExpanded = appContext?.$toolUtil?.storageGet('sidebarExpanded')
 
   if (savedExpanded === null) {

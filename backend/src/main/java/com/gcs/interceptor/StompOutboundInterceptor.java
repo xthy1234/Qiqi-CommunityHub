@@ -18,7 +18,7 @@ public class StompOutboundInterceptor implements ChannelInterceptor {
         StompCommand command = accessor.getCommand();
 
         // 记录所有出站命令（不仅仅是 MESSAGE）
-        log.info("🚦 [出站] 命令类型：{}", command);
+        log.info("[出站] 命令类型：{}", command);
 
         if (command != null) {
             switch (command) {

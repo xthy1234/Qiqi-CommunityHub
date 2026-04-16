@@ -751,24 +751,29 @@ const setupOnlineStatusListener = () => {
     return
   }
 
-  const otherUserId = store.currentConversation?.userId
+
+  // 添加去重：记录最近收到的在线状态更新
+  const recentUpdates = new Map<number, { isOnline: boolean; timestamp: number }>()
 
   // 订阅用户在线状态
   const handler = (data: any) => {
-)
+
 
     // 兼容处理：后端可能返回数组或单个对象
     let statusData
     if (Array.isArray(data)) {
-      // 如果是数组，取第一个元素
       statusData = data[0]
 
     } else {
       statusData = data
     }
 
+    // 动态获取当前聊天对象 ID（不使用闭包）
+    const otherUserId = store.currentConversation?.userId
+
+
     if (!otherUserId) {
-      console.warn(' [OnlineStatus] 当前聊天对象 ID 为空')
+      console.warn('[OnlineStatus] 当前聊天对象 ID 为空，忽略此消息')
       return
     }
 
@@ -776,25 +781,55 @@ const setupOnlineStatusListener = () => {
     const userId = statusData.userId
     const isOnline = statusData.isOnline ?? statusData.online
     const lastSeenAtValue = statusData.lastSeenAt
+    const timestamp = statusData.timestamp || Date.now()
 
+
+    // 去重：如果相同用户、相同状态、时间间隔<1秒，则忽略
+    const lastUpdate = recentUpdates.get(userId)
+    if (lastUpdate &&
+        lastUpdate.isOnline === isOnline &&
+        (timestamp - lastUpdate.timestamp) < 1000) {
+
+      return
+    }
+
+    // 记录本次更新
+    recentUpdates.set(userId, { isOnline, timestamp })
+
+
+    // 清理旧数据（保留最近 5 条）
+    if (recentUpdates.size > 5) {
+      const oldestKey = Array.from(recentUpdates.keys())[0]
+      recentUpdates.delete(oldestKey)
+
+    }
 
     if (userId === otherUserId) {
+
+
+      const oldOnlineStatus = isOtherUserOnline.value
+      const oldLastSeenAt = lastSeenAt.value
+
       isOtherUserOnline.value = isOnline
       lastSeenAt.value = lastSeenAtValue
 
     } else {
-      console.warn(' [USER_ONLINE_STATUS] 用户 ID 不匹配，忽略此消息')
+      console.warn('[OnlineStatus] 用户 ID 不匹配，忽略此消息', {
+        receivedUserId: userId,
+        expectedUserId: otherUserId
+      })
     }
   }
 
   unsubscribeOnlineStatus = ws.on('USER_ONLINE_STATUS', handler)
+
 
   // 主动查询当前聊天对象的在线状态
   if (store.currentConversation?.userId) {
 
     ws.queryUserOnlineStatus([store.currentConversation.userId])
   } else {
-    console.warn(' [OnlineStatus] 当前会话为空，无法查询')
+    console.warn('[OnlineStatus] 当前会话为空，无法查询')
   }
 }
 

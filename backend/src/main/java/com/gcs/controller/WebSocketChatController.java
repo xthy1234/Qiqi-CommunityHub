@@ -1,5 +1,6 @@
 package com.gcs.controller;
 
+import com.gcs.entity.UserSessionInfo;
 import com.gcs.vo.ChatMessage;
 import com.gcs.dto.DeleteMessageRequest;
 import com.gcs.dto.QueryUserOnlineRequest;
@@ -44,7 +45,7 @@ public class WebSocketChatController {
     
     @Autowired
     private UserOnlineStatusService onlineStatusService;
-    
+
     // 添加构造函数日志
     public WebSocketChatController() {
         log.info("=== WebSocketChatController 已初始化 ===");
@@ -121,9 +122,9 @@ public class WebSocketChatController {
             messageVO.setCreateTime(message.getCreateTime());
             messageVO.setAction("SEND");
 
-            log.info("📦 准备推送消息");
+            log.info("准备推送消息");
             
-            // 👇 明确指定完整路径
+            //明确指定完整路径
             String receiverPath = "/user/" + chatMessage.getToUserId() + "/queue/private-messages";
             String senderPath = "/user/" + chatMessage.getFromUserId() + "/queue/private-messages";
 
@@ -184,7 +185,7 @@ public class WebSocketChatController {
                     receipt.getFromUserId(), 
                     receipt.getToUserId()
                 );
-                log.warn("   📊 当前未读消息数：{}", unreadCount);
+                log.warn("   当前未读消息数：{}", unreadCount);
             }
 
             // 2. 将已读回执推送给消息发送方，让他知道对方已读
@@ -306,18 +307,19 @@ public class WebSocketChatController {
     @MessageMapping("/query-user-online-status")
     public void queryUserOnlineStatus(@Payload QueryUserOnlineRequest request, StompHeaderAccessor accessor) {
         try {
-            // 🎯 从 Session 中获取当前登录用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
-            log.info("📊 [在线状态] 收到查询请求，request.userIds={}, currentUserId={}", 
+            log.info("[在线状态] 收到查询请求，request.userIds={}, currentUserId={}", 
                     request.getUserIds(), currentUserId);
+            log.info("[在线状态] 当前在线用户数：{}, 在线用户列表：{}",
+                    onlineStatusService.getOnlineCount(), 
+                    onlineStatusService.getOnlineUserIds());
             
             if (request.getUserIds() == null || request.getUserIds().isEmpty()) {
                 log.warn(" [在线状态] 查询的用户 ID 列表为空");
                 return;
             }
             
-            // 批量查询用户在线状态
             List<OnlineStatusVO> statusList = new ArrayList<>();
             for (Long userId : request.getUserIds()) {
                 boolean isOnline = onlineStatusService.isOnline(userId);
@@ -326,13 +328,14 @@ public class WebSocketChatController {
                 vo.setUserId(userId);
                 vo.setIsOnline(isOnline);
                 vo.setTimestamp(System.currentTimeMillis());
+                vo.setLastSeenAt(onlineStatusService.getLastSeenAt(userId));
                 
                 statusList.add(vo);
                 
-                log.info("📊 [在线状态] 用户 {} 在线状态：{}", userId, isOnline ? "在线" : "离线");
+                log.info("[在线状态] 用户 {} 在线状态：{}，lastSeenAt：{}",
+                        userId, isOnline ? "在线" : "离线", vo.getLastSeenAt());
             }
             
-            //  将结果推送回发起查询的客户端
             if (currentUserId != null) {
                 String replyDestination = "/user/" + currentUserId + "/queue/user-online-status";
                 log.info(" [在线状态] 推送查询结果到：{}, 结果数：{}", replyDestination, statusList.size());
