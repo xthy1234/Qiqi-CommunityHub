@@ -9,6 +9,7 @@ import com.gcs.entity.Interaction;
 import com.gcs.enums.ContentType;
 import com.gcs.enums.InteractionActionType;
 import com.gcs.enums.InteractionStatus;
+import com.gcs.utils.SessionUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -55,6 +56,8 @@ public class InteractionController {
     @Autowired
     private InteractionService interactionService;
 
+    @Autowired
+    private SessionUtils sessionUtils;
     /**
      * 获取互动分页列表
      */
@@ -186,10 +189,9 @@ public class InteractionController {
         @Parameter(description = "内容类型 (article:文章，comment:评论)") @RequestParam(defaultValue = "article") String tableName,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long userId = (Long) request.getSession().getAttribute("userId");
+            Long userId = sessionUtils.getCurrentUserId(request);
             InteractionActionType type = InteractionActionType.valueOf(actionType);
             
-            //  修复：使用 ContentType.fromName() 方法支持大小写不敏感
             ContentType contentType = ContentType.fromName(tableName);
             if (contentType == null) {
                 return R.error("无效的内容类型：" + tableName);
@@ -197,7 +199,6 @@ public class InteractionController {
             
             boolean exists = interactionService.hasValidInteraction(userId, contentId, type, contentType);
             
-            // 构建响应对象
             InteractionUserActionVO vo = new InteractionUserActionVO();
             vo.setContentId(contentId);
             vo.setActionType(type);
@@ -207,72 +208,6 @@ public class InteractionController {
         } catch (Exception e) {
             log.error("检查操作状态失败，contentId: {}, actionType: {}", contentId, actionType, e);
             return R.error("检查失败");
-        }
-    }
-
-    /**
-     * 添加互动记录
-     */
-    @Operation(summary = "添加互动记录", description = "创建新的互动记录（收藏、点赞、点踩等）")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "操作成功"),
-        @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @PostMapping
-    public R addInteraction(
-        @Parameter(description = "互动信息", required = true) @Valid @RequestBody InteractionCreateDTO createDTO,
-        @Parameter(hidden = true) HttpServletRequest request) {
-        try {
-            Interaction interaction = convertToEntity(createDTO);
-            
-            // 设置当前用户 ID
-            Long userId = (Long) request.getSession().getAttribute("userId");
-            if (userId != null) {
-                interaction.setUserId(userId);
-            }
-            
-            boolean result = interactionService.addInteraction(interaction);
-            if (result) {
-                return R.ok("操作成功");
-            } else {
-                return R.error("操作失败");
-            }
-        } catch (Exception e) {
-            log.error("添加操作失败", e);
-            return R.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 取消互动操作
-     */
-    @Operation(summary = "取消互动操作", description = "取消用户对内容的互动操作")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "取消成功"),
-        @ApiResponse(responseCode = "400", description = "取消失败")
-    })
-    @DeleteMapping("/action")
-    public R removeAction(
-        @Parameter(description = "取消互动请求", required = true) @Valid @RequestBody InteractionCancelDTO cancelDTO,
-        @Parameter(hidden = true) HttpServletRequest request) {
-        try {
-            Long userId = (Long) request.getSession().getAttribute("userId");
-            
-            //  确保 tableName 有值（默认为 article）
-            if (cancelDTO.getTableName() == null) {
-                cancelDTO.setTableName(ContentType.ARTICLE);
-            }
-            
-            boolean result = interactionService.removeInteraction(
-                userId, cancelDTO.getContentId(), cancelDTO.getActionType(), cancelDTO.getTableName());
-            if (result) {
-                return R.ok("取消操作成功");
-            } else {
-                return R.error("取消操作失败");
-            }
-        } catch (Exception e) {
-            log.error("取消操作失败，contentId: {}, actionType: {}", cancelDTO.getContentId(), cancelDTO.getActionType(), e);
-            return R.error(e.getMessage());
         }
     }
 
@@ -381,7 +316,7 @@ public class InteractionController {
             }
             
             List<Long> interactionIds = Arrays.stream(ids).collect(Collectors.toList());
-            Long userId = (Long) request.getSession().getAttribute("userId");
+            Long userId = sessionUtils.getCurrentUserId(request);
             boolean result = interactionService.batchRemoveInteractions(userId, interactionIds);
             
             if (result) {
@@ -392,106 +327,6 @@ public class InteractionController {
         } catch (Exception e) {
             log.error("删除互动记录失败", e);
             return R.error("删除失败");
-        }
-    }
-
-    /**
-     * 点赞或点踩接口
-     */
-    @Operation(summary = "点赞或点踩", description = "用户对内容进行点赞或点踩操作")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "操作成功"),
-        @ApiResponse(responseCode = "400", description = "用户未登录或无效的操作类型"),
-        @ApiResponse(responseCode = "500", description = "操作失败")
-    })
-    @PostMapping("/like")
-    public R likeContent(
-        @Parameter(description = "点赞/点踩请求", required = true) @Valid @RequestBody InteractionLikeDTO likeDTO,
-        @Parameter(hidden = true) HttpServletRequest request) {
-        try {
-            Long userId = (Long) request.getSession().getAttribute("userId");
-            if (userId == null) {
-                return R.error("用户未登录");
-            }
-            
-            // 验证操作类型（必须是 2:点赞 或 3:点踩）
-            if (likeDTO.getActionType() == null || 
-                (likeDTO.getActionType() != InteractionActionType.LIKE && 
-                 likeDTO.getActionType() != InteractionActionType.DISLIKE)) {
-                return R.error("无效的操作类型");
-            }
-            
-            //  确保 tableName 有值（默认为 article）
-            if (likeDTO.getTableName() == null) {
-                likeDTO.setTableName(ContentType.ARTICLE);
-            }
-            
-            // 转换为 Interaction 实体
-            Interaction interaction = convertLikeDTOToEntity(likeDTO);
-            
-            // 设置当前用户 ID
-            interaction.setUserId(userId);
-            
-            // 调用 Service 层添加互动记录
-            boolean result = interactionService.addInteraction(interaction);
-            
-            if (result) {
-                return R.ok("操作成功");
-            } else {
-                return R.error("操作失败");
-            }
-
-        } catch (Exception e) {
-            log.error("点赞操作失败，contentId: {}, actionType: {}", likeDTO.getContentId(), likeDTO.getActionType(), e);
-            if (e.getMessage() != null && e.getMessage().contains("已执行过此操作")) {
-                return R.error("您已经操作过了");
-            }
-            return R.error("操作失败");
-        }
-    }
-
-    /**
-     * 取消点赞或点踩
-     */
-    @Operation(summary = "取消点赞或点踩", description = "用户取消对内容的点赞或点踩操作")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "取消成功"),
-        @ApiResponse(responseCode = "400", description = "用户未登录或无效的操作类型"),
-        @ApiResponse(responseCode = "500", description = "取消失败")
-    })
-    @DeleteMapping("/like")
-    public R unlikeContent(
-        @Parameter(description = "取消互动请求", required = true) @Valid @RequestBody InteractionCancelDTO cancelDTO,
-        @Parameter(hidden = true) HttpServletRequest request) {
-        try {
-            Long userId = (Long) request.getSession().getAttribute("userId");
-            if (userId == null) {
-                return R.error("用户未登录");
-            }
-            
-            // 验证操作类型（必须是 2:点赞 或 3:点踩）
-            if (cancelDTO.getActionType() == null || 
-                (cancelDTO.getActionType() != InteractionActionType.LIKE && 
-                 cancelDTO.getActionType() != InteractionActionType.DISLIKE)) {
-                return R.error("无效的操作类型");
-            }
-
-            //  确保 tableName 有值（默认为 article）
-            if (cancelDTO.getTableName() == null) {
-                cancelDTO.setTableName(ContentType.ARTICLE);
-            }
-
-            boolean result = interactionService.removeInteraction(
-                userId, cancelDTO.getContentId(), cancelDTO.getActionType(), cancelDTO.getTableName());
-
-            if (result) {
-                return R.ok("取消操作成功");
-            } else {
-                return R.error("取消操作失败");
-            }
-        } catch (Exception e) {
-            log.error("取消点赞操作失败，contentId: {}, actionType: {}", cancelDTO.getContentId(), cancelDTO.getActionType(), e);
-            return R.error("操作失败");
         }
     }
 

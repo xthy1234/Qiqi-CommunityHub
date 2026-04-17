@@ -1,68 +1,46 @@
 // src/api/interaction.ts
 import http from '@/utils/http'
 
-export interface InteractionParams {
-  contentId: number | string
-  actionType: number  // 1=收藏，2=点赞，3=点踩，4=分享
-  tableName?: string  // "article" 或 "comment"
-  recommendType?: string
-  remark?: string
-}
-
 /**
- * 互动 API 服务类
+ * 通用互动查询 API 服务类
  */
-class InteractionAPI {
+class InteractionQueryAPI {
   private endpoint = '/interactions'
 
   /**
-   * 点赞/点踩
-   */
-  like(params: Omit<InteractionParams, 'actionType'> & { actionType: 2 | 3 }) {
-    return http.post(`${this.endpoint}/like`, params)
-  }
-
-  /**
-   * 取消点赞/点踩
-   */
-  cancelLike(params: Omit<InteractionParams, 'actionType'> & { actionType: 2 | 3 }) {
-    return http.delete(`${this.endpoint}/like`, { data: params })
-  }
-
-  /**
-   * 收藏/分享
-   */
-  create(params: InteractionParams) {
-    return http.post(this.endpoint, params)
-  }
-
-  /**
-   * 取消收藏/分享
-   */
-  cancel(params: Omit<InteractionParams, 'actionType'> & { actionType: 1 | 4 }) {
-    return http.delete(`${this.endpoint}/action`, { data: params })
-  }
-
-  /**
    * 检查操作状态
+   * @param contentId 内容ID
+   * @param actionType 操作类型：1=收藏，2=点赞，3=点踩，4=分享
+   * @param tableName 表名：article 或 comment
    */
-  check(contentId: number | string, actionType: number) {
+  checkStatus(contentId: number | string, actionType: number, tableName: string = 'article') {
     return http.get(`${this.endpoint}/check`, {
-      params: { contentId, actionType }
+      params: { contentId, actionType, tableName }
     })
   }
 
   /**
-   * 获取用户互动记录
+   * 获取用户互动历史
    */
-  getUserActions(userId: number | string, actionType?: number, page = 1, limit = 10) {
+  getUserHistory(userId: number | string, actionType?: number, page: number = 1, limit: number = 10) {
     const params: any = { page, limit }
     if (actionType !== undefined) {
       params.actionType = actionType
     }
     return http.get(`${this.endpoint}/user/${userId}`, { params })
   }
+
+  /**
+   * 统计用户互动数量
+   */
+  getUserCount(userId: number | string, actionType?: number) {
+    const params: any = {}
+    if (actionType !== undefined) {
+      params.actionType = actionType
+    }
+    return http.get(`${this.endpoint}/user/${userId}/count`, { params })
+  }
 }
 
 // 导出单例
-export const interactionAPI = new InteractionAPI()
+export const interactionQueryAPI = new InteractionQueryAPI()

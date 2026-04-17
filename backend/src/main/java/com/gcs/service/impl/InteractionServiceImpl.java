@@ -8,10 +8,7 @@ import com.gcs.enums.InteractionActionType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
@@ -25,8 +22,6 @@ import com.gcs.dao.InteractionDao;
 import com.gcs.entity.Interaction;
 import com.gcs.service.InteractionService;
 import com.gcs.entity.view.InteractionView;
-import com.gcs.service.ArticleService;
-import com.gcs.service.CommentService;
 import com.gcs.service.NotificationService;
 import com.gcs.dao.ArticleDao;
 import com.gcs.dao.CommentDao;
@@ -39,6 +34,7 @@ import com.gcs.utils.NotificationBuilder;
 import com.gcs.vo.UserSimpleVO;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
@@ -52,12 +48,6 @@ import com.gcs.enums.InteractionStatus;
 @Service("interactionService")
 public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interaction> implements InteractionService {
 
-    @Autowired
-    private ArticleService articleService;
-
-    @Autowired
-    private CommentService commentService;
-    
     @Autowired
     private NotificationService notificationService;
     
@@ -104,17 +94,23 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean addInteraction(Interaction interaction) {
         validateInteractionForCreate(interaction);
         
+        log.info("开始添加互动记录：userId={}, contentId={}, actionType={}, tableName={}", 
+                interaction.getUserId(), interaction.getContentId(), interaction.getActionType(), 
+                interaction.getTableName());
 
+        Set<Long> cancelledOppositeIds = new HashSet<>();
+        
         if (interaction.getActionType() == InteractionActionType.LIKE || 
             interaction.getActionType() == InteractionActionType.DISLIKE) {
-            cancelOppositeAction(interaction.getUserId(), interaction.getContentId(), 
+            log.info("检测到点赞/点踩操作，执行取消相反操作");
+            cancelledOppositeIds = cancelOppositeAction(interaction.getUserId(), interaction.getContentId(), 
                                 interaction.getTableName(), interaction.getActionType());
         }
         
-
         List<Interaction> existingList = baseMapper.selectByUserAndContentList(
             interaction.getUserId(), 
             interaction.getContentId(), 
@@ -122,55 +118,103 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
             interaction.getTableName()
         );
         
+        log.info("查询互动记录：userId={}, contentId={}, actionType={}, tableName={}, 结果数量={}", 
+                interaction.getUserId(), interaction.getContentId(), interaction.getActionType(), 
+                interaction.getTableName(), existingList != null ? existingList.size() : 0);
+        
         if (existingList != null && !existingList.isEmpty()) {
+            log.info("找到 {} 条历史记录，开始遍历检查", existingList.size());
 
             for (Interaction existing : existingList) {
+                log.info("检查记录：id={}, isDeleted={}, status={}", 
+                        existing.getId(), existing.getIsDeleted(), existing.getStatus());
+                
                 if (!Boolean.TRUE.equals(existing.getIsDeleted())) {
-
                     if (existing.getStatus() == InteractionStatus.VALID) {
-
-                        log.info("互动记录已存在，跳过操作：userId={}, contentId={}, actionType={}", 
-                                interaction.getUserId(), interaction.getContentId(), interaction.getActionType());
+                        log.info("互动记录已存在且有效，跳过操作");
                         return true;
-                    } else {
-                        // 之前取消过（status=INVALID），现在重新激活（status 从 INVALID 变为 VALID）
+                    } else if (!cancelledOppositeIds.contains(existing.getId())) {
+                        log.info("重新激活互动记录：id={}, userId={}, contentId={}, actionType={}, 原status={}", 
+                                existing.getId(), existing.getUserId(), existing.getContentId(), 
+                                existing.getActionType(), existing.getStatus());
+                        
                         existing.setStatus(InteractionStatus.VALID);
-
                         boolean updated = this.updateById(existing);
                         
                         if (updated) {
-                            // 状态从无效变为有效，增加相应的计数
                             updateContentLikeCount(existing.getContentId(), existing.getTableName(), 
                                                  existing.getActionType(), +1);
-
-                            log.info("重新激活互动记录：userId={}, contentId={}, actionType={}", 
-                                    interaction.getUserId(), interaction.getContentId(), interaction.getActionType());
+                            log.info("重新激活互动记录成功");
                         }
                         return updated;
+                    } else {
+                        log.info("跳过已被取消的相反操作记录：id={}", existing.getId());
                     }
                 }
             }
         }
         
-        //  第三步：如果没有找到相同条件的记录，创建新记录
-        // 设置默认值
+        log.info("未找到现有记录，创建新的互动记录");
         interaction.setStatus(InteractionStatus.VALID);
         interaction.setIsDeleted(false);
         
         boolean saved = this.save(interaction);
         
         if (saved) {
-            // 新创建的有效记录，增加相应的计数
             updateContentLikeCount(interaction.getContentId(), interaction.getTableName(), 
                                  interaction.getActionType(), +1);
-
             sendLikeNotification(interaction);
-            
-            log.info("创建新的互动记录：userId={}, contentId={}, actionType={}", 
-                    interaction.getUserId(), interaction.getContentId(), interaction.getActionType());
+            log.info("创建新的互动记录成功");
         }
         
         return saved;
+    }
+
+    private Set<Long> cancelOppositeAction(Long userId, Long contentId, ContentType tableName,
+                                           InteractionActionType currentActionType) {
+        Set<Long> cancelledIds = new HashSet<>();
+        
+        if (userId == null || contentId == null || currentActionType == null) {
+            return cancelledIds;
+        }
+        
+        // 确定相反的操作类型
+        InteractionActionType oppositeActionType = null;
+        if (currentActionType == InteractionActionType.LIKE) {
+            oppositeActionType = InteractionActionType.DISLIKE;
+        } else if (currentActionType == InteractionActionType.DISLIKE) {
+            oppositeActionType = InteractionActionType.LIKE;
+        }
+        
+        if (oppositeActionType == null) {
+            return cancelledIds;
+        }
+        
+        // 查找是否存在相反的操作（不限制 status，只要求 is_deleted=false）
+        List<Interaction> oppositeList = baseMapper.selectByUserAndContentList(userId, contentId, oppositeActionType, tableName);
+        if (oppositeList != null && !oppositeList.isEmpty()) {
+            for (Interaction opposite : oppositeList) {
+                if (!Boolean.TRUE.equals(opposite.getIsDeleted())) {
+                    // 如果相反的操作是有效的（status=0），则取消它
+                    if (opposite.getStatus() == InteractionStatus.VALID) {
+                        opposite.setStatus(InteractionStatus.INVALID);
+                        this.updateById(opposite);
+                        
+                        // 状态从有效变为无效，减少相应的计数
+                        updateContentLikeCount(contentId, tableName, oppositeActionType, -1);
+                        
+                        cancelledIds.add(opposite.getId());
+                        
+                        log.info("自动取消相反操作：userId={}, contentId={}, oppositeActionType={}, cancelledId={}", 
+                                userId, contentId, oppositeActionType, opposite.getId());
+                    }
+                    // 只处理第一个找到的有效记录
+                    break;
+                }
+            }
+        }
+        
+        return cancelledIds;
     }
 
     @Override
@@ -225,7 +269,6 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
             return false;
         }
 
-        //  正确：传递 tableName 参数
         Interaction interaction = baseMapper.selectByUserAndContent(userId, contentId, actionType, tableName);
         return interaction != null;
     }
@@ -283,47 +326,6 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
         return result > 0;
     }
 
-    private void cancelOppositeAction(Long userId, Long contentId, ContentType tableName, 
-                                     InteractionActionType currentActionType) {
-        if (userId == null || contentId == null || currentActionType == null) {
-            return;
-        }
-        
-        // 确定相反的操作类型
-        InteractionActionType oppositeActionType = null;
-        if (currentActionType == InteractionActionType.LIKE) {
-            oppositeActionType = InteractionActionType.DISLIKE;
-        } else if (currentActionType == InteractionActionType.DISLIKE) {
-            oppositeActionType = InteractionActionType.LIKE;
-        }
-        
-        if (oppositeActionType == null) {
-            return;
-        }
-        
-        // 查找是否存在相反的操作（不限制 status，只要求 is_deleted=false）
-        List<Interaction> oppositeList = baseMapper.selectByUserAndContentList(userId, contentId, oppositeActionType,tableName);
-        if (oppositeList != null && !oppositeList.isEmpty()) {
-            for (Interaction opposite : oppositeList) {
-                if (!Boolean.TRUE.equals(opposite.getIsDeleted())) {
-                    // 如果相反的操作是有效的（status=0），则取消它
-                    if (opposite.getStatus() == InteractionStatus.VALID) {
-                        opposite.setStatus(InteractionStatus.INVALID);
-                        this.updateById(opposite);
-                        
-                        // 状态从有效变为无效，减少相应的计数
-                        updateContentLikeCount(contentId, tableName, oppositeActionType, -1);
-                        
-                        log.info("自动取消相反操作：userId={}, contentId={}, oppositeActionType={}", 
-                                userId, contentId, oppositeActionType);
-                    }
-                    // 只处理第一个找到的有效记录
-                    break;
-                }
-            }
-        }
-    }
-
     private boolean isLikeAction(InteractionActionType actionType) {
         return actionType == InteractionActionType.LIKE || actionType == InteractionActionType.DISLIKE;
     }
@@ -358,7 +360,7 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
      * 更新文章的互动计数（点赞、点踩、收藏、分享）
      */
     private void updateArticleInteractionCount(Long articleId, InteractionActionType actionType, int delta) {
-        Article article = articleService.getById(articleId);
+        Article article = articleDao.selectById(articleId);
         if (article != null) {
             // 根据操作类型更新相应的计数
             switch (actionType) {
@@ -391,33 +393,50 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
                 article.setShareCount(Math.max(0, article.getShareCount()));
             }
 
-            articleService.updateById(article);
+            articleDao.updateById(article);
             log.info("更新文章互动计数成功，ID: {}, 类型：{}, 变化：{}", articleId, actionType, delta);
         }
     }
 
     /**
-     * 更新评论的互动计数（仅点赞）
+     * 更新评论的互动计数（点赞和点踩）
      */
     private void updateCommentInteractionCount(Long commentId, InteractionActionType actionType, int delta) {
-        // 评论只有点赞，其他操作不处理
-        if (actionType != InteractionActionType.LIKE) {
+        Comment comment = commentDao.selectById(commentId);
+        if (comment == null) {
             return;
         }
 
-        Comment comment = commentService.getById(commentId);
-        if (comment != null) {
-            Integer likeCount = comment.getLikeCount() != null ? comment.getLikeCount() : 0;
-            comment.setLikeCount(likeCount + delta);
-
-            // 确保计数不会小于 0
-            if (delta < 0) {
-                comment.setLikeCount(Math.max(0, comment.getLikeCount()));
-            }
-
-            commentService.updateById(comment);
-            log.info("更新评论互动计数成功，ID: {}, 类型：{}, 变化：{}", commentId, actionType, delta);
+        // 根据操作类型更新相应的计数
+        switch (actionType) {
+            case LIKE:
+                Integer likeCount = comment.getLikeCount() != null ? comment.getLikeCount() : 0;
+                comment.setLikeCount(likeCount + delta);
+                
+                // 确保计数不会小于 0
+                if (delta < 0) {
+                    comment.setLikeCount(Math.max(0, comment.getLikeCount()));
+                }
+                break;
+                
+            case DISLIKE:
+                Integer dislikeCount = comment.getDislikeCount() != null ? comment.getDislikeCount() : 0;
+                comment.setDislikeCount(dislikeCount + delta);
+                
+                // 确保计数不会小于 0
+                if (delta < 0) {
+                    comment.setDislikeCount(Math.max(0, comment.getDislikeCount()));
+                }
+                break;
+                
+            default:
+                // 其他操作类型（收藏、分享等）不适用于评论
+                log.warn("评论不支持的操作类型: {}", actionType);
+                return;
         }
+
+        commentDao.updateById(comment);
+        log.info("更新评论互动计数成功，ID: {}, 类型：{}, 变化：{}", commentId, actionType, delta);
     }
 
     private void validateParams(Map<String, Object> params) {
@@ -486,7 +505,7 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
                 // 点赞文章
                 Article article = articleDao.selectById(interaction.getContentId());
                 if (article == null || article.getAuthorId().equals(interaction.getUserId())) {
-                    return; // 文章不存在或点赞自己，不发送通知
+                    return;
                 }
                 
                 targetUserId = article.getAuthorId();

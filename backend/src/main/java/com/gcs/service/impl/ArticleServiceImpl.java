@@ -1,5 +1,8 @@
 package com.gcs.service.impl;
 
+import com.gcs.entity.*;
+import com.gcs.enums.ContentType;
+import com.gcs.enums.InteractionActionType;
 import com.gcs.utils.SessionUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -14,23 +17,18 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.gcs.dao.ArticleViewLogDao;
-import com.gcs.entity.ArticleAuditHistory;
-import com.gcs.entity.ArticleVersion;
 import com.gcs.enums.AuditStatus;
 import com.gcs.service.*;
-import com.gcs.vo.ArticleDetailVO;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import com.gcs.dao.ArticleDao;
-import com.gcs.entity.Article;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.vo.ArticleSearchVO;
-import com.gcs.vo.AdminArticleDetailVO;
 import com.gcs.vo.ArticleDashboardStatsVO;
 import com.gcs.vo.ArticleAuditHistoryVO;
 import com.gcs.converter.ArticleConverter;
@@ -39,7 +37,6 @@ import com.gcs.dao.ArticleAuditHistoryDao;
 import com.gcs.service.UserService;
 import java.time.LocalDate;
 import java.util.stream.Collectors;
-import com.gcs.entity.User;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +73,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
 
     @Autowired
     private SessionUtils sessionUtils;
+    
+    @Autowired
+    private InteractionService interactionService;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -483,5 +483,200 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             log.error("记录审核历史失败，articleId: {}, reviewerId: {}", articleId, reviewerId, e);
             // 不抛出异常，避免影响主流程
         }
+    }
+    
+    /**
+     * 点赞/取消点赞文章
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer toggleLike(Long articleId, Long userId) {
+        if (articleId == null || userId == null) {
+            throw new IllegalArgumentException("参数不能为空");
+        }
+        
+        Article article = this.getById(articleId);
+        if (article == null) {
+            throw new IllegalArgumentException("文章不存在");
+        }
+        
+        // 检查用户是否有有效的点赞记录
+        boolean hasLiked = interactionService.hasValidInteraction(
+            userId, 
+            articleId, 
+            InteractionActionType.LIKE,
+            ContentType.ARTICLE
+        );
+        
+        Integer currentLikeCount = article.getLikeCount();
+        if (currentLikeCount == null) {
+            currentLikeCount = 0;
+        }
+        
+        if (hasLiked) {
+            // 已点赞，取消点赞：将互动记录状态改为无效，点赞数 -1
+            boolean removed = interactionService.removeInteraction(
+                userId, 
+                articleId, 
+                InteractionActionType.LIKE, 
+                ContentType.ARTICLE
+            );
+            
+            if (removed) {
+                currentLikeCount = Math.max(0, currentLikeCount - 1);
+                article.setLikeCount(currentLikeCount);
+                this.updateById(article);
+                log.info("取消点赞文章成功，articleId: {}, userId: {}, 新点赞数: {}", articleId, userId, currentLikeCount);
+            }
+        } else {
+            // 未点赞或之前取消了，添加/重新激活点赞
+            Interaction interaction = new Interaction();
+            interaction.setUserId(userId);
+            interaction.setContentId(articleId);
+            interaction.setActionType(InteractionActionType.LIKE);
+            interaction.setTableName(ContentType.ARTICLE);
+            interaction.setCreateTime(LocalDateTime.now());
+            
+            boolean added = interactionService.addInteraction(interaction);
+            
+            if (added) {
+                currentLikeCount = currentLikeCount + 1;
+                article.setLikeCount(currentLikeCount);
+                this.updateById(article);
+                log.info("点赞文章成功，articleId: {}, userId: {}, 新点赞数: {}", articleId, userId, currentLikeCount);
+            }
+        }
+        
+        return article.getLikeCount();
+    }
+    
+    /**
+     * 点踩/取消点踩文章
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer toggleDislike(Long articleId, Long userId) {
+        if (articleId == null || userId == null) {
+            throw new IllegalArgumentException("参数不能为空");
+        }
+        
+        Article article = this.getById(articleId);
+        if (article == null) {
+            throw new IllegalArgumentException("文章不存在");
+        }
+        
+        // 检查用户是否有有效的点踩记录
+        boolean hasDisliked = interactionService.hasValidInteraction(
+            userId, 
+            articleId, 
+            InteractionActionType.DISLIKE, 
+            ContentType.ARTICLE
+        );
+        
+        Integer currentDislikeCount = article.getDislikeCount();
+        if (currentDislikeCount == null) {
+            currentDislikeCount = 0;
+        }
+        
+        if (hasDisliked) {
+            // 已点踩，取消点踩：将互动记录状态改为无效，点踩数 -1
+            boolean removed = interactionService.removeInteraction(
+                userId, 
+                articleId, 
+                InteractionActionType.DISLIKE, 
+                ContentType.ARTICLE
+            );
+            
+            if (removed) {
+                currentDislikeCount = Math.max(0, currentDislikeCount - 1);
+                article.setDislikeCount(currentDislikeCount);
+                this.updateById(article);
+                log.info("取消点踩文章成功，articleId: {}, userId: {}, 新点踩数: {}", articleId, userId, currentDislikeCount);
+            }
+        } else {
+            // 未点踩或之前取消了，添加/重新激活点踩
+            Interaction interaction = new Interaction();
+            interaction.setUserId(userId);
+            interaction.setContentId(articleId);
+            interaction.setActionType(InteractionActionType.DISLIKE);
+            interaction.setTableName(ContentType.ARTICLE);
+            interaction.setCreateTime(LocalDateTime.now());
+            
+            boolean added = interactionService.addInteraction(interaction);
+            
+            if (added) {
+                currentDislikeCount = currentDislikeCount + 1;
+                article.setDislikeCount(currentDislikeCount);
+                this.updateById(article);
+                log.info("点踩文章成功，articleId: {}, userId: {}, 新点踩数: {}", articleId, userId, currentDislikeCount);
+            }
+        }
+        
+        return article.getDislikeCount();
+    }
+    
+    /**
+     * 收藏/取消收藏文章
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer toggleFavorite(Long articleId, Long userId) {
+        if (articleId == null || userId == null) {
+            throw new IllegalArgumentException("参数不能为空");
+        }
+        
+        Article article = this.getById(articleId);
+        if (article == null) {
+            throw new IllegalArgumentException("文章不存在");
+        }
+        
+        // 检查用户是否有有效的收藏记录
+        boolean hasFavorited = interactionService.hasValidInteraction(
+            userId, 
+            articleId, 
+            InteractionActionType.FAVORITE, 
+            ContentType.ARTICLE
+        );
+        
+        Integer currentFavoriteCount = article.getFavoriteCount();
+        if (currentFavoriteCount == null) {
+            currentFavoriteCount = 0;
+        }
+        
+        if (hasFavorited) {
+            // 已收藏，取消收藏：将互动记录状态改为无效，收藏数 -1
+            boolean removed = interactionService.removeInteraction(
+                userId, 
+                articleId, 
+                InteractionActionType.FAVORITE, 
+                ContentType.ARTICLE
+            );
+            
+            if (removed) {
+                currentFavoriteCount = Math.max(0, currentFavoriteCount - 1);
+                article.setFavoriteCount(currentFavoriteCount);
+                this.updateById(article);
+                log.info("取消收藏文章成功，articleId: {}, userId: {}, 新收藏数: {}", articleId, userId, currentFavoriteCount);
+            }
+        } else {
+            // 未收藏或之前取消了，添加/重新激活收藏
+            Interaction interaction = new Interaction();
+            interaction.setUserId(userId);
+            interaction.setContentId(articleId);
+            interaction.setActionType(InteractionActionType.FAVORITE);
+            interaction.setTableName(ContentType.ARTICLE);
+            interaction.setCreateTime(LocalDateTime.now());
+            
+            boolean added = interactionService.addInteraction(interaction);
+            
+            if (added) {
+                currentFavoriteCount = currentFavoriteCount + 1;
+                article.setFavoriteCount(currentFavoriteCount);
+                this.updateById(article);
+                log.info("收藏文章成功，articleId: {}, userId: {}, 新收藏数: {}", articleId, userId, currentFavoriteCount);
+            }
+        }
+        
+        return article.getFavoriteCount();
     }
 }

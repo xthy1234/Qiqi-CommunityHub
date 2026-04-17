@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.gcs.enums.FeedbackStatus;
+import com.gcs.utils.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,6 +56,8 @@ public class FeedbackController {
     @Autowired
     private FeedbackService feedbackService;
 
+    @Autowired
+    private SessionUtils sessionUtils;
     /**
      * 获取反馈分页列表
      */
@@ -184,7 +187,7 @@ public class FeedbackController {
         try {
             Feedback feedback = convertToEntity(createDTO);
             // 设置当前用户信息
-            Long userId = (Long) request.getSession().getAttribute("userId");
+            Long userId = sessionUtils.getCurrentUserId(request);
             if (userId != null) {
                 feedback.setUserId(userId);
             }
@@ -420,7 +423,7 @@ public class FeedbackController {
         try {
             String tableName = getSessionAttribute(request, "tableName");
             if ("user".equals(tableName)) {
-                Long userId = (Long) request.getSession().getAttribute("userId");
+                Long userId = sessionUtils.getCurrentUserId(request);
                 feedback.setUserId(userId);
             }
             

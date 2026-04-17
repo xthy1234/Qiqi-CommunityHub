@@ -65,13 +65,13 @@ public interface CommentConverter {
     
     // 手动转换方法 - 仅用于 CommentVO 和 CommentDetailVO
     default UserSimpleVO convertToUserSimpleVO(Comment comment) {
-        if (comment == null) {
+        if (comment == null || comment.getUserId() == null) {
             return null;
         }
         UserSimpleVO userVO = new UserSimpleVO();
         userVO.setId(comment.getUserId());
-        userVO.setNickname(comment.getUserNickname());
-        userVO.setAvatar(comment.getUserAvatar());
+        // 注意：userAvatar 和 userNickname 已从 Comment 实体中移除
+        // 如需用户信息，应通过 UserService 查询或使用 CommentView
         return userVO;
     }
 }

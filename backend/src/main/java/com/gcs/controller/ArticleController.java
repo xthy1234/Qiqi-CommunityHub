@@ -81,6 +81,9 @@ public class ArticleController {
     @Autowired
     private AuthUtils authUtils;
 
+    @Autowired
+    private InteractionUtils interactionUtils;
+
     /**
      * 获取文章分页列表（通用接口）
      * 支持参数：
@@ -268,11 +271,16 @@ public class ArticleController {
             }
 
             Long currentUserId = getCurrentUserId(request);
-            Boolean isLiked = checkIsLiked(currentUserId, id);
+            Boolean isLiked = interactionUtils.hasLiked(currentUserId, id, ContentType.ARTICLE);
             vo.setIsLiked(isLiked != null && isLiked);
 
-            Boolean isFavorited = checkIsFavorited(currentUserId, id);
+            Boolean isDisliked = interactionUtils.hasDisliked(currentUserId, id, ContentType.ARTICLE);
+            vo.setIsDisliked(isDisliked != null && isDisliked);
+
+            Boolean isFavorited = interactionUtils.hasFavorited(currentUserId, id, ContentType.ARTICLE);
             vo.setIsFavorited(isFavorited != null && isFavorited);
+
+
             
             vo.setCurrentVersion(article.getCurrentVersion());
             
@@ -807,60 +815,6 @@ public class ArticleController {
     }
 
     /**
-     * 检查是否已点赞
-     */
-    private Boolean checkIsLiked(Long userId, Long articleId) {
-        if (userId == null || articleId == null) {
-            return false;
-        }
-        
-        try {
-            List<Interaction> interactions = favoriteService.getUserInteractionsList(
-                userId, 
-                InteractionActionType.LIKE,
-                ContentType.ARTICLE
-            );
-            
-            if (interactions == null || interactions.isEmpty()) {
-                return false;
-            }
-            
-            return interactions.stream()
-                .anyMatch(i -> i.getContentId().equals(articleId));
-        } catch (Exception e) {
-            log.error("检查点赞状态失败，userId: {}, articleId: {}", userId, articleId, e);
-            return false;
-        }
-    }
-    
-    /**
-     * 检查是否已收藏
-     */
-    private Boolean checkIsFavorited(Long userId, Long articleId) {
-        if (userId == null || articleId == null) {
-            return false;
-        }
-        
-        try {
-            List<Interaction> interactions = favoriteService.getUserInteractionsList(
-                userId, 
-                InteractionActionType.FAVORITE,
-                ContentType.ARTICLE
-            );
-            
-            if (interactions == null || interactions.isEmpty()) {
-                return false;
-            }
-            
-            return interactions.stream()
-                .anyMatch(i -> i.getContentId().equals(articleId));
-        } catch (Exception e) {
-            log.error("检查收藏状态失败，userId: {}, articleId: {}", userId, articleId, e);
-            return false;
-        }
-    }
-    
-    /**
      * 修改文章编辑模式
      */
     @Operation(summary = "修改文章编辑模式", description = "设置文章的编辑模式（仅作者可编辑/所有人可建议）")
@@ -1309,4 +1263,237 @@ public class ArticleController {
         
         return vo;
     }
+
+    // ==================== 文章互动接口 ====================
+
+    /**
+     * 点赞文章
+     */
+    @Operation(summary = "点赞文章", description = "对文章进行点赞操作")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @PostMapping("/{articleId}/likes")
+    public R likeArticle(
+            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
+            HttpServletRequest request) {
+        try {
+            Long userId = getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+
+            // 检查是否已有有效的点赞记录
+            boolean hasLiked = favoriteService.hasValidInteraction(
+                    userId,
+                    articleId,
+                    InteractionActionType.LIKE,
+                    ContentType.ARTICLE
+            );
+
+            if (hasLiked) {
+                return R.error("您已经点过赞了");
+            }
+
+            // 调用 Service 层处理点赞逻辑
+            Integer likeCount = articleService.toggleLike(articleId, userId);
+            return R.ok().put("likeCount", likeCount);
+        } catch (Exception e) {
+            log.error("点赞文章失败，articleId: {}", articleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 取消点赞文章
+     */
+    @Operation(summary = "取消点赞", description = "取消对文章的点赞")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @DeleteMapping("/{articleId}/likes")
+    public R unlikeArticle(
+            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
+            HttpServletRequest request) {
+        try {
+            Long userId = getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+
+            // 检查是否有有效的点赞记录
+            boolean hasLiked = favoriteService.hasValidInteraction(
+                    userId,
+                    articleId,
+                    InteractionActionType.LIKE,
+                    ContentType.ARTICLE
+            );
+
+            if (!hasLiked) {
+                return R.error("您还未点赞");
+            }
+
+            Integer likeCount = articleService.toggleLike(articleId, userId);
+            return R.ok().put("likeCount", likeCount);
+        } catch (Exception e) {
+            log.error("取消点赞失败，articleId: {}", articleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 点踩文章
+     */
+    @Operation(summary = "点踩文章", description = "对文章进行点踩操作")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @PostMapping("/{articleId}/dislikes")
+    public R dislikeArticle(
+            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
+            HttpServletRequest request) {
+        try {
+            Long userId = getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+
+            // 检查是否已有有效的点踩记录
+            boolean hasDisliked = favoriteService.hasValidInteraction(
+                    userId,
+                    articleId,
+                    InteractionActionType.DISLIKE,
+                    ContentType.ARTICLE
+            );
+
+            if (hasDisliked) {
+                return R.error("您已经点过踩了");
+            }
+
+            Integer dislikeCount = articleService.toggleDislike(articleId, userId);
+            return R.ok().put("dislikeCount", dislikeCount);
+        } catch (Exception e) {
+            log.error("点踩文章失败，articleId: {}", articleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 取消点踩文章
+     */
+    @Operation(summary = "取消点踩", description = "取消对文章的点踩")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @DeleteMapping("/{articleId}/dislikes")
+    public R undislikeArticle(
+            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
+            HttpServletRequest request) {
+        try {
+            Long userId = getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+
+            // 检查是否有有效的点踩记录
+            boolean hasDisliked = favoriteService.hasValidInteraction(
+                    userId,
+                    articleId,
+                    InteractionActionType.DISLIKE,
+                    ContentType.ARTICLE
+            );
+
+            if (!hasDisliked) {
+                return R.error("您还未点踩");
+            }
+
+            Integer dislikeCount = articleService.toggleDislike(articleId, userId);
+            return R.ok().put("dislikeCount", dislikeCount);
+        } catch (Exception e) {
+            log.error("取消点踩失败，articleId: {}", articleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 收藏文章
+     */
+    @Operation(summary = "收藏文章", description = "将文章添加到收藏夹")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @PostMapping("/{articleId}/favorites")
+    public R favoriteArticle(
+            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
+            HttpServletRequest request) {
+        try {
+            Long userId = getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+
+            // 检查是否已收藏
+            boolean hasFavorited = favoriteService.hasValidInteraction(
+                    userId,
+                    articleId,
+                    InteractionActionType.FAVORITE,
+                    ContentType.ARTICLE
+            );
+
+            if (hasFavorited) {
+                return R.error("您已经收藏过这篇文章了");
+            }
+
+            Integer favoriteCount = articleService.toggleFavorite(articleId, userId);
+            return R.ok().put("favoriteCount", favoriteCount);
+        } catch (Exception e) {
+            log.error("收藏文章失败，articleId: {}", articleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 取消收藏文章
+     */
+    @Operation(summary = "取消收藏", description = "从收藏夹中移除文章")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @DeleteMapping("/{articleId}/favorites")
+    public R unfavoriteArticle(
+            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
+            HttpServletRequest request) {
+        try {
+            Long userId = getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+
+            // 检查是否已收藏
+            boolean hasFavorited = favoriteService.hasValidInteraction(
+                    userId,
+                    articleId,
+                    InteractionActionType.FAVORITE,
+                    ContentType.ARTICLE
+            );
+
+            if (!hasFavorited) {
+                return R.error("您还未收藏这篇文章");
+            }
+
+            Integer favoriteCount = articleService.toggleFavorite(articleId, userId);
+            return R.ok().put("favoriteCount", favoriteCount);
+        } catch (Exception e) {
+            log.error("取消收藏失败，articleId: {}", articleId, e);
+            return R.error(e.getMessage());
+        }
+    }
 }
+
+

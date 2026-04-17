@@ -12,13 +12,12 @@ import lombok.Data;
 @Schema(description = "评论回复请求对象")
 public class CommentReplyDTO {
     
-    @NotNull(message = "被回复的评论 ID 不能为空")
-    @Schema(description = "被回复的评论 ID", required = true, example = "1")
-    private Long parentId;
-    
     @NotNull(message = "关联内容 ID 不能为空")
-    @Schema(description = "关联内容 ID", required = true, example = "1")
+    @Schema(description = "关联内容 ID（文章ID）", required = true, example = "19")
     private Long contentId;
+    
+    @Schema(description = "被回复的用户 ID（用于显示'回复 @xxx'）", example = "3")
+    private Long replyId;
     
     @NotBlank(message = "回复内容不能为空")
     @Schema(description = "回复内容", required = true, example = "这是回复内容")

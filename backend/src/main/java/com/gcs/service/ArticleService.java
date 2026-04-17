@@ -194,4 +194,28 @@ public interface ArticleService extends IService<Article> {
      * @param reason 审核原因
      */
     void recordAuditHistory(Long articleId, Long reviewerId, Integer oldStatus, Integer newStatus, String reason);
+    
+    /**
+     * 点赞/取消点赞文章
+     * @param articleId 文章 ID
+     * @param userId 用户 ID
+     * @return 最新点赞数
+     */
+    Integer toggleLike(Long articleId, Long userId);
+    
+    /**
+     * 点踩/取消点踩文章
+     * @param articleId 文章 ID
+     * @param userId 用户 ID
+     * @return 最新点踩数
+     */
+    Integer toggleDislike(Long articleId, Long userId);
+    
+    /**
+     * 收藏/取消收藏文章
+     * @param articleId 文章 ID
+     * @param userId 用户 ID
+     * @return 最新收藏数
+     */
+    Integer toggleFavorite(Long articleId, Long userId);
 }

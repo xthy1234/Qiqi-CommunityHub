@@ -43,22 +43,23 @@ public class CommentView extends Comment implements Serializable {
      */
     private Integer level;
 
+    private int replyCount;
+
+
     /**
      * 构造函数
      * @param comment 原始评论对象
      */
     public CommentView(Comment comment) {
         if (comment != null) {
-
             this.setId(comment.getId());
             this.setContentId(comment.getContentId());
             this.setUserId(comment.getUserId());
-            this.setUserAvatar(comment.getUserAvatar());
-            this.setUserNickname(comment.getUserNickname());
             this.setContent(comment.getContent());
-            this.setReplyContent(comment.getReplyContent());
             this.setParentId(comment.getParentId());
+            this.setReplyId(comment.getReplyId());
             this.setLikeCount(comment.getLikeCount());
+            this.setDislikeCount(comment.getDislikeCount());
             this.setStatus(comment.getStatus());
             this.setCreateTime(comment.getCreateTime());
             this.setUpdateTime(comment.getUpdateTime());

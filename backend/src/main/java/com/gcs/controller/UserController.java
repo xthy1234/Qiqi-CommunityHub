@@ -254,7 +254,7 @@ public class UserController {
     })
     public R getCurrentUser(@Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long userId = (Long) request.getSession().getAttribute("userId");
+            Long userId = sessionUtils.getCurrentUserId(request);
             if (userId == null) {
                 return R.error("用户未登录");
             }

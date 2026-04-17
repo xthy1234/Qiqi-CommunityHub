@@ -10,9 +10,6 @@ export interface Article {
   authorNickname: string
   content: object
   attachment?: string | null
-  favoriteCount: number
-  likeCount: number
-  dislikeCount: number
   viewCount: number
   commentCount?: number
   auditStatus: string | 'PENDING' | 'APPROVED' | 'REJECTED' | 'DRAFT'
@@ -37,56 +34,96 @@ export interface Article {
   is_checked?: string
   reply?: string
   attach?: string
+  isLiked?: boolean
+  isDisliked?: boolean
+  isFavorited?: boolean
+  likeCount?: number
+  dislikeCount?: number
+  favoriteCount?: number
   [key: string]: unknown
 }
 
 /**
- * 文章 API 类
+ * 文章 API 服务类
  */
-export class ArticleAPI {
+class ArticleAPI {
   private endpoint = '/articles'
-  private publishedEndpoint = '/articles/published'
-  
+
   /**
    * 获取文章列表
    */
   getList(params?: Record<string, unknown>) {
     return http.get(this.endpoint, { params })
   }
-  
+
   /**
    * 获取文章详情
    */
   getById(id: number | string) {
     return http.get(`${this.endpoint}/${id}`)
   }
-  
+
   /**
    * 创建文章
    */
   create(data: Article) {
     return http.post(this.endpoint, data)
   }
-  
+
   /**
    * 更新文章
    */
   update(id: number | string, data: Partial<Article>) {
     return http.put(`${this.endpoint}/${id}`, data)
   }
-  
+
   /**
    * 删除文章（通用接口，自动判断状态和权限）
    */
   delete(id: number | string) {
     return http.delete(`${this.endpoint}/${id}`)
   }
-  
+
   /**
    * 点赞文章
    */
-  like(id: number | string) {
-    return http.post(`${this.endpoint}/${id}/like`)
+  like(articleId: number | string) {
+    return http.post(`${this.endpoint}/${articleId}/likes`)
+  }
+
+  /**
+   * 取消点赞文章
+   */
+  cancelLike(articleId: number | string) {
+    return http.delete(`${this.endpoint}/${articleId}/likes`)
+  }
+
+  /**
+   * 点踩文章
+   */
+  dislike(articleId: number | string) {
+    return http.post(`${this.endpoint}/${articleId}/dislikes`)
+  }
+
+  /**
+   * 取消点踩文章
+   */
+  cancelDislike(articleId: number | string) {
+    return http.delete(`${this.endpoint}/${articleId}/dislikes`)
+  }
+
+  /**
+   * 收藏文章
+   */
+  favorite(articleId: number | string) {
+    return http.post(`${this.endpoint}/${articleId}/favorites`)
+  }
+
+  /**
+   * 取消收藏文章
+   */
+  cancelFavorite(articleId: number | string) {
+    return http.delete(`${this.endpoint}/${articleId}/favorites`)
   }
 
   /**
@@ -102,7 +139,7 @@ export class ArticleAPI {
       }
     })
   }
-  
+
   /**
    * 批量删除文章
    * 接口：POST /articles/batch-delete
@@ -158,7 +195,7 @@ export class ArticleAPI {
    * 获取已发布文章详情
    */
   getPublishedById(id: number | string) {
-    return http.get(`${this.publishedEndpoint}/${id}`)
+    return http.get(`${this.endpoint}/${id}`)
   }
 
   /**
@@ -180,7 +217,7 @@ export class ArticleAPI {
   }
 }
 
-// 导出单例
+
 export const articleAPI = new ArticleAPI()
 
 // 兼容旧的导出方式（逐步迁移）

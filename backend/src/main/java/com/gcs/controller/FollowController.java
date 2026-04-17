@@ -5,6 +5,7 @@ import com.gcs.service.FollowService;
 import com.gcs.utils.R;
 import com.gcs.utils.PageUtils;
 
+import com.gcs.utils.SessionUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -40,11 +41,13 @@ public class FollowController {
     @Autowired
     private FollowService followService;
 
+    @Autowired
+    private SessionUtils sessionUtils;
     /**
      * 获取当前登录用户ID
      */
     private Long getCurrentUserId(HttpServletRequest request) {
-        Long userId = (Long) request.getSession().getAttribute("userId");
+        Long userId = sessionUtils.getCurrentUserId(request);
         if (userId == null) {
             throw new RuntimeException("用户未登录");
         }

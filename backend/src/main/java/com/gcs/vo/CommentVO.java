@@ -32,11 +32,17 @@ public class CommentVO implements Serializable {
     @Schema(description = "评论内容", example = "这是一条测试评论")
     private String content;
     
-    @Schema(description = "父级评论 ID", example = "0")
+    @Schema(description = "父级评论 ID", example = "1")
     private Long parentId;
+    
+    @Schema(description = "被回复的用户 ID", example = "2")
+    private Long replyId;
     
     @Schema(description = "点赞数", example = "10")
     private Integer likeCount;
+    
+    @Schema(description = "点踩数", example = "2")
+    private Integer dislikeCount;
     
     @Schema(description = "状态（0:显示，1:隐藏）", example = "0")
     private CommentStatus status;

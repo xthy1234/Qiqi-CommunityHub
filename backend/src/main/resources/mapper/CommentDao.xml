@@ -8,12 +8,11 @@
         <result property="id" column="id"/>
         <result property="contentId" column="content_id"/>
         <result property="userId" column="user_id"/>
-        <result property="userAvatar" column="user_avatar"/>
-        <result property="userNickname" column="user_nickname"/>
         <result property="content" column="content"/>
-        <result property="replyContent" column="reply_content"/>
         <result property="parentId" column="parent_id"/>
+        <result property="replyId" column="reply_id"/>
         <result property="likeCount" column="like_count"/>
+        <result property="dislikeCount" column="dislike_count"/>
         <result property="status" column="status"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
@@ -23,15 +22,18 @@
     <resultMap type="com.gcs.entity.view.CommentView" id="commentViewMap" extends="commentMap">
         <result property="contentTitle" column="content_title"/>
         <result property="isLiked" column="is_liked"/>
+        <result property="userAvatar" column="user_avatar"/>
+        <result property="userNickname" column="user_nickname"/>
         <collection property="children" ofType="com.gcs.entity.view.CommentView">
             <id property="id" column="child_id"/>
             <result property="content" column="child_content"/>
-            <result property="replyContent" column="child_reply_content"/>
             <result property="parentId" column="child_parent_id"/>
+            <result property="replyId" column="child_reply_id"/>
             <result property="userId" column="child_user_id"/>
             <result property="userAvatar" column="child_user_avatar"/>
             <result property="userNickname" column="child_user_nickname"/>
             <result property="likeCount" column="child_like_count"/>
+            <result property="dislikeCount" column="child_dislike_count"/>
             <result property="createTime" column="child_create_time"/>
         </collection>
     </resultMap>
@@ -69,17 +71,19 @@
             c.id,
             c.content_id,
             c.user_id,
-            c.user_avatar,
-            c.user_nickname,
+            u.avatar as user_avatar,
+            u.nickname as user_nickname,
             c.content,
-            c.reply_content,
             c.parent_id,
+            c.reply_id,
             c.like_count,
+            c.dislike_count,
             c.status,
             c.create_time,
             c.update_time,
             a.title as content_title
         FROM comment c
+        LEFT JOIN users u ON c.user_id = u.id
         LEFT JOIN article a ON c.content_id = a.id
         <where>
             c.status = 0
@@ -96,17 +100,19 @@
             c.id,
             c.content_id,
             c.user_id,
-            c.user_avatar,
-            c.user_nickname,
+            u.avatar as user_avatar,
+            u.nickname as user_nickname,
             c.content,
-            c.reply_content,
             c.parent_id,
+            c.reply_id,
             c.like_count,
+            c.dislike_count,
             c.status,
             c.create_time,
             c.update_time,
             a.title as content_title
         FROM comment c
+        LEFT JOIN users u ON c.user_id = u.id
         LEFT JOIN article a ON c.content_id = a.id
         <where>
             c.status = 0
@@ -122,16 +128,18 @@
             c.id,
             c.content_id,
             c.user_id,
-            c.user_avatar,
-            c.user_nickname,
+            u.avatar as user_avatar,
+            u.nickname as user_nickname,
             c.content,
-            c.reply_content,
             c.parent_id,
+            c.reply_id,
             c.like_count,
+            c.dislike_count,
             c.status,
             c.create_time,
             c.update_time
         FROM comment c
+        LEFT JOIN users u ON c.user_id = u.id
         <where>
             c.content_id = #{contentId}
             AND c.status = 0
@@ -149,9 +157,10 @@
             u.avatar as user_avatar,
             u.nickname as user_nickname,
             c.content,
-            c.reply_content,
             c.parent_id,
+            c.reply_id,
             c.like_count,
+            c.dislike_count,
             c.status,
             c.create_time,
             c.update_time
@@ -175,9 +184,10 @@
             u.avatar as user_avatar,
             u.nickname as user_nickname,
             c.content,
-            c.reply_content,
             c.parent_id,
+            c.reply_id,
             c.like_count,
+            c.dislike_count,
             c.status,
             c.create_time,
             c.update_time
@@ -201,9 +211,10 @@
             u.avatar as user_avatar,
             u.nickname as user_nickname,
             c.content,
-            c.reply_content,
             c.parent_id,
+            c.reply_id,
             c.like_count,
+            c.dislike_count,
             c.status,
             c.create_time,
             c.update_time
@@ -226,9 +237,10 @@
             u.avatar as user_avatar,
             u.nickname as user_nickname,
             c.content,
-            c.reply_content,
             c.parent_id,
+            c.reply_id,
             c.like_count,
+            c.dislike_count,
             c.status,
             c.create_time,
             c.update_time

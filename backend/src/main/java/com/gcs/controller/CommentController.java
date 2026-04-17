@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gcs.entity.Article;
 import com.gcs.entity.Comment;
+import com.gcs.entity.Interaction;
 import com.gcs.entity.User;
 import com.gcs.entity.view.CommentView;
 import com.gcs.enums.ContentType;
@@ -77,38 +78,6 @@ public class CommentController {
     private InteractionUtils interactionUtils;
 
     /**
-     * 获取评论分页列表
-     */
-    @Operation(summary = "获取评论分页列表", description = "分页查询评论列表，支持条件筛选")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "获取成功"),
-        @ApiResponse(responseCode = "500", description = "获取失败")
-    })
-    @GetMapping
-    @IgnoreAuth
-    public R getPage(
-        @Parameter(description = "查询参数") @RequestParam Map<String, Object> params, 
-        @Parameter(description = "评论查询条件") Comment comment) {
-        try {
-            QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
-            PageUtils page = commentService.queryPage(params, 
-                MPUtil.sort(MPUtil.between(MPUtil.likeOrEq(queryWrapper, comment), params), params));
-            
-            // 将 Comment 转换为 CommentVO
-            List<CommentVO> voList = ((List<Comment>) page.getList())
-                .stream()
-                .map(this::convertToVO)
-                .collect(Collectors.toList());
-            page.setList(voList);
-            
-            return R.ok().put("data", page);
-        } catch (Exception e) {
-            log.error("获取评论分页列表失败", e);
-            return R.error("获取数据失败");
-        }
-    }
-    
-    /**
      * 获取评论详情
      */
     @Operation(summary = "获取评论详情", description = "根据评论 ID 获取评论详情")
@@ -136,161 +105,215 @@ public class CommentController {
     }
 
     /**
-     * 根据内容 ID 获取评论列表
+     * 获取子评论列表（分页）
      */
-    @Operation(summary = "根据内容 ID 获取评论列表", description = "根据内容 ID 获取该内容的全部评论列表")
+    @Operation(summary = "获取子评论列表", description = "分页获取指定评论下的所有子评论，按时间升序排列")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "获取成功"),
         @ApiResponse(responseCode = "500", description = "获取失败")
     })
-    @GetMapping("/content/{contentId}")
+    @GetMapping("/{commentId}/replies")
     @IgnoreAuth
-    public R getCommentsByContentId(
-        @Parameter(description = "内容 ID", required = true) @PathVariable("contentId") Long contentId) {
-        try {
-            List<CommentView> comments = commentService.getCommentsByContentId(contentId);
-            
-            // 将 CommentView 转换为 CommentDetailVO
-            List<CommentDetailVO> voList = comments.stream()
-                .map(this::convertViewToDetailVO)
-                .collect(Collectors.toList());
-            
-            return R.ok().put("data", voList);
-        } catch (Exception e) {
-            log.error("获取内容评论失败，contentId: {}", contentId, e);
-            return R.error("获取评论失败");
-        }
-    }
-
-    /**
-     * 根据内容 ID 获取评论列表（分页）
-     */
-    @Operation(summary = "根据内容 ID 获取评论列表（分页）", description = "根据内容 ID 分页获取该内容的全部评论列表")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "获取成功"),
-        @ApiResponse(responseCode = "500", description = "获取失败")
-    })
-    @GetMapping("/content/{contentId}/page")
-    @IgnoreAuth
-    public R getCommentsByContentIdPage(
-        @Parameter(description = "内容 ID", required = true) @PathVariable("contentId") Long contentId,
+    public R getReplies(
+        @Parameter(description = "父评论 ID", required = true) @PathVariable("commentId") Long commentId,
         @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
-        @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") Integer limit) {
+        @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer size) {
         try {
-            Map<String, Object> params = Map.of(
-                "page", page.toString(),
-                "limit", limit.toString()
-            );
-
-            PageUtils pageUtils = commentService.getCommentsByContentIdPage(contentId, params);
-            
-            // 将 CommentView 转换为 CommentDetailVO
-            List<CommentDetailVO> voList = ((List<CommentView>) pageUtils.getList())
-                .stream()
-                .map(this::convertViewToDetailVO)
-                .collect(Collectors.toList());
-            
-            // 重新构建返回数据
-            PageUtils resultPage = new PageUtils(voList, pageUtils.getTotalCount(), limit, page);
-            
-            return R.ok().put("data", resultPage);
+            PageUtils pageUtils = commentService.getRepliesByParentId(commentId, page, size);
+            return R.ok().put("data", pageUtils);
         } catch (Exception e) {
-            log.error("分页获取内容评论失败，contentId: {}", contentId, e);
-            return R.error("获取评论失败");
+            log.error("获取子评论失败，commentId: {}", commentId, e);
+            return R.error("获取子评论失败");
         }
     }
 
     /**
-     * 获取评论树结构
+     * 发表回复（子评论）
      */
-    @Operation(summary = "获取评论树结构", description = "根据内容 ID 获取评论的树形层级结构")
+    @Operation(summary = "发表回复", description = "对已有评论进行回复")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "获取成功"),
-        @ApiResponse(responseCode = "500", description = "获取失败")
+        @ApiResponse(responseCode = "200", description = "回复成功"),
+        @ApiResponse(responseCode = "400", description = "回复失败")
     })
-    @GetMapping("/tree/{contentId}")
-    @IgnoreAuth
-    public R getCommentTree(
-        @Parameter(description = "内容 ID", required = true) @PathVariable("contentId") Long contentId,
+    @PostMapping("/{commentId}/replies")
+    public R createReply(
+        @Parameter(description = "父评论 ID", required = true) @PathVariable("commentId") Long parentId,
+        @Parameter(description = "回复内容", required = true) @Valid @RequestBody CommentReplyDTO replyDTO,
         HttpServletRequest request) {
         try {
-            List<CommentView> commentTree = commentService.getCommentTree(contentId);
+            Long userId = sessionUtils.getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录后再回复评论");
+            }
             
-            // 获取当前登录用户 ID（如果已登录）
-            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            Comment comment = new Comment();
+            comment.setContentId(replyDTO.getContentId());
+            comment.setParentId(parentId);
+            comment.setReplyId(replyDTO.getReplyId());
+            comment.setContent(replyDTO.getReplyContent());
+            comment.setUserId(userId);
             
-            // 将 CommentView 转换为 CommentTreeVO
-            List<CommentTreeVO> treeVOList = commentTree.stream()
-                .map(commentView -> convertViewToTreeVO(commentView, currentUserId))
-                .collect(Collectors.toList());
-            
-            return R.ok().put("data", treeVOList);
+            boolean result = commentService.createComment(comment);
+            if (result) {
+                return R.ok("回复成功");
+            } else {
+                return R.error("回复失败");
+            }
         } catch (Exception e) {
-            log.error("获取评论树失败，contentId: {}", contentId, e);
-            return R.error("获取评论树失败");
+            log.error("回复评论失败", e);
+            return R.error(e.getMessage());
         }
     }
 
     /**
-     * 获取评论树结构（分页，修复重复问题）
+     * 点赞评论
      */
-    @Operation(summary = "获取评论树结构（分页）", description = "根据内容 ID 分页获取评论的树形层级结构")
+    @Operation(summary = "点赞评论", description = "对评论进行点赞操作")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "获取成功"),
-        @ApiResponse(responseCode = "500", description = "获取失败")
+        @ApiResponse(responseCode = "200", description = "操作成功"),
+        @ApiResponse(responseCode = "400", description = "操作失败")
     })
-    @GetMapping("/tree/{contentId}/page")
-    @IgnoreAuth
-    public R getCommentTreePage(
-        @Parameter(description = "内容 ID", required = true) @PathVariable("contentId") Long contentId,
-        @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
-        @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") Integer limit,
+    @PostMapping("/{commentId}/likes")
+    public R likeComment(
+        @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
         HttpServletRequest request) {
         try {
-            Map<String, Object> params = Map.of(
-                "page", page.toString(),
-                "limit", limit.toString()
+            Long userId = sessionUtils.getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+            
+            // 检查是否已有有效的点赞记录
+            boolean hasLiked = interactionService.hasValidInteraction(
+                userId, 
+                commentId, 
+                InteractionActionType.LIKE, 
+                ContentType.COMMENT
             );
-
-            PageUtils pageUtils = commentService.getCommentTreePage(contentId, params);
             
-            // 获取当前登录用户 ID（如果已登录）
-            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (hasLiked) {
+                return R.error("您已经点过赞了");
+            }
             
-            // 将 CommentView 转换为 CommentTreeVO
-            List<CommentTreeVO> treeVOList = ((List<CommentView>) pageUtils.getList())
-                .stream()
-                .map(commentView -> convertViewToTreeVO(commentView, currentUserId))
-                .collect(Collectors.toList());
-            
-            // 重新构建返回数据
-            PageUtils resultPage = new PageUtils(treeVOList, pageUtils.getTotalCount(), limit, page);
-            
-            return R.ok().put("data", resultPage);
+            Integer likeCount = commentService.toggleLike(commentId, userId);
+            return R.ok().put("likeCount", likeCount);
         } catch (Exception e) {
-            log.error("分页获取评论树失败，contentId: {}", contentId, e);
-            return R.error("获取评论树失败");
+            log.error("点赞操作失败，commentId: {}", commentId, e);
+            return R.error(e.getMessage());
         }
     }
-
+    
     /**
-     * 统计内容评论数量
+     * 取消点赞评论
      */
-    @Operation(summary = "统计内容评论数量", description = "根据内容 ID 统计该内容的评论总数")
+    @Operation(summary = "取消点赞", description = "取消对评论的点赞")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "统计成功"),
-        @ApiResponse(responseCode = "500", description = "统计失败")
+        @ApiResponse(responseCode = "200", description = "操作成功"),
+        @ApiResponse(responseCode = "400", description = "操作失败")
     })
-    @GetMapping("/count/{contentId}")
-    @IgnoreAuth
-    public R countComments(
-        @Parameter(description = "内容 ID", required = true) @PathVariable("contentId") Long contentId) {
+    @DeleteMapping("/{commentId}/likes")
+    public R unlikeComment(
+        @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
+        HttpServletRequest request) {
         try {
-            Integer count = commentService.countCommentsByContentId(contentId);
-            return R.ok().put("data", count);
+            Long userId = sessionUtils.getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+            
+            // 检查是否有有效的点赞记录
+            boolean hasLiked = interactionService.hasValidInteraction(
+                userId, 
+                commentId, 
+                InteractionActionType.LIKE, 
+                ContentType.COMMENT
+            );
+            
+            if (!hasLiked) {
+                return R.error("您还未点赞");
+            }
+            
+            Integer likeCount = commentService.toggleLike(commentId, userId);
+            return R.ok().put("likeCount", likeCount);
         } catch (Exception e) {
-            log.error("统计评论数量失败，contentId: {}", contentId, e);
-            return R.error("统计失败");
+            log.error("取消点赞失败，commentId: {}", commentId, e);
+            return R.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 点踩评论
+     */
+    @Operation(summary = "点踩评论", description = "对评论进行点踩操作")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "操作成功"),
+        @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @PostMapping("/{commentId}/dislikes")
+    public R dislikeComment(
+        @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
+        HttpServletRequest request) {
+        try {
+            Long userId = sessionUtils.getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+            
+            // 检查是否已有有效的点踩记录
+            boolean hasDisliked = interactionService.hasValidInteraction(
+                userId, 
+                commentId, 
+                InteractionActionType.DISLIKE, 
+                ContentType.COMMENT
+            );
+            
+            if (hasDisliked) {
+                return R.error("您已经点过踩了");
+            }
+            
+            Integer dislikeCount = commentService.toggleDislike(commentId, userId);
+            return R.ok().put("dislikeCount", dislikeCount);
+        } catch (Exception e) {
+            log.error("点踩操作失败，commentId: {}", commentId, e);
+            return R.error(e.getMessage());
+        }
+    }
+    
+    /**
+     * 取消点踩评论
+     */
+    @Operation(summary = "取消点踩", description = "取消对评论的点踩")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "操作成功"),
+        @ApiResponse(responseCode = "400", description = "操作失败")
+    })
+    @DeleteMapping("/{commentId}/dislikes")
+    public R undislikeComment(
+        @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
+        HttpServletRequest request) {
+        try {
+            Long userId = sessionUtils.getCurrentUserId(request);
+            if (userId == null) {
+                return R.error("请先登录");
+            }
+            
+            // 检查是否有有效的点踩记录
+            boolean hasDisliked = interactionService.hasValidInteraction(
+                userId, 
+                commentId, 
+                InteractionActionType.DISLIKE, 
+                ContentType.COMMENT
+            );
+            
+            if (!hasDisliked) {
+                return R.error("您还未点踩");
+            }
+            
+            Integer dislikeCount = commentService.toggleDislike(commentId, userId);
+            return R.ok().put("dislikeCount", dislikeCount);
+        } catch (Exception e) {
+            log.error("取消点踩失败，commentId: {}", commentId, e);
+            return R.error(e.getMessage());
         }
     }
 
@@ -326,45 +349,6 @@ public class CommentController {
             }
         } catch (Exception e) {
             log.error("保存评论失败", e);
-            return R.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 回复评论
-     */
-    @Operation(summary = "回复评论", description = "对已有评论进行回复")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "回复成功"),
-        @ApiResponse(responseCode = "400", description = "回复失败")
-    })
-    @PostMapping("/reply")
-    public R replyComment(
-        @Parameter(description = "回复信息", required = true) @Valid @RequestBody CommentReplyDTO replyDTO,
-        HttpServletRequest request) {
-        try {
-            // 从 Session 获取用户 ID（必须登录）
-            String userIdStr = sessionUtils.getSessionAttribute(request, "userId");
-            if (userIdStr == null) {
-                return R.error("请先登录后再回复评论");
-            }
-            
-            Comment comment = new Comment();
-            comment.setContentId(replyDTO.getContentId());
-            comment.setParentId(replyDTO.getParentId());
-            comment.setContent(replyDTO.getReplyContent());
-            
-            // 设置用户 ID
-            comment.setUserId(Long.parseLong(userIdStr));
-            
-            boolean result = commentService.createComment(comment);
-            if (result) {
-                return R.ok("回复成功");
-            } else {
-                return R.error("回复失败");
-            }
-        } catch (Exception e) {
-            log.error("回复评论失败", e);
             return R.error(e.getMessage());
         }
     }
@@ -762,14 +746,14 @@ public class CommentController {
         if (comment.getUserId() != null) {
             UserSimpleVO userVO = new UserSimpleVO();
             userVO.setId(comment.getUserId());
-            userVO.setNickname(comment.getUserNickname());
-            userVO.setAvatar(comment.getUserAvatar());
             vo.setUser(userVO);
         }
         
         vo.setContent(comment.getContent());
         vo.setParentId(comment.getParentId());
+        vo.setReplyId(comment.getReplyId());
         vo.setLikeCount(comment.getLikeCount());
+        vo.setDislikeCount(comment.getDislikeCount());
         vo.setStatus(comment.getStatus());
         vo.setCreateTime(comment.getCreateTime());
         return vo;
@@ -788,15 +772,14 @@ public class CommentController {
         if (comment.getUserId() != null) {
             UserSimpleVO userVO = new UserSimpleVO();
             userVO.setId(comment.getUserId());
-            userVO.setNickname(comment.getUserNickname());
-            userVO.setAvatar(comment.getUserAvatar());
             vo.setUser(userVO);
         }
         
         vo.setContent(comment.getContent());
-        vo.setReplyContent(comment.getReplyContent());
+        vo.setReplyId(comment.getReplyId());
         vo.setParentId(comment.getParentId());
         vo.setLikeCount(comment.getLikeCount());
+        vo.setDislikeCount(comment.getDislikeCount());
         vo.setStatus(comment.getStatus());
         vo.setCreateTime(comment.getCreateTime());
         vo.setUpdateTime(comment.getUpdateTime());
@@ -843,34 +826,7 @@ public class CommentController {
         
         return vo;
     }
-    
-    /**
-     * 将 CommentView 转换为 CommentDetailVO
-     */
-    private CommentDetailVO convertViewToDetailVO(CommentView view) {
-        CommentDetailVO vo = new CommentDetailVO();
-        vo.setId(view.getId());
-        vo.setContentId(view.getContentId());
-        vo.setUserId(view.getUserId());
-        
-        // 构建用户信息
-        if (view.getUserId() != null) {
-            UserSimpleVO userVO = new UserSimpleVO();
-            userVO.setId(view.getUserId());
-            userVO.setNickname(view.getUserNickname());
-            userVO.setAvatar(view.getUserAvatar());
-            vo.setUser(userVO);
-        }
-        
-        vo.setContent(view.getContent());
-        vo.setReplyContent(view.getReplyContent());
-        vo.setParentId(view.getParentId());
-        vo.setLikeCount(view.getLikeCount());
-        vo.setStatus(view.getStatus());
-        vo.setCreateTime(view.getCreateTime());
-        return vo;
-    }
-    
+
     /**
      * 将 CommentView 转换为 CommentTreeVO（带用户互动状态）
      */
@@ -878,12 +834,11 @@ public class CommentController {
         CommentTreeVO vo = new CommentTreeVO();
         vo.setId(view.getId());
         vo.setUserId(view.getUserId());
-        vo.setUserAvatar(view.getUserAvatar());
-        vo.setUserNickname(view.getUserNickname());
         vo.setContent(view.getContent());
-        vo.setReplyContent(view.getReplyContent());
+        vo.setReplyId(view.getReplyId());
         vo.setParentId(view.getParentId());
         vo.setLikeCount(view.getLikeCount());
+        vo.setDislikeCount(view.getDislikeCount());
         vo.setCreateTime(view.getCreateTime());
         
         log.debug("转换评论树 VO: commentId={}, currentUserId={}", view.getId(), currentUserId);
@@ -900,7 +855,7 @@ public class CommentController {
             vo.setIsDisliked(false);
             log.debug("用户未登录，设置互动状态为 false: commentId={}", view.getId());
         }
-        
+
         // 设置层级
         if (view.getParentId() == null) {
             vo.setLevel(0);
@@ -942,9 +897,6 @@ public class CommentController {
      */
     private void convertToUpdateEntity(CommentUpdateDTO dto, Comment comment) {
         comment.setContent(dto.getContent());
-        if (dto.getReplyContent() != null) {
-            comment.setReplyContent(dto.getReplyContent());
-        }
         if (dto.getStatus() != null) {
             comment.setStatus(dto.getStatus());
         }

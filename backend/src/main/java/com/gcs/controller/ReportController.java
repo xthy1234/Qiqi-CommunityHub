@@ -10,6 +10,7 @@ import com.gcs.dto.*;
 import com.gcs.enums.AuditStatus;
 import com.gcs.enums.CommonStatus;
 import com.gcs.service.ArticleService;
+import com.gcs.utils.SessionUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -62,6 +63,8 @@ public class ReportController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private SessionUtils sessionUtils;
     /**
      * 获取举报分页列表
      */
@@ -78,7 +81,7 @@ public class ReportController {
         try {
             String userType = getSessionAttribute(request, "tableName");
             if ("user".equals(userType)) {
-                Long userId = (Long) request.getSession().getAttribute("userId");
+                Long userId = sessionUtils.getCurrentUserId(request);
                 report.setReporterId(userId);
             }
             
@@ -497,7 +500,7 @@ public class ReportController {
         try {
             String userType = getSessionAttribute(request, "tableName");
             if ("user".equals(userType)) {
-                Long userId = (Long) request.getSession().getAttribute("userId");
+                Long userId = sessionUtils.getCurrentUserId(request);
                 report.setReporterId(userId);
             }
             

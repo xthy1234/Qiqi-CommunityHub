@@ -19,9 +19,6 @@ public class CommentUpdateDTO {
     @Schema(description = "评论内容", required = true, example = "这是一条测试评论")
     private String content;
     
-    @Schema(description = "回复内容", example = "这是回复内容")
-    private String replyContent;
-    
     @Schema(description = "状态（0:显示，1:隐藏）", example = "0")
     private CommentStatus status;
 }

@@ -31,21 +31,24 @@ public class CommentTreeVO implements Serializable {
     @Schema(description = "评论内容", example = "这是一条测试评论")
     private String content;
     
-    @Schema(description = "回复内容", example = "这是回复内容")
-    private String replyContent;
+    @Schema(description = "被回复的用户 ID", example = "2")
+    private Long replyId;
     
-    @Schema(description = "父级评论 ID", example = "0")
+    @Schema(description = "父级评论 ID", example = "1")
     private Long parentId;
     
     @Schema(description = "点赞数", example = "10")
     private Integer likeCount;
+    
+    @Schema(description = "点踩数", example = "2")
+    private Integer dislikeCount;
     
     @Schema(description = "当前用户是否点赞", example = "true")
     private Boolean isLiked;
     
     @Schema(description = "当前用户是否点踩", example = "false")
     private Boolean isDisliked;
-    
+
     @Schema(description = "创建时间", example = "2026-01-01 12:00:00")
     private LocalDateTime createTime;
     

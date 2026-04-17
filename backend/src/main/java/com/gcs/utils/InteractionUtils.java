@@ -19,44 +19,46 @@ public class InteractionUtils {
      * 检查用户是否已点赞
      */
     public Boolean hasLiked(Long userId, Long contentId, ContentType contentType) {
-        return hasInteraction(userId, contentId, InteractionActionType.LIKE, contentType);
+        if (userId == null || contentId == null) {
+            return false;
+        }
+        
+        try {
+            return interactionService.hasValidInteraction(
+                userId, contentId, InteractionActionType.LIKE, contentType);
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     /**
      * 检查用户是否已收藏
      */
     public Boolean hasFavorited(Long userId, Long contentId, ContentType contentType) {
-        return hasInteraction(userId, contentId, InteractionActionType.FAVORITE, contentType);
+        if (userId == null || contentId == null) {
+            return false;
+        }
+        
+        try {
+            return interactionService.hasValidInteraction(
+                userId, contentId, InteractionActionType.FAVORITE, contentType);
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     /**
      * 检查用户是否已点踩
      */
     public Boolean hasDisliked(Long userId, Long contentId, ContentType contentType) {
-        return hasInteraction(userId, contentId, InteractionActionType.DISLIKE, contentType);
-    }
-    
-    /**
-     * 通用互动检查方法
-     */
-    private Boolean hasInteraction(Long userId, Long contentId, 
-                                   InteractionActionType actionType, ContentType contentType) {
         if (userId == null || contentId == null) {
             return false;
         }
         
         try {
-            List<Interaction> interactions = interactionService.getUserInteractionsList(
-                userId, actionType, contentType);
-            
-            if (interactions == null || interactions.isEmpty()) {
-                return false;
-            }
-            
-            return interactions.stream()
-                .anyMatch(i -> i.getContentId().equals(contentId));
+            return interactionService.hasValidInteraction(
+                userId, contentId, InteractionActionType.DISLIKE, contentType);
         } catch (Exception e) {
-
             return false;
         }
     }

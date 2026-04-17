@@ -185,21 +185,41 @@
 </template>
 
 <script setup lang="ts">
+import { articleAPI } from '@/api/article' // 修改导入
 import {computed, defineComponent, h, onMounted, ref} from 'vue'
 import {Icon} from '@iconify/vue'
 import { getCurrentInstance } from 'vue'
-import {interactionAPI} from '@/api/interaction'
 import {useChatStore} from '@/stores/chat'
 import {useCircleChatStore} from '@/stores/circleChat'
 import {storeToRefs} from 'pinia'
-import {NAvatar, NButton, NModal, NSelect, NSpace, NTabPane, NTabs, useMessage, NInput, NForm, NFormItem} from 'naive-ui'
+import {
+  NAvatar,
+  NButton,
+  NModal,
+  NSelect,
+  NSpace,
+  NTabPane,
+  NTabs,
+  useMessage,
+  NInput,
+  NForm,
+  NFormItem,
+  FormInst
+} from 'naive-ui'
 import {getWebSocket} from '@/utils/websocket'
 import {circleApi, circleChatApi} from '@/api/circle'
 import type {Circle} from '@/types/circleChat'
 import messageAPI from '@/api/message'
 import {ConversationVO} from "@/types/message";
 import {reportAPI, type ReportCreateDTO} from '@/api/report'
-
+interface Props {
+  articleId: number | string
+  likeCount?: number
+  favoriteCount?: number
+  isLiked?: boolean
+  isDisliked?: boolean
+  isFavorited?: boolean
+}
 // 定义全局 Window 接口扩展
 declare global {
   interface Window {
@@ -213,16 +233,12 @@ declare global {
     }
   }
 }
-
-interface Props {
-  articleId: number | string
-  likeCount?: number
-  favoriteCount?: number
-}
-
 const props = withDefaults(defineProps<Props>(), {
   likeCount: 0,
-  favoriteCount: 0
+  favoriteCount: 0,
+  isLiked: false,
+  isDisliked: false,
+  isFavorited: false
 })
 
 const emit = defineEmits<{
@@ -236,188 +252,72 @@ const emit = defineEmits<{
   }]
 }>()
 
-const isLiked = ref<boolean>(false)
-const isDisliked = ref<boolean>(false)
-const isFavorited = ref<boolean>(false)
+const isLiked = ref<boolean>(props.isLiked)
+const isDisliked = ref<boolean>(props.isDisliked)
+const isFavorited = ref<boolean>(props.isFavorited)
+const likeCount = ref<number>(props.likeCount || 0)
+const dislikeCount = ref<number>(0)
+const favoriteCount = ref<number>(props.favoriteCount || 0)
 const message = useMessage()
 
-// 检查互动状态
-const checkInteractions = async () => {
-  try {
-    const likeResponse = await interactionAPI.check(props.articleId, 2)
-    isLiked.value = likeResponse.data.data?.hasAction || false
-
-    const dislikeResponse = await interactionAPI.check(props.articleId, 3)
-    isDisliked.value = dislikeResponse.data.data?.hasAction || false
-
-    const favoriteResponse = await interactionAPI.check(props.articleId, 1)
-    isFavorited.value = favoriteResponse.data.data?.hasAction || false
-
-    emit('update', { isLiked: isLiked.value, isDisliked: isDisliked.value, isFavorited: isFavorited.value })
-  } catch (error) {
-    // console.error('检查互动状态失败:', error)
-  }
-}
-
-// 点赞
 const handleLike = async () => {
+  if (!props.articleId) return
   try {
     if (isLiked.value) {
-      const params = {
-        contentId: props.articleId,
-        actionType: 2 as const,
-        tableName: 'article'
-      }
-      await interactionAPI.cancelLike(params)
+      await articleAPI.cancelLike(props.articleId) // 修改调用
       isLiked.value = false
-      emit('update', {
-        isLiked: false,
-        isDisliked: isDisliked.value,
-        isFavorited: isFavorited.value,
-        likeCount: (props.likeCount || 0) - 1
-      })
-      message.success('已取消点赞')
+      likeCount.value--
     } else {
-      const params = {
-        contentId: props.articleId,
-        actionType: 2 as const,
-        tableName: 'article'
-      }
-      await interactionAPI.like(params)
+      await articleAPI.like(props.articleId) // 修改调用
       isLiked.value = true
-      const newLikeCount = (props.likeCount || 0) + 1
-      let newDislikeCount = props.dislikeCount || 0
+      likeCount.value++
       if (isDisliked.value) {
         isDisliked.value = false
-        newDislikeCount = (props.dislikeCount || 0) - 1
-        const cancelParams = {
-          contentId: props.articleId,
-          actionType: 3 as const,
-          tableName: 'article'
-        }
-        await interactionAPI.cancelLike(cancelParams)
+        dislikeCount.value--
       }
-      message.success('点赞成功')
-      emit('update', {
-        isLiked: true,
-        isDisliked: false,
-        isFavorited: isFavorited.value,
-        likeCount: newLikeCount,
-        dislikeCount: newDislikeCount
-      })
     }
-  } catch (error: any) {
-    if (error.isAxiosError) {
-      if (error.response?.status === 400) {
-        message.warning(error.response?.data?.msg || '您已经点过赞了')
-      } else if (error.response?.status === 500) {
-        message.error('服务器错误：' + (error.response?.data?.msg || ''))
-      } else {
-        message.error(error.response?.data?.msg || '操作失败')
-      }
-    } else {
-      message.error(error.message || '操作失败')
-    }
+  } catch (error) {
+    message.error('操作失败')
   }
 }
 
-// 点踩
 const handleDislike = async () => {
+  if (!props.articleId) return
   try {
     if (isDisliked.value) {
-      const params = {
-        contentId: props.articleId,
-        actionType: 3 as const,
-        tableName: 'article'
-      }
-      await interactionAPI.cancelLike(params)
+      await articleAPI.cancelDislike(props.articleId) // 修改调用
       isDisliked.value = false
-      emit('update', {
-        isLiked: isLiked.value,
-        isDisliked: false,
-        isFavorited: isFavorited.value,
-        dislikeCount: (props.dislikeCount || 0) - 1
-      })
-      message.success('已取消点踩')
+      dislikeCount.value--
     } else {
-      const params = {
-        contentId: props.articleId,
-        actionType: 3 as const,
-        tableName: 'article'
-      }
-      await interactionAPI.like(params)
+      await articleAPI.dislike(props.articleId) // 修改调用
       isDisliked.value = true
-      const newDislikeCount = (props.dislikeCount || 0) + 1
-      let newLikeCount = props.likeCount || 0
+      dislikeCount.value++
       if (isLiked.value) {
         isLiked.value = false
-        newLikeCount = (props.likeCount || 0) - 1
-        const cancelParams = {
-          contentId: props.articleId,
-          actionType: 2 as const,
-          tableName: 'article'
-        }
-        await interactionAPI.cancelLike(cancelParams)
+        likeCount.value--
       }
-      message.success('点踩成功')
-      emit('update', {
-        isLiked: false,
-        isDisliked: true,
-        isFavorited: isFavorited.value,
-        likeCount: newLikeCount,
-        dislikeCount: newDislikeCount
-      })
     }
-  } catch (error: any) {
-    if (error.isAxiosError) {
-      if (error.response?.status === 400) {
-        message.warning(error.response?.data?.msg || '您已经点过踩了')
-      } else if (error.response?.status === 500) {
-        message.error('服务器错误：' + (error.response?.data?.msg || ''))
-      } else {
-        message.error(error.response?.data?.msg || '操作失败')
-      }
-    } else {
-      message.error(error.message || '操作失败')
-    }
+  } catch (error) {
+    message.error('操作失败')
   }
 }
 
-// 收藏
 const handleFavorite = async () => {
+  if (!props.articleId) return
   try {
     if (isFavorited.value) {
-      await interactionAPI.cancel({
-        contentId: props.articleId,
-        actionType: 1,
-        tableName: 'article'
-      })
+      await articleAPI.cancelFavorite(props.articleId) // 修改调用
       isFavorited.value = false
+      favoriteCount.value--
       message.success('已取消收藏')
-      emit('update', {
-        isLiked: isLiked.value,
-        isDisliked: isDisliked.value,
-        isFavorited: false,
-        favoriteCount: (props.favoriteCount || 0) - 1
-      })
     } else {
-      await interactionAPI.create({
-        contentId: props.articleId,
-        actionType: 1,
-        tableName: 'article',
-        remark: '用户手动收藏'
-      })
+      await articleAPI.favorite(props.articleId) // 修改调用
       isFavorited.value = true
+      favoriteCount.value++
       message.success('收藏成功')
-      emit('update', {
-        isLiked: isLiked.value,
-        isDisliked: isDisliked.value,
-        isFavorited: true,
-        favoriteCount: (props.favoriteCount || 0) + 1
-      })
     }
-  } catch (error: any) {
-    message.error(error.response?.data?.msg || '操作失败')
+  } catch (error) {
+    message.error('操作失败')
   }
 }
 
@@ -692,8 +592,6 @@ const submitReport = async () => {
   }
 }
 
-// 初始化时检查状态
-checkInteractions()
 </script>
 
 <style lang="scss" scoped>

@@ -175,6 +175,9 @@
             :article-id="article.id"
             :like-count="article.likeCount"
             :favorite-count="article.favoriteCount"
+            :is-liked="article.isLiked"
+            :is-disliked="article.isDisliked"
+            :is-favorited="article.isFavorited"
             @update="handleInteractionUpdate"
           />
 
@@ -223,21 +226,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import {ref, onMounted, onBeforeUnmount, computed} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
-import { useBackNavigation } from '@/utils/backNavigation'
-import { useMessage, useDialog } from 'naive-ui'
+import { articleAPI } from '@/api/article' // 修改导入
+import { interactionQueryAPI } from '@/api/interaction' // 如果还需要检查状态
+import CommentSection from '@/components/comment/CommentSection.vue'
+import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
 import { Icon } from '@iconify/vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ArticleInteractionBar from '@/components/article/ArticleInteractionBar.vue'
 import ArticleSidebar from '@/components/article/ArticleSidebar.vue'
-import CommentSection from '@/components/comment/CommentSection.vue'
-import UserAvatarLink from '@/components/user/UserAvatarLink.vue'
-import { articleAPI, type Article } from '@/api/article'
-import { interactionAPI } from '@/api/interaction'
 import { getAvatarUrl } from '@/utils/userUtils'
-import { useGlobalProperties } from '@/utils/globalProperties'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
@@ -249,6 +249,10 @@ import { VideoAnnotationRefExtension } from '@/utils/tiptap-video-annotation-ref
 import { articleContributorAPI } from '@/api/contributor'
 import { useVisitedStore } from '@/stores/visited'
 import { normalizeFileUrl } from '@/utils/fileUrl'
+import {useGlobalProperties} from "@/utils/globalProperties";
+import {useDialog, useMessage} from "naive-ui";
+import {useBackNavigation} from "@/utils/backNavigation";
+import {Article} from "@/types/article";
 
 const appContext = useGlobalProperties()
 const router = useRouter()

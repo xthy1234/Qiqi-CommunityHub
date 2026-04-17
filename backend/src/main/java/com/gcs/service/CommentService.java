@@ -132,5 +132,59 @@ public interface CommentService extends IService<Comment> {
      * 批量更新评论状态
      */
     boolean batchUpdateStatus(Long[] commentIds, Integer status);
+    
+    /**
+     * 获取文章评论列表（分页，主评论 + 前3条高赞子评论）
+     * 
+     * @param articleId 文章ID
+     * @param page 页码
+     * @param size 每页数量
+     * @return 分页结果（包含主评论及其热门回复）
+     */
+    PageUtils getArticleComments(Long articleId, Integer page, Integer size);
+    
+    /**
+     * 获取主评论下的所有子评论（分页，按时间升序）
+     * 
+     * @param parentId 主评论ID
+     * @param page 页码
+     * @param size 每页数量
+     * @return 分页的子评论列表
+     */
+    PageUtils getRepliesByParentId(Long parentId, Integer page, Integer size);
+    
+    /**
+     * 统计主评论的子评论数量
+     * 
+     * @param parentId 主评论ID
+     * @return 子评论数量
+     */
+    Integer countRepliesByParentId(Long parentId);
+    
+    /**
+     * 点赞/取消点赞评论
+     * 
+     * @param commentId 评论ID
+     * @param userId 用户ID
+     * @return 最新点赞数
+     */
+    Integer toggleLike(Long commentId, Long userId);
+    
+    /**
+     * 点踩/取消点踩评论
+     * 
+     * @param commentId 评论ID
+     * @param userId 用户ID
+     * @return 最新点踩数
+     */
+    Integer toggleDislike(Long commentId, Long userId);
+    
+    /**
+     * 批量填充被回复用户信息（用于显示"@xxx"）
+     * 
+     * @param comments 评论列表
+     */
+    void enrichReplyUserInfo(List<CommentView> comments);
+
 }
 

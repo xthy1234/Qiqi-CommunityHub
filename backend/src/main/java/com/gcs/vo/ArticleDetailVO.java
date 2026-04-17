@@ -44,6 +44,9 @@ public class ArticleDetailVO extends ArticleVO {
     @Schema(description = "是否已点赞", example = "true")
     private Boolean isLiked;
 
+    @Schema(description = "是否已点踩", example = "false")
+    private Boolean isDisliked;
+
     @Schema(description = "是否已收藏", example = "true")
     private Boolean isFavorited;
 

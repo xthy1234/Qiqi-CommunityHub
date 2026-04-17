@@ -16,9 +16,6 @@ import java.util.List;
 @Schema(description = "评论详情视图对象")
 public class CommentDetailVO extends CommentVO {
     
-    @Schema(description = "回复内容", example = "这是回复内容")
-    private String replyContent;
-    
     @Schema(description = "更新时间", example = "2026-01-01 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
@@ -28,4 +25,10 @@ public class CommentDetailVO extends CommentVO {
     
     @Schema(description = "是否已点赞", example = "false")
     private Boolean isLiked = false;
+    
+    @Schema(description = "子评论总数", example = "8")
+    private Integer replyCount = 0;
+    
+    @Schema(description = "是否已编辑", example = "false")
+    private Boolean isEdited = false;
 }
