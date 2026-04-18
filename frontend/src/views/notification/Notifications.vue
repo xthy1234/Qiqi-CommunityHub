@@ -113,7 +113,7 @@ const handleClear = async () => {
 }
 
 onMounted(async () => {
-  console.log('[Notifications] 页面挂载，初始化通知模块')
+
 
   // 初始化 WebSocket 订阅
   notificationStore.initWebSocketSubscription()
@@ -121,7 +121,7 @@ onMounted(async () => {
   // 加载未读数
   try {
     await notificationStore.loadUnreadCount()
-    console.log('[Notifications] 未读数量加载完成:', unreadCount.value)
+
   } catch (error) {
     console.error('[Notifications] 加载未读数量失败:', error)
   }

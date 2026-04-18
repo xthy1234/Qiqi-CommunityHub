@@ -456,9 +456,17 @@ export const useCircleChatStore = defineStore('circleChat', {
       }
     },
 
-    /** 清除保存的会话 */
+    /** 清空当前圈子 */
+    clearCurrentCircle(): void {
+      this.currentCircle = null
+      this.messages = []
+      this.hasMore = false
+      this.clearSavedCircle()
+    },
+
+    /** 清除保存的圈子 */
     clearSavedCircle(): void {
-      sessionStorage.removeItem('lastCircleSession')
+      sessionStorage.removeItem('currentCircle')
     },
 
     /** 防抖：标记圈子为已读（延迟 500ms，避免频繁调用） */

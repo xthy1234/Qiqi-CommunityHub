@@ -158,12 +158,6 @@ const processNotificationContent = (notification: Notification): Notification =>
 const getNotificationRoute = (notification: Notification) => {
   const { type, extra } = notification
 
-  console.log('[NotificationList] 准备生成路由:', {
-    type,
-    extra,
-    sourceId: notification.sourceId,
-    fullNotification: notification
-  })
 
   switch (type) {
     case 1: // COMMENT
@@ -171,13 +165,6 @@ const getNotificationRoute = (notification: Notification) => {
     case 4: // REPLY
       const articleId = (extra as any)?.articleId || notification.sourceId
       const commentId = (extra as any)?.commentId
-
-      console.log('[NotificationList] 文章通知路由参数:', {
-        articleId,
-        commentId,
-        extraArticleId: (extra as any)?.articleId,
-        sourceId: notification.sourceId
-      })
 
       // 使用 query 参数方式传递 articleId
       return articleId ? `/index/articleDetail?id=${articleId}` : '/'

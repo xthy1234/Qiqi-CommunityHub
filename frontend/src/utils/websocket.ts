@@ -791,13 +791,95 @@ class WebSocketManager {
   /**
    * 关闭 WebSocket连接
    */
-  close(): void {
-    if (this.client) {
-      this.isManualClose = true
-      this.client.deactivate()
-      this.client = null
-      // 注意：这里不清除 currentUserId，以便重连时使用
+  close(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.client) {
+        this.isManualClose = true
+        
+        // 检查客户端状态，避免在连接未完成时关闭
+        const clientState = (this.client as any).state
+        
+        // 如果正在连接中，等待连接完成再关闭
+        if (clientState === 'CONNECTING') {
+          wsLogger.info('WebSocket 正在连接中，等待连接完成后关闭...')
+          
+          const checkConnection = setInterval(() => {
+            const currentState = (this.client as any).state
+            if (currentState === 'CONNECTED' || currentState === 'CLOSED' || currentState === 'INACTIVE') {
+              clearInterval(checkConnection)
+              
+              if (currentState === 'CONNECTED') {
+                // 已连接，正常关闭
+                this.performClose(resolve)
+              } else {
+                // 已关闭或非活动状态，直接清理
+                this.client = null
+                wsLogger.info('WebSocket 已关闭（未连接状态）')
+                resolve()
+              }
+            }
+          }, 50)
+          
+          // 设置超时，防止无限等待
+          setTimeout(() => {
+            clearInterval(checkConnection)
+            if (this.client) {
+              try {
+                this.client.deactivate()
+              } catch (e) {
+                // 忽略关闭错误
+              }
+              this.client = null
+            }
+            wsLogger.info('WebSocket 已强制关闭')
+            resolve()
+          }, 3000)
+        } else if (clientState === 'CONNECTED') {
+          // 已连接，正常关闭
+          this.performClose(resolve)
+        } else {
+          // 其他状态（DEACTIVATING, INACTIVE, CLOSED），直接清理
+          try {
+            this.client.deactivate()
+          } catch (e) {
+            // 忽略关闭错误
+          }
+          this.client = null
+          wsLogger.info('WebSocket 已关闭（非活动状态）')
+          resolve()
+        }
+      } else {
+        // 没有客户端，直接 resolve
+        resolve()
+      }
+    })
+  }
+
+  /**
+   * 执行关闭操作
+   */
+  private performClose(resolve: () => void): void {
+    if (!this.client) {
+      resolve()
+      return
     }
+
+    // 监听断开事件，等待 deactivate 完成
+    const originalOnDisconnect = this.client.onDisconnect
+    
+    this.client.onDisconnect = (frame) => {
+      // 调用原始的 onDisconnect（如果存在）
+      if (originalOnDisconnect) {
+        originalOnDisconnect(frame)
+      }
+      
+      this.client = null
+      wsLogger.info('WebSocket 已关闭')
+      resolve()
+    }
+    
+    // 触发关闭
+    this.client.deactivate()
   }
 
   /**

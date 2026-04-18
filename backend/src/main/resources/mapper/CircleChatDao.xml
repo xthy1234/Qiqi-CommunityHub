@@ -112,7 +112,7 @@
             cc.create_time as last_message_time,
             COALESCE(uc.unread_count, 0) as unread_count
         FROM circle c
-                 INNER JOIN circle_member cm ON c.id = cm.circle_id AND cm.user_id = #{userId} AND cm.status = 0
+                 INNER JOIN circle_member cm ON c.id = cm.circle_id AND cm.user_id = #{userId} AND cm.status = 1
                  LEFT JOIN (
             -- 使用 ROW_NUMBER() 获取每个圈子的最后一条消息
             SELECT *
@@ -142,7 +142,7 @@
             FROM circle_chat cc
                      INNER JOIN circle_member cm ON cc.circle_id = cm.circle_id
                 AND cm.user_id = #{userId}
-                AND cm.status = 0
+                AND cm.status = 1
             WHERE cc.status = 0
               AND cc.create_time > cm.last_read_time
             GROUP BY cc.circle_id
@@ -157,7 +157,7 @@
         FROM circle_chat cc
         INNER JOIN circle_member cm ON cc.circle_id = cm.circle_id
             AND cm.user_id = #{userId}
-            AND cm.status = 0
+            AND cm.status = 1
         WHERE cc.circle_id = #{circleId}
           AND cc.status = 0
           AND cc.deleted_by_admin = false

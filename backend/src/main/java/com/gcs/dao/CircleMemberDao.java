@@ -21,9 +21,7 @@ public interface CircleMemberDao extends BaseMapper<CircleMember> {
     Integer getUserRoleInCircle(@Param("circleId") Long circleId, @Param("userId") Long userId);
 
     /**
-     * 查询圈子成员数量
-     * @param circleId 圈子 ID
-     * @return 成员数量
+     * 获取圈子成员数量
      */
     Integer getMemberCount(@Param("circleId") Long circleId);
 
@@ -73,4 +71,25 @@ public interface CircleMemberDao extends BaseMapper<CircleMember> {
      * 查询圈主 ID 列表
      */
     List<Long> getOwners(@Param("circleId") Long circleId);
+
+    /**
+     * 根据状态获取成员列表
+     */
+    List<CircleMember> getMembersByStatus(@Param("circleId") Long circleId, @Param("status") Integer status);
+
+    /**
+     * 获取待审核的成员列表
+     */
+    List<CircleMember> getPendingMembers(@Param("circleId") Long circleId);
+
+    /**
+     * 获取活跃成员列表
+     */
+    List<CircleMember> getActiveMembers(@Param("circleId") Long circleId);
+
+    /**
+     * 检查用户是否有待审核的申请
+     */
+    Boolean hasPendingApplication(@Param("circleId") Long circleId, @Param("userId") Long userId);
+
 }

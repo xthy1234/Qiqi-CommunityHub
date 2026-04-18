@@ -1,16 +1,23 @@
 package com.gcs.controller;
 
+import com.gcs.converter.UserConverter;
 import com.gcs.dto.*;
 import com.gcs.entity.Circle;
+import com.gcs.entity.User;
 import com.gcs.enums.CommonStatus;
+import com.gcs.enums.NotificationType;
 import com.gcs.service.CircleService;
 import com.gcs.service.CircleMemberService;
+import com.gcs.service.NotificationService;
+import com.gcs.service.UserService;
+import com.gcs.utils.NotificationBuilder;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
 import com.gcs.enums.CircleMemberRole;
 import com.gcs.enums.CircleType;
-
+import com.gcs.utils.SessionUtils;
 import com.gcs.vo.CircleInviteLinkVO;
+import com.gcs.vo.UserSimpleVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -44,17 +51,19 @@ public class CircleMemberController {
     
     @Autowired
     private CircleMemberService circleMemberService;
+    
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private NotificationService notificationService;
+    
+    @Autowired
+    private UserConverter userConverter;
 
-    /**
-     * 获取当前登录用户 ID
-     */
-    private Long getCurrentUserId(HttpServletRequest request) {
-        Object userIdObj = request.getSession().getAttribute("userId");
-        if (userIdObj == null) {
-            throw new RuntimeException("用户未登录");
-        }
-        return (Long) userIdObj;
-    }
+    @Autowired
+    private SessionUtils sessionUtils;
+
 
     // ==================== 圈子成员接口 ====================
 
@@ -75,7 +84,7 @@ public class CircleMemberController {
         @RequestParam Map<String, Object> params,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             // 检查是否是成员
             Boolean isMember = circleMemberService.hasManagePermission(circleId, currentUserId);
@@ -112,7 +121,7 @@ public class CircleMemberController {
         @RequestBody(required = false) CircleJoinDTO joinDTO,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long userId = getCurrentUserId(request);
+            Long userId = sessionUtils.getCurrentUserId(request);
             
             // 获取圈子信息
             Circle circle = circleService.getById(circleId);
@@ -161,7 +170,7 @@ public class CircleMemberController {
         @PathVariable("circleId") Long circleId,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long userId = getCurrentUserId(request);
+            Long userId = sessionUtils.getCurrentUserId(request);
             circleMemberService.leaveCircle(circleId, userId);
             return R.ok("退出成功");
         } catch (Exception e) {
@@ -187,7 +196,7 @@ public class CircleMemberController {
         @PathVariable("userId") Long userId,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             // 检查是否有管理权限
             if (!circleMemberService.hasManagePermission(circleId, currentUserId)) {
@@ -227,7 +236,7 @@ public class CircleMemberController {
         @Valid @RequestBody CircleMemberRoleUpdateDTO roleDTO,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             // 获取当前用户角色
             Integer currentUserRole = circleMemberService.getUserRoleInCircle(circleId, currentUserId);
@@ -276,7 +285,7 @@ public class CircleMemberController {
         @Valid @RequestBody CircleInviteDTO inviteDTO,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             // 检查是否有管理权限
             if (!circleMemberService.hasManagePermission(circleId, currentUserId)) {
@@ -300,10 +309,197 @@ public class CircleMemberController {
             linkVO.setExpireTime(java.time.LocalDateTime.now().plusDays(7)
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             
+            // 发送邀请通知
+            sendInviteNotification(circleId, inviteDTO.getUserId(), currentUserId, inviteLink);
+            
             return R.ok("邀请成功").put("data", linkVO);
         } catch (Exception e) {
             log.error("邀请成员失败，circleId: {}", circleId, e);
             return R.error(e.getMessage());
         }
     }
+
+    /**
+     * 申请加入圈子
+     */
+    @PostMapping("/{circleId}/apply")
+    @Operation(summary = "申请加入圈子", description = "用户申请加入需要审核的圈子")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "申请成功"),
+        @ApiResponse(responseCode = "400", description = "申请失败")
+    })
+    public R applyToJoin(
+        @Parameter(description = "圈子 ID", required = true) 
+        @PathVariable("circleId") Long circleId,
+        @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            Long userId = sessionUtils.getCurrentUserId(request);
+            circleMemberService.applyToJoin(circleId, userId);
+            return R.ok("申请已提交，等待审核");
+        } catch (Exception e) {
+            log.error("申请加入圈子失败，circleId: {}", circleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 审核加入申请
+     */
+    @PutMapping("/{circleId}/applications/{userId}")
+    @Operation(summary = "审核加入申请", description = "圈主或管理员审核用户的加入申请")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "审核成功"),
+        @ApiResponse(responseCode = "403", description = "无权限"),
+        @ApiResponse(responseCode = "400", description = "审核失败")
+    })
+    public R reviewApplication(
+        @Parameter(description = "圈子 ID", required = true) 
+        @PathVariable("circleId") Long circleId,
+        @Parameter(description = "用户 ID", required = true) 
+        @PathVariable("userId") Long userId,
+        @Parameter(description = "审核结果", required = true) 
+        @Valid @RequestBody CircleApplicationReviewDTO reviewDTO,
+        @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            
+            // 检查是否有管理权限
+            if (!circleMemberService.hasManagePermission(circleId, currentUserId)) {
+                return R.error("无权限审核");
+            }
+            
+            circleMemberService.reviewJoinApplication(circleId, userId, reviewDTO.isApproved(), currentUserId);
+            return R.ok(reviewDTO.isApproved() ? "已通过" : "已拒绝");
+        } catch (Exception e) {
+            log.error("审核加入申请失败，circleId: {}, userId: {}", circleId, userId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取待审核的成员列表
+     */
+    @GetMapping("/{circleId}/applications")
+    @Operation(summary = "获取待审核申请列表", description = "圈主或管理员查看待审核的加入申请")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "403", description = "无权限")
+    })
+    public R getPendingApplications(
+        @Parameter(description = "圈子 ID", required = true) 
+        @PathVariable("circleId") Long circleId,
+        @Parameter(description = "查询参数") 
+        @RequestParam Map<String, Object> params,
+        @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            
+            // 检查是否有管理权限
+            if (!circleMemberService.hasManagePermission(circleId, currentUserId)) {
+                return R.error("无权限查看");
+            }
+            
+            PageUtils page = circleMemberService.getPendingMembers(circleId, params);
+            return R.ok().put("data", page);
+        } catch (Exception e) {
+            log.error("获取待审核申请列表失败，circleId: {}", circleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取活跃成员列表
+     */
+    @GetMapping("/{circleId}/active-members")
+    @Operation(summary = "获取活跃成员列表", description = "获取圈子中的活跃成员")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "获取成功"),
+        @ApiResponse(responseCode = "403", description = "无权查看")
+    })
+    public R getActiveMembers(
+        @Parameter(description = "圈子 ID", required = true) 
+        @PathVariable("circleId") Long circleId,
+        @Parameter(description = "查询参数") 
+        @RequestParam Map<String, Object> params,
+        @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            
+            // 检查是否是成员
+            Boolean isMember = circleMemberService.isMember(circleId, currentUserId);
+            if (isMember == null || !isMember) {
+                return R.error("无权查看，非圈子成员");
+            }
+            
+            PageUtils page = circleMemberService.getActiveMembers(circleId, params);
+            return R.ok().put("data", page);
+        } catch (Exception e) {
+            log.error("获取活跃成员列表失败，circleId: {}", circleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 接受邀请加入圈子
+     */
+    @PostMapping("/{circleId}/accept-invite")
+    @Operation(summary = "接受邀请", description = "用户接受邀请加入圈子")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "加入成功"),
+        @ApiResponse(responseCode = "400", description = "加入失败")
+    })
+    public R acceptInvite(
+        @Parameter(description = "圈子 ID", required = true) 
+        @PathVariable("circleId") Long circleId,
+        @Parameter(description = "邀请码", required = true) 
+        @Valid @RequestBody CircleAcceptInviteDTO acceptDTO,
+        @Parameter(hidden = true) HttpServletRequest request) {
+        try {
+            Long userId = sessionUtils.getCurrentUserId(request);
+            circleMemberService.acceptInvite(circleId, userId, acceptDTO.getInviteCode());
+            return R.ok("加入成功");
+        } catch (Exception e) {
+            log.error("接受邀请失败，circleId: {}", circleId, e);
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 发送邀请通知
+     */
+    private void sendInviteNotification(Long circleId, Long inviteeId, Long inviterId, String inviteLink) {
+        try {
+            Circle circle = circleService.getById(circleId);
+            if (circle == null) {
+                return;
+            }
+            
+            User inviter = userService.getById(inviterId);
+            if (inviter == null) {
+                return;
+            }
+            
+            UserSimpleVO inviterVO = userConverter.toSimpleVO(inviter);
+            
+            Map<String, Object> extra = NotificationBuilder.buildCircleInviteNotification(
+                circleId,
+                circle.getName(),
+                inviterVO
+            );
+            extra.put("inviteLink", inviteLink);
+            
+            notificationService.createNotification(
+                inviteeId,
+                NotificationType.CIRCLE_INVITE.getCode(),
+                circleId,
+                null,
+                extra
+            );
+            
+            log.info("发送邀请通知，circleId: {}, inviterId: {}, inviteeId: {}", circleId, inviterId, inviteeId);
+        } catch (Exception e) {
+            log.error("发送邀请通知失败", e);
+        }
+    }
+
 }

@@ -4,16 +4,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.gcs.converter.UserConverter;
 import com.gcs.dao.CircleDao;
 import com.gcs.dao.CircleMemberDao;
-import com.gcs.dao.UserDao;
 import com.gcs.entity.Circle;
 import com.gcs.entity.CircleMember;
 import com.gcs.entity.User;
 import com.gcs.dto.*;
 import com.gcs.enums.CommonStatus;
+import com.gcs.enums.MemberStatus;
 import com.gcs.service.CircleService;
 import com.gcs.service.CircleMemberService;
+import com.gcs.service.UserService;
 import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.enums.CircleMemberRole;
@@ -21,6 +23,7 @@ import com.gcs.enums.CircleMemberRole;
 import com.gcs.vo.CircleDetailVO;
 import com.gcs.vo.CircleListVO;
 import com.gcs.vo.CircleCreateResponseVO;
+import com.gcs.vo.UserSimpleVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,10 +48,10 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
     private CircleMemberService circleMemberService;
 
     @Autowired
-    private CircleMemberDao circleMemberDao;
+    private UserService userService;
 
     @Autowired
-    private UserDao userDao;
+    private UserConverter userConverter;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -76,13 +79,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             this.save(circle);
 
 
-            CircleMember member = new CircleMember();
-            member.setCircleId(circle.getId());
-            member.setUserId(userId);
-            member.setRole(CircleMemberRole.OWNER.getCode());
-            member.setJoinTime(LocalDateTime.now());
-            member.setStatus(CommonStatus.ENABLED);
-            circleMemberService.save(member);
+            circleMemberService.addMember(circle.getId(), userId, CircleMemberRole.OWNER.getCode());
 
             log.info("用户{}创建圈子{}", userId, circle.getName());
             return circle;
@@ -102,7 +99,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
 
 
             if (circle.getType() == 0) {
-                Boolean isMember = circleMemberDao.isMember(circleId, currentUserId);
+                Boolean isMember = circleMemberService.isMember(circleId, currentUserId);
                 if (isMember == null || !isMember) {
                     throw new RuntimeException("无权查看该圈子");
                 }
@@ -118,18 +115,19 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             vo.setStatus(circle.getStatus());
 
 
-            User owner = userDao.selectById(circle.getOwnerId());
+            User owner = userService.getById(circle.getOwnerId());
             if (owner != null) {
-                vo.setOwnerNickname(owner.getNickname());
-                vo.setOwnerAvatar(owner.getAvatar());
+                UserSimpleVO ownerVO = userConverter.toSimpleVO(owner);
+                vo.setOwnerNickname(ownerVO.getNickname());
+                vo.setOwnerAvatar(ownerVO.getAvatar());
             }
 
 
-            vo.setMemberCount(circleMemberDao.getMemberCount(circleId));
+            vo.setMemberCount(circleMemberService.getActiveMemberCount(circleId));
 
 
             if (currentUserId != null) {
-                Integer userRole = circleMemberDao.getUserRoleInCircle(circleId, currentUserId);
+                Integer userRole = circleMemberService.getUserRoleInCircle(circleId, currentUserId);
                 vo.setCurrentUserRole(userRole);
                 vo.setIsJoined(userRole != null);
             } else {
@@ -203,9 +201,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             this.updateById(circle);
 
 
-            LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(CircleMember::getCircleId, circleId);
-            circleMemberService.remove(queryWrapper);
+            circleMemberService.removeAllMembers(circleId);
 
             log.info("用户{}解散圈子{}", userId, circleId);
         } catch (Exception e) {
@@ -215,39 +211,12 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
     }
 
     @Override
-    @Transactional
-    public void leaveCircle(Long circleId, Long userId) {
-        try {
-            Circle circle = this.getById(circleId);
-            if (circle == null || circle.getStatus() == CommonStatus.DISABLED) {
-                throw new RuntimeException("圈子不存在或已解散");
-            }
-
-
-            if (circle.getOwnerId().equals(userId)) {
-                throw new RuntimeException("圈主不能退出圈子，请先转让或解散");
-            }
-
-
-            LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(CircleMember::getCircleId, circleId)
-                    .eq(CircleMember::getUserId, userId);
-            circleMemberService.remove(queryWrapper);
-
-            log.info("用户{}退出圈子{}", userId, circleId);
-        } catch (Exception e) {
-            log.error("退出圈子失败，circleId: {}", circleId, e);
-            throw new RuntimeException("退出圈子失败：" + e.getMessage());
-        }
-    }
-
-    @Override
     public PageUtils getMyCircles(Long currentUserId, Map<String, Object> params) {
         try {
             IPage<Circle> circlePage = new Query<Circle>(params).getPage();
 
 
-            List<Long> joinedCircleIds = circleMemberDao.getJoinedCircleIds(currentUserId);
+            List<Long> joinedCircleIds = circleMemberService.getJoinedCircleIds(currentUserId);
 
             if (joinedCircleIds == null || joinedCircleIds.isEmpty()) {
                 return new PageUtils(List.of(), 0, circlePage.getSize(), circlePage.getCurrent());
@@ -316,16 +285,15 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
         vo.setType(circle.getType());
         vo.setStatus(circle.getStatus());
         
-        // 获取圈主信息
-        User owner = userDao.selectById(circle.getOwnerId());
+        User owner = userService.getById(circle.getOwnerId());
         if (owner != null) {
-            vo.setOwnerNickname(owner.getNickname());
-            vo.setOwnerAvatar(owner.getAvatar());
+            UserSimpleVO ownerVO = userConverter.toSimpleVO(owner);
+            vo.setOwnerNickname(ownerVO.getNickname());
+            vo.setOwnerAvatar(ownerVO.getAvatar());
         }
         
-        // 获取成员数量
         try {
-            Integer memberCount = circleMemberDao.getMemberCount(circle.getId());
+            Integer memberCount = circleMemberService.getActiveMemberCount(circle.getId());
             vo.setMemberCount(memberCount != null ? memberCount : 0);
             log.debug("圈子{}的成员数量：{}", circle.getId(), memberCount);
         } catch (Exception e) {
@@ -333,20 +301,22 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             vo.setMemberCount(0);
         }
         
-        // 判断是否已加入
         if (currentUserId != null) {
-            try {
-                Boolean isMember = circleMemberDao.isMember(circle.getId(), currentUserId);
-                vo.setIsJoined(isMember != null && isMember);
-            } catch (Exception e) {
-                log.error("检查用户{}是否在圈子{}中失败", currentUserId, circle.getId(), e);
-                vo.setIsJoined(false);
+            if (circle.getOwnerId().equals(currentUserId)) {
+                vo.setIsJoined(true);
+            } else {
+                try {
+                    Boolean isMember = circleMemberService.isMember(circle.getId(), currentUserId);
+                    vo.setIsJoined(isMember != null && isMember);
+                } catch (Exception e) {
+                    log.error("检查用户{}是否在圈子{}中失败", currentUserId, circle.getId(), e);
+                    vo.setIsJoined(false);
+                }
             }
         } else {
             vo.setIsJoined(false);
         }
         
-        // 设置未读消息数（暂时设为 0，后续可从消息服务获取）
         vo.setUnreadCount(0);
         
         if (circle.getCreateTime() != null) {
@@ -370,7 +340,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
             }
 
             // 检查是否是管理员
-            Integer userRole = circleMemberDao.getUserRoleInCircle(circleId, userId);
+            Integer userRole = circleMemberService.getUserRoleInCircle(circleId, userId);
             return userRole != null && userRole == CircleMemberRole.ADMIN.getCode();
         } catch (Exception e) {
             log.error("检查圈子管理权限失败，circleId: {}, userId: {}", circleId, userId, e);

@@ -15,6 +15,7 @@
       <CircleChatDetail 
         v-if="store.currentCircle" 
         @show-members="showMemberList = true"
+        @show-pending-applications="showPendingApplications"
       />
       <EmptyChat v-else />
     </div>
@@ -90,11 +91,141 @@
       </n-form-item>
     </n-form>
   </n-modal>
+
+  <!-- 邀请成员对话框 -->
+  <n-modal
+    v-model:show="showInviteModal"
+    title="邀请成员"
+    preset="dialog"
+    positive-text="生成邀请链接"
+    :positive-button-props="{ loading: inviteLoading }"
+    @positive-click="handleGenerateInvite"
+  >
+    <div class="invite-content">
+      <p class="invite-tip">
+        生成邀请链接后，分享给好友即可加入圈子
+      </p>
+
+      <div
+        v-if="inviteLink"
+        class="invite-link-box"
+      >
+        <n-input
+          :value="inviteLink"
+          readonly
+          size="large"
+        >
+          <template #suffix>
+            <n-button
+              text
+              type="primary"
+              @click="copyInviteLink"
+            >
+              复制
+            </n-button>
+          </template>
+        </n-input>
+        <p class="invite-expire">
+          有效期至：{{ inviteExpireTime }}
+        </p>
+      </div>
+    </div>
+  </n-modal>
+
+  <!-- 接受邀请对话框 -->
+  <n-modal
+    v-model:show="showAcceptInviteModal"
+    title="接受邀请"
+    preset="dialog"
+    positive-text="加入圈子"
+    :positive-button-props="{ loading: acceptInviteLoading }"
+    @positive-click="handleAcceptInvite"
+  >
+    <n-form
+      ref="acceptInviteFormRef"
+      :model="acceptInviteForm"
+      :rules="acceptInviteRules"
+      label-placement="left"
+      label-width="80px"
+    >
+      <n-form-item
+        label="邀请码"
+        path="inviteCode"
+      >
+        <n-input
+          v-model:value="acceptInviteForm.inviteCode"
+          placeholder="请输入邀请码"
+          maxlength="20"
+        />
+      </n-form-item>
+    </n-form>
+  </n-modal>
+
+  <!-- 待审核申请列表对话框 -->
+  <n-modal
+    v-model:show="showPendingApplicationsModal"
+    title="待审核申请"
+    preset="card"
+    style="width: 600px"
+  >
+    <n-spin :show="applicationsLoading">
+      <n-list
+        v-if="pendingApplications.length > 0"
+        hoverable
+      >
+        <n-list-item
+          v-for="app in pendingApplications"
+          :key="app.userId"
+        >
+          <template #prefix>
+            <n-avatar
+              :src="app.avatar"
+              round
+              size="medium"
+            />
+          </template>
+
+          <div class="application-item">
+            <div class="applicant-info">
+              <div class="applicant-name">
+                {{ app.nickname }}
+              </div>
+              <div class="applicant-time">
+                申请时间：{{ formatJoinTime(app.joinTime) }}
+              </div>
+            </div>
+
+            <div class="application-actions">
+              <n-button
+                size="small"
+                type="success"
+                @click="handleApproveApplication(app.userId)"
+              >
+                通过
+              </n-button>
+              <n-button
+                size="small"
+                type="error"
+                @click="handleRejectApplication(app.userId)"
+              >
+                拒绝
+              </n-button>
+            </div>
+          </div>
+        </n-list-item>
+      </n-list>
+
+      <n-empty
+        v-else
+        description="暂无待审核申请"
+      />
+    </n-spin>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useMessage, NForm, NFormItem, NInput, NRadioGroup, NRadio, NSpace, NModal } from 'naive-ui'
+import { useMessage, NForm, NFormItem, NInput, NRadioGroup, NRadio, NSpace, NModal, NAvatar, NList, NListItem, NButton, NSpin, NEmpty } from 'naive-ui'
 import EmptyChat from '@/components/chat/EmptyChat.vue'
 import CircleConversationPanel from '@/components/circle-chat/CircleConversationPanel.vue'
 import CircleChatDetail from '@/components/circle-chat/CircleChatDetail.vue'
@@ -105,6 +236,7 @@ import type { CircleConversation, CircleMessage, CircleMember } from '@/types/ci
 import {getWebSocket} from "@/utils/websocket"
 import chatService from '@/api/chat'
 import { ensureCircleWebSocketConnected } from '@/api/circle'
+import dayjs from 'dayjs'
 
 const store = useCircleChatStore()
 const message = useMessage()
@@ -114,20 +246,29 @@ const showMemberList = ref(false)
 const showCreateModal = ref(false)
 const creatingLoading = ref(false)
 
-// 创建圈子表单
-const createFormRef = ref<any>(null)
-const createForm = ref({
-  name: '',
-  description: '',
-  type: 1  // 1-公开，0-私密
-})
+// 邀请相关状态
+const showInviteModal = ref(false)
+const inviteLoading = ref(false)
+const inviteLink = ref('')
+const inviteExpireTime = ref('')
 
-const createRules = {
-  name: [
-    { required: true, message: '请输入圈子名称', trigger: 'blur' },
-    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+// 接受邀请相关状态
+const showAcceptInviteModal = ref(false)
+const acceptInviteLoading = ref(false)
+const acceptInviteFormRef = ref<any>(null)
+const acceptInviteForm = ref({
+  inviteCode: ''
+})
+const acceptInviteRules = {
+  inviteCode: [
+    { required: true, message: '请输入邀请码', trigger: 'blur' }
   ]
 }
+
+// 待审核申请相关状态
+const showPendingApplicationsModal = ref(false)
+const applicationsLoading = ref(false)
+const pendingApplications = ref<CircleMember[]>([])
 
 /**
  * 加载会话列表
@@ -218,8 +359,169 @@ const loadMembers = async (circleId: number) => {
 const handleInviteMember = () => {
   if (!store.currentCircle) {return}
 
-  // TODO: 打开邀请对话框
-  message.info('邀请功能开发中')
+  // 重置状态
+  inviteLink.value = ''
+  inviteExpireTime.value = ''
+  showInviteModal.value = true
+}
+
+/**
+ * 生成邀请链接
+ */
+const handleGenerateInvite = async () => {
+  if (!store.currentCircle) {return false}
+
+  try {
+    inviteLoading.value = true
+
+    // 这里需要选择一个用户ID来邀请，实际应用中应该弹出用户选择器
+    // 暂时使用示例，实际应该让用户选择要邀请的用户
+    message.info('请选择要邀请的用户（功能开发中）')
+
+    // TODO: 实现用户选择器，获取 userId
+    // const userId = await selectUserToInvite()
+    // const result = await circleMemberApi.inviteMember(store.currentCircle.id, userId)
+    // inviteLink.value = result.inviteLink
+    // inviteExpireTime.value = dayjs(result.expireTime).format('YYYY-MM-DD HH:mm:ss')
+
+    return false // 阻止对话框关闭
+  } catch (error: any) {
+    console.error('[圈子聊天] 生成邀请链接失败:', error)
+    message.error(error.message || '生成失败')
+    return false
+  } finally {
+    inviteLoading.value = false
+  }
+}
+
+/**
+ * 复制邀请链接
+ */
+const copyInviteLink = () => {
+  if (navigator.clipboard && inviteLink.value) {
+    navigator.clipboard.writeText(inviteLink.value)
+    message.success('已复制到剪贴板')
+  }
+}
+
+/**
+ * 显示接受邀请对话框
+ */
+const showAcceptInviteDialog = () => {
+  acceptInviteForm.value.inviteCode = ''
+  showAcceptInviteModal.value = true
+}
+
+/**
+ * 接受邀请
+ */
+const handleAcceptInvite = async () => {
+  if (!store.currentCircle) {return false}
+
+  try {
+    await acceptInviteFormRef.value?.validate()
+
+    acceptInviteLoading.value = true
+    await circleMemberApi.acceptInvite(store.currentCircle.id, acceptInviteForm.value.inviteCode)
+
+    message.success('加入成功')
+    showAcceptInviteModal.value = false
+
+    // 刷新会话列表
+    await loadConversations()
+
+    return true
+  } catch (error: any) {
+    if (error.errors) {
+      return false
+    }
+    console.error('[圈子聊天] 接受邀请失败:', error)
+    message.error(error.message || '加入失败')
+    return false
+  } finally {
+    acceptInviteLoading.value = false
+  }
+}
+
+/**
+ * 显示待审核申请列表
+ */
+const showPendingApplications = async () => {
+  if (!store.currentCircle) {return}
+
+  try {
+    applicationsLoading.value = true
+    showPendingApplicationsModal.value = true
+
+    const result = await circleMemberApi.getPendingApplications(store.currentCircle.id, {
+      page: 1,
+      limit: 50
+    })
+
+    pendingApplications.value = result.list
+  } catch (error: any) {
+    console.error('[圈子聊天] 加载待审核申请失败:', error)
+
+    // 根据错误信息给出友好提示
+    if (error.response?.data?.msg === '无权限查看') {
+      message.warning('您没有权限查看待审核申请')
+    } else {
+      message.error(error.message || '加载失败')
+    }
+
+    showPendingApplicationsModal.value = false
+  } finally {
+    applicationsLoading.value = false
+  }
+}
+
+/**
+ * 通过申请
+ */
+const handleApproveApplication = async (userId: number) => {
+  if (!store.currentCircle) {return}
+
+  try {
+    await circleMemberApi.reviewApplication(store.currentCircle.id, userId, true, '欢迎加入')
+
+    message.success('已通过申请')
+
+    // 刷新待审核列表
+    await showPendingApplications()
+
+    // 刷新成员列表
+    await loadMembers(store.currentCircle.id)
+  } catch (error: any) {
+    console.error('[圈子聊天] 审核失败:', error)
+    message.error(error.message || '审核失败')
+  }
+}
+
+/**
+ * 拒绝申请
+ */
+const handleRejectApplication = async (userId: number) => {
+  if (!store.currentCircle) {return}
+
+  try {
+    await circleMemberApi.reviewApplication(store.currentCircle.id, userId, false, '抱歉，暂不符合要求')
+
+    message.success('已拒绝申请')
+
+    // 刷新待审核列表
+    await showPendingApplications()
+  } catch (error: any) {
+    console.error('[圈子聊天] 拒绝申请失败:', error)
+    message.error(error.message || '操作失败')
+  }
+}
+
+/**
+ * 格式化加入时间
+ */
+const formatJoinTime = (time?: string) => {
+  if (!time) {return '未知'}
+  return dayjs(time).format('YYYY-MM-DD HH:mm')
 }
 
 /**
@@ -308,5 +610,49 @@ onUnmounted(() => {
 .slide-right-leave-to {
   transform: translateX(100%);
   opacity: 0;
+}
+
+.invite-content {
+  .invite-tip {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 16px;
+  }
+
+  .invite-link-box {
+    .invite-expire {
+      font-size: 12px;
+      color: #999;
+      margin-top: 8px;
+    }
+  }
+}
+
+.application-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+
+  .applicant-info {
+    flex: 1;
+
+    .applicant-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .applicant-time {
+      font-size: 12px;
+      color: #999;
+    }
+  }
+
+  .application-actions {
+    display: flex;
+    gap: 8px;
+  }
 }
 </style>

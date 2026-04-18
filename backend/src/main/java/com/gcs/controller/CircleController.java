@@ -2,6 +2,7 @@ package com.gcs.controller;
 
 import com.gcs.dto.CircleCreateDTO;
 import com.gcs.dto.CircleUpdateDTO;
+import com.gcs.utils.SessionUtils;
 import com.gcs.vo.CircleDetailVO;
 import com.gcs.vo.CircleCreateResponseVO;
 import com.gcs.entity.Circle;
@@ -40,16 +41,8 @@ public class CircleController {
     @Autowired
     private CircleService circleService;
 
-    /**
-     * 获取当前登录用户 ID
-     */
-    private Long getCurrentUserId(HttpServletRequest request) {
-        Object userIdObj = request.getSession().getAttribute("userId");
-        if (userIdObj == null) {
-            throw new RuntimeException("用户未登录");
-        }
-        return (Long) userIdObj;
-    }
+    @Autowired
+    private SessionUtils sessionUtils;
 
     /**
      * 创建圈子
@@ -66,7 +59,7 @@ public class CircleController {
         @Valid @RequestBody CircleCreateDTO createDTO,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long userId = getCurrentUserId(request);
+            Long userId = sessionUtils.getCurrentUserId(request);
             Circle circle = circleService.createCircle(createDTO, userId);
             
             // 转换为响应 VO
@@ -105,7 +98,7 @@ public class CircleController {
         @PathVariable("id") Long id,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             CircleDetailVO detailVO = circleService.getCircleDetail(id, currentUserId);
             return R.ok().put("data", detailVO);
         } catch (Exception e) {
@@ -131,7 +124,7 @@ public class CircleController {
         @Valid @RequestBody CircleUpdateDTO updateDTO,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long userId = getCurrentUserId(request);
+            Long userId = sessionUtils.getCurrentUserId(request);
             circleService.updateCircle(id, updateDTO, userId);
             return R.ok("更新成功");
         } catch (Exception e) {
@@ -155,35 +148,11 @@ public class CircleController {
         @PathVariable("id") Long id,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long userId = getCurrentUserId(request);
+            Long userId = sessionUtils.getCurrentUserId(request);
             circleService.dissolveCircle(id, userId);
             return R.ok("解散成功");
         } catch (Exception e) {
             log.error("解散圈子失败，id: {}", id, e);
-            return R.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 退出圈子
-     */
-    @PostMapping("/{id}/leave")
-    @Operation(summary = "退出圈子", description = "用户退出所在圈子")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "退出成功"),
-        @ApiResponse(responseCode = "400", description = "圈主不能退出"),
-        @ApiResponse(responseCode = "404", description = "圈子不存在")
-    })
-    public R leaveCircle(
-        @Parameter(description = "圈子 ID", required = true) 
-        @PathVariable("id") Long id,
-        @Parameter(hidden = true) HttpServletRequest request) {
-        try {
-            Long userId = getCurrentUserId(request);
-            circleService.leaveCircle(id, userId);
-            return R.ok("退出成功");
-        } catch (Exception e) {
-            log.error("退出圈子失败，id: {}", id, e);
             return R.error(e.getMessage());
         }
     }
@@ -201,7 +170,7 @@ public class CircleController {
         @Parameter(description = "查询参数") @RequestParam Map<String, Object> params,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId =sessionUtils.getCurrentUserId(request);
             PageUtils page = circleService.getMyCircles(currentUserId, params);
             return R.ok().put("data", page);
         } catch (Exception e) {
@@ -224,7 +193,7 @@ public class CircleController {
         try {
             Long currentUserId = null;
             try {
-                currentUserId = getCurrentUserId(request);
+                currentUserId = sessionUtils.getCurrentUserId(request);
             } catch (Exception e) {
                 // 未登录也可以访问公开圈子
             }

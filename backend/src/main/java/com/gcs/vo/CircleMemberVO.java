@@ -29,6 +29,6 @@ public class CircleMemberVO {
     private LocalDateTime joinTime;
     
     @Schema(description = "状态 (1:正常，0:已退出)", example = "1")
-    private CommonStatus status;
+    private Integer status;
 
 }

@@ -139,21 +139,23 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, h } from 'vue'
 import { useCircleChatStore } from '@/stores/circleChat'
-import type { Message } from '@/types/message'
-import type { CircleMessage } from '@/types/circleChat'
+import { useMessage, useDialog } from 'naive-ui'
+import type {Circle, CircleMessage} from '@/types/circleChat'
 import MessageBubble from '../chat/MessageBubble.vue'
 import ChatInput from '../chat/ChatInput.vue'
 import SystemMessageTip from '../chat/SystemMessageTip.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
-import { NIcon, NDropdown, NAvatar, NSpin, NText } from 'naive-ui'
+import {NIcon, NDropdown, NAvatar, NSpin, NText} from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { getWebSocket } from '@/utils/websocket'
 import chatService from '@/api/chat'
 import { getCurrentInstance } from 'vue'
-import { circleWebSocket } from '@/api/circle'
+import {circleApi, circleMemberApi, circleWebSocket} from '@/api/circle'
+import {Message} from "@/types/message";
+
 
 // 添加 emit 声明
-const emit = defineEmits(['show-members'])
+const emit = defineEmits(['show-members', 'show-pending-applications'])
 
 const appContext = useGlobalProperties()
 const store = useCircleChatStore()
@@ -161,8 +163,8 @@ const messageListRef = ref<HTMLElement | null>(null)
 const isUserScrolling = ref(false)
 const isAtBottom = ref(true)
 const instance = getCurrentInstance()
-const $message = instance?.appContext.config.globalProperties.$message
-// WebSocket 订阅取消函数
+const message = useMessage()
+const dialog = useDialog()
 let unsubscribeCircleMessage: (() => void) | null = null
 const unsubscribeCircleDelete: (() => void) | null = null
 
@@ -185,35 +187,80 @@ const isOwnMessage = (msg: CircleMessage) => {
   return msg.isSelf === true || msg.senderId === currentUserId.value
 }
 
-// 菜单选项
-const menuOptions = [
-  {
-    label: '查看成员',
-    key: 'view-members',
-    icon: () => h(NIcon, null, { default: () => h(Icon, { icon: 'ri:user-group-line' }) })
-  },
-  {
-    label: '圈子设置',
-    key: 'circle-settings',
-    icon: () => h(NIcon, null, { default: () => h(Icon, { icon: 'ri:settings-3-line' }) })
-  },
-  {
-    label: '退出圈子',
-    key: 'leave-circle',
-    icon: () => h(NIcon, null, { default: () => h(Icon, { icon: 'ri:logout-box-line' }) })
+// 判断是否是圈主或管理员
+const isOwnerOrAdmin = computed(() => {
+  if (!store.currentCircle || !currentUserId.value) {return false}
+
+  // 从成员列表中查找当前用户的角色
+  const currentMember = store.members.find(m => m.userId === currentUserId.value)
+  return currentMember?.role === 'OWNER' || currentMember?.role === 'ADMIN'
+})
+
+// 菜单选项（动态生成）
+const menuOptions = computed(() => {
+  const options = [
+    {
+      label: '查看成员',
+      key: 'view-members',
+      icon: () => h(NIcon, null, { default: () => h(Icon, { icon: 'ri:user-group-line' }) })
+    }
+  ]
+
+  // 只有圈主和管理员才能看到待审核申请
+  if (isOwnerOrAdmin.value) {
+    options.push({
+      label: '待审核申请',
+      key: 'pending-applications',
+      icon: () => h(NIcon, null, { default: () => h(Icon, { icon: 'ri:file-list-line' }) })
+    })
   }
-]
+
+  options.push(
+    {
+      label: '圈子设置',
+      key: 'circle-settings',
+      icon: () => h(NIcon, null, { default: () => h(Icon, { icon: 'ri:settings-3-line' }) })
+    },
+    {
+      label: '退出圈子',
+      key: 'leave-circle',
+      icon: () => h(NIcon, null, { default: () => h(Icon, { icon: 'ri:logout-box-line' }) })
+    }
+  )
+
+  return options
+})
 
 const handleMenuClick = async (key: string) => {
   if (key === 'view-members') {
-    // TODO: 打开成员列表侧边栏
     emit('show-members')
+  } else if (key === 'pending-applications') {
+    emit('show-pending-applications')
   } else if (key === 'circle-settings') {
     // TODO: 打开圈子设置
-
+    message.info('圈子设置功能开发中...')
   } else if (key === 'leave-circle') {
-    // TODO: 退出圈子
+    // 退出圈子
+    if (!store.currentCircle) return
 
+    dialog.warning({
+      title: '确认退出',
+      content: `确定要退出「${store.currentCircle.name}」吗？`,
+      positiveText: '确定退出',
+      negativeText: '取消',
+      onPositiveClick: async () => {
+        try {
+          await circleMemberApi.leaveCircle(store.currentCircle!.id)
+          message.success('已退出圈子')
+
+          // 立即刷新页面
+          window.location.reload()
+        } catch (error: any) {
+          console.error('[圈子聊天] 退出圈子失败:', error)
+          message.error(error.response?.data?.msg || '退出失败')
+        }
+      }
+    })
   }
 }
 
@@ -266,7 +313,7 @@ const checkIsAtBottom = () => {
 }
 
 // 处理滚动事件
-const handleScroll = (e: Event) => {
+const handleScroll = async (e: Event) => {
   const target = e.target as HTMLElement
 
   // 更新是否在底部的状态
@@ -280,9 +327,58 @@ const handleScroll = (e: Event) => {
     isUserScrolling.value = false
   }
 
-  if (target.scrollTop === 0 && store.hasMore) {
-    // TODO: 加载更多历史消息
+  // 滚动到顶部时加载更多历史消息
+  if (target.scrollTop === 0 && store.hasMore && !store.loading) {
+    await loadMoreMessages()
+  }
+}
 
+/**
+ * 加载更多历史消息
+ */
+const loadMoreMessages = async () => {
+  if (!store.currentCircle || store.loading) {return}
+
+  try {
+    store.loading = true
+
+    // 记录当前滚动高度
+    const container = messageListRef.value
+    const oldScrollHeight = container?.scrollHeight || 0
+
+    // 调用 API 加载下一页
+    const { circleChatApi } = await import('@/api/circle')
+    const result = await circleChatApi.getChatHistory(store.currentCircle.id, {
+      page: store.messagePage,
+      limit: 20
+    })
+
+    // 将新消息添加到前面（保持时间顺序）
+    if (result.list.length > 0) {
+      // reverse 让旧消息在前面，新消息在后面
+      const reversedMessages = result.list.reverse()
+
+      // 使用 store.setMessages 追加到前面
+      store.setMessages(reversedMessages, false)
+
+      // 处理撤回和删除消息
+      store.processRecalledMessages(store.messages)
+      store.processDeletedMessages(store.messages)
+
+      // 保持滚动位置（避免跳动）
+      await nextTick()
+      if (container) {
+        const newScrollHeight = container.scrollHeight
+        const heightDiff = newScrollHeight - oldScrollHeight
+        container.scrollTop = heightDiff
+      }
+    }
+
+  } catch (error: any) {
+    console.error('[圈子聊天] 加载更多消息失败:', error)
+    message.error('加载失败')
+  } finally {
+    store.loading = false
   }
 }
 
@@ -319,7 +415,7 @@ const handleSendMessage = async (content: any, msgType = 0) => {
 
   } catch (error: any) {
     console.error('发送消息失败:', error)
-    $message?.error('消息发送失败')
+    message.error('消息发送失败')
   }
 }
 
@@ -362,7 +458,7 @@ const handleDeleteMessage = async (messageId: number) => {
     }
   } catch (error: any) {
     console.error('删除消息失败:', error)
-    $message?.error('删除消息失败')
+    message.error('删除消息失败')
   }
 }
 
@@ -388,7 +484,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
 }, { immediate: true })
 
 // 监听当前圈子变化
-watch(() => store.currentCircle, async (newCircle) => {
+watch(() => store.currentCircle, async (newCircle : Circle | null) => {
   if (newCircle) {
     store.saveCurrentCircleToStorage()
 

@@ -24,13 +24,12 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
     
     if (!ws) {
       // WebSocket 实例不存在，需要初始化
-      console.warn(' [圈子聊天] WebSocket 实例不存在，正在初始化...')
+      console.warn('[圈子聊天] WebSocket 实例不存在，正在初始化...')
       
       try {
         const wsManager = initWebSocket()
         wsManager.connect()
           .then(() => {
-
             resolve()
           })
           .catch((error) => {
@@ -41,22 +40,43 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
         console.error('[圈子聊天] WebSocket 初始化异常:', error)
         reject(error)
       }
-    } else if (!ws.isConnected()) {
-      // WebSocket 实例存在但未连接
-      console.warn(' [圈子聊天] WebSocket 未连接，正在重新连接...')
-      
-      ws.connect()
-        .then(() => {
-
-          resolve()
-        })
-        .catch((error) => {
-          console.error('[圈子聊天] WebSocket 重连失败:', error)
-          reject(error)
-        })
-    } else {
-      // WebSocket 已连接
+    } else if (ws.isConnected()) {
+      // 已连接，直接返回
       resolve()
+    } else {
+      // 检查是否正在连接中（避免重复连接）
+      const client = (ws as any).client
+      if (client && client.state === 'CONNECTING') {
+        console.log('[圈子聊天] WebSocket 正在连接中，等待连接完成...')
+        
+        // 等待连接完成
+        const checkInterval = setInterval(() => {
+          if (ws.isConnected()) {
+            clearInterval(checkInterval)
+            console.log('[圈子聊天] WebSocket 连接成功')
+            resolve()
+          }
+        }, 100)
+        
+        // 设置超时
+        setTimeout(() => {
+          clearInterval(checkInterval)
+          reject(new Error('WebSocket 连接超时'))
+        }, 10000)
+      } else {
+        // 未连接且不在连接中，尝试连接
+        console.log('[圈子聊天] WebSocket 未连接，正在连接...')
+        
+        ws.connect()
+          .then(() => {
+            console.log('[圈子聊天] WebSocket 连接成功')
+            resolve()
+          })
+          .catch((error) => {
+            console.error('[圈子聊天] WebSocket 连接失败:', error)
+            reject(error)
+          })
+      }
     }
   })
 }
@@ -69,10 +89,32 @@ export const circleApi = {
    * 获取用户加入的圈子列表
    */
   async getMyCircles(params: PaginationParams): Promise<PaginationResult<Circle>> {
-    const response: AxiosResponse<ApiResponse<PaginationResult<Circle>>> = await httpClient.get('/circles/mine', { 
+    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get('/circles/mine', { 
       params: { page: params.page, limit: params.limit }
     })
-    return response.data.data
+    
+    // 转换后端返回的数据结构到前端期望的格式
+    const backendData = response.data.data
+    return {
+      list: backendData.list.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        avatar: item.avatar,
+        ownerId: item.ownerId,
+        ownerNickname: item.ownerNickname,
+        ownerAvatar: item.ownerAvatar,
+        type: item.type,
+        memberCount: item.memberCount,
+        isJoined: item.isJoined,
+        unreadCount: item.unreadCount || 0,
+        createTime: item.createTime,
+        status: item.status
+      })),
+      total: backendData.totalCount,
+      page: backendData.currPage,
+      limit: backendData.pageSize
+    }
   },
 
   /**
@@ -94,8 +136,8 @@ export const circleApi = {
   /**
    * 更新圈子信息
    */
-  async updateCircle(circleId: number, data: { name?: string; description?: string; avatar?: string; type?: number }): Promise<Circle> {
-    const response: AxiosResponse<ApiResponse<Circle>> = await httpClient.put(`/circles/${circleId}`, data)
+  async updateCircle(circleId: number, data: { name?: string; description?: string; avatar?: string; type?: number }): Promise<void> {
+    const response: AxiosResponse<ApiResponse<void>> = await httpClient.put(`/circles/${circleId}`, data)
     return response.data.data
   },
 
@@ -108,11 +150,44 @@ export const circleApi = {
   },
 
   /**
-   * 退出圈子
+   * 发现公开圈子（支持搜索）
    */
-  async leaveCircle(circleId: number): Promise<void> {
-    const response: AxiosResponse<ApiResponse<void>> = await httpClient.post(`/circles/${circleId}/leave`)
-    return response.data.data
+  async getPublicCircles(params: { 
+    page?: number
+    limit?: number
+    keyword?: string 
+  }): Promise<PaginationResult<Circle>> {
+    const queryParams: any = {
+      page: params.page || 1,
+      limit: params.limit || 20
+    }
+    if (params.keyword) {
+      queryParams.keyword = params.keyword
+    }
+    
+    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get('/circles/public', { params: queryParams })
+    
+    const backendData = response.data.data
+    return {
+      list: backendData.list.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        avatar: item.avatar,
+        ownerId: item.ownerId,
+        ownerNickname: item.ownerNickname,
+        ownerAvatar: item.ownerAvatar,
+        type: item.type,
+        memberCount: item.memberCount,
+        isJoined: item.isJoined,
+        unreadCount: item.unreadCount || 0,
+        createTime: item.createTime,
+        status: item.status
+      })),
+      total: backendData.totalCount,
+      page: backendData.currPage,
+      limit: backendData.pageSize
+    }
   }
 }
 
@@ -121,9 +196,9 @@ export const circleApi = {
  */
 export const circleMemberApi = {
   /**
-   * 获取成员列表
+   * 获取活跃成员列表（状态为正常的成员）
    */
-  async getMembers(circleId: number, params: PaginationParams & { role?: number }): Promise<PaginationResult<CircleMember>> {
+  async getActiveMembers(circleId: number, params: PaginationParams & { role?: number }): Promise<PaginationResult<CircleMember>> {
     const queryParams: any = {
       page: params.page,
       limit: params.limit
@@ -132,7 +207,7 @@ export const circleMemberApi = {
       queryParams.role = params.role
     }
     
-    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get(`/circles/${circleId}/members`, { params: queryParams })
+    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get(`/circles/${circleId}/active-members`, { params: queryParams })
     
     // 转换后端返回的数据结构到前端期望的格式
     const backendData = response.data.data
@@ -144,8 +219,11 @@ export const circleMemberApi = {
         nickname: item.user.nickname,
         avatar: item.user.avatar,
         role: item.role,
+        roleDescription: item.roleDescription,
         joinTime: item.joinTime,
-        isOnline: false // 后端未提供在线状态，暂设为false
+        status: item.status,
+        lastOnlineTime: item.user.lastOnlineTime,
+        isOnline: false
       })),
       total: backendData.totalCount,
       page: backendData.currPage,
@@ -154,7 +232,14 @@ export const circleMemberApi = {
   },
 
   /**
-   * 加入圈子
+   * 获取成员列表（兼容旧接口，内部调用 getActiveMembers）
+   */
+  async getMembers(circleId: number, params: PaginationParams & { role?: number }): Promise<PaginationResult<CircleMember>> {
+    return this.getActiveMembers(circleId, params)
+  },
+
+  /**
+   * 加入公开圈子
    */
   async joinCircle(circleId: number, inviteCode?: string): Promise<void> {
     const data: any = {}
@@ -166,15 +251,33 @@ export const circleMemberApi = {
   },
 
   /**
-   * 退出圈子（自行退出）
+   * 申请加入需要审核的圈子
    */
-  async leaveCircleSelf(circleId: number): Promise<void> {
+  async applyToJoin(circleId: number): Promise<void> {
+    const response: AxiosResponse<ApiResponse<void>> = await httpClient.post(`/circles/${circleId}/apply`)
+    return response.data.data
+  },
+
+  /**
+   * 接受邀请加入圈子
+   */
+  async acceptInvite(circleId: number, inviteCode: string): Promise<void> {
+    const response: AxiosResponse<ApiResponse<void>> = await httpClient.post(`/circles/${circleId}/accept-invite`, {
+      inviteCode
+    })
+    return response.data.data
+  },
+
+  /**
+   * 退出圈子（软删除）
+   */
+  async leaveCircle(circleId: number): Promise<void> {
     const response: AxiosResponse<ApiResponse<void>> = await httpClient.delete(`/circles/${circleId}/members/self`)
     return response.data.data
   },
 
   /**
-   * 移除成员
+   * 移除成员（管理员操作，软删除）
    */
   async removeMember(circleId: number, userId: number): Promise<void> {
     const response: AxiosResponse<ApiResponse<void>> = await httpClient.delete(`/circles/${circleId}/members/${userId}`)
@@ -198,42 +301,107 @@ export const circleMemberApi = {
   },
 
   /**
-   * 获取推荐圈子列表
+   * 获取待审核申请列表（仅圈主和管理员）
    */
-  async getRecommendedCircles(params: { 
-    page?: number
-    limit?: number
-    keyword?: string 
-  }): Promise<PaginationResult<Circle>> {
-    const queryParams: any = {
-      page: params.page || 1,
-      limit: params.limit || 20
-    }
-    if (params.keyword) {
-      queryParams.keyword = params.keyword
-    }
+  async getPendingApplications(circleId: number, params: PaginationParams): Promise<PaginationResult<CircleMember>> {
+    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get(`/circles/${circleId}/applications`, {
+      params: { page: params.page, limit: params.limit }
+    })
     
-    const response: AxiosResponse<ApiResponse<PaginationResult<Circle>>> = await httpClient.get('/circles/public', { params: queryParams })
+    const backendData = response.data.data
+    return {
+      list: backendData.list.map((item: any) => ({
+        id: item.id,
+        userId: item.user.id,
+        circleId: item.circleId,
+        nickname: item.user.nickname,
+        avatar: item.user.avatar,
+        role: item.role,
+        roleDescription: item.roleDescription,
+        joinTime: item.joinTime,
+        status: item.status,
+        isOnline: false
+      })),
+      total: backendData.totalCount,
+      page: backendData.currPage,
+      limit: backendData.pageSize
+    }
+  },
+
+  /**
+   * 审核加入申请（仅圈主和管理员）
+   */
+  async reviewApplication(circleId: number, userId: number, approved: boolean, remark?: string): Promise<void> {
+    const response: AxiosResponse<ApiResponse<void>> = await httpClient.put(`/circles/${circleId}/applications/${userId}`, {
+      approved,
+      remark
+    })
     return response.data.data
   }
 }
 
 /**
- * 圈子聊天接口
+ * 圈子聊天相关接口
  */
 export const circleChatApi = {
   /**
    * 获取会话列表
    */
   async getConversations(params: PaginationParams): Promise<PaginationResult<CircleConversation>> {
-    const response: AxiosResponse<ApiResponse<PaginationResult<CircleConversation>>> = await httpClient.get('/circles/chat/conversations', { 
+    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get('/circles/chat/conversations', {
       params: { page: params.page, limit: params.limit }
     })
-    return response.data.data
+    
+    const backendData = response.data.data
+    return {
+      list: backendData.list.map((item: any) => ({
+        circleId: item.circleId,
+        circleName: item.circleName,
+        circleAvatar: item.circleAvatar,
+        lastMessageId: item.lastMessageId,
+        lastMessageContent: item.lastMessageContent,
+        lastMessageSenderId: item.lastMessageSenderId,
+        lastMessageSenderNickname: item.lastMessageSenderNickname,
+        lastMessageTime: item.lastMessageTime,
+        unreadCount: item.unreadCount,
+        memberCount: item.memberCount
+      })),
+      total: backendData.totalCount,
+      page: backendData.currPage,
+      limit: backendData.pageSize
+    }
   },
 
   /**
-   * 获取未读消息数
+   * 获取聊天记录
+   */
+  async getChatHistory(circleId: number, params: PaginationParams): Promise<PaginationResult<CircleMessage>> {
+    const response: AxiosResponse<ApiResponse<any>> = await httpClient.get(`/circles/${circleId}/chat/history`, {
+      params: { page: params.page, limit: params.limit }
+    })
+    
+    const backendData = response.data.data
+    return {
+      list: backendData.list.map((item: any) => ({
+        id: item.id,
+        circleId: item.circleId,
+        senderId: item.senderId,
+        sender: item.sender,
+        content: item.content,
+        msgType: item.msgType,
+        isRecalled: item.isRecalled,
+        recallReason: item.recallReason,
+        createTime: item.createTime,
+        isSelf: item.isSelf
+      })),
+      total: backendData.totalCount,
+      page: backendData.currPage,
+      limit: backendData.pageSize
+    }
+  },
+
+  /**
+   * 统计未读消息数
    */
   async getUnreadCount(circleId: number): Promise<number> {
     const response: AxiosResponse<ApiResponse<number>> = await httpClient.get(`/circles/${circleId}/chat/unread-count`)
@@ -241,23 +409,10 @@ export const circleChatApi = {
   },
 
   /**
-   * 获取聊天记录
+   * 发送消息（HTTP 方式，推荐使用 WebSocket）
    */
-  async getChatHistory(circleId: number, params: PaginationParams): Promise<PaginationResult<CircleMessage>> {
-    const response: AxiosResponse<ApiResponse<PaginationResult<CircleMessage>>> = await httpClient.get(`/circles/${circleId}/chat/history`, { 
-      params: { page: params.page, limit: params.limit }
-    })
-    return response.data.data
-  },
-
-  /**
-   * 发送消息（HTTP 方式，不推荐，仅作为降级方案）
-   */
-  async sendMessage(circleId: number, content: any, msgType = 0): Promise<CircleMessage> {
-    const response: AxiosResponse<ApiResponse<CircleMessage>> = await httpClient.post(`/circles/${circleId}/chat/messages`, { 
-      content, 
-      msgType 
-    })
+  async sendMessage(circleId: number, data: { content: any; msgType: string }): Promise<CircleMessage> {
+    const response: AxiosResponse<ApiResponse<CircleMessage>> = await httpClient.post(`/circles/${circleId}/chat/messages`, data)
     return response.data.data
   },
 
@@ -269,24 +424,27 @@ export const circleChatApi = {
     if (reason) {
       params.reason = reason
     }
-    
-    const response: AxiosResponse<ApiResponse<void>> = await httpClient.put(`/circles/${circleId}/chat/messages/${messageId}/recall`, null, { params })
+    const response: AxiosResponse<ApiResponse<void>> = await httpClient.put(
+      `/circles/${circleId}/chat/messages/${messageId}/recall`,
+      null,
+      { params }
+    )
     return response.data.data
   },
 
   /**
-   * 标记圈子消息为已读
+   * 获取最新消息
+   */
+  async getLatestMessage(circleId: number): Promise<CircleMessage> {
+    const response: AxiosResponse<ApiResponse<CircleMessage>> = await httpClient.get(`/circles/${circleId}/chat/latest`)
+    return response.data.data
+  },
+
+  /**
+   * 标记消息为已读
    */
   async markAsRead(circleId: number): Promise<void> {
     const response: AxiosResponse<ApiResponse<void>> = await httpClient.post(`/circles/${circleId}/chat/read`)
-    return response.data.data
-  },
-
-  /**
-   * 删除消息（仅群主和管理员可用）
-   */
-  async deleteMessage(circleId: number, messageId: number): Promise<void> {
-    const response: AxiosResponse<ApiResponse<void>> = await httpClient.delete(`/circles/${circleId}/chat/messages/${messageId}`)
     return response.data.data
   }
 }

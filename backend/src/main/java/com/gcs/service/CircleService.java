@@ -52,14 +52,7 @@ public interface CircleService extends IService<Circle> {
      * @param userId 用户 ID
      */
     void dissolveCircle(Long circleId, Long userId);
-    
-    /**
-     * 退出圈子
-     * @param circleId 圈子 ID
-     * @param userId 用户 ID
-     */
-    void leaveCircle(Long circleId, Long userId);
-    
+
     /**
      * 获取用户加入的圈子列表
      * @param currentUserId 当前用户 ID

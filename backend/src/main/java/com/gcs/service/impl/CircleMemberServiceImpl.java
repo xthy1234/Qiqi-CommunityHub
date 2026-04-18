@@ -3,11 +3,13 @@ package com.gcs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.gcs.converter.UserConverter;
 import com.gcs.dao.CircleMemberDao;
 import com.gcs.dao.UserDao;
 import com.gcs.entity.CircleMember;
 import com.gcs.entity.User;
 import com.gcs.enums.CommonStatus;
+import com.gcs.enums.MemberStatus;
 import com.gcs.service.CircleMemberService;
 import com.gcs.service.NotificationService;
 import com.gcs.dao.CircleDao;
@@ -20,13 +22,13 @@ import com.gcs.utils.PageUtils;
 import com.gcs.utils.Query;
 import com.gcs.enums.CircleMemberRole;
 
-import com.gcs.vo.UserSimpleVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,6 +55,9 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
     
     @Autowired
     private CircleDao circleDao;
+    
+    @Autowired
+    private UserConverter userConverter;
 
     @Override
     @Transactional
@@ -69,12 +74,12 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             member.setUserId(userId);
             member.setRole(role);
             member.setJoinTime(LocalDateTime.now());
-            member.setStatus(CommonStatus.ENABLED);
+            member.setStatus(MemberStatus.ACTIVE.getCode());
 
             this.save(member);
             log.info("用户{}加入圈子{}", userId, circleId);
             
-            // 📢 发送通知给新成员（欢迎）和其他成员
+            // 发送通知给新成员（欢迎）和其他成员
             sendMemberJoinNotifications(circleId, userId, role);
         } catch (Exception e) {
             log.error("添加圈子成员失败，circleId: {}, userId: {}", circleId, userId, e);
@@ -86,19 +91,23 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
     @Transactional
     public void removeMember(Long circleId, Long userId) {
         try {
-            // 先查询成员信息，用于发送通知
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
                     .eq(CircleMember::getUserId, userId);
             CircleMember member = this.getOne(queryWrapper);
             
-            this.remove(queryWrapper);
+            if (member == null) {
+                throw new RuntimeException("用户不是圈子成员");
+            }
+            
+            // 软删除：更新状态为已退出/被移除
+            member.setStatus(MemberStatus.INACTIVE.getCode());
+            this.updateById(member);
+            
             log.info("用户{}被移除出圈子{}", userId, circleId);
             
-            // 📢 发送被移出圈子的通知
-            if (member != null) {
-                sendCircleRemovedNotification(circleId, userId);
-            }
+            // 发送被移出圈子的通知
+            sendCircleRemovedNotification(circleId, userId);
         } catch (Exception e) {
             log.error("移除圈子成员失败，circleId: {}, userId: {}", circleId, userId, e);
             throw new RuntimeException("移除成员失败：" + e.getMessage());
@@ -110,7 +119,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
         try {
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
-                    .eq(CircleMember::getStatus, CommonStatus.ENABLED);
+                    .eq(CircleMember::getStatus, MemberStatus.ACTIVE.getCode());
 
             List<CircleMember> members = this.list(queryWrapper);
             return members.stream()
@@ -129,7 +138,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
                     .eq(CircleMember::getUserId, userId)
-                    .eq(CircleMember::getStatus, CommonStatus.ENABLED);
+                    .eq(CircleMember::getStatus, MemberStatus.ACTIVE.getCode());
 
             CircleMember member = this.getOne(queryWrapper);
             if (member == null) {
@@ -152,7 +161,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
 
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
-                    .eq(CircleMember::getStatus, CommonStatus.ENABLED);
+                    .eq(CircleMember::getStatus, MemberStatus.ACTIVE.getCode());
 
             // 角色过滤
             String role = (String) params.get("role");
@@ -176,11 +185,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
 
                         // 填充用户信息
                         User user = userDao.selectById(member.getUserId());
-                        UserSimpleVO userSimpleVO = new UserSimpleVO();
-                        userSimpleVO.setId(user != null ? user.getId() : member.getUserId());
-                        userSimpleVO.setNickname(user != null ? user.getNickname() : "未知用户");
-                        userSimpleVO.setAvatar(user != null ? user.getAvatar() : "");
-                        userSimpleVO.setLastOnlineTime(user != null ? user.getLastOnlineTime() : null);
+                        UserSimpleVO userSimpleVO = userConverter.toSimpleVO(user);
                         vo.setUser(userSimpleVO);
 
                         return vo;
@@ -203,7 +208,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
 
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
-                    .eq(CircleMember::getStatus, CommonStatus.ENABLED);
+                    .eq(CircleMember::getStatus, MemberStatus.ACTIVE.getCode());
 
             // 角色过滤
             String role = (String) params.get("role");
@@ -228,7 +233,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(CircleMember::getCircleId, circleId)
                     .eq(CircleMember::getUserId, userId)
-                    .eq(CircleMember::getStatus, CommonStatus.ENABLED);
+                    .eq(CircleMember::getStatus, MemberStatus.ACTIVE.getCode());
 
             CircleMember member = this.getOne(queryWrapper);
             if (member == null) {
@@ -239,11 +244,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             CircleMemberVO vo = new CircleMemberVO();
             vo.setId(member.getId());
 
-            UserSimpleVO userSimpleVO = new UserSimpleVO();
-            userSimpleVO.setId(user != null ? user.getId() : userId);
-            userSimpleVO.setNickname(user != null ? user.getNickname() : "未知用户");
-            userSimpleVO.setAvatar(user != null ? user.getAvatar() : "");
-            userSimpleVO.setLastOnlineTime(user != null ? user.getLastOnlineTime() : null);
+            UserSimpleVO userSimpleVO = userConverter.toSimpleVO(user);
             vo.setUser(userSimpleVO);
 
             vo.setRole(member.getRole());
@@ -276,13 +277,13 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
                 throw new RuntimeException("圈主不能退出圈子，请先转让或解散");
             }
 
-            // 软删除：更新状态为已禁用
-            member.setStatus(CommonStatus.DISABLED);
+            // 软删除：更新状态为已退出
+            member.setStatus(MemberStatus.INACTIVE.getCode());
             this.updateById(member);
 
             log.info("用户{}退出圈子{}", userId, circleId);
             
-            // 📢 发送成员退出通知给圈主和管理员
+            // 发送成员退出通知给圈主和管理员
             sendMemberQuitNotification(circleId, userId);
         } catch (Exception e) {
             log.error("退出圈子失败，circleId: {}, userId: {}", circleId, userId, e);
@@ -333,6 +334,24 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
     }
     
     /**
+     * 转换为 VO 并填充用户信息
+     */
+    private CircleMemberVO convertToVOWithUser(CircleMember member) {
+        CircleMemberVO vo = new CircleMemberVO();
+        vo.setId(member.getId());
+        vo.setRole(member.getRole());
+        vo.setRoleDescription(getRoleDescription(member.getRole()));
+        vo.setJoinTime(member.getJoinTime());
+        vo.setStatus(member.getStatus());
+        
+        User user = userDao.selectById(member.getUserId());
+        UserSimpleVO userSimpleVO = userConverter.toSimpleVO(user);
+        vo.setUser(userSimpleVO);
+        
+        return vo;
+    }
+
+    /**
      * 发送新成员加入通知给圈主和管理员
      */
     private void sendMemberJoinNotifications(Long circleId, Long newMemberId, Integer role) {
@@ -351,11 +370,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
                 return;
             }
             
-            UserSimpleVO newMemberVO = new UserSimpleVO();
-            newMemberVO.setId(newMember.getId());
-            newMemberVO.setNickname(newMember.getNickname());
-            newMemberVO.setAvatar(newMember.getAvatar());
-            newMemberVO.setLastOnlineTime(newMember.getLastOnlineTime());
+            UserSimpleVO newMemberVO = userConverter.toSimpleVO(newMember);
             
             // 查询圈主和管理员
             List<Long> adminIds = circleMemberDao.getAdminAndOwnerIds(circleId);
@@ -408,13 +423,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             UserSimpleVO operatorVO = null;
             if (operatorId != null) {
                 User operator = userDao.selectById(operatorId);
-                if (operator != null) {
-                    operatorVO = new UserSimpleVO();
-                    operatorVO.setId(operator.getId());
-                    operatorVO.setNickname(operator.getNickname());
-                    operatorVO.setAvatar(operator.getAvatar());
-                    operatorVO.setLastOnlineTime(operator.getLastOnlineTime());
-                }
+                operatorVO = userConverter.toSimpleVO(operator);
             }
             
             Map<String, Object> extra = NotificationBuilder.buildCircleRemovedNotification(
@@ -457,11 +466,7 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
                 return;
             }
             
-            UserSimpleVO quitterVO = new UserSimpleVO();
-            quitterVO.setId(quitter.getId());
-            quitterVO.setNickname(quitter.getNickname());
-            quitterVO.setAvatar(quitter.getAvatar());
-            quitterVO.setLastOnlineTime(quitter.getLastOnlineTime());
+            UserSimpleVO quitterVO = userConverter.toSimpleVO(quitter);
             
             // 通知圈主
             List<Long> ownerIds = circleMemberDao.getOwners(circleId);
@@ -487,4 +492,314 @@ public class CircleMemberServiceImpl extends ServiceImpl<CircleMemberDao, Circle
             log.error("发送成员退出通知失败，circleId: {}, userId: {}", circleId, quitterId, e);
         }
     }
+
+    @Override
+    @Transactional
+    public void applyToJoin(Long circleId, Long userId) {
+        try {
+            // 检查是否已有申请
+            Boolean hasPending = circleMemberDao.hasPendingApplication(circleId, userId);
+            if (hasPending != null && hasPending) {
+                throw new RuntimeException("已有待审核的申请");
+            }
+            
+            // 检查是否已是成员
+            Boolean isMember = circleMemberDao.isMember(circleId, userId);
+            if (isMember != null && isMember) {
+                throw new RuntimeException("已是圈子成员");
+            }
+            
+            // 创建待审核记录
+            CircleMember member = new CircleMember();
+            member.setCircleId(circleId);
+            member.setUserId(userId);
+            member.setRole(CircleMemberRole.MEMBER.getCode());
+            member.setJoinTime(LocalDateTime.now());
+            member.setStatus(MemberStatus.PENDING.getCode());
+            
+            this.save(member);
+            
+            // 通知圈主和管理员有人申请加入
+            sendCircleJoinApplicationNotification(circleId, userId);
+            
+            log.info("用户{}申请加入圈子{}", userId, circleId);
+        } catch (Exception e) {
+            log.error("申请加入圈子失败，circleId: {}, userId: {}", circleId, userId, e);
+            throw new RuntimeException("申请加入失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void reviewJoinApplication(Long circleId, Long userId, boolean approved, Long operatorId) {
+        try {
+            LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(CircleMember::getCircleId, circleId)
+                    .eq(CircleMember::getUserId, userId)
+                    .eq(CircleMember::getStatus, MemberStatus.PENDING.getCode());
+            
+            CircleMember member = this.getOne(queryWrapper);
+            if (member == null) {
+                throw new RuntimeException("未找到待审核的申请");
+            }
+            
+            if (approved) {
+                // 通过申请
+                member.setStatus(MemberStatus.ACTIVE.getCode());
+                this.updateById(member);
+                
+                // 通知申请人审核通过
+                sendApplicationApprovedNotification(circleId, userId);
+                
+                // 通知其他成员有新成员加入
+                sendMemberJoinNotifications(circleId, userId, member.getRole());
+                
+                log.info("用户{}的加入申请已通过，审核人：{}", userId, operatorId);
+            } else {
+                // 拒绝申请，删除记录
+                this.removeById(member.getId());
+                
+                // 通知申请人审核被拒
+                sendApplicationRejectedNotification(circleId, userId, operatorId);
+                
+                log.info("用户{}的加入申请已被拒绝，审核人：{}", userId, operatorId);
+            }
+        } catch (Exception e) {
+            log.error("审核加入申请失败，circleId: {}, userId: {}", circleId, userId, e);
+            throw new RuntimeException("审核失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void acceptInvite(Long circleId, Long userId, String inviteCode) {
+        try {
+            // TODO: 验证邀请码有效性（需要从邀请表中查询）
+            // 这里简化处理，直接添加为成员
+            
+            Boolean isMember = circleMemberDao.isMember(circleId, userId);
+            if (isMember != null && isMember) {
+                throw new RuntimeException("已是圈子成员");
+            }
+            
+            // 直接添加为活跃成员（无需审核）
+            addMember(circleId, userId, CircleMemberRole.MEMBER.getCode());
+            
+            log.info("用户{}通过邀请码{}加入圈子{}", userId, inviteCode, circleId);
+        } catch (Exception e) {
+            log.error("接受邀请失败，circleId: {}, userId: {}", circleId, userId, e);
+            throw new RuntimeException("接受邀请失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public PageUtils getPendingMembers(Long circleId, Map<String, Object> params) {
+        try {
+            IPage<CircleMember> page = new Query<CircleMember>(params).getPage();
+            
+            List<CircleMember> members = circleMemberDao.getPendingMembers(circleId);
+            
+            // 手动分页
+            int total = members.size();
+            int current = (int) page.getCurrent();
+            int size = (int) page.getSize();
+            int fromIndex = (current - 1) * size;
+            int toIndex = Math.min(fromIndex + size, total);
+            
+            List<CircleMember> pagedMembers = fromIndex < total ? 
+                members.subList(fromIndex, toIndex) : List.of();
+            
+            // 转换为 VO
+            List<CircleMemberVO> voList = pagedMembers.stream()
+                .map(member -> convertToVOWithUser(member))
+                .collect(Collectors.toList());
+            
+            return new PageUtils(voList, total, size, current);
+        } catch (Exception e) {
+            log.error("获取待审核成员列表失败，circleId: {}", circleId, e);
+            throw new RuntimeException("获取待审核成员列表失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public PageUtils getActiveMembers(Long circleId, Map<String, Object> params) {
+        try {
+            IPage<CircleMember> page = new Query<CircleMember>(params).getPage();
+            
+            List<CircleMember> members = circleMemberDao.getActiveMembers(circleId);
+            
+            // 手动分页
+            int total = members.size();
+            int current = (int) page.getCurrent();
+            int size = (int) page.getSize();
+            int fromIndex = (current - 1) * size;
+            int toIndex = Math.min(fromIndex + size, total);
+            
+            List<CircleMember> pagedMembers = fromIndex < total ? 
+                members.subList(fromIndex, toIndex) : List.of();
+            
+            // 转换为 VO
+            List<CircleMemberVO> voList = pagedMembers.stream()
+                .map(member -> convertToVOWithUser(member))
+                .collect(Collectors.toList());
+            
+            return new PageUtils(voList, total, size, current);
+        } catch (Exception e) {
+            log.error("获取活跃成员列表失败，circleId: {}", circleId, e);
+            throw new RuntimeException("获取活跃成员列表失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 发送圈子加入申请通知给圈主和管理员
+     */
+    private void sendCircleJoinApplicationNotification(Long circleId, Long applicantId) {
+        try {
+            Circle circle = circleDao.selectById(circleId);
+            if (circle == null) {
+                return;
+            }
+            
+            User applicant = userDao.selectById(applicantId);
+            if (applicant == null) {
+                return;
+            }
+            
+            UserSimpleVO applicantVO = new UserSimpleVO();
+            applicantVO.setId(applicant.getId());
+            applicantVO.setNickname(applicant.getNickname());
+            applicantVO.setAvatar(applicant.getAvatar());
+            applicantVO.setLastOnlineTime(applicant.getLastOnlineTime());
+            
+            List<Long> adminIds = circleMemberDao.getAdminAndOwnerIds(circleId);
+            
+            for (Long adminId : adminIds) {
+                Map<String, Object> extra = NotificationBuilder.buildCircleJoinNotification(
+                    circleId,
+                    circle.getName(),
+                    applicantVO
+                );
+                
+                notificationService.createNotification(
+                    adminId,
+                    NotificationType.CIRCLE_JOIN.getCode(),
+                    circleId,
+                    null,
+                    extra
+                );
+            }
+            
+            log.info("发送圈子加入申请通知，circleId: {}, applicantId: {}", circleId, applicantId);
+        } catch (Exception e) {
+            log.error("发送圈子加入申请通知失败", e);
+        }
+    }
+
+    /**
+     * 发送申请通过通知
+     */
+    private void sendApplicationApprovedNotification(Long circleId, Long userId) {
+        try {
+            Circle circle = circleDao.selectById(circleId);
+            if (circle == null) {
+                return;
+            }
+            
+            Map<String, Object> extra = new HashMap<>();
+            extra.put("circleId", circleId);
+            extra.put("circleName", circle.getName());
+            extra.put("result", "通过");
+            
+            notificationService.createNotification(
+                userId,
+                NotificationType.SYSTEM_MESSAGE.getCode(),
+                circleId,
+                null,
+                extra
+            );
+            
+            log.info("发送申请通过通知，circleId: {}, userId: {}", circleId, userId);
+        } catch (Exception e) {
+            log.error("发送申请通过通知失败", e);
+        }
+    }
+
+    /**
+     * 发送申请被拒通知
+     */
+    private void sendApplicationRejectedNotification(Long circleId, Long userId, Long operatorId) {
+        try {
+            Circle circle = circleDao.selectById(circleId);
+            if (circle == null) {
+                return;
+            }
+            
+            User operator = userDao.selectById(operatorId);
+            
+            Map<String, Object> extra = new HashMap<>();
+            extra.put("circleId", circleId);
+            extra.put("circleName", circle.getName());
+            extra.put("result", "拒绝");
+            if (operator != null) {
+                extra.put("operator", Map.of(
+                    "id", operator.getId(),
+                    "nickname", operator.getNickname(),
+                    "avatar", operator.getAvatar()
+                ));
+            }
+            
+            notificationService.createNotification(
+                userId,
+                NotificationType.SYSTEM_MESSAGE.getCode(),
+                circleId,
+                null,
+                extra
+            );
+            
+            log.info("发送申请被拒通知，circleId: {}, userId: {}", circleId, userId);
+        } catch (Exception e) {
+            log.error("发送申请被拒通知失败", e);
+        }
+    }
+
+    @Override
+    public Integer getActiveMemberCount(Long circleId) {
+        try {
+            return circleMemberDao.getMemberCount(circleId);
+        } catch (Exception e) {
+            log.error("获取活跃成员数量失败，circleId: {}", circleId, e);
+            return 0;
+        }
+    }
+
+    @Override
+    public List<Long> getJoinedCircleIds(Long userId) {
+        try {
+            return circleMemberDao.getJoinedCircleIds(userId);
+        } catch (Exception e) {
+            log.error("获取用户加入的圈子列表失败，userId: {}", userId, e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void removeAllMembers(Long circleId) {
+        try {
+            LambdaQueryWrapper<CircleMember> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(CircleMember::getCircleId, circleId);
+            
+            List<CircleMember> members = this.list(queryWrapper);
+            for (CircleMember member : members) {
+                member.setStatus(MemberStatus.INACTIVE.getCode());
+                this.updateById(member);
+            }
+            
+            log.info("批量移除圈子{}的所有成员，共{}人", circleId, members.size());
+        } catch (Exception e) {
+            log.error("批量移除圈子成员失败，circleId: {}", circleId, e);
+            throw new RuntimeException("批量移除成员失败：" + e.getMessage());
+        }
+    }
+
 }

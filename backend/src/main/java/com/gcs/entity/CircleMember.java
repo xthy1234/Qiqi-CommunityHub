@@ -1,8 +1,6 @@
 package com.gcs.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.gcs.enums.CommentStatus;
-import com.gcs.enums.CommonStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -55,18 +53,18 @@ public class CircleMember implements Serializable {
     private Integer role;
 
     /**
+     * 成员状态 (0:待审核，1:正常，2:已退出/被移除)
+     */
+    @Schema(description = "成员状态 (0:待审核，1:正常，2:已退出/被移除)", example = "1")
+    private Integer status;
+
+    /**
      * 加入时间
      */
     @Schema(description = "加入时间", example = "2026-03-17 12:00:00")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime joinTime;
-
-    /**
-     * 状态 (0:正常，1:已退出/被移除)
-     */
-    @Schema(description = "状态 (0:正常，1:已退出/被移除)", example = "0")
-    private CommonStatus status;
 
     /**
      * 创建时间

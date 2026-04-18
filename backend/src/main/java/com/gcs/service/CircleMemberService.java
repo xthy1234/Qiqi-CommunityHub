@@ -99,4 +99,65 @@ public interface CircleMemberService extends IService<CircleMember> {
      * @return 角色类型
      */
     Integer getUserRoleInCircle(Long circleId, Long userId);
+
+    /**
+     * 申请加入圈子（需要审核）
+     * @param circleId 圈子 ID
+     * @param userId 用户 ID
+     */
+    void applyToJoin(Long circleId, Long userId);
+
+    /**
+     * 审核加入申请
+     * @param circleId 圈子 ID
+     * @param userId 用户 ID
+     * @param approved 是否通过
+     * @param operatorId 操作人 ID
+     */
+    void reviewJoinApplication(Long circleId, Long userId, boolean approved, Long operatorId);
+
+    /**
+     * 接受邀请加入圈子
+     * @param circleId 圈子 ID
+     * @param userId 用户 ID
+     * @param inviteCode 邀请码
+     */
+    void acceptInvite(Long circleId, Long userId, String inviteCode);
+
+    /**
+     * 获取待审核的成员列表
+     * @param circleId 圈子 ID
+     * @param params 查询参数
+     * @return 分页结果
+     */
+    PageUtils getPendingMembers(Long circleId, Map<String, Object> params);
+
+    /**
+     * 获取活跃成员列表
+     * @param circleId 圈子 ID
+     * @param params 查询参数
+     * @return 分页结果
+     */
+    PageUtils getActiveMembers(Long circleId, Map<String, Object> params);
+
+    /**
+     * 获取活跃成员数量
+     * @param circleId 圈子 ID
+     * @return 成员数量
+     */
+    Integer getActiveMemberCount(Long circleId);
+
+    /**
+     * 获取用户加入的所有圈子 ID
+     * @param userId 用户 ID
+     * @return 圈子 ID 列表
+     */
+    List<Long> getJoinedCircleIds(Long userId);
+
+    /**
+     * 批量移除圈子所有成员（软删除）
+     * @param circleId 圈子 ID
+     */
+    void removeAllMembers(Long circleId);
+
 }

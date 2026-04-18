@@ -5,10 +5,7 @@ import com.gcs.dto.UserRegisterDTO;
 import com.gcs.dto.UserUpdateDTO;
 import com.gcs.dto.UserDTO;
 import com.gcs.entity.User;
-import com.gcs.vo.UserVO;
-import com.gcs.vo.UserDetailVO;
-import com.gcs.vo.UserProfileVO;
-import com.gcs.vo.UserPublicProfileVO;
+import com.gcs.vo.*;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -48,6 +45,10 @@ public interface UserConverter {
     @Named("toPublicProfileVO")
     UserPublicProfileVO toPublicProfileVO(User entity);
     
+    @Named("toSimpleVO")
+    @Mapping(target = "lastOnlineTime", source = "lastOnlineTime")
+    UserSimpleVO toSimpleVO(User entity);
+    
     // ==================== List conversion ====================
     @IterableMapping(qualifiedByName = "toVO")
     List<UserVO> toVOList(List<User> entities);
@@ -60,6 +61,9 @@ public interface UserConverter {
     
     @IterableMapping(qualifiedByName = "toPublicProfileVO")
     List<UserPublicProfileVO> toPublicProfileVOList(List<User> entities);
+    
+    @IterableMapping(qualifiedByName = "toSimpleVO")
+    List<UserSimpleVO> toSimpleVOList(List<User> entities);
     
     // ==================== Update existing entity ====================
     @org.mapstruct.Mapping(target = "id", ignore = true)
