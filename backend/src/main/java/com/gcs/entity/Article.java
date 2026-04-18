@@ -194,9 +194,59 @@ public class Article implements Serializable {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
+    /**
+     * 增加点赞数
+     */
+    public void addLike() {
+        this.likeCount = (this.likeCount == null ? 0 : this.likeCount) + 1;
+    }
 
-    public <T> Article(T source) {
+    /**
+     * 减少点赞数
+     */
+    public void removeLike() {
+        this.likeCount = Math.max(0, (this.likeCount == null ? 0 : this.likeCount) - 1);
+    }
 
+    /**
+     * 增加点踩数
+     */
+    public void addDislike() {
+        this.dislikeCount = (this.dislikeCount == null ? 0 : this.dislikeCount) + 1;
+    }
 
+    /**
+     * 减少点踩数
+     */
+    public void removeDislike() {
+        this.dislikeCount = Math.max(0, (this.dislikeCount == null ? 0 : this.dislikeCount) - 1);
+    }
+
+    /**
+     * 增加收藏数
+     */
+    public void addFavorite() {
+        this.favoriteCount = (this.favoriteCount == null ? 0 : this.favoriteCount) + 1;
+    }
+
+    /**
+     * 减少收藏数
+     */
+    public void removeFavorite() {
+        this.favoriteCount = Math.max(0, (this.favoriteCount == null ? 0 : this.favoriteCount) - 1);
+    }
+
+    /**
+     * 增加分享数
+     */
+    public void addShare() {
+        this.shareCount = (this.shareCount == null ? 0 : this.shareCount) + 1;
+    }
+
+    /**
+     * 减少分享数
+     */
+    public void removeShare() {
+        this.shareCount = Math.max(0, (this.shareCount == null ? 0 : this.shareCount) - 1);
     }
 }

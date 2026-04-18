@@ -500,7 +500,6 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             throw new IllegalArgumentException("文章不存在");
         }
         
-        // 检查用户是否有有效的点赞记录
         boolean hasLiked = interactionService.hasValidInteraction(
             userId, 
             articleId, 
@@ -508,13 +507,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             ContentType.ARTICLE
         );
         
-        Integer currentLikeCount = article.getLikeCount();
-        if (currentLikeCount == null) {
-            currentLikeCount = 0;
-        }
-        
         if (hasLiked) {
-            // 已点赞，取消点赞：将互动记录状态改为无效，点赞数 -1
             boolean removed = interactionService.removeInteraction(
                 userId, 
                 articleId, 
@@ -523,13 +516,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             );
             
             if (removed) {
-                currentLikeCount = Math.max(0, currentLikeCount - 1);
-                article.setLikeCount(currentLikeCount);
-                this.updateById(article);
-                log.info("取消点赞文章成功，articleId: {}, userId: {}, 新点赞数: {}", articleId, userId, currentLikeCount);
+                log.info("取消点赞文章成功，articleId: {}, userId: {}", articleId, userId);
             }
         } else {
-            // 未点赞或之前取消了，添加/重新激活点赞
             Interaction interaction = new Interaction();
             interaction.setUserId(userId);
             interaction.setContentId(articleId);
@@ -540,14 +529,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             boolean added = interactionService.addInteraction(interaction);
             
             if (added) {
-                currentLikeCount = currentLikeCount + 1;
-                article.setLikeCount(currentLikeCount);
-                this.updateById(article);
-                log.info("点赞文章成功，articleId: {}, userId: {}, 新点赞数: {}", articleId, userId, currentLikeCount);
+                log.info("点赞文章成功，articleId: {}, userId: {}", articleId, userId);
             }
         }
         
-        return article.getLikeCount();
+        Article updatedArticle = this.getById(articleId);
+        return updatedArticle != null ? updatedArticle.getLikeCount() : 0;
     }
     
     /**
@@ -565,7 +552,6 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             throw new IllegalArgumentException("文章不存在");
         }
         
-        // 检查用户是否有有效的点踩记录
         boolean hasDisliked = interactionService.hasValidInteraction(
             userId, 
             articleId, 
@@ -573,13 +559,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             ContentType.ARTICLE
         );
         
-        Integer currentDislikeCount = article.getDislikeCount();
-        if (currentDislikeCount == null) {
-            currentDislikeCount = 0;
-        }
-        
         if (hasDisliked) {
-            // 已点踩，取消点踩：将互动记录状态改为无效，点踩数 -1
             boolean removed = interactionService.removeInteraction(
                 userId, 
                 articleId, 
@@ -588,13 +568,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             );
             
             if (removed) {
-                currentDislikeCount = Math.max(0, currentDislikeCount - 1);
-                article.setDislikeCount(currentDislikeCount);
-                this.updateById(article);
-                log.info("取消点踩文章成功，articleId: {}, userId: {}, 新点踩数: {}", articleId, userId, currentDislikeCount);
+                log.info("取消点踩文章成功，articleId: {}, userId: {}", articleId, userId);
             }
         } else {
-            // 未点踩或之前取消了，添加/重新激活点踩
             Interaction interaction = new Interaction();
             interaction.setUserId(userId);
             interaction.setContentId(articleId);
@@ -605,14 +581,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             boolean added = interactionService.addInteraction(interaction);
             
             if (added) {
-                currentDislikeCount = currentDislikeCount + 1;
-                article.setDislikeCount(currentDislikeCount);
-                this.updateById(article);
-                log.info("点踩文章成功，articleId: {}, userId: {}, 新点踩数: {}", articleId, userId, currentDislikeCount);
+                log.info("点踩文章成功，articleId: {}, userId: {}", articleId, userId);
             }
         }
         
-        return article.getDislikeCount();
+        Article updatedArticle = this.getById(articleId);
+        return updatedArticle != null ? updatedArticle.getDislikeCount() : 0;
     }
     
     /**
@@ -630,7 +604,6 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             throw new IllegalArgumentException("文章不存在");
         }
         
-        // 检查用户是否有有效的收藏记录
         boolean hasFavorited = interactionService.hasValidInteraction(
             userId, 
             articleId, 
@@ -638,13 +611,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             ContentType.ARTICLE
         );
         
-        Integer currentFavoriteCount = article.getFavoriteCount();
-        if (currentFavoriteCount == null) {
-            currentFavoriteCount = 0;
-        }
-        
         if (hasFavorited) {
-            // 已收藏，取消收藏：将互动记录状态改为无效，收藏数 -1
             boolean removed = interactionService.removeInteraction(
                 userId, 
                 articleId, 
@@ -653,13 +620,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             );
             
             if (removed) {
-                currentFavoriteCount = Math.max(0, currentFavoriteCount - 1);
-                article.setFavoriteCount(currentFavoriteCount);
-                this.updateById(article);
-                log.info("取消收藏文章成功，articleId: {}, userId: {}, 新收藏数: {}", articleId, userId, currentFavoriteCount);
+                log.info("取消收藏文章成功，articleId: {}, userId: {}", articleId, userId);
             }
         } else {
-            // 未收藏或之前取消了，添加/重新激活收藏
             Interaction interaction = new Interaction();
             interaction.setUserId(userId);
             interaction.setContentId(articleId);
@@ -670,13 +633,11 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             boolean added = interactionService.addInteraction(interaction);
             
             if (added) {
-                currentFavoriteCount = currentFavoriteCount + 1;
-                article.setFavoriteCount(currentFavoriteCount);
-                this.updateById(article);
-                log.info("收藏文章成功，articleId: {}, userId: {}, 新收藏数: {}", articleId, userId, currentFavoriteCount);
+                log.info("收藏文章成功，articleId: {}, userId: {}", articleId, userId);
             }
         }
         
-        return article.getFavoriteCount();
+        Article updatedArticle = this.getById(articleId);
+        return updatedArticle != null ? updatedArticle.getFavoriteCount() : 0;
     }
 }

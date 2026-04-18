@@ -362,35 +362,38 @@ public class InteractionServiceImpl extends ServiceImpl<InteractionDao, Interact
     private void updateArticleInteractionCount(Long articleId, InteractionActionType actionType, int delta) {
         Article article = articleDao.selectById(articleId);
         if (article != null) {
-            // 根据操作类型更新相应的计数
             switch (actionType) {
                 case LIKE:
-                    Integer likeCount = article.getLikeCount() != null ? article.getLikeCount() : 0;
-                    article.setLikeCount(likeCount + delta);
+                    if (delta > 0) {
+                        article.addLike();
+                    } else {
+                        article.removeLike();
+                    }
                     break;
                     
                 case DISLIKE:
-                    Integer dislikeCount = article.getDislikeCount() != null ? article.getDislikeCount() : 0;
-                    article.setDislikeCount(dislikeCount + delta);
+                    if (delta > 0) {
+                        article.addDislike();
+                    } else {
+                        article.removeDislike();
+                    }
                     break;
                     
                 case FAVORITE:
-                    Integer favoriteCount = article.getFavoriteCount() != null ? article.getFavoriteCount() : 0;
-                    article.setFavoriteCount(favoriteCount + delta);
+                    if (delta > 0) {
+                        article.addFavorite();
+                    } else {
+                        article.removeFavorite();
+                    }
                     break;
                     
                 case SHARE:
-                    Integer shareCount = article.getShareCount() != null ? article.getShareCount() : 0;
-                    article.setShareCount(shareCount + delta);
+                    if (delta > 0) {
+                        article.addShare();
+                    } else {
+                        article.removeShare();
+                    }
                     break;
-            }
-
-            // 确保计数不会小于 0
-            if (delta < 0) {
-                article.setLikeCount(Math.max(0, article.getLikeCount()));
-                article.setDislikeCount(Math.max(0, article.getDislikeCount()));
-                article.setFavoriteCount(Math.max(0, article.getFavoriteCount()));
-                article.setShareCount(Math.max(0, article.getShareCount()));
             }
 
             articleDao.updateById(article);

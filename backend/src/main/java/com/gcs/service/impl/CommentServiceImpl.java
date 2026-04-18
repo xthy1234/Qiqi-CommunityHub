@@ -817,7 +817,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             throw new IllegalArgumentException("评论不存在");
         }
         
-        // 检查用户是否有有效的点赞记录
         boolean hasLiked = interactionService.hasValidInteraction(
             userId, 
             commentId, 
@@ -825,13 +824,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             ContentType.COMMENT
         );
         
-        Integer currentLikeCount = comment.getLikeCount();
-        if (currentLikeCount == null) {
-            currentLikeCount = 0;
-        }
-        
         if (hasLiked) {
-            // 已点赞，取消点赞：将互动记录状态改为无效，点赞数 -1
             boolean removed = interactionService.removeInteraction(
                 userId, 
                 commentId, 
@@ -840,13 +833,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             );
             
             if (removed) {
-                currentLikeCount = Math.max(0, currentLikeCount - 1);
-                comment.setLikeCount(currentLikeCount);
-                this.updateById(comment);
-                log.info("取消点赞成功，commentId: {}, userId: {}, 新点赞数: {}", commentId, userId, currentLikeCount);
+                log.info("取消点赞成功，commentId: {}, userId: {}", commentId, userId);
             }
         } else {
-            // 未点赞或之前取消了，添加/重新激活点赞：插入或激活互动记录，点赞数 +1
             Interaction interaction = new Interaction();
             interaction.setUserId(userId);
             interaction.setContentId(commentId);
@@ -857,14 +846,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             boolean added = interactionService.addInteraction(interaction);
             
             if (added) {
-                currentLikeCount = currentLikeCount + 1;
-                comment.setLikeCount(currentLikeCount);
-                this.updateById(comment);
-                log.info("点赞成功，commentId: {}, userId: {}, 新点赞数: {}", commentId, userId, currentLikeCount);
+                log.info("点赞成功，commentId: {}, userId: {}", commentId, userId);
             }
         }
         
-        return comment.getLikeCount();
+        Comment updatedComment = this.getById(commentId);
+        return updatedComment != null ? updatedComment.getLikeCount() : 0;
     }
     
     /**
@@ -881,7 +868,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             throw new IllegalArgumentException("评论不存在");
         }
         
-        // 检查用户是否有有效的点踩记录
         boolean hasDisliked = interactionService.hasValidInteraction(
             userId, 
             commentId, 
@@ -889,13 +875,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             ContentType.COMMENT
         );
         
-        Integer currentDislikeCount = comment.getDislikeCount();
-        if (currentDislikeCount == null) {
-            currentDislikeCount = 0;
-        }
-        
         if (hasDisliked) {
-            // 已点踩，取消点踩：将互动记录状态改为无效，点踩数 -1
             boolean removed = interactionService.removeInteraction(
                 userId, 
                 commentId, 
@@ -904,13 +884,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             );
             
             if (removed) {
-                currentDislikeCount = Math.max(0, currentDislikeCount - 1);
-                comment.setDislikeCount(currentDislikeCount);
-                this.updateById(comment);
-                log.info("取消点踩成功，commentId: {}, userId: {}, 新点踩数: {}", commentId, userId, currentDislikeCount);
+                log.info("取消点踩成功，commentId: {}, userId: {}", commentId, userId);
             }
         } else {
-            // 未点踩或之前取消了，添加/重新激活点踩：插入或激活互动记录，点踩数 +1
             Interaction interaction = new Interaction();
             interaction.setUserId(userId);
             interaction.setContentId(commentId);
@@ -921,14 +897,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
             boolean added = interactionService.addInteraction(interaction);
             
             if (added) {
-                currentDislikeCount = currentDislikeCount + 1;
-                comment.setDislikeCount(currentDislikeCount);
-                this.updateById(comment);
-                log.info("点踩成功，commentId: {}, userId: {}, 新点踩数: {}", commentId, userId, currentDislikeCount);
+                log.info("点踩成功，commentId: {}, userId: {}", commentId, userId);
             }
         }
         
-        return comment.getDislikeCount();
+        Comment updatedComment = this.getById(commentId);
+        return updatedComment != null ? updatedComment.getDislikeCount() : 0;
     }
     
     /**
