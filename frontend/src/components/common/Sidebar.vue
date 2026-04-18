@@ -693,13 +693,6 @@ const getFullUrl = (path: string, baseUrl?: string): string => {
 onMounted(() => {
   initializeComponent()
 
-  // 初始化通知 Store
-  const notificationStore = useNotificationStore()
-  // 如果已建立 WebSocket 连接，订阅通知队列
-  if ((window as any).stompClient) {
-    notificationStore.initWebSocketSubscription((window as any).stompClient)
-  }
-
   // 加载私聊未读数量
   loadChatUnreadCount()
   // 加载圈子聊天未读数量

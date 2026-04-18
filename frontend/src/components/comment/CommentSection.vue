@@ -288,19 +288,22 @@ const handleLike = async (comment: Comment) => {
   if (!comment.id) return
 
   try {
+    // 使用统一的切换接口
+    await commentAPI.toggleLike(comment.id)
+
+    // 切换本地状态
+    comment.isLiked = !comment.isLiked
+
+    // 更新计数
     if (comment.isLiked) {
-      await commentAPI.cancelLike(comment.id)
-      comment.isLiked = false
-      comment.likeCount = (comment.likeCount || 0) - 1
-    } else {
-      await commentAPI.likeComment(comment.id)
-      comment.isLiked = true
       comment.likeCount = (comment.likeCount || 0) + 1
-      // 点赞时自动取消点踩
+      // 如果之前点踩过，需要取消点踩
       if (comment.isDisliked) {
         comment.isDisliked = false
         comment.dislikeCount = (comment.dislikeCount || 0) - 1
       }
+    } else {
+      comment.likeCount = (comment.likeCount || 0) - 1
     }
   } catch (error: any) {
     message.error(error.response?.data?.msg || '操作失败')
@@ -312,19 +315,22 @@ const handleDislike = async (comment: Comment) => {
   if (!comment.id) return
 
   try {
+    // 使用统一的切换接口
+    await commentAPI.toggleDislike(comment.id)
+
+    // 切换本地状态
+    comment.isDisliked = !comment.isDisliked
+
+    // 更新计数
     if (comment.isDisliked) {
-      await commentAPI.cancelDislike(comment.id)
-      comment.isDisliked = false
-      comment.dislikeCount = (comment.dislikeCount || 0) - 1
-    } else {
-      await commentAPI.dislikeComment(comment.id)
-      comment.isDisliked = true
       comment.dislikeCount = (comment.dislikeCount || 0) + 1
-      // 点踩时自动取消点赞
+      // 如果之前点赞过，需要取消点赞
       if (comment.isLiked) {
         comment.isLiked = false
         comment.likeCount = (comment.likeCount || 0) - 1
       }
+    } else {
+      comment.dislikeCount = (comment.dislikeCount || 0) - 1
     }
   } catch (error: any) {
     message.error(error.response?.data?.msg || '操作失败')
@@ -383,15 +389,6 @@ const submitComment = async () => {
   submitting.value = true
   try {
     if (replyingToComment.value) {
-      // 调试日志
-      console.log('[CommentSection] 准备回复评论:', {
-        replyingTo: {
-          id: replyingToComment.value.id,
-          parentId: replyingToComment.value.parentId,
-          userId: replyingToComment.value.userId || replyingToComment.value.user?.id,
-          nickname: replyingToComment.value.userNickname || replyingToComment.value.user?.nickname
-        }
-      })
 
       await commentAPI.replyComment(replyingToComment.value.id!, {
         contentId: props.articleId,

@@ -1,31 +1,32 @@
 package com.gcs.controller;
 
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
-
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gcs.annotation.IgnoreAuth;
 import com.gcs.converter.ArticleConverter;
+import com.gcs.dto.ArticleCreateDTO;
 import com.gcs.dto.ArticleUpdateDTO;
-import com.gcs.dto.BatchAuditDTO;
 import com.gcs.entity.Article;
 import com.gcs.entity.ArticleVersion;
-import com.gcs.entity.User;
+import com.gcs.entity.Interaction;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.enums.AuditStatus;
+import com.gcs.enums.EditMode;
 import com.gcs.service.ArticleService;
 import com.gcs.service.ArticleVersionService;
-import com.gcs.service.PointsService;
-import com.gcs.service.UserService;
-import com.gcs.utils.*;
-import com.gcs.vo.*;
+import com.gcs.utils.AuthUtils;
+import com.gcs.utils.InteractionUtils;
+import com.gcs.utils.PageUtils;
+import com.gcs.utils.R;
+import com.gcs.utils.SessionUtils;
+import com.gcs.vo.ArticleDetailVO;
+import com.gcs.vo.ArticleSearchVO;
+import com.gcs.vo.ArticleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -33,50 +34,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.gcs.dto.ArticleCreateDTO;
-import com.gcs.entity.Interaction;
-import com.gcs.enums.ContentType;
-import com.gcs.enums.InteractionActionType;
-import com.gcs.service.InteractionService;
-import com.gcs.utils.R;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import com.gcs.enums.EditMode;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
 /**
- * 帖子控制器
- * 提供帖子相关的 RESTful API 接口
- * @author 111
- * @email
- * @date
+ * 文章核心控制器
+ * 提供文章的基础增删改查、搜索等核心功能的 RESTful API 接口
  */
 @Slf4j
-@Tag(name = "文章管理", description = "文章相关的 RESTful API 接口")
+@Tag(name = "文章核心管理", description = "文章的基础增删改查、搜索等核心功能")
 @RestController
 @RequestMapping("/articles")
 public class ArticleController {
 
     @Autowired
     private ArticleService articleService;
-    
+
     @Autowired
     private ArticleVersionService articleVersionService;
 
     @Autowired
-    private InteractionService favoriteService;
-    
-    @Autowired
-    private PointsService pointsService;
-    
-    @Autowired
-    private UserService userService;
-    
-    @Autowired
     private ArticleConverter articleConverter;
+
+    @Autowired
+    private SessionUtils sessionUtils;
 
     @Autowired
     private AuthUtils authUtils;
@@ -86,18 +67,6 @@ public class ArticleController {
 
     /**
      * 获取文章分页列表（通用接口）
-     * 支持参数：
-     * - page=1&limit=6&sort=createTime&order=desc（分页排序）
-     * - auditStatus=1（审核状态：0-待审核，1:已通过，2:已拒绝）
-     * - authorId=1（作者 ID）
-     * - categoryId=1（分类 ID）
-     * - type=my（我的文章）/published（已发布）/favorite（我的收藏）/all（全部，默认）
-     *
-     * 参数优先级说明：
-     * - type 参数决定核心查询条件，某些 type 值会忽略 auditStatus 和 authorId 参数
-     * - categoryId 可与任意 type 组合使用
-     *
-     * 注意：草稿文章现在存储在 article_draft 表中，不再使用 audit_status=3
      */
     @Operation(summary = "获取文章分页列表", description = "分页查询文章列表，支持多种条件筛选")
     @ApiResponses({
@@ -112,7 +81,7 @@ public class ArticleController {
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer limit,
             @Parameter(description = "排序字段") @RequestParam(defaultValue = "createTime") String sort,
             @Parameter(description = "排序方式 (asc/desc)") @RequestParam(defaultValue = "desc") String order,
-            @Parameter(description = "审核状态 (0:待审核，1:已通过，2:已拒绝)") @RequestParam(required = false) Integer auditStatus,
+            @Parameter(description = "审核状态") @RequestParam(required = false) Integer auditStatus,
             @Parameter(description = "作者 ID") @RequestParam(required = false) Long authorId,
             @Parameter(description = "分类 ID") @RequestParam(required = false) Long categoryId,
             @Parameter(description = "查询类型 (all/published/my/favorite/pending)") @RequestParam(defaultValue = "all") String type,
@@ -124,23 +93,15 @@ public class ArticleController {
             params.put("sort", sort);
             params.put("order", order);
 
-            // 构建查询条件
             QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
-
-            // 1. 基础条件：逻辑删除
             queryWrapper.eq("deleted", false);
 
-            // 2. 获取当前用户 ID
-            Long currentUserId = getCurrentUserId(request);
-            System.out.println("currentUserId: " + currentUserId);
-            // 标记哪些参数应该被忽略
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             boolean auditStatusIgnored = false;
             boolean authorIdIgnored = false;
 
-            // 3. 根据 type 设置核心条件（所有字段都使用表别名 a.）
             switch (type) {
                 case "all":
-                    // 所有公开文章（审核通过的）
                     queryWrapper.eq("a.audit_status", AuditStatus.APPROVED.getCode());
                     auditStatusIgnored = true;
                     break;
@@ -154,17 +115,15 @@ public class ArticleController {
                     break;
 
                 case "published":
-                    // 所有已发布文章
                     queryWrapper.eq("a.audit_status", AuditStatus.APPROVED.getCode());
                     auditStatusIgnored = true;
                     break;
 
                 case "pending":
-                    // 待审核文章（管理员看全部，用户看自己的）
                     if (currentUserId == null) {
                         return R.error("请先登录");
                     }
-                    boolean isAdmin = checkIsAdmin(currentUserId);
+                    boolean isAdmin = authUtils.isAdmin(currentUserId);
                     if (isAdmin) {
                         queryWrapper.eq("a.audit_status", AuditStatus.PENDING.getCode());
                     } else {
@@ -176,30 +135,17 @@ public class ArticleController {
                     break;
 
                 case "favorite":
-                    // 当前用户收藏的已发布文章
                     if (currentUserId == null) {
                         return R.error("请先登录");
                     }
-
-                    // 从 interaction 表查询当前用户收藏的文章 ID 列表
-                    List<Interaction> favoriteInteractions = favoriteService.getUserInteractionsList(
-                            currentUserId,
-                            InteractionActionType.FAVORITE,
-                            ContentType.ARTICLE
-                    );
-
+                    List<Interaction> favoriteInteractions = articleService.getUserFavorites(currentUserId);
                     if (favoriteInteractions == null || favoriteInteractions.isEmpty()) {
-                        // 如果没有收藏任何文章，返回空列表
                         PageUtils pageResult = new PageUtils(new ArrayList<>(), 0, limit, page);
                         return R.ok().put("data", pageResult);
                     }
-
-                    // 提取收藏的文章 ID
                     List<Long> favoriteArticleIds = favoriteInteractions.stream()
                             .map(Interaction::getContentId)
                             .collect(Collectors.toList());
-
-                    // 查询这些文章（只查询已发布的）
                     queryWrapper.in("a.id", favoriteArticleIds)
                             .eq("a.audit_status", AuditStatus.APPROVED.getCode());
                     auditStatusIgnored = true;
@@ -207,12 +153,10 @@ public class ArticleController {
                     break;
 
                 default:
-                    // 默认作为 all 处理
                     queryWrapper.eq("a.audit_status", AuditStatus.APPROVED.getCode());
                     auditStatusIgnored = true;
             }
 
-            // 4. 处理未被忽略的额外筛选条件（所有字段都使用表别名 a.）
             if (!auditStatusIgnored && auditStatus != null) {
                 queryWrapper.eq("a.audit_status", auditStatus);
             }
@@ -223,17 +167,14 @@ public class ArticleController {
                 queryWrapper.eq("a.category_id", categoryId);
             }
 
-            // 5. 执行分页查询（使用 selectListView 来获取联表数据）
-            IPage<ArticleView> articlePage = new Query<ArticleView>(params).getPage();
+            IPage<ArticleView> articlePage = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, limit);
             IPage<ArticleView> resultPage = articleService.selectListViewPage(articlePage, queryWrapper);
 
-            // 6. 将 ArticleView 转换为 ArticleVO
             List<ArticleVO> voList = resultPage.getRecords()
                     .stream()
                     .map(this::convertArticleViewToVO)
                     .collect(Collectors.toList());
 
-            // 7. 构建返回结果
             PageUtils pageResult = new PageUtils(resultPage);
             pageResult.setList(voList);
 
@@ -244,14 +185,13 @@ public class ArticleController {
         }
     }
 
-
     /**
-     * 获取帖子详情
+     * 获取文章详情
      */
-    @Operation(summary = "获取帖子详情", description = "根据帖子 ID 查询详细信息，包含作者、分类等信息")
+    @Operation(summary = "获取文章详情", description = "根据文章 ID 查询详细信息，包含作者、分类等信息")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "查询成功"),
-            @ApiResponse(responseCode = "404", description = "帖子不存在"),
+            @ApiResponse(responseCode = "404", description = "文章不存在"),
             @ApiResponse(responseCode = "500", description = "服务器错误")
     })
     @GetMapping("/{id}")
@@ -270,24 +210,22 @@ public class ArticleController {
                 vo = articleConverter.toDetailVO(article);
             }
 
-            Long currentUserId = getCurrentUserId(request);
-            Boolean isLiked = interactionUtils.hasLiked(currentUserId, id, ContentType.ARTICLE);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            Boolean isLiked = interactionUtils.hasLiked(currentUserId, id, com.gcs.enums.ContentType.ARTICLE);
             vo.setIsLiked(isLiked != null && isLiked);
 
-            Boolean isDisliked = interactionUtils.hasDisliked(currentUserId, id, ContentType.ARTICLE);
+            Boolean isDisliked = interactionUtils.hasDisliked(currentUserId, id, com.gcs.enums.ContentType.ARTICLE);
             vo.setIsDisliked(isDisliked != null && isDisliked);
 
-            Boolean isFavorited = interactionUtils.hasFavorited(currentUserId, id, ContentType.ARTICLE);
+            Boolean isFavorited = interactionUtils.hasFavorited(currentUserId, id, com.gcs.enums.ContentType.ARTICLE);
             vo.setIsFavorited(isFavorited != null && isFavorited);
 
-
-            
             vo.setCurrentVersion(article.getCurrentVersion());
-            
+
             if (article.getCurrentVersion() != null) {
                 ArticleVersion currentVersionEntity = articleVersionService.getVersionDetail(
-                    id, 
-                    article.getCurrentVersion()
+                        id,
+                        article.getCurrentVersion()
                 );
                 if (currentVersionEntity != null) {
                     vo.setMajorVersion(currentVersionEntity.getMajorVersion());
@@ -316,9 +254,9 @@ public class ArticleController {
     }
 
     /**
-     * 获取置顶/推荐文章列表
+     * 获取推荐文章列表
      */
-    @Operation(summary = "获取置顶/推荐文章列表", description = "获取所有置顶或推荐的文章，按推荐等级排序")
+    @Operation(summary = "获取推荐文章列表", description = "获取所有推荐的文章，按推荐等级排序")
     @GetMapping("/featured")
     @IgnoreAuth
     public R getFeaturedArticles(
@@ -327,14 +265,14 @@ public class ArticleController {
         try {
             QueryWrapper<Article> wrapper = new QueryWrapper<>();
             wrapper.eq("is_featured", true)
-                   .eq("deleted", false)
-                   .eq("audit_status", AuditStatus.APPROVED.getCode())
-                   .orderByDesc("featured_level")
-                   .orderByDesc("create_time")
-                   .last("LIMIT " + limit);
-            
+                    .eq("deleted", false)
+                    .eq("audit_status", AuditStatus.APPROVED.getCode())
+                    .orderByDesc("featured_level")
+                    .orderByDesc("create_time")
+                    .last("LIMIT " + limit);
+
             List<Article> featuredArticles = articleService.list(wrapper);
-            
+
             List<ArticleVO> voList = featuredArticles.stream()
                     .map(article -> {
                         ArticleVO vo = articleConverter.toVO(article);
@@ -343,10 +281,10 @@ public class ArticleController {
                         return vo;
                     })
                     .collect(Collectors.toList());
-            
+
             return R.ok().put("data", voList);
         } catch (Exception e) {
-            log.error("获取置顶文章列表失败", e);
+            log.error("获取推荐文章列表失败", e);
             return R.error("获取数据失败");
         }
     }
@@ -354,29 +292,31 @@ public class ArticleController {
     /**
      * 创建文章
      */
+    @Operation(summary = "创建文章", description = "发布新文章")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "发布成功"),
+            @ApiResponse(responseCode = "401", description = "未登录"),
+            @ApiResponse(responseCode = "500", description = "发布失败")
+    })
     @PostMapping
     @Transactional
     public R create(@Valid @RequestBody ArticleCreateDTO createDTO, HttpServletRequest request) {
         try {
-            Long userId = getCurrentUserId(request);
+            Long userId = sessionUtils.getCurrentUserId(request);
             if (userId == null) {
                 return R.error("请先登录");
             }
 
-            //  使用 Converter 转换 DTO → Entity
             Article article = articleConverter.toEntity(createDTO);
             article.setAuthorId(userId);
             article.setAuditStatus(AuditStatus.PENDING);
 
-            //  Service 负责保存
             articleService.insertArticle(article);
 
-            //  Controller 负责转换为 VO 并返回
             ArticleDetailVO vo = articleConverter.toDetailVO(
                     articleService.getArticleDetail(article.getId())
             );
-            
-            //  新增：查询最新版本并设置版本号（新文章第一个版本为 1.0）
+
             vo.setMajorVersion(1);
             vo.setMinorVersion(0);
 
@@ -388,79 +328,12 @@ public class ArticleController {
     }
 
     /**
-     * 批量审核帖子
+     * 更新文章
      */
-    @PostMapping("/batch-audit")
-    @Transactional
-    public R batchAudit(@Valid @RequestBody BatchAuditDTO auditDTO,
-                        HttpServletRequest request) {
-        try {
-            AuditStatus auditStatus = AuditStatus.valueOf(auditDTO.getStatus());
-            
-            // 获取当前审核员 ID（管理员）
-            Long currentUserId = getCurrentUserId(request);
-            if (currentUserId == null) {
-                return R.error("请先登录");
-            }
-
-            List<Article> articles = new ArrayList<>();
-            for (Long id : auditDTO.getIds()) {
-                Article article = articleService.getById(id);
-                if (article != null) {
-                    Integer oldStatus = article.getAuditStatus().getCode();
-                    
-                    article.setAuditStatus(auditStatus);
-                    article.setAuditReply(auditDTO.getReply());
-
-                    // 审核通过时，如果 publishTime 为空，则设置为当前时间
-                    if (auditStatus == AuditStatus.APPROVED && article.getPublishTime() == null) {
-                        article.setPublishTime(new Date());
-                    }
-
-                    articles.add(article);
-                    
-                    // 审核通过时发放积分（仅当从非通过状态变为通过状态）
-                    if (auditStatus == AuditStatus.APPROVED) {
-                        // 检查用户是否已经获得过发布积分（避免重复发放）
-                        boolean hasReceivedPoints = checkUserReceivedPostPoints(article.getAuthorId(), id);
-                        if (!hasReceivedPoints) {
-                            pointsService.addPoints(article.getAuthorId(), "post_article", id, "发布文章并通过审核");
-                            log.info("文章审核通过发放积分，articleId: {}, authorId: {}", id, article.getAuthorId());
-                        }
-                    }
-                    
-                    // 记录审核历史
-                    articleService.recordAuditHistory(id, currentUserId, oldStatus, auditDTO.getStatus(), auditDTO.getReply());
-                }
-            }
-            articleService.updateBatchById(articles);
-            return R.ok();
-        } catch (Exception e) {
-            log.error("批量审核失败", e);
-            return R.error("审核失败");
-        }
-    }
-
-    /**
-     * 检查用户是否已经获得过某篇文章的发布积分
-     */
-    private boolean checkUserReceivedPostPoints(Long userId, Long articleId) {
-        // 查询积分流水，判断是否已经因为这篇文章获得过积分
-        QueryWrapper<com.gcs.entity.PointsTransaction> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId)
-               .eq("source", "post_article")
-               .eq("source_id", articleId);
-        
-        return pointsService.count(wrapper) > 0;
-    }
-
-    /**
-     * 更新帖子
-     */
-    @Operation(summary = "更新帖子", description = "根据帖子 ID 更新帖子信息")
+    @Operation(summary = "更新文章", description = "根据文章 ID 更新文章信息")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "更新成功"),
-            @ApiResponse(responseCode = "404", description = "帖子不存在"),
+            @ApiResponse(responseCode = "404", description = "文章不存在"),
             @ApiResponse(responseCode = "400", description = "参数验证失败"),
             @ApiResponse(responseCode = "500", description = "服务器错误")
     })
@@ -470,7 +343,7 @@ public class ArticleController {
     public R update(@PathVariable("id") Long id, @Valid @RequestBody ArticleUpdateDTO updateDTO,
                     HttpServletRequest request) {
         try {
-            Long userId = getCurrentUserId(request);
+            Long userId = sessionUtils.getCurrentUserId(request);
             if (userId == null) {
                 return R.error("请先登录");
             }
@@ -484,25 +357,19 @@ public class ArticleController {
                 return R.error("无权限修改他人文章");
             }
 
-            //  使用 Converter 更新 Entity 字段
             articleConverter.updateEntity(updateDTO, originalArticle);
-
-            //  Service 负责保存
             articleService.updateById(originalArticle);
 
-            //  Controller 负责转换为 VO 并返回
             ArticleDetailVO vo = articleConverter.toDetailVO(
                     articleService.getArticleDetail(id)
             );
-            
-            //  新增：查询最新版本并设置版本号
+
             List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
             if (versions != null && !versions.isEmpty()) {
                 ArticleVersion latestVersion = versions.get(0);
                 vo.setMajorVersion(latestVersion.getMajorVersion());
                 vo.setMinorVersion(latestVersion.getMinorVersion());
             } else {
-                // 如果没有版本记录，默认为 1.0
                 vo.setMajorVersion(1);
                 vo.setMinorVersion(0);
             }
@@ -514,9 +381,8 @@ public class ArticleController {
         }
     }
 
-
     /**
-     * 部分更新帖子
+     * 部分更新文章
      */
     @PatchMapping("/{id}")
     @Transactional
@@ -526,14 +392,20 @@ public class ArticleController {
             articleService.updateById(article);
             return R.ok();
         } catch (Exception e) {
-            log.error("部分更新帖子失败，ID: {}", id, e);
+            log.error("部分更新文章失败，ID: {}", id, e);
             return R.error("修改失败");
         }
     }
+
     /**
-     * 批量删除文章（统一接口）
-     * 自动判断每篇文章的状态和权限
+     * 批量删除文章
      */
+    @Operation(summary = "批量删除文章", description = "批量删除多篇文章（统一接口，自动判断权限）")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "401", description = "未登录"),
+            @ApiResponse(responseCode = "403", description = "无权限删除")
+    })
     @PostMapping("/batch-delete")
     @Transactional
     public R batchDeleteArticles(@RequestBody Long[] ids, HttpServletRequest request) {
@@ -541,34 +413,27 @@ public class ArticleController {
             if (ids == null || ids.length == 0) {
                 return R.error("请选择要删除的文章");
             }
-            
-            // 获取当前用户信息
-            String userIdStr = getSessionAttribute(request, "userId");
-            if (userIdStr == null) {
+
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
                 return R.error("请先登录");
             }
-            
-            Long currentUserId = Long.parseLong(userIdStr);
-            
-            // 判断是否为管理员
-            boolean isAdmin = checkIsAdmin(currentUserId);
-            
-            // 验证所有文章
+
+            boolean isAdmin = authUtils.isAdmin(currentUserId);
+
             for (Long id : ids) {
                 Article article = articleService.getById(id);
                 if (article == null) {
                     return R.error("文章不存在，ID: " + id);
                 }
-                
-                // 如果不是管理员，验证是否为作者本人
+
                 if (!isAdmin && !article.getAuthorId().equals(currentUserId)) {
                     return R.error("无权限删除文章，ID: " + id);
                 }
             }
-            
-            // 批量删除
+
             articleService.removeByIds(Arrays.asList(ids));
-            
+
             if (isAdmin) {
                 log.info("管理员批量删除文章成功，数量：{}, 管理员 ID: {}", ids.length, currentUserId);
             } else {
@@ -582,15 +447,14 @@ public class ArticleController {
     }
 
     /**
-     * 删除文章（统一接口）
-     * 自动判断文章状态和权限
+     * 删除文章
      */
     @Operation(summary = "删除文章", description = "根据文章 ID 删除文章（逻辑删除，自动判断状态和权限）")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "删除成功"),
-        @ApiResponse(responseCode = "404", description = "文章不存在"),
-        @ApiResponse(responseCode = "403", description = "无权限删除"),
-        @ApiResponse(responseCode = "500", description = "服务器错误")
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "文章不存在"),
+            @ApiResponse(responseCode = "403", description = "无权限删除"),
+            @ApiResponse(responseCode = "500", description = "服务器错误")
     })
     @DeleteMapping("/{id}")
     @Transactional
@@ -600,31 +464,24 @@ public class ArticleController {
             if (article == null) {
                 return R.error("文章不存在");
             }
-            
-            // 获取当前用户信息
-            String userIdStr = getSessionAttribute(request, "userId");
-            if (userIdStr == null) {
+
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
                 return R.error("请先登录");
             }
-            
-            Long currentUserId = Long.parseLong(userIdStr);
-            
-            // 判断是否为管理员
-            boolean isAdmin = checkIsAdmin(currentUserId);
-            
-            // 管理员可以直接删除任何文章
+
+            boolean isAdmin = authUtils.isAdmin(currentUserId);
+
             if (isAdmin) {
                 articleService.removeById(id);
                 log.info("管理员删除文章成功，ID: {}, 管理员 ID: {}", id, currentUserId);
                 return R.ok();
             }
-            
-            // 非管理员只能删除自己的文章
+
             if (!article.getAuthorId().equals(currentUserId)) {
                 return R.error("无权限删除此文章");
             }
-            
-            // 作者删除自己的文章
+
             articleService.removeById(id);
             log.info("作者删除文章成功，ID: {}, 作者 ID: {}", id, currentUserId);
             return R.ok();
@@ -635,183 +492,52 @@ public class ArticleController {
     }
 
     /**
-     * 按值统计
-     */
-    @GetMapping("/stats/value/{xColumn}/{yColumn}")
-    public R valueStatistics(@PathVariable("yColumn") String yColumn, 
-                             @PathVariable("xColumn") String xColumn,
-                             HttpServletRequest request) {
-        try {
-            Map<String, Object> params = createStatsParams(xColumn, yColumn);
-            QueryWrapper<Article> queryWrapper = buildStatsQueryWrapper(request);
-            
-            List<Map<String, Object>> result = articleService.selectValue(params, queryWrapper);
-            formatDatesInResult(result);
-            
-            return R.ok().put("data", result);
-        } catch (Exception e) {
-            log.error("统计查询失败", e);
-            return R.error("统计失败");
-        }
-    }
-
-    /**
-     * 按值统计（多列）
-     */
-    @GetMapping("/stats/value/multiple/{xColumn}")
-    public R multipleValueStatistics(@PathVariable("xColumn") String xColumn,
-                                     @RequestParam String yColumns,
-                                     HttpServletRequest request) {
-        try {
-            String[] yColumnArray = yColumns.split(",");
-            List<List<Map<String, Object>>> results = new ArrayList<>();
-            
-            QueryWrapper<Article> queryWrapper = buildStatsQueryWrapper(request);
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            
-            for (String yColumn : yColumnArray) {
-                Map<String, Object> params = createStatsParams(xColumn, yColumn);
-                List<Map<String, Object>> result = articleService.selectValue(params, queryWrapper);
-                formatDatesInResult(result);
-                results.add(result);
-            }
-            
-            return R.ok().put("data", results);
-        } catch (Exception e) {
-            log.error("多列统计查询失败", e);
-            return R.error("统计失败");
-        }
-    }
-
-    /**
-     * 时间统计
-     */
-    @GetMapping("/stats/time/{xColumn}/{yColumn}/{timeType}")
-    public R timeStatistics(@PathVariable("yColumn") String yColumn, 
-                            @PathVariable("xColumn") String xColumn,
-                            @PathVariable("timeType") String timeType,
-                            HttpServletRequest request) {
-        try {
-            Map<String, Object> params = createTimeStatsParams(xColumn, yColumn, timeType);
-            QueryWrapper<Article> queryWrapper = buildStatsQueryWrapper(request);
-            
-            List<Map<String, Object>> result = articleService.selectTimeStatValue(params, queryWrapper);
-            formatDatesInResult(result);
-            
-            return R.ok().put("data", result);
-        } catch (Exception e) {
-            log.error("时间统计查询失败", e);
-            return R.error("统计失败");
-        }
-    }
-
-    /**
-     * 分组统计
-     */
-    @GetMapping("/stats/group/{column}")
-    public R groupStatistics(@PathVariable("column") String column,
-                             HttpServletRequest request) {
-        try {
-            Map<String, Object> params = new HashMap<>();
-            params.put("column", column);
-            
-            QueryWrapper<Article> queryWrapper = buildStatsQueryWrapper(request);
-            List<Map<String, Object>> result = articleService.selectGroup(params, queryWrapper);
-            formatDatesInResult(result);
-            
-            return R.ok().put("data", result);
-        } catch (Exception e) {
-            log.error("分组统计查询失败", e);
-            return R.error("统计失败");
-        }
-    }
-
-    /**
-     * 获取帖子总数
-     */
-    @GetMapping("/count")
-    public R getCount(@RequestParam Map<String, Object> params, 
-                      Article article, 
-                      HttpServletRequest request) {
-        try {
-
-            String authorIdStr = getSessionAttribute(request, "userId");
-           article.setAuthorId(authorIdStr != null ? Long.parseLong(authorIdStr) : null);
-            
-            QueryWrapper<Article> queryWrapper = buildQueryWrapper(article, params);
-            Long count = articleService.count(MPUtil.sort(
-                MPUtil.between(MPUtil.likeOrEq(queryWrapper, article), params), params));
-                
-            return R.ok().put("data", count);
-        } catch (Exception e) {
-            log.error("获取帖子总数失败", e);
-            return R.error("查询失败");
-        }
-    }
-
-    /**
      * 全文搜索文章
      */
     @Operation(summary = "全文搜索文章", description = "基于 PostgreSQL 全文搜索，支持关键词搜索、分类筛选、时间范围筛选")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "搜索成功"),
-        @ApiResponse(responseCode = "400", description = "搜索关键词不能为空"),
-        @ApiResponse(responseCode = "500", description = "服务器错误")
+            @ApiResponse(responseCode = "200", description = "搜索成功"),
+            @ApiResponse(responseCode = "400", description = "搜索关键词不能为空"),
+            @ApiResponse(responseCode = "500", description = "服务器错误")
     })
     @GetMapping("/search")
     @IgnoreAuth
     public R searchArticles(
-        @Parameter(description = "搜索关键词（必填）", required = true, example = "Java") @RequestParam(required = false) String keyword,
-        @Parameter(description = "分类 ID（可选）", example = "1") @RequestParam(required = false) Long categoryId,
-        @Parameter(description = "开始日期 (yyyy-MM-dd)", example = "2025-01-01") @RequestParam(required = false) String startDate,
-        @Parameter(description = "结束日期 (yyyy-MM-dd)", example = "2025-12-31") @RequestParam(required = false) String endDate,
-        @Parameter(description = "返回结果数量限制", example = "20") @RequestParam(defaultValue = "20") Integer limit,
-        HttpServletRequest request) {
+            @Parameter(description = "搜索关键词（必填）", required = true, example = "Java") @RequestParam(required = false) String keyword,
+            @Parameter(description = "分类 ID（可选）", example = "1") @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "开始日期 (yyyy-MM-dd)", example = "2025-01-01") @RequestParam(required = false) String startDate,
+            @Parameter(description = "结束日期 (yyyy-MM-dd)", example = "2025-12-31") @RequestParam(required = false) String endDate,
+            @Parameter(description = "返回结果数量限制", example = "20") @RequestParam(defaultValue = "20") Integer limit,
+            HttpServletRequest request) {
         try {
             Map<String, Object> params = new HashMap<>();
-            
-            // 处理关键词（必需）
+
             if (keyword != null && !keyword.trim().isEmpty()) {
                 params.put("keyword", keyword.trim());
             } else {
                 return R.error("搜索关键词不能为空");
             }
-            
-            // 可选的分类筛选
+
             if (categoryId != null) {
                 params.put("categoryId", categoryId);
             }
-            
-            // 可选的时间范围筛选
+
             if (startDate != null && !startDate.isEmpty()) {
                 params.put("startDate", startDate);
             }
             if (endDate != null && !endDate.isEmpty()) {
                 params.put("endDate", endDate);
             }
-            
-            // 设置默认限制
+
             params.put("limit", limit);
-            
+
             List<ArticleSearchVO> resultList = articleService.searchByFullText(params);
-            
+
             return R.ok().put("data", resultList);
         } catch (Exception e) {
             log.error("全文搜索失败，keyword: {}", keyword, e);
             return R.error("搜索失败");
         }
-    }
-
-    // ==================== 私有辅助方法 ====================
-
-    /**
-     * 获取当前登录用户 ID
-     * @param request HTTP 请求
-     * @return 用户 ID，未登录则返回 null
-     */
-    private Long getCurrentUserId(HttpServletRequest request) {
-        String userIdStr = getSessionAttribute(request, "userId");
-        return userIdStr != null ? Long.parseLong(userIdStr) : null;
     }
 
     /**
@@ -820,10 +546,10 @@ public class ArticleController {
     @Operation(summary = "修改文章编辑模式", description = "设置文章的编辑模式（仅作者可编辑/所有人可建议）")
     @PutMapping("/{articleId}/edit-mode")
     public R updateEditMode(@PathVariable Long articleId,
-                        @RequestParam Integer editMode,
-                        HttpServletRequest request) {
+                            @RequestParam Integer editMode,
+                            HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
             if (currentUserId == null) {
                 return R.error("请先登录");
             }
@@ -833,12 +559,10 @@ public class ArticleController {
                 return R.error("文章不存在");
             }
 
-            // 验证权限（只有作者可以修改编辑模式）
             if (!article.getAuthorId().equals(currentUserId)) {
                 return R.error("无权限修改编辑模式");
             }
 
-            // 验证编辑模式合法性
             try {
                 EditMode mode = EditMode.valueOfCode(editMode);
             } catch (IllegalArgumentException e) {
@@ -860,26 +584,22 @@ public class ArticleController {
      */
     @Operation(summary = "增加文章浏览量", description = "增加指定文章的浏览量（带去重机制，同一用户每天只计一次）")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "操作成功"),
-        @ApiResponse(responseCode = "404", description = "文章不存在"),
-        @ApiResponse(responseCode = "500", description = "服务器错误")
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "404", description = "文章不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器错误")
     })
     @PostMapping("/{id}/view")
     @IgnoreAuth
     public R incrementView(@PathVariable("id") Long id, HttpServletRequest request) {
         try {
-            // 检查文章是否存在
             Article article = articleService.getById(id);
             if (article == null) {
                 return R.error("文章不存在");
             }
 
-            // 生成访问者标识
             String viewerKey = generateViewerKey(request);
-            
-            // 增加浏览量
             articleService.incrementViewCount(id, viewerKey);
-            
+
             return R.ok("浏览量已更新");
         } catch (Exception e) {
             log.error("增加文章浏览量失败，articleId: {}", id, e);
@@ -888,7 +608,7 @@ public class ArticleController {
     }
 
     /**
-     * 将 ArticleView 转换为 ArticleVO（包含联表查询的分类名、作者信息）
+     * 将 ArticleView 转换为 ArticleVO
      */
     private ArticleVO convertArticleViewToVO(ArticleView articleView) {
         ArticleVO vo = new ArticleVO();
@@ -900,600 +620,37 @@ public class ArticleController {
         vo.setAuthorId(articleView.getAuthorId());
         vo.setAuthorNickname(articleView.getAuthorNickname());
         vo.setAuthorAvatar(articleView.getAuthorAvatar());
-        
-        vo.setLikeCount(articleView.getLikeCount());
-        vo.setDislikeCount(articleView.getDislikeCount());
-        vo.setViewCount(articleView.getViewCount());
-        
-        vo.setPublishTime(articleView.getPublishTime() != null ? articleView.getPublishTime() : java.util.Date.from(articleView.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
-        
-        vo.setAuditStatus(articleView.getAuditStatus().getCode());
-        vo.setCreateTime(articleView.getCreateTime());
-        
-        vo.setIsFeatured(articleView.getIsFeatured());
-        vo.setFeaturedLevel(articleView.getFeaturedLevel());
-        
-        return vo;
-    }
 
-
-    /**
-     * 构建查询条件
-     */
-    private QueryWrapper<Article> buildQueryWrapper(Article article, Map<String, Object> params) {
-        QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
-        // 使用 columnMap 方式，MyBatis-Plus 会自动处理表别名和逻辑删除
-        return queryWrapper;
-    }
-
-    /**
-     * 构建统计查询条件
-     */
-    private QueryWrapper<Article> buildStatsQueryWrapper(HttpServletRequest request) {
-        QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
-        return queryWrapper;
-    }
-
-    /**
-     * 创建统计参数
-     */
-    private Map<String, Object> createStatsParams(String xColumn, String yColumn) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("xColumn", xColumn);
-        params.put("yColumn", yColumn);
-        return params;
-    }
-
-    /**
-     * 创建时间统计参数
-     */
-    private Map<String, Object> createTimeStatsParams(String xColumn, String yColumn, String timeType) {
-        Map<String, Object> params = createStatsParams(xColumn, yColumn);
-        params.put("timeStatType", timeType);
-        return params;
-    }
-
-    /**
-     * 格式化结果中的日期
-     */
-    private void formatDatesInResult(List<Map<String, Object>> result) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        for (Map<String, Object> item : result) {
-            for (Map.Entry<String, Object> entry : item.entrySet()) {
-                if (entry.getValue() instanceof Date) {
-                    entry.setValue(dateFormat.format((Date) entry.getValue()));
-                }
-            }
-        }
-    }
-
-    /**
-     * 获取会话属性
-     */
-    private String getSessionAttribute(HttpServletRequest request, String attributeName) {
-        Object attribute = request.getSession().getAttribute(attributeName);
-        return attribute != null ? attribute.toString() : null;
-    }
-
-    /**
-     * 检查用户是否为管理员
-     */
-    private boolean checkIsAdmin(Long userId) {
-        try {
-            User user = userService.getById(userId);
-            if (user == null) {
-                return false;
-            }
-            
-            // 方法 1: 通过 roleId 判断（假设 roleId=2 为管理员）
-            return user.getRoleId() != null && user.getRoleId() == 2L;
-        } catch (Exception e) {
-            log.error("检查管理员权限失败，userId: {}", userId, e);
-            return false;
-        }
-    }
-
-    /**
-     * 生成访问者标识
-     * 登录用户：user:{userId}
-     * 未登录用户：ip:{ip}:{userAgent}
-     */
-    private String generateViewerKey(HttpServletRequest request) {
-        Long userId = getCurrentUserId(request);
-        if (userId != null) {
-            return "user:" + userId;
-        }
-        
-        // 未登录时使用 IP + User-Agent 作为标识
-        String ip = request.getRemoteAddr();
-        String userAgent = request.getHeader("User-Agent");
-        return "ip:" + ip + ":" + (userAgent != null ? userAgent.hashCode() : "unknown");
-    }
-    
-    /**
-     * 管理员查询所有文章（包含全部审核状态）
-     */
-    @GetMapping("/admin/list")
-    @Operation(summary = "管理员查询文章列表", description = "管理员可以查询所有文章，支持按审核状态、分类、作者等条件筛选")
-    public R adminGetArticles(
-            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
-            @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer limit,
-            @Parameter(description = "排序字段") @RequestParam(defaultValue = "createTime") String sort,
-            @Parameter(description = "排序方式") @RequestParam(defaultValue = "desc") String order,
-            @Parameter(description = "审核状态") @RequestParam(required = false) Integer auditStatus,
-            @Parameter(description = "作者 ID") @RequestParam(required = false) Long authorId,
-            @Parameter(description = "分类 ID") @RequestParam(required = false) Long categoryId,
-            @Parameter(description = "开始日期") @RequestParam(required = false) String startDate,
-            @Parameter(description = "结束日期") @RequestParam(required = false) String endDate,
-            HttpServletRequest request) {
-        try {
-            // 验证管理员权限
-            Long currentUserId = getCurrentUserId(request);
-            if (currentUserId == null) {
-                return R.error("请先登录");
-            }
-            
-            if (!authUtils.isAdmin(currentUserId)) {
-                return R.error("无管理员权限");
-            }
-            
-            Map<String, Object> params = new HashMap<>();
-            params.put("page", page);
-            params.put("limit", limit);
-            params.put("sort", sort);
-            params.put("order", order);
-            
-            QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
-            queryWrapper.lambda().eq(Article::getDeleted, false);
-            
-            // 筛选条件
-            if (auditStatus != null) {
-                queryWrapper.lambda().eq(Article::getAuditStatus, auditStatus);
-            }
-            if (authorId != null) {
-                queryWrapper.lambda().eq(Article::getAuthorId, authorId);
-            }
-            if (categoryId != null) {
-                queryWrapper.lambda().eq(Article::getCategoryId, categoryId);
-            }
-            if (startDate != null && !startDate.isEmpty()) {
-                queryWrapper.lambda().ge(Article::getCreateTime, LocalDate.parse(startDate).atStartOfDay());
-            }
-            if (endDate != null && !endDate.isEmpty()) {
-                queryWrapper.lambda().le(Article::getCreateTime, LocalDate.parse(endDate).atTime(23, 59, 59));
-            }
-            
-            PageUtils pageResult = articleService.adminQueryPage(params, queryWrapper);
-            
-            // 转换为 VO 列表并补充角色名称
-            List<ArticleView> articleViews = (List<ArticleView>) pageResult.getList();
-            List<AdminArticleDetailVO> voList = articleViews.stream()
-                .map(this::convertToAdminVO)
-                .collect(Collectors.toList());
-            
-            pageResult.setList(voList);
-            
-            return R.ok().put("data", pageResult);
-        } catch (Exception e) {
-            log.error("管理员查询文章列表失败", e);
-            return R.error("查询失败");
-        }
-    }
-    
-    /**
-     * 管理员获取文章详情
-     */
-    @GetMapping("/admin/{id}")
-    @Operation(summary = "管理员获取文章详情", description = "管理员查看文章完整信息，包含审核信息等敏感字段")
-    public R adminGetArticleDetail(
-            @Parameter(description = "文章 ID") @PathVariable("id") Long id,
-            HttpServletRequest request) {
-        try {
-            Long currentUserId = getCurrentUserId(request);
-            if (currentUserId == null) {
-                return R.error("请先登录");
-            }
-            
-            if (!authUtils.isAdmin(currentUserId)) {
-                return R.error("无管理员权限");
-            }
-            
-            ArticleView articleView = articleService.selectViewById(id);
-            if (articleView == null) {
-                return R.error("文章不存在");
-            }
-            
-            AdminArticleDetailVO vo = convertToAdminVO(articleView);
-            
-            // 补充版本数量和贡献者数量
-            List<ArticleVersion> versions = articleVersionService.getVersionHistory(id);
-            vo.setVersionCount(versions != null ? versions.size() : 0);
-            
-            // TODO: 补充贡献者数量
-            vo.setContributorCount(0);
-            
-            return R.ok().put("data", vo);
-        } catch (Exception e) {
-            log.error("管理员获取文章详情失败，ID: {}", id, e);
-            return R.error("获取失败");
-        }
-    }
-    
-    /**
-     * 批量修改文章分类
-     */
-    @PostMapping("/admin/batch-update-category")
-    @Transactional
-    @Operation(summary = "批量修改文章分类", description = "管理员批量修改多篇文章的分类")
-    public R batchUpdateCategory(
-            @Parameter(description = "文章 ID 数组") @RequestBody Long[] articleIds,
-            @Parameter(description = "新分类 ID") @RequestParam Long categoryId,
-            HttpServletRequest request) {
-        try {
-            Long currentUserId = getCurrentUserId(request);
-            if (currentUserId == null) {
-                return R.error("请先登录");
-            }
-            
-            if (!authUtils.isAdmin(currentUserId)) {
-                return R.error("无管理员权限");
-            }
-            
-            boolean result = articleService.batchUpdateCategory(articleIds, categoryId);
-            if (result) {
-                return R.ok("分类修改成功");
-            } else {
-                return R.error("分类修改失败");
-            }
-        } catch (Exception e) {
-            log.error("批量修改文章分类失败", e);
-            return R.error("修改失败");
-        }
-    }
-    
-    /**
-     * 设置文章推荐/置顶
-     */
-    @PutMapping("/{id}/featured")
-    @Operation(summary = "设置文章推荐/置顶", description = "管理员设置文章为推荐或置顶状态")
-    public R setFeatured(
-            @Parameter(description = "文章 ID") @PathVariable("id") Long id,
-            @Parameter(description = "是否推荐") @RequestParam Boolean isFeatured,
-            @Parameter(description = "推荐等级") @RequestParam(required = false) Integer featuredLevel,
-            HttpServletRequest request) {
-        try {
-            Long currentUserId = getCurrentUserId(request);
-            if (currentUserId == null) {
-                return R.error("请先登录");
-            }
-            
-            if (!authUtils.isAdmin(currentUserId)) {
-                return R.error("无管理员权限");
-            }
-            
-            boolean result = articleService.setFeatured(id, isFeatured, featuredLevel);
-            if (result) {
-                return R.ok("设置成功");
-            } else {
-                return R.error("设置失败");
-            }
-        } catch (Exception e) {
-            log.error("设置文章推荐状态失败，ID: {}", id, e);
-            return R.error("设置失败");
-        }
-    }
-    
-    /**
-     * 获取管理后台统计数据
-     */
-    @GetMapping("/admin/dashboard-stats")
-    @Operation(summary = "获取管理后台统计数据", description = "获取文章相关的统计数据，用于仪表盘展示")
-    public R getDashboardStats(HttpServletRequest request) {
-        try {
-            Long currentUserId = getCurrentUserId(request);
-            if (currentUserId == null) {
-                return R.error("请先登录");
-            }
-            
-            if (!authUtils.isAdmin(currentUserId)) {
-                return R.error("无管理员权限");
-            }
-            
-            ArticleDashboardStatsVO statsVO = articleService.getDashboardStats();
-            return R.ok().put("data", statsVO);
-        } catch (Exception e) {
-            log.error("获取统计数据失败", e);
-            return R.error("获取失败");
-        }
-    }
-    
-    /**
-     * 获取文章审核历史
-     */
-    @GetMapping("/{id}/audit-history")
-    @Operation(summary = "获取文章审核历史", description = "查看文章的所有审核操作记录")
-    public R getAuditHistory(
-            @Parameter(description = "文章 ID") @PathVariable("id") Long id,
-            HttpServletRequest request) {
-        try {
-            Long currentUserId = getCurrentUserId(request);
-            if (currentUserId == null) {
-                return R.error("请先登录");
-            }
-            
-            if (!authUtils.isAdmin(currentUserId)) {
-                return R.error("无管理员权限");
-            }
-            
-            List<ArticleAuditHistoryVO> historyList = articleService.getAuditHistory(id);
-            return R.ok().put("data", historyList);
-        } catch (Exception e) {
-            log.error("获取审核历史失败，ID: {}", id, e);
-            return R.error("获取失败");
-        }
-    }
-    
-    private AdminArticleDetailVO convertToAdminVO(ArticleView articleView) {
-        AdminArticleDetailVO vo = new AdminArticleDetailVO();
-        vo.setId(articleView.getId());
-        vo.setTitle(articleView.getTitle());
-        vo.setCoverUrl(articleView.getCoverUrl());
-        vo.setCategoryId(articleView.getCategoryId());
-        vo.setCategoryName(articleView.getCategoryName());
-        vo.setAuthorId(articleView.getAuthorId());
-        vo.setAuthorNickname(articleView.getAuthorNickname());
-        vo.setAuthorAvatar(articleView.getAuthorAvatar());
-        vo.setViewCount(articleView.getViewCount());
         vo.setLikeCount(articleView.getLikeCount());
         vo.setDislikeCount(articleView.getDislikeCount());
         vo.setFavoriteCount(articleView.getFavoriteCount());
         vo.setCommentCount(articleView.getCommentCount());
+        vo.setShareCount(articleView.getShareCount());
+        vo.setViewCount(articleView.getViewCount());
+
+        vo.setPublishTime(articleView.getPublishTime() != null ? articleView.getPublishTime() : java.util.Date.from(articleView.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()));
+
         vo.setAuditStatus(articleView.getAuditStatus().getCode());
-        vo.setAuditReply(articleView.getAuditReply());
-        vo.setEditMode(articleView.getEditMode());
-        vo.setPublishTime(articleView.getPublishTime());
+        vo.setCurrentVersion(articleView.getCurrentVersion());
         vo.setCreateTime(articleView.getCreateTime());
-        vo.setUpdateTime(articleView.getUpdateTime());
-        
-        // TODO: 以下字段需要从 article 表额外查询
-        vo.setIsTop(false);
-        vo.setIsFeatured(false);
-        vo.setMajorVersion(1);
-        vo.setMinorVersion(0);
-        
+
+        vo.setIsFeatured(articleView.getIsFeatured());
+        vo.setFeaturedLevel(articleView.getFeaturedLevel());
+
         return vo;
     }
 
-    // ==================== 文章互动接口 ====================
-
     /**
-     * 点赞文章
+     * 生成访问者标识
      */
-    @Operation(summary = "点赞文章", description = "对文章进行点赞操作")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "操作成功"),
-            @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @PostMapping("/{articleId}/likes")
-    public R likeArticle(
-            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
-            HttpServletRequest request) {
-        try {
-            Long userId = getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
-            }
-
-            // 检查是否已有有效的点赞记录
-            boolean hasLiked = favoriteService.hasValidInteraction(
-                    userId,
-                    articleId,
-                    InteractionActionType.LIKE,
-                    ContentType.ARTICLE
-            );
-
-            if (hasLiked) {
-                return R.error("您已经点过赞了");
-            }
-
-            // 调用 Service 层处理点赞逻辑
-            Integer likeCount = articleService.toggleLike(articleId, userId);
-            return R.ok().put("likeCount", likeCount);
-        } catch (Exception e) {
-            log.error("点赞文章失败，articleId: {}", articleId, e);
-            return R.error(e.getMessage());
+    private String generateViewerKey(HttpServletRequest request) {
+        Long userId = sessionUtils.getCurrentUserId(request);
+        if (userId != null) {
+            return "user:" + userId;
         }
-    }
 
-    /**
-     * 取消点赞文章
-     */
-    @Operation(summary = "取消点赞", description = "取消对文章的点赞")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "操作成功"),
-            @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @DeleteMapping("/{articleId}/likes")
-    public R unlikeArticle(
-            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
-            HttpServletRequest request) {
-        try {
-            Long userId = getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
-            }
-
-            // 检查是否有有效的点赞记录
-            boolean hasLiked = favoriteService.hasValidInteraction(
-                    userId,
-                    articleId,
-                    InteractionActionType.LIKE,
-                    ContentType.ARTICLE
-            );
-
-            if (!hasLiked) {
-                return R.error("您还未点赞");
-            }
-
-            Integer likeCount = articleService.toggleLike(articleId, userId);
-            return R.ok().put("likeCount", likeCount);
-        } catch (Exception e) {
-            log.error("取消点赞失败，articleId: {}", articleId, e);
-            return R.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 点踩文章
-     */
-    @Operation(summary = "点踩文章", description = "对文章进行点踩操作")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "操作成功"),
-            @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @PostMapping("/{articleId}/dislikes")
-    public R dislikeArticle(
-            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
-            HttpServletRequest request) {
-        try {
-            Long userId = getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
-            }
-
-            // 检查是否已有有效的点踩记录
-            boolean hasDisliked = favoriteService.hasValidInteraction(
-                    userId,
-                    articleId,
-                    InteractionActionType.DISLIKE,
-                    ContentType.ARTICLE
-            );
-
-            if (hasDisliked) {
-                return R.error("您已经点过踩了");
-            }
-
-            Integer dislikeCount = articleService.toggleDislike(articleId, userId);
-            return R.ok().put("dislikeCount", dislikeCount);
-        } catch (Exception e) {
-            log.error("点踩文章失败，articleId: {}", articleId, e);
-            return R.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 取消点踩文章
-     */
-    @Operation(summary = "取消点踩", description = "取消对文章的点踩")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "操作成功"),
-            @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @DeleteMapping("/{articleId}/dislikes")
-    public R undislikeArticle(
-            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
-            HttpServletRequest request) {
-        try {
-            Long userId = getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
-            }
-
-            // 检查是否有有效的点踩记录
-            boolean hasDisliked = favoriteService.hasValidInteraction(
-                    userId,
-                    articleId,
-                    InteractionActionType.DISLIKE,
-                    ContentType.ARTICLE
-            );
-
-            if (!hasDisliked) {
-                return R.error("您还未点踩");
-            }
-
-            Integer dislikeCount = articleService.toggleDislike(articleId, userId);
-            return R.ok().put("dislikeCount", dislikeCount);
-        } catch (Exception e) {
-            log.error("取消点踩失败，articleId: {}", articleId, e);
-            return R.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 收藏文章
-     */
-    @Operation(summary = "收藏文章", description = "将文章添加到收藏夹")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "操作成功"),
-            @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @PostMapping("/{articleId}/favorites")
-    public R favoriteArticle(
-            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
-            HttpServletRequest request) {
-        try {
-            Long userId = getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
-            }
-
-            // 检查是否已收藏
-            boolean hasFavorited = favoriteService.hasValidInteraction(
-                    userId,
-                    articleId,
-                    InteractionActionType.FAVORITE,
-                    ContentType.ARTICLE
-            );
-
-            if (hasFavorited) {
-                return R.error("您已经收藏过这篇文章了");
-            }
-
-            Integer favoriteCount = articleService.toggleFavorite(articleId, userId);
-            return R.ok().put("favoriteCount", favoriteCount);
-        } catch (Exception e) {
-            log.error("收藏文章失败，articleId: {}", articleId, e);
-            return R.error(e.getMessage());
-        }
-    }
-
-    /**
-     * 取消收藏文章
-     */
-    @Operation(summary = "取消收藏", description = "从收藏夹中移除文章")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "操作成功"),
-            @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @DeleteMapping("/{articleId}/favorites")
-    public R unfavoriteArticle(
-            @Parameter(description = "文章 ID", required = true) @PathVariable("articleId") Long articleId,
-            HttpServletRequest request) {
-        try {
-            Long userId = getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
-            }
-
-            // 检查是否已收藏
-            boolean hasFavorited = favoriteService.hasValidInteraction(
-                    userId,
-                    articleId,
-                    InteractionActionType.FAVORITE,
-                    ContentType.ARTICLE
-            );
-
-            if (!hasFavorited) {
-                return R.error("您还未收藏这篇文章");
-            }
-
-            Integer favoriteCount = articleService.toggleFavorite(articleId, userId);
-            return R.ok().put("favoriteCount", favoriteCount);
-        } catch (Exception e) {
-            log.error("取消收藏失败，articleId: {}", articleId, e);
-            return R.error(e.getMessage());
-        }
+        String ip = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        return "ip:" + ip + ":" + (userAgent != null ? userAgent.hashCode() : "unknown");
     }
 }
-
-

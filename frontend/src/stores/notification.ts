@@ -4,6 +4,8 @@ import {
   notificationAPI
 } from '@/api/notification'
 import type { Notification, NotificationListParams } from '@/types/notification'
+import { getWebSocket } from '@/utils/websocket'
+import { wsLogger } from '@/utils/websocketLogger'
 
 interface WebSocketClient {
   subscribe: (destination: string, callback: (message: any) => void) => void
@@ -16,6 +18,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const unreadCount = ref<number>(0)
   const isLoading = ref(false)
   const wsClient = ref<WebSocketClient | null>(null)
+  const isSubscribed = ref(false)
 
   // Getters
   const hasUnread = computed(() => unreadCount.value > 0)
@@ -41,9 +44,15 @@ export const useNotificationStore = defineStore('notification', () => {
   async function loadUnreadCount() {
     try {
       const res = await notificationAPI.getUnreadCount()
-      unreadCount.value = res?.data?.count || 0
+      const count = res?.data?.count || 0
+      unreadCount.value = count
+      
+      console.log('[NotificationStore] 未读数量已更新:', count)
+      
+      return count
     } catch (error) {
-      console.error('Failed to load unread count:', error)
+      console.error('[NotificationStore] 加载未读数量失败:', error)
+      throw error
     }
   }
 
@@ -62,7 +71,7 @@ export const useNotificationStore = defineStore('notification', () => {
       // 重新计算未读数
       await loadUnreadCount()
     } catch (error) {
-      console.error('Failed to mark notifications as read:', error)
+      console.error('[NotificationStore] 标记已读失败:', error)
       throw error
     }
   }
@@ -72,14 +81,16 @@ export const useNotificationStore = defineStore('notification', () => {
    */
   async function markAllAsRead() {
     try {
+      console.log('[NotificationStore] 执行全部已读操作')
       await notificationAPI.markAllRead()
       // 更新本地状态
       notificationList.value.forEach((notification) => {
         notification.isRead = true
       })
       unreadCount.value = 0
+      console.log('[NotificationStore] 全部已读完成，未读数清零')
     } catch (error) {
-      console.error('Failed to mark all as read:', error)
+      console.error('[NotificationStore] 全部已读失败:', error)
       throw error
     }
   }
@@ -93,7 +104,7 @@ export const useNotificationStore = defineStore('notification', () => {
       notificationList.value = []
       unreadCount.value = 0
     } catch (error) {
-      console.error('Failed to clear notifications:', error)
+      console.error('[NotificationStore] 清空通知失败:', error)
       throw error
     }
   }
@@ -113,7 +124,7 @@ export const useNotificationStore = defineStore('notification', () => {
         }
       }
     } catch (error) {
-      console.error('Failed to delete notification:', error)
+      console.error('[NotificationStore] 删除通知失败:', error)
       throw error
     }
   }
@@ -122,6 +133,15 @@ export const useNotificationStore = defineStore('notification', () => {
    * 添加新通知（WebSocket 推送）
    */
   function addNotification(notification: Notification) {
+    console.log('[NotificationStore] 收到新通知推送:', {
+      id: notification.id,
+      type: notification.type,
+      title: notification.title,
+      isRead: notification.isRead,
+      extra: notification.extra,
+      sourceId: notification.sourceId
+    })
+    
     // 处理 content 字段：如果是字符串，尝试解析为 JSON 对象
     const processedNotification = { ...notification }
     
@@ -130,7 +150,7 @@ export const useNotificationStore = defineStore('notification', () => {
         const parsed = JSON.parse(notification.content)
         processedNotification.content = parsed
       } catch (error) {
-        console.warn(' [NotificationStore] Content parse failed:', error)
+        console.warn('[NotificationStore] Content parse failed:', error)
         // 解析失败，保持原样
       }
     }
@@ -138,6 +158,7 @@ export const useNotificationStore = defineStore('notification', () => {
     notificationList.value.unshift(processedNotification)
     if (!processedNotification.isRead) {
       unreadCount.value++
+      console.log('[NotificationStore] 未读数量 +1，当前未读数:', unreadCount.value)
     }
   }
 
@@ -145,6 +166,8 @@ export const useNotificationStore = defineStore('notification', () => {
    * 更新通知已读状态（WebSocket 同步）
    */
   function updateReadStatus(notificationIds: number[]) {
+    console.log('[NotificationStore] 收到已读状态更新:', notificationIds)
+    
     let hasChanges = false
     notificationList.value.forEach((notification) => {
       if (notificationIds.includes(notification.id) && !notification.isRead) {
@@ -152,33 +175,100 @@ export const useNotificationStore = defineStore('notification', () => {
         hasChanges = true
       }
     })
-    if (hasChanges) {
+    
+    if (hasChanges || notificationIds.length > 0) {
       loadUnreadCount()
+      console.log('[NotificationStore] 已读状态更新完成')
     }
   }
 
   /**
-   * 初始化 WebSocket 订阅
+   * 初始化 WebSocket 订阅（新版 - 使用 WebSocketManager）
    */
-  function initWebSocketSubscription(client: WebSocketClient) {
-    wsClient.value = client
-    const userId = localStorage.getItem('userId')
-    if (!userId) {
-      console.warn('No userId found, skipping notification subscription')
+  function initWebSocketSubscription() {
+    console.log('[NotificationStore] 开始初始化 WebSocket 订阅')
+    
+    // 防止重复订阅
+    if (isSubscribed.value) {
+      console.warn('[NotificationStore] 已经订阅过通知，跳过重复订阅')
       return
     }
 
-    // 订阅通知队列
-    client.subscribe(`/user/${userId}/queue/notification`, (message: any) => {
-      const data = JSON.parse(message.body)
-      if (data.type === 'NOTIFICATION') {
-        // 收到新通知
-        addNotification(data.data)
-      } else if (data.type === 'NOTIFICATION_READ_UPDATE') {
-        // 收到已读状态更新
-        updateReadStatus(data.data.notificationIds)
+    const ws = getWebSocket()
+    
+    if (!ws) {
+      console.error('[NotificationStore] WebSocket 实例不存在，无法订阅通知')
+      return
+    }
+
+    if (!ws.isConnected()) {
+      console.warn('[NotificationStore] WebSocket 未连接，等待连接后再订阅')
+      // 监听连接状态，连接成功后自动订阅
+      const unsubscribe = ws.onStateChange((state) => {
+        if (state === 1) { // OPEN
+          console.log('[NotificationStore] WebSocket 已连接，开始订阅通知')
+          setupNotificationSubscriptions(ws)
+          unsubscribe()
+        }
+      })
+      return
+    }
+
+    setupNotificationSubscriptions(ws)
+  }
+
+  /**
+   * 设置通知订阅
+   */
+  function setupNotificationSubscriptions(ws: any) {
+    try {
+      console.log('[NotificationStore] 注册 NOTIFICATION 消息处理器')
+      
+      // 订阅新通知
+      const unsubscribeNotification = ws.on('NOTIFICATION', (message: any) => {
+        console.log('[NotificationStore] 收到 NOTIFICATION 消息:', message)
+        
+        // 后端发送的格式：{ type: 'NOTIFICATION', data: {...} }
+        // 需要提取 data 字段
+        const notificationData = message.data || message
+        addNotification(notificationData)
+      })
+
+      console.log('[NotificationStore] 注册 NOTIFICATION_READ_UPDATE 消息处理器')
+      
+      // 订阅已读状态更新
+      const unsubscribeReadUpdate = ws.on('NOTIFICATION_READ_UPDATE', (message: any) => {
+        console.log('[NotificationStore] 收到 NOTIFICATION_READ_UPDATE 消息:', message)
+        
+        // 提取 data 字段
+        const data = message.data || message
+        if (data.notificationIds) {
+          updateReadStatus(data.notificationIds)
+        }
+      })
+
+      isSubscribed.value = true
+      console.log('[NotificationStore] 通知订阅初始化完成')
+
+      // 返回取消订阅函数（可选）
+      return () => {
+        unsubscribeNotification()
+        unsubscribeReadUpdate()
+        isSubscribed.value = false
+        console.log('[NotificationStore] 通知订阅已取消')
       }
-    })
+    } catch (error) {
+      console.error('[NotificationStore] 设置通知订阅失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 重置订阅状态（用于登出等场景）
+   */
+  function resetSubscription() {
+    isSubscribed.value = false
+    console.log('[NotificationStore] 订阅状态已重置')
   }
 
   return {
@@ -186,6 +276,7 @@ export const useNotificationStore = defineStore('notification', () => {
     notificationList,
     unreadCount,
     isLoading,
+    isSubscribed,
     // Getters
     hasUnread,
     // Actions
@@ -197,6 +288,7 @@ export const useNotificationStore = defineStore('notification', () => {
     removeNotification,
     addNotification,
     updateReadStatus,
-    initWebSocketSubscription
+    initWebSocketSubscription,
+    resetSubscription
   }
 })

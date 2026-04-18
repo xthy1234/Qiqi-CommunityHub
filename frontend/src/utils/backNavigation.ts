@@ -287,11 +287,31 @@ export class BackNavigationManager {
     targetPath: string | { path: string; query?: Record<string, any> },
     options?: NavigateWithBackOptions
   ): void {
-    // 强制将通知中心路径作为 backUrl
+
     const notificationPath = encodeURIComponent(route.fullPath)
-    const finalTarget = typeof targetPath === 'string' 
-      ? { path: targetPath }
-      : { ...targetPath }
+    
+    // 如果 targetPath 是字符串且包含 query 参数，需要解析
+    let finalTarget: { path: string; query?: Record<string, any> }
+    
+    if (typeof targetPath === 'string') {
+      // 解析 URL 中的 query 参数（如 /index/articleDetail?id=19）
+      const [path, queryString] = targetPath.split('?')
+      const parsedQuery: Record<string, any> = {}
+      
+      if (queryString) {
+        const params = new URLSearchParams(queryString)
+        params.forEach((value, key) => {
+          parsedQuery[key] = value
+        })
+      }
+      
+      finalTarget = {
+        path: path,
+        query: parsedQuery
+      }
+    } else {
+      finalTarget = { ...targetPath }
+    }
     
     this.navigateWithBackUrl(router, route, finalTarget, {
       ...options,

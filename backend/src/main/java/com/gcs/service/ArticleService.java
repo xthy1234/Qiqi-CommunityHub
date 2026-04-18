@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.gcs.entity.Article;
+import com.gcs.entity.Interaction;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.utils.PageUtils;
 import com.gcs.vo.AdminArticleDetailVO;
@@ -218,4 +219,11 @@ public interface ArticleService extends IService<Article> {
      * @return 最新收藏数
      */
     Integer toggleFavorite(Long articleId, Long userId);
+    
+    /**
+     * 获取用户的收藏文章列表
+     * @param userId 用户 ID
+     * @return 收藏的互动记录列表
+     */
+    List<Interaction> getUserFavorites(Long userId);
 }

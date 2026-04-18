@@ -166,15 +166,16 @@ public class CommentController {
     }
 
     /**
-     * 点赞评论
+     * 点赞/取消点赞评论（Toggle 模式）
      */
-    @Operation(summary = "点赞评论", description = "对评论进行点赞操作")
+    @Operation(summary = "点赞/取消点赞评论", description = "对评论进行点赞操作，如果已点赞则自动取消点赞")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "操作成功"),
-        @ApiResponse(responseCode = "400", description = "操作失败")
+        @ApiResponse(responseCode = "400", description = "操作失败"),
+        @ApiResponse(responseCode = "401", description = "未登录")
     })
     @PostMapping("/{commentId}/likes")
-    public R likeComment(
+    public R toggleLikeComment(
         @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
         HttpServletRequest request) {
         try {
@@ -183,74 +184,25 @@ public class CommentController {
                 return R.error("请先登录");
             }
             
-            // 检查是否已有有效的点赞记录
-            boolean hasLiked = interactionService.hasValidInteraction(
-                userId, 
-                commentId, 
-                InteractionActionType.LIKE, 
-                ContentType.COMMENT
-            );
-            
-            if (hasLiked) {
-                return R.error("您已经点过赞了");
-            }
-            
             Integer likeCount = commentService.toggleLike(commentId, userId);
             return R.ok().put("likeCount", likeCount);
         } catch (Exception e) {
-            log.error("点赞操作失败，commentId: {}", commentId, e);
+            log.error("点赞/取消点赞失败，commentId: {}", commentId, e);
             return R.error(e.getMessage());
         }
     }
     
     /**
-     * 取消点赞评论
+     * 点踩/取消点踩评论（Toggle 模式）
      */
-    @Operation(summary = "取消点赞", description = "取消对评论的点赞")
+    @Operation(summary = "点踩/取消点踩评论", description = "对评论进行点踩操作，如果已点踩则自动取消点踩")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "操作成功"),
-        @ApiResponse(responseCode = "400", description = "操作失败")
-    })
-    @DeleteMapping("/{commentId}/likes")
-    public R unlikeComment(
-        @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
-        HttpServletRequest request) {
-        try {
-            Long userId = sessionUtils.getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
-            }
-            
-            // 检查是否有有效的点赞记录
-            boolean hasLiked = interactionService.hasValidInteraction(
-                userId, 
-                commentId, 
-                InteractionActionType.LIKE, 
-                ContentType.COMMENT
-            );
-            
-            if (!hasLiked) {
-                return R.error("您还未点赞");
-            }
-            
-            Integer likeCount = commentService.toggleLike(commentId, userId);
-            return R.ok().put("likeCount", likeCount);
-        } catch (Exception e) {
-            log.error("取消点赞失败，commentId: {}", commentId, e);
-            return R.error(e.getMessage());
-        }
-    }
-    
-    /**
-     * 点踩评论
-     */
-    @Operation(summary = "点踩评论", description = "对评论进行点踩操作")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "操作成功"),
-        @ApiResponse(responseCode = "400", description = "操作失败")
+        @ApiResponse(responseCode = "400", description = "操作失败"),
+        @ApiResponse(responseCode = "401", description = "未登录")
     })
     @PostMapping("/{commentId}/dislikes")
-    public R dislikeComment(
+    public R toggleDislikeComment(
         @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
         HttpServletRequest request) {
         try {
@@ -259,61 +211,49 @@ public class CommentController {
                 return R.error("请先登录");
             }
             
-            // 检查是否已有有效的点踩记录
-            boolean hasDisliked = interactionService.hasValidInteraction(
-                userId, 
-                commentId, 
-                InteractionActionType.DISLIKE, 
-                ContentType.COMMENT
-            );
-            
-            if (hasDisliked) {
-                return R.error("您已经点过踩了");
-            }
-            
             Integer dislikeCount = commentService.toggleDislike(commentId, userId);
             return R.ok().put("dislikeCount", dislikeCount);
         } catch (Exception e) {
-            log.error("点踩操作失败，commentId: {}", commentId, e);
+            log.error("点踩/取消点踩失败，commentId: {}", commentId, e);
             return R.error(e.getMessage());
         }
     }
     
     /**
-     * 取消点踩评论
+     * 检查用户对评论的互动状态
      */
-    @Operation(summary = "取消点踩", description = "取消对评论的点踩")
+    @Operation(summary = "检查互动状态", description = "检查当前用户对评论的点赞、点踩状态")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "操作成功"),
-        @ApiResponse(responseCode = "400", description = "操作失败")
+        @ApiResponse(responseCode = "200", description = "查询成功")
     })
-    @DeleteMapping("/{commentId}/dislikes")
-    public R undislikeComment(
+    @GetMapping("/{commentId}/interaction-status")
+    @IgnoreAuth
+    public R getInteractionStatus(
         @Parameter(description = "评论 ID", required = true) @PathVariable("commentId") Long commentId,
         HttpServletRequest request) {
         try {
             Long userId = sessionUtils.getCurrentUserId(request);
-            if (userId == null) {
-                return R.error("请先登录");
+            
+            boolean isLiked = false;
+            boolean isDisliked = false;
+            
+            if (userId != null) {
+                isLiked = interactionService.hasValidInteraction(
+                    userId, commentId, InteractionActionType.LIKE, ContentType.COMMENT
+                );
+                isDisliked = interactionService.hasValidInteraction(
+                    userId, commentId, InteractionActionType.DISLIKE, ContentType.COMMENT
+                );
             }
             
-            // 检查是否有有效的点踩记录
-            boolean hasDisliked = interactionService.hasValidInteraction(
-                userId, 
-                commentId, 
-                InteractionActionType.DISLIKE, 
-                ContentType.COMMENT
-            );
+            Map<String, Object> status = new HashMap<>();
+            status.put("isLiked", isLiked);
+            status.put("isDisliked", isDisliked);
             
-            if (!hasDisliked) {
-                return R.error("您还未点踩");
-            }
-            
-            Integer dislikeCount = commentService.toggleDislike(commentId, userId);
-            return R.ok().put("dislikeCount", dislikeCount);
+            return R.ok().put("data", status);
         } catch (Exception e) {
-            log.error("取消点踩失败，commentId: {}", commentId, e);
-            return R.error(e.getMessage());
+            log.error("获取互动状态失败，commentId: {}", commentId, e);
+            return R.error("获取互动状态失败");
         }
     }
 

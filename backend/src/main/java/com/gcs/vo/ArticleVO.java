@@ -54,6 +54,12 @@ public class ArticleVO implements Serializable {
     @Schema(description = "点击次数", example = "500")
     private Integer viewCount;
     
+    @Schema(description = "收藏数", example = "20")
+    private Integer favoriteCount;
+    
+    @Schema(description = "评论数", example = "15")
+    private Integer commentCount;
+    
     @Schema(description = "发布时间（审核通过后自动生成）", example = "2026-01-01")
     @JsonFormat(locale = "zh", timezone = "GMT+8", pattern = "yyyy-MM-dd")
     private Date publishTime;

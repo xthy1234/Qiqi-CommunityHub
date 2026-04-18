@@ -146,7 +146,6 @@ const fetchHotArticles = async (): Promise<void> => {
     const apiData = response.data?.data || response.data || {}
     hotArticles.value = apiData.list || (Array.isArray(apiData) ? apiData : [])
 
-    // 调试：打印文章数据
 
     if (hotArticles.value.length > 0) {
 

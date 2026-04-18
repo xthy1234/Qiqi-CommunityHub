@@ -113,14 +113,7 @@ class CommentAPI {
    * @param data 回复数据
    */
   replyComment(targetCommentId: number | string, data: ReplyCommentParams) {
-    console.log('[CommentAPI] 发表回复:', {
-      targetCommentId,
-      requestData: {
-        contentId: data.contentId,
-        replyContent: data.replyContent,
-        replyId: data.replyId || null
-      }
-    })
+
     
     return http.post(`${this.commentEndpoint}/${targetCommentId}/replies`, {
       contentId: data.contentId,
@@ -142,31 +135,37 @@ class CommentAPI {
   }
 
   /**
-   * 点赞评论
+   * 点赞评论（切换模式：已赞则取消，未赞则点赞）
    */
-  likeComment(commentId: number | string) {
+  toggleLike(commentId: number | string) {
     return http.post(`${this.commentEndpoint}/${commentId}/likes`)
   }
 
   /**
-   * 取消点赞评论
+   * 点踩评论（切换模式：已踩则取消，未踩则点踩）
    */
-  cancelLike(commentId: number | string) {
-    return http.delete(`${this.commentEndpoint}/${commentId}/likes`)
-  }
-
-  /**
-   * 点踩评论
-   */
-  dislikeComment(commentId: number | string) {
+  toggleDislike(commentId: number | string) {
     return http.post(`${this.commentEndpoint}/${commentId}/dislikes`)
   }
 
   /**
-   * 取消点踩评论
+   * 更新评论
+   * @param id 评论ID
+   * @param data 更新数据
    */
-  cancelDislike(commentId: number | string) {
-    return http.delete(`${this.commentEndpoint}/${commentId}/dislikes`)
+  patchComment(id: number | string, data: UpdateCommentParams) {
+    return http.put(`${this.commentEndpoint}/${id}`, {
+      content: data.content,
+      status: data.status
+    })
+  }
+
+  /**
+   * 删除评论
+   * @param id 评论ID
+   */
+  deleteComment(id: number | string) {
+    return http.delete(`${this.commentEndpoint}/${id}`)
   }
 }
 

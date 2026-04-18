@@ -263,20 +263,36 @@ const message = useMessage()
 const handleLike = async () => {
   if (!props.articleId) return
   try {
+    // 使用统一的切换接口
+    await articleAPI.toggleLike(props.articleId)
+
+    // 切换本地状态
+    isLiked.value = !isLiked.value
+
+    // 更新计数
     if (isLiked.value) {
-      await articleAPI.cancelLike(props.articleId) // 修改调用
-      isLiked.value = false
-      likeCount.value--
-    } else {
-      await articleAPI.like(props.articleId) // 修改调用
-      isLiked.value = true
       likeCount.value++
       if (isDisliked.value) {
         isDisliked.value = false
         dislikeCount.value--
       }
+    } else {
+      likeCount.value--
     }
+
+    // 通知父组件
+    emit('update', {
+      isLiked: isLiked.value,
+      isDisliked: isDisliked.value,
+      isFavorited: isFavorited.value,
+      likeCount: likeCount.value,
+      dislikeCount: dislikeCount.value,
+      favoriteCount: favoriteCount.value
+    })
+
+    message.success(isLiked.value ? '点赞成功' : '已取消点赞')
   } catch (error) {
+    console.error('[ArticleInteractionBar] 点赞操作失败:', error)
     message.error('操作失败')
   }
 }
@@ -284,20 +300,35 @@ const handleLike = async () => {
 const handleDislike = async () => {
   if (!props.articleId) return
   try {
+    await articleAPI.toggleDislike(props.articleId)
+
+    isDisliked.value = !isDisliked.value
+
+    // 更新计数
     if (isDisliked.value) {
-      await articleAPI.cancelDislike(props.articleId) // 修改调用
-      isDisliked.value = false
-      dislikeCount.value--
-    } else {
-      await articleAPI.dislike(props.articleId) // 修改调用
-      isDisliked.value = true
       dislikeCount.value++
+      // 如果之前点赞过，需要取消点赞
       if (isLiked.value) {
         isLiked.value = false
         likeCount.value--
       }
+    } else {
+      dislikeCount.value--
     }
+
+    // 通知父组件
+    emit('update', {
+      isLiked: isLiked.value,
+      isDisliked: isDisliked.value,
+      isFavorited: isFavorited.value,
+      likeCount: likeCount.value,
+      dislikeCount: dislikeCount.value,
+      favoriteCount: favoriteCount.value
+    })
+
+    message.success(isDisliked.value ? '点踩成功' : '已取消点踩')
   } catch (error) {
+    console.error('[ArticleInteractionBar] 点踩操作失败:', error)
     message.error('操作失败')
   }
 }
@@ -305,18 +336,32 @@ const handleDislike = async () => {
 const handleFavorite = async () => {
   if (!props.articleId) return
   try {
+    // 使用统一的切换接口
+    await articleAPI.toggleFavorite(props.articleId)
+
+    // 切换本地状态
+    isFavorited.value = !isFavorited.value
+
+    // 更新计数
     if (isFavorited.value) {
-      await articleAPI.cancelFavorite(props.articleId) // 修改调用
-      isFavorited.value = false
-      favoriteCount.value--
-      message.success('已取消收藏')
-    } else {
-      await articleAPI.favorite(props.articleId) // 修改调用
-      isFavorited.value = true
       favoriteCount.value++
-      message.success('收藏成功')
+    } else {
+      favoriteCount.value--
     }
+
+    // 通知父组件
+    emit('update', {
+      isLiked: isLiked.value,
+      isDisliked: isDisliked.value,
+      isFavorited: isFavorited.value,
+      likeCount: likeCount.value,
+      dislikeCount: dislikeCount.value,
+      favoriteCount: favoriteCount.value
+    })
+
+    message.success(isFavorited.value ? '收藏成功' : '已取消收藏')
   } catch (error) {
+    console.error('[ArticleInteractionBar] 收藏操作失败:', error)
     message.error('操作失败')
   }
 }

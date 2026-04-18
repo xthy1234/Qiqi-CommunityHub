@@ -85,45 +85,31 @@ class ArticleAPI {
   }
 
   /**
-   * 点赞文章
+   * 点赞文章（切换模式：已赞则取消，未赞则点赞）
    */
-  like(articleId: number | string) {
+  toggleLike(articleId: number | string) {
     return http.post(`${this.endpoint}/${articleId}/likes`)
   }
 
   /**
-   * 取消点赞文章
+   * 点踩文章（切换模式：已踩则取消，未踩则点踩）
    */
-  cancelLike(articleId: number | string) {
-    return http.delete(`${this.endpoint}/${articleId}/likes`)
-  }
-
-  /**
-   * 点踩文章
-   */
-  dislike(articleId: number | string) {
+  toggleDislike(articleId: number | string) {
     return http.post(`${this.endpoint}/${articleId}/dislikes`)
   }
 
   /**
-   * 取消点踩文章
+   * 收藏文章（切换模式：已收藏则取消，未收藏则收藏）
    */
-  cancelDislike(articleId: number | string) {
-    return http.delete(`${this.endpoint}/${articleId}/dislikes`)
-  }
-
-  /**
-   * 收藏文章
-   */
-  favorite(articleId: number | string) {
+  toggleFavorite(articleId: number | string) {
     return http.post(`${this.endpoint}/${articleId}/favorites`)
   }
 
   /**
-   * 取消收藏文章
+   * 获取用户对文章的互动状态
    */
-  cancelFavorite(articleId: number | string) {
-    return http.delete(`${this.endpoint}/${articleId}/favorites`)
+  getInteractionStatus(articleId: number | string) {
+    return http.get(`${this.endpoint}/${articleId}/interaction-status`)
   }
 
   /**
@@ -226,7 +212,7 @@ export const getArticleDetail = (id: number | string) => articleAPI.getById(id)
 export const createArticle = (data: Article) => articleAPI.create(data)
 export const updateArticle = (id: number | string, data: Partial<Article>) => articleAPI.update(id, data)
 export const deleteArticle = (id: number | string) => articleAPI.delete(id)
-export const likeArticle = (id: number | string) => articleAPI.like(id)
+export const likeArticle = (id: number | string) => articleAPI.toggleLike(id)
 export const batchAuditArticles = (data: { ids: number[], status: number | string, reply?: string }) => articleAPI.batchAudit(data)
 export const batchDeleteArticles = (ids: number[]) => articleAPI.batchDelete(ids)
 export const getPublishedArticleById = (id: number | string) => articleAPI.getPublishedById(id)

@@ -308,7 +308,6 @@ class WebSocketManager {
           },
           
           debug: (str) => {
-            // 生产环境可关闭调试日志
             wsLogger.debug('STOMP Debug', { message: str })
           },
           

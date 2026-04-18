@@ -2,29 +2,22 @@
   <page-container
     :header-title="'通知'"
   >
-    <template #header>
-      <div class="page-header">
-        <h2>通知中心</h2>
-        <div class="header-actions">
-          <n-space>
-            <n-button
-              v-if="hasUnread"
-              type="primary"
-              size="small"
-              @click="handleMarkAllRead"
-            >
-              全部已读
-            </n-button>
-            <n-button
-              type="error"
-              size="small"
-              @click="handleClear"
-            >
-              清空通知
-            </n-button>
-          </n-space>
-        </div>
-      </div>
+    <template #headerExtra>
+      <n-button
+          v-if="hasUnread"
+          type="primary"
+          size="small"
+          @click="handleMarkAllRead"
+      >
+        全部已读
+      </n-button>
+      <n-button
+          type="error"
+          size="small"
+          @click="handleClear"
+      >
+        清空通知
+      </n-button>
     </template>
 
     <!-- 筛选标签 -->
@@ -57,11 +50,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useMessage, useDialog } from 'naive-ui'
+import {useMessage, useDialog, NButton} from 'naive-ui'
 import PageContainer from '@/components/common/PageContainer.vue'
 import NotificationList from '@/components/notification/NotificationList.vue'
 import { useNotificationStore } from '@/stores/notification'
 import {storeToRefs} from "pinia";
+import {Icon} from "@iconify/vue";
 
 const message = useMessage()
 const dialog = useDialog()
@@ -91,6 +85,8 @@ const handleMarkAllRead = async () => {
   try {
     await notificationStore.markAllAsRead()
     message.success('已全部标记为已读')
+    // 刷新当前标签页的通知列表
+    await handleTabChange(activeTab.value)
   } catch (error) {
     message.error('操作失败')
   }
@@ -117,8 +113,18 @@ const handleClear = async () => {
 }
 
 onMounted(async () => {
+  console.log('[Notifications] 页面挂载，初始化通知模块')
+
+  // 初始化 WebSocket 订阅
+  notificationStore.initWebSocketSubscription()
+
   // 加载未读数
-  await notificationStore.loadUnreadCount()
+  try {
+    await notificationStore.loadUnreadCount()
+    console.log('[Notifications] 未读数量加载完成:', unreadCount.value)
+  } catch (error) {
+    console.error('[Notifications] 加载未读数量失败:', error)
+  }
 })
 </script>
 

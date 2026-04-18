@@ -210,6 +210,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
             article.setAuditReply("");
         }
         
+        if (article.getCurrentVersion() == null) {
+            article.setCurrentVersion(1);
+        }
+        
         this.save(article);
     }
     @Override
@@ -639,5 +643,18 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
         
         Article updatedArticle = this.getById(articleId);
         return updatedArticle != null ? updatedArticle.getFavoriteCount() : 0;
+    }
+    
+    @Override
+    public List<Interaction> getUserFavorites(Long userId) {
+        if (userId == null) {
+            return new java.util.ArrayList<>();
+        }
+        
+        return interactionService.getUserInteractionsList(
+                userId,
+                InteractionActionType.FAVORITE,
+                ContentType.ARTICLE
+        );
     }
 }
