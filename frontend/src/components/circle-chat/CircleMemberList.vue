@@ -191,7 +191,7 @@ const emit = defineEmits<{
 
 // 按角色分组
 const admins = computed(() => {
-  return props.members.filter(m => m.role === 'OWNER' || m.role === 'ADMIN')
+  return props.members.filter(m  => m.role === 'OWNER' || m.role === 'ADMIN')
 })
 
 const members = computed(() => {

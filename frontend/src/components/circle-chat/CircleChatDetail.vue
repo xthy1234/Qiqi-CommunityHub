@@ -150,7 +150,10 @@ import { Icon } from '@iconify/vue'
 import { getWebSocket } from '@/utils/websocket'
 import chatService from '@/api/chat'
 import { getCurrentInstance } from 'vue'
-import {circleApi, circleMemberApi, circleWebSocket} from '@/api/circle'
+import { circleApi } from '@/api/circle'
+import { circleMemberApi } from '@/api/circleMember'
+import { circleChatApi } from '@/api/circleChat'
+import { circleWebSocket } from '@/api/circleWebSocket'
 import {Message} from "@/types/message";
 
 
@@ -347,7 +350,6 @@ const loadMoreMessages = async () => {
     const oldScrollHeight = container?.scrollHeight || 0
 
     // 调用 API 加载下一页
-    const { circleChatApi } = await import('@/api/circle')
     const result = await circleChatApi.getChatHistory(store.currentCircle.id, {
       page: store.messagePage,
       limit: 20

@@ -207,7 +207,8 @@ import {
   FormInst
 } from 'naive-ui'
 import {getWebSocket} from '@/utils/websocket'
-import {circleApi, circleChatApi} from '@/api/circle'
+import {circleApi} from '@/api/circle'
+import {circleChatApi} from '@/api/circleChat'
 import type {Circle} from '@/types/circleChat'
 import messageAPI from '@/api/message'
 import {ConversationVO} from "@/types/message";

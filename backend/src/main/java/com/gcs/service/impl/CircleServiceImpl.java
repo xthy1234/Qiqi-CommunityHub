@@ -247,6 +247,7 @@ public class CircleServiceImpl extends ServiceImpl<CircleDao, Circle> implements
 
             QueryWrapper<Circle> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("status", CommonStatus.ENABLED.getCode());
+            queryWrapper.eq("type", 1);
 
             // 如果传入了关键词
             String keyword = (String) params.get("keyword");

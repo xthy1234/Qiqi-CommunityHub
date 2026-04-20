@@ -5,6 +5,7 @@ import type { MessageStatus } from '@/types/message'
 import circleChatMessageService from '@/service/circleChatMessageService'
 import { wsLogger } from '@/utils/websocketLogger'
 import { getWebSocket } from '@/utils/websocket'
+import { circleChatApi } from '@/api/circleChat'
 
 interface CircleChatState {
   // 圈子列表
@@ -497,7 +498,6 @@ export const useCircleChatStore = defineStore('circleChat', {
     /** 从后端获取并更新未读消息数 */
     async updateUnreadCountFromServer(circleId: number): Promise<void> {
       try {
-        const { circleChatApi } = await import('@/api/circle')
         const count = await circleChatApi.getUnreadCount(circleId)
         
         const convIndex = this.conversations.findIndex((c: CircleConversation) => c.circleId === circleId)
@@ -513,7 +513,6 @@ export const useCircleChatStore = defineStore('circleChat', {
     /** 标记圈子为已读（调用后端接口） */
     async markAsReadByAPI(circleId: number): Promise<void> {
       try {
-        const { circleChatApi } = await import('@/api/circle')
         await circleChatApi.markAsRead(circleId)
         
         // 更新本地未读数为 0

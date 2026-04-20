@@ -75,7 +75,7 @@ export interface SaveDraftResponse {
 }
 
 export interface PublishDraftRequest {
-  versionType?: number // 0=小版本，1=大版本
+  isMajor?: boolean // true=大版本，false=小版本
   changeSummary?: string
   coverUrl?: string
   categoryId?: number | string

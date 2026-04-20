@@ -231,13 +231,15 @@ import CircleConversationPanel from '@/components/circle-chat/CircleConversation
 import CircleChatDetail from '@/components/circle-chat/CircleChatDetail.vue'
 import CircleMemberList from '@/components/circle-chat/CircleMemberList.vue'
 import { useCircleChatStore } from '@/stores/circleChat'
-import { circleApi, circleMemberApi, circleChatApi, circleWebSocket } from '@/api/circle'
+import { circleApi } from '@/api/circle'
+import { circleMemberApi } from '@/api/circleMember'
+import { circleChatApi } from '@/api/circleChat'
+import { ensureCircleWebSocketConnected } from '@/api/circleWebSocket'
+
 import type { CircleConversation, CircleMessage, CircleMember } from '@/types/circleChat'
 import {getWebSocket} from "@/utils/websocket"
 import chatService from '@/api/chat'
-import { ensureCircleWebSocketConnected } from '@/api/circle'
 import dayjs from 'dayjs'
-
 const store = useCircleChatStore()
 const message = useMessage()
 
@@ -298,19 +300,11 @@ const handleSelectCircle = async (conv: CircleConversation) => {
 
     const circle = await circleApi.getCircleById(conv.circleId)
 
-    // 2. 切换圈子
-
     await store.switchCircle(circle)
-
-    // 3. 加载聊天记录
 
     await loadChatHistory(circle.id)
 
-    // 4. 加载成员列表
-
     await loadMembers(circle.id)
-
-    // 5. 不再在这里单独订阅，因为 WebSocketManager 已经全局订阅了
 
   } catch (error: any) {
     console.error('[圈子聊天] 切换圈子失败:', error)

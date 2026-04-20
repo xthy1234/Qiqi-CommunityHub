@@ -118,7 +118,8 @@ import CircleCard from '@/components/discover/CircleCard.vue'
 import { getAvatarUrl } from '@/utils/userUtils'
 import dayjs from 'dayjs'
 import type { CircleInfo } from '@/types/discover'
-import { circleMemberApi } from '@/api/circle'
+import { circleApi } from '@/api/circle'
+import { circleMemberApi } from '@/api/circleMember'
 
 const router = useRouter()
 const message = useMessage()
@@ -145,7 +146,7 @@ const loadCircles = async () => {
   try {
     loading.value = true
     
-    const result = await circleMemberApi.getRecommendedCircles({
+    const result = await circleApi.getRecommendedCircles({
       page: pagination.value.page,
       limit: pagination.value.limit,
       keyword: searchKeyword.value
