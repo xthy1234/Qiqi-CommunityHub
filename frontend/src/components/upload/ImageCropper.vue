@@ -177,10 +177,6 @@ if (props.cropType === 'avatar') {
   option.autoCropHeight = 600
   option.centerBox = false
 
-
-
-
-
 }
 
 const previews = ref<any>({})

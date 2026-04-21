@@ -264,17 +264,12 @@ const handleFileChange = async (event: Event) => {
   if (!file) {return}
 
   try {
-    const response = await uploadAPI.uploadImage(file)
+    const imageUrl = await uploadAPI.uploadImage(file)
 
-    if (!response) {
-      throw new Error('图片上传失败')
-    }
-
-    editor.value.chain().focus().setImage({ src: normalizeFileUrl(response) }).run()
+    editor.value.chain().focus().setImage({ src: normalizeFileUrl(imageUrl) }).run()
     message.success('图片上传成功')
   } catch (error: any) {
-    console.error('[ChatInput] 图片上传失败:', error)
-    message.error('图片上传失败')
+    message.error(error.message || '图片上传失败')
   } finally {
     if (target) {
       target.value = ''
@@ -284,17 +279,12 @@ const handleFileChange = async (event: Event) => {
 
 const handleImagePaste = async (file: File) => {
   try {
-    const response = await uploadAPI.uploadImage(file)
+    const imageUrl = await uploadAPI.uploadImage(file)
 
-    if (!response) {
-      throw new Error('图片上传失败')
-    }
-
-    editor.value.chain().focus().setImage({ src: normalizeFileUrl(response) }).run()
+    editor.value.chain().focus().setImage({ src: normalizeFileUrl(imageUrl) }).run()
     message.success('图片粘贴成功')
   } catch (error: any) {
-    console.error('[ChatInput] 粘贴图片失败:', error)
-    message.error('图片粘贴失败')
+    message.error(error.message || '图片粘贴失败')
   }
 }
 
@@ -308,16 +298,13 @@ const handleVideoInputChange = async (event: Event) => {
 
   if (!file) {return}
 
+  let loadingMessage: any = null
   try {
-    message.loading('视频上传中...', { duration: 0 })
-    const response = await uploadAPI.uploadVideo(file)
-
-    if (!response) {
-      throw new Error('视频上传失败')
-    }
+    loadingMessage = message.loading('视频上传中...', { duration: 0 })
+    const videoUrl = await uploadAPI.uploadVideo(file)
 
     editor.value.commands.setVideo({
-      src: response,
+      src: videoUrl,
       title: file.name,
       duration: 0,
       annotations: []
@@ -326,9 +313,8 @@ const handleVideoInputChange = async (event: Event) => {
     message.destroyAll()
     message.success('视频上传成功')
   } catch (error: any) {
-    console.error('[ChatInput] 视频上传失败:', error)
     message.destroyAll()
-    message.error(`视频上传失败：${error.message}`)
+    message.error(error.message || '视频上传失败')
   } finally {
     if (target) {
       target.value = ''
@@ -365,15 +351,10 @@ const handleVideoPaste = async (file: File) => {
 const handleDocumentPaste = async (file: File) => {
   try {
     message.loading('文件上传中...', { duration: 0 })
-    const response = await uploadAPI.uploadAnyFile(file)
+    const fileUrl = await uploadAPI.uploadAnyFile(file)
 
-    if (!response) {
-      throw new Error('文件上传失败')
-    }
-
-    // 插入文件节点
     editor.value.commands.setFileNode({
-      src: response,
+      src: fileUrl,
       name: file.name,
       size: file.size,
       mimeType: file.type,
@@ -383,9 +364,8 @@ const handleDocumentPaste = async (file: File) => {
     message.destroyAll()
     message.success('文件粘贴成功')
   } catch (error: any) {
-    console.error('[ChatInput] 粘贴文件失败:', error)
     message.destroyAll()
-    message.error('文件粘贴失败')
+    message.error(error.message || '文件粘贴失败')
   }
 }
 

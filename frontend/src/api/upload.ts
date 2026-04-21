@@ -100,9 +100,6 @@ export class UploadAPI {
     formData.append('description', description)
     formData.append('isPublic', String(isPublic))
 
-    // console.log('📤 [UploadAPI] 开始上传文件')
-    // console.log('📤 [UploadAPI] 接口地址:', this.uploadUrl)
-    // console.log('📤 [UploadAPI] 文件类型:', fileType)
 
     try {
       const response = await http.post(this.uploadUrl, formData, {
@@ -111,16 +108,9 @@ export class UploadAPI {
         }
       })
 
-      // console.log(' [UploadAPI] HTTP 响应对象:', response)
-      // console.log(' [UploadAPI] response.data:', response.data)
-
       //  后端将文件信息嵌套在 response.data.file 中
       const backendData = response.data as unknown as BackendUploadResponse
-      
-      // console.log(' [UploadAPI] backendData:', backendData)
-      // console.log(' [UploadAPI] backendData.code:', backendData.code)
-      // console.log(' [UploadAPI] backendData.file:', backendData.file)
-      
+
       if (!backendData.file) {
         console.error('[UploadAPI] 后端响应中缺少 file 对象')
         throw new Error('上传响应格式错误：缺少 file 对象')
@@ -148,12 +138,7 @@ export class UploadAPI {
         duration: backendData.file.duration,
         md5: '' // 后端未返回 MD5，留空
       }
-      
-      // console.log(' [UploadAPI] 映射后的结果:', result)
-      // console.log(' [UploadAPI] result.code:', result.code)
-      // console.log(' [UploadAPI] result.viewUrl:', result.viewUrl)
-      // console.log(' [UploadAPI] result.fileUrl:', result.fileUrl)
-      
+
       return result
     } catch (error) {
       console.error('[UploadAPI] 文件上传失败:', error)
@@ -165,43 +150,32 @@ export class UploadAPI {
    * 上传图片文件（带校验）
    * @param file 图片文件
    * @param description 图片描述
-   * @returns Promise<string | null> 返回图片预览URL或null
+   * @returns Promise<string> 返回图片预览URL
+   * @throws Error 上传失败时抛出错误
    */
-  async uploadImage(file: File, description = ''): Promise<string | null> {
-    // console.log(' [UploadAPI] 开始上传图片')
-    // console.log(' [UploadAPI] 文件名:', file.name)
-    // console.log(' [UploadAPI] 文件大小:', (file.size / 1024 / 1024).toFixed(2), 'MB')
-
+  async uploadImage(file: File, description = ''): Promise<string> {
     if (!file.type.startsWith('image/')) {
-      console.warn(' [UploadAPI] 文件类型不是图片:', file.type)
-      return null
+      throw new Error('仅支持上传图片文件')
     }
-    if (file.size > 10 * 1024 * 1024) { // 10MB
-      console.warn(' [UploadAPI] 图片大小超过限制:', file.size)
-      return null
+    
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      throw new Error(`图片大小不能超过${(maxSize / 1024 / 1024).toFixed(0)}MB`)
     }
 
     try {
       const result = await this.uploadFile(file, 'image', description)
       
-      // console.log(' [UploadAPI] uploadFile 返回结果:', result)
-      // console.log(' [UploadAPI] result.code:', result.code)
-      
-      //  检查后端返回的状态码
       if (result.code === 0) {
-        //  返回 viewUrl 而不是 fileUrl
-        // viewUrl: /api/files/4/view （可直接用于 <img> 标签）
-        // fileUrl: /api/files/4 （返回JSON元数据）
-        // console.log(' [UploadAPI] 上传成功，viewUrl:', result.viewUrl)
         return result.viewUrl
       } else {
-        // 后端返回错误
-        console.error('[UploadAPI] 上传失败，错误信息:', result.msg)
-        return null
+        throw new Error(result.msg || '图片上传失败')
       }
     } catch (error) {
-      console.error('[UploadAPI] 图片上传异常:', error)
-      return null
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('图片上传异常，请稍后重试')
     }
   }
 
@@ -209,31 +183,32 @@ export class UploadAPI {
    * 上传视频文件
    * @param file 视频文件
    * @param description 视频描述
-   * @returns Promise<string | null> 返回视频预览URL或null
+   * @returns Promise<string> 返回视频预览URL
+   * @throws Error 上传失败时抛出错误
    */
-  async uploadVideo(file: File, description = ''): Promise<string | null> {
+  async uploadVideo(file: File, description = ''): Promise<string> {
     if (!file.type.startsWith('video/')) {
-      console.warn('仅支持上传视频文件')
-      return null
+      throw new Error('仅支持上传视频文件')
     }
-    if (file.size > 512 * 1024 * 1024) {
-      console.warn('视频大小不能超过 512MB!')
-      return null
+    
+    const maxSize = 1024 * 1024 * 1024 // 1GB
+    if (file.size > maxSize) {
+      throw new Error(`视频大小不能超过${(maxSize / 1024 / 1024 / 1024).toFixed(0)}GB`)
     }
 
     try {
       const result = await this.uploadFile(file, 'video', description)
       
       if (result.code === 0) {
-        // 返回 viewUrl 用于视频播放
         return result.viewUrl
       } else {
-        console.error('上传失败:', result.msg)
-        return null
+        throw new Error(result.msg || '视频上传失败')
       }
     } catch (error) {
-      console.error('[UploadAPI] 视频上传异常:', error)
-      return null
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('视频上传异常，请稍后重试')
     }
   }
 
@@ -241,22 +216,23 @@ export class UploadAPI {
    * 上传任意格式文件
    * @param file 文件
    * @param description 文件描述
-   * @returns Promise<string | null> 返回文件下载URL或null
+   * @returns Promise<string> 返回文件下载URL
+   * @throws Error 上传失败时抛出错误
    */
-  async uploadAnyFile(file: File, description = ''): Promise<string | null> {
+  async uploadAnyFile(file: File, description = ''): Promise<string> {
     try {
       const result = await this.uploadFile(file, 'document', description)
       
       if (result.code === 0) {
-        // 对于文档类文件，返回 downloadUrl 用于下载
         return result.downloadUrl
       } else {
-        console.error('上传失败:', result.msg)
-        return null
+        throw new Error(result.msg || '文件上传失败')
       }
     } catch (error) {
-      console.error('[UploadAPI] 文件上传异常:', error)
-      return null
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('文件上传异常，请稍后重试')
     }
   }
 

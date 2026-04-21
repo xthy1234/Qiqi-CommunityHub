@@ -91,7 +91,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
             
             // 推送到用户专属队列
             String destination = "/user/" + notification.getUserId() + "/queue/notification";
-            log.info("📤 [WebSocket 推送] 推送到队列：{}", destination);
+            log.info("[WebSocket 推送] 推送到队列：{}", destination);
             
             messagingTemplate.convertAndSendToUser(
                 String.valueOf(notification.getUserId()),
@@ -185,7 +185,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
             ));
             
             // 推送到用户专属队列
-            log.info("📤 [已读状态推送] 推送到队列：/user/{}/queue/notification", userId);
+            log.info("[已读状态推送] 推送到队列：/user/{}/queue/notification", userId);
             messagingTemplate.convertAndSendToUser(
                 String.valueOf(userId),
                 "/queue/notification",
@@ -220,7 +220,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
                 "timestamp", System.currentTimeMillis()
             ));
             
-            log.info("📤 [清空推送] 推送到队列：/user/{}/queue/notification", userId);
+            log.info("[清空推送] 推送到队列：/user/{}/queue/notification", userId);
             messagingTemplate.convertAndSendToUser(
                 String.valueOf(userId),
                 "/queue/notification",

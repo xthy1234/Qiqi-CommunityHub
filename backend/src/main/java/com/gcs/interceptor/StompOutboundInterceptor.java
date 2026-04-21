@@ -28,7 +28,7 @@ public class StompOutboundInterceptor implements ChannelInterceptor {
                     String subscriptionId = accessor.getSubscriptionId();
                     String sessionId = accessor.getSessionId();
 
-                    log.info("📤 [出站拦截器] 正在发送 STOMP MESSAGE:");
+                    log.info("[出站拦截器] 正在发送 STOMP MESSAGE:");
                     log.info("   目的地：{}", destination);
                     log.info("   订阅 ID: {}", subscriptionId);
                     log.info("   Session ID: {}", sessionId);
@@ -44,22 +44,22 @@ public class StompOutboundInterceptor implements ChannelInterceptor {
 
                 case CONNECTED -> {
                     // 连接成功的响应
-                    log.debug("📤 [出站] CONNECTED - 连接已建立");
+                    log.debug("[出站] CONNECTED - 连接已建立");
                 }
 
                 case ERROR -> {
                     // 错误消息（需要特别关注）
-                    log.error("📤 [出站] ERROR - 发生错误");
+                    log.error("[出站] ERROR - 发生错误");
                     log.error("   错误消息：{}", accessor.getFirstNativeHeader("message"));
                 }
 
                 case RECEIPT -> {
                     // 对 SEND 命令的确认
-                    log.debug("📤 [出站] RECEIPT - 发送确认");
+                    log.debug("[出站] RECEIPT - 发送确认");
                 }
 
                 default -> {
-                    log.debug("📤 [出站] 未知命令类型：{}", command);
+                    log.debug("[出站] 未知命令类型：{}", command);
                 }
             }
         }

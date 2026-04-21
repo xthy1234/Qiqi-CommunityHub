@@ -98,7 +98,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
         log.info("提交修改建议成功，suggestionId: {}, articleId: {}, baseVersion: {}", 
                  suggestion.getId(), articleId, currentVersion);
         
-        // 📢 发送通知给文章作者
+        // 发送通知给文章作者
         sendSuggestionSubmitNotification(suggestion, article.getAuthorId());
     }
 
@@ -221,7 +221,7 @@ public class ArticleEditSuggestionServiceImpl extends ServiceImpl<ArticleEditSug
 
         baseMapper.updateById(suggestion);
         
-        // 📢 发送审核结果通知给建议提交者
+        // 发送审核结果通知给建议提交者
         sendSuggestionReviewNotification(suggestion, approved);
     }
     

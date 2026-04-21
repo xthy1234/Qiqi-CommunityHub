@@ -169,28 +169,9 @@ const handleFileChange = (event: Event) => {
     return
   }
 
-  //  限制为常见图片格式
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-  const isAllowedType = allowedTypes.includes(file.type.toLowerCase())
-
-  const isImage = file.type.startsWith('image/')
-  if (!isAllowedType) {
-    message.error('只支持 JPG、PNG、WebP 格式的图片!')
-    return
-  }
-
-  // 验证文件大小（10MB）
-  const isLt10M = file.size / 1024 / 1024 < 10
-  if (!isLt10M) {
-    message.error('图片大小不能超过 10MB!')
-    return
-  }
-
-  // 打开裁剪窗口
   selectedFile.value = file
   showCropper.value = true
 
-  // 清空输入框，允许重复选择同一文件
   target.value = ''
 }
 

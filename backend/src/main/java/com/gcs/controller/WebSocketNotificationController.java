@@ -94,9 +94,9 @@ public class WebSocketNotificationController {
             message.put("type", "NOTIFICATION");
             message.put("data", notificationVO);
 
-            // 📤 推送到用户专属队列
+            // 推送到用户专属队列
             String destination = "/user/" + targetUserId + "/queue/notification";
-            log.info("📤 [通知推送] 推送到队列：{}", destination);
+            log.info("[通知推送] 推送到队列：{}", destination);
 
             messagingTemplate.convertAndSendToUser(
                 String.valueOf(targetUserId),
@@ -152,8 +152,8 @@ public class WebSocketNotificationController {
                 "timestamp", System.currentTimeMillis()
             ));
 
-            // 📤 推送到用户专属队列
-            log.info("📤 [标记已读] 推送到队列：/user/{}/queue/notification", currentUserId);
+            // 推送到用户专属队列
+            log.info("[标记已读] 推送到队列：/user/{}/queue/notification", currentUserId);
             messagingTemplate.convertAndSendToUser(
                 String.valueOf(currentUserId),
                 "/queue/notification",

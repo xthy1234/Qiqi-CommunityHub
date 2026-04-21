@@ -428,7 +428,7 @@
       <template #action>
         <n-space justify="end">
           <n-button @click="imageDialogVisible = false">
-            取消
+            清空
           </n-button>
           <n-button
             type="primary"
@@ -1140,15 +1140,10 @@ const isDocumentType = (mimeType: string): boolean => {
 const handleDocumentPaste = async (file: File) => {
   try {
     message.loading('文件上传中...', { duration: 0 })
-    const response = await uploadAPI.uploadAnyFile(file)
+    const fileUrl = await uploadAPI.uploadAnyFile(file)
 
-    if (!response) {
-      throw new Error('文件上传失败')
-    }
-
-    // 插入文件节点，response 是 downloadUrl (/api/files/{id}/download)
     editor.value.commands.setFileNode({
-      src: response,
+      src: fileUrl,
       name: file.name,
       size: file.size,
       mimeType: file.type,
@@ -1158,29 +1153,23 @@ const handleDocumentPaste = async (file: File) => {
     message.destroyAll()
     message.success('文件粘贴成功')
   } catch (error: any) {
-    console.error('[RichTextEditor] 粘贴文件失败:', error)
     message.destroyAll()
-    message.error('文件粘贴失败')
+    message.error(error.message || '文件粘贴失败')
   }
 }
 
 const handleImagePaste = async (file: File) => {
+  let loadingMessage: any = null
   try {
-    message.loading('图片上传中...', { duration: 0 })
-    const response = await uploadAPI.uploadImage(file)
+    loadingMessage = message.loading('图片上传中...', { duration: 0 })
+    const imageUrl = await uploadAPI.uploadImage(file)
 
-    if (!response) {
-      throw new Error('图片上传失败')
-    }
-
-    // 新版 API 返回 viewUrl (/api/files/123/view)
-    editor.value.chain().focus().setImage({ src: response }).run()
+    editor.value.chain().focus().setImage({ src: imageUrl }).run()
     message.destroyAll()
     message.success('图片粘贴成功')
   } catch (error: any) {
-    console.error('[RichTextEditor] 粘贴图片失败:', error)
     message.destroyAll()
-    message.error('图片粘贴失败')
+    message.error(error.message || '图片粘贴失败')
   }
 }
 
@@ -1190,15 +1179,10 @@ const handleImagePaste = async (file: File) => {
 const handleVideoPaste = async (file: File) => {
   try {
     message.loading('视频上传中...', { duration: 0 })
-    const response = await uploadAPI.uploadVideo(file)
+    const videoUrl = await uploadAPI.uploadVideo(file)
 
-    if (!response) {
-      throw new Error('视频上传失败')
-    }
-
-    // 插入视频节点，response 是 viewUrl (/api/files/123/view)
     editor.value.commands.setVideo({
-      src: response,
+      src: videoUrl,
       title: file.name,
       duration: 0,
       annotations: []
@@ -1207,9 +1191,8 @@ const handleVideoPaste = async (file: File) => {
     message.destroyAll()
     message.success('视频粘贴成功')
   } catch (error: any) {
-    console.error('[RichTextEditor] 粘贴视频失败:', error)
     message.destroyAll()
-    message.error('视频粘贴失败')
+    message.error(error.message || '视频粘贴失败')
   }
 }
 
@@ -1278,15 +1261,10 @@ const handleFileInputChange = async (event: Event) => {
   if (!file) {return}
 
   try {
-    const response = await uploadAPI.uploadAnyFile(file)
+    const fileUrl = await uploadAPI.uploadAnyFile(file)
 
-    if (!response) {
-      throw new Error('文件上传失败')
-    }
-
-    // 插入文件节点
     editor.value.commands.setFileNode({
-      src: response,
+      src: fileUrl,
       name: file.name,
       size: Number(file.size),
       mimeType: String(file.type),
@@ -1294,8 +1272,7 @@ const handleFileInputChange = async (event: Event) => {
     })
     message.success('文件上传成功')
   } catch (error: any) {
-    console.error('[RichTextEditor] 文件上传失败:', error)
-    message.error(`文件上传失败：${error.message}`)
+    message.error(error.message || '文件上传失败')
   } finally {
     if (target) {
       target.value = ''
@@ -1328,15 +1305,10 @@ const handleUpload = async (file: File) => {
   if (!editor.value) {return}
 
   try {
-    const response = await uploadAPI.uploadAnyFile(file)
+    const fileUrl = await uploadAPI.uploadAnyFile(file)
 
-    if (!response) {
-      throw new Error('文件上传失败')
-    }
-
-    //  使用正确的命令名 setFileNode
     editor.value.commands.setFileNode({
-      src: response,
+      src: fileUrl,
       name: file.name,
       size: file.size,
       mimeType: file.type,
@@ -1399,17 +1371,13 @@ const handleVideoInputChange = async (event: Event) => {
 
   if (!file) {return}
 
+  let loadingMessage: any = null
   try {
-    message.loading('视频上传中...', { duration: 0 })
-    const response = await uploadAPI.uploadVideo(file)
+    loadingMessage = message.loading('视频上传中...', { duration: 0 })
+    const videoUrl = await uploadAPI.uploadVideo(file)
 
-    if (!response) {
-      throw new Error('视频上传失败')
-    }
-
-    // 插入视频节点
     editor.value.commands.setVideo({
-      src: response,
+      src: videoUrl,
       title: file.name,
       duration: 0,
       annotations: []
@@ -1418,9 +1386,8 @@ const handleVideoInputChange = async (event: Event) => {
     message.destroyAll()
     message.success('视频上传成功')
   } catch (error: any) {
-    console.error('[RichTextEditor] 视频上传失败:', error)
     message.destroyAll()
-    message.error(`视频上传失败：${error.message}`)
+    message.error(error.message || '视频上传失败')
   } finally {
     if (target) {
       target.value = ''

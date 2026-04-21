@@ -284,15 +284,10 @@ const handleFileInputChange = async (event: Event) => {
 
   try {
     message.loading('文件上传中...', { duration: 0 })
-    const response = await uploadAPI.uploadAnyFile(file)
+    const fileUrl = await uploadAPI.uploadAnyFile(file)
 
-    if (!response) {
-      throw new Error('文件上传失败')
-    }
-
-    // 更新当前节点属性
     props.updateAttributes({
-      src: response,
+      src: fileUrl,
       name: file.name,
       size: file.size,
       mimeType: file.type,
@@ -302,15 +297,15 @@ const handleFileInputChange = async (event: Event) => {
     message.destroyAll()
     message.success('文件替换成功')
   } catch (error: any) {
-    console.error('[FileNode] 文件上传失败:', error)
     message.destroyAll()
-    message.error(`文件上传失败：${error.message}`)
+    message.error(error.message || '文件上传失败')
   } finally {
     if (target) {
       target.value = ''
     }
   }
 }
+
 </script>
 
 <style scoped lang="scss">
