@@ -557,7 +557,7 @@ watch(() => store.messages.length, async (newLen: number, oldLen: number) => {
             )
 
             if (hasUnreadFromCurrentConv) {
-                // // console.log('📨 [Watch] 收到当前会话的新消息，触发已读回执')
+                // // console.log('[Watch] 收到当前会话的新消息，触发已读回执')
                 debouncedSendReadReceipt(store.currentConversation.userId, '收到新消息')
             }
         }

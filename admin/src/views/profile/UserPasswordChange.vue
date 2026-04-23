@@ -89,8 +89,7 @@ import { useMessage } from 'naive-ui'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import type { FormRules } from 'naive-ui'
 import PageContainer from '@/components/common/PageContainer.vue'
-import userService from '@/api/user'
-import httpClient from '@/utils/http'
+import { userApi } from '@/api/user'
 
 const router = useRouter()
 const appContext = useGlobalProperties()
@@ -161,25 +160,28 @@ const handleSubmit = async () => {
     
     isSubmitting.value = true
     
-    const currentUser = await userService.getCurrentUser()
+    const currentUserResponse = await userApi.getCurrentUser()
+    const currentUser = currentUserResponse.data?.data
 
     if (!currentUser?.id) {
       message.error('用户未登录')
       return
     }
 
-    const response = await httpClient.put(`users/${currentUser.id}/password`, null, {
-      params: {
-        oldPassword: passwordForm.oldPassword,
-        newPassword: passwordForm.newPassword
-      }
+    const response = await userApi.updatePassword(currentUser.id, {
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
     })
 
-    message.success('密码修改成功')
-    setTimeout(() => {
-      appContext?.$toolUtil.storageClear()
-      router.push('/login')
-    }, 1000)
+    if (response.data.code === 0) {
+      message.success('密码修改成功')
+      setTimeout(() => {
+        appContext?.$toolUtil.storageClear()
+        router.push('/login')
+      }, 1000)
+    } else {
+      message.error(response.data.msg || '密码修改失败')
+    }
   } catch (error: any) {
     console.error('密码修改失败:', error)
     const errorMsg = error.response?.data?.msg || '密码修改失败，请检查原密码是否正确'

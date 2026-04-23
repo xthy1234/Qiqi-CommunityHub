@@ -49,7 +49,7 @@ public class WebSocketNotificationController {
             //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
-            log.info("🚀 [通知推送] 收到触发请求：userId={}, request={}", 
+            log.info("[通知推送] 收到触发请求：userId={}, request={}", 
                      currentUserId, notificationRequest);
 
             if (currentUserId == null) {
@@ -77,7 +77,7 @@ public class WebSocketNotificationController {
                 extra = (Map<String, Object>) notificationRequest.get("extra");
             }
 
-            // 📝 创建通知记录
+            //创建通知记录
             Notification notification = notificationService.createNotification(
                 targetUserId,
                 type,
@@ -86,10 +86,10 @@ public class WebSocketNotificationController {
                 extra
             );
 
-            // 📨 转换为 VO
+            // 转换为 VO
             NotificationVO notificationVO = convertToVO(notification);
 
-            // 🔔 组装 WebSocket 消息
+            //组装 WebSocket 消息
             Map<String, Object> message = new HashMap<>();
             message.put("type", "NOTIFICATION");
             message.put("data", notificationVO);
@@ -124,7 +124,6 @@ public class WebSocketNotificationController {
     public void markNotificationAsRead(@Payload Map<String, Object> markReadRequest,
                                        StompHeaderAccessor accessor) {
         try {
-            //  从 Session 获取真实用户 ID
             Long currentUserId = (Long) accessor.getSessionAttributes().get("userId");
             
             if (currentUserId == null) {
@@ -140,10 +139,8 @@ public class WebSocketNotificationController {
                 return;
             }
 
-            // 📝 执行标记已读操作
             notificationService.markAsRead(currentUserId, notificationIds);
 
-            // 🔔 组装状态更新消息
             Map<String, Object> message = new HashMap<>();
             message.put("type", "NOTIFICATION_READ_UPDATE");
             message.put("data", Map.of(
@@ -152,11 +149,10 @@ public class WebSocketNotificationController {
                 "timestamp", System.currentTimeMillis()
             ));
 
-            // 推送到用户专属队列
-            log.info("[标记已读] 推送到队列：/user/{}/queue/notification", currentUserId);
+            log.info("[标记已读] 推送到队列：/user/{}/queue/notification-read-update", currentUserId);
             messagingTemplate.convertAndSendToUser(
                 String.valueOf(currentUserId),
-                "/queue/notification",
+                "/queue/notification-read-update",
                 message
             );
 

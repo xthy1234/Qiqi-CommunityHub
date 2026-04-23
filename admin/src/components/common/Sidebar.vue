@@ -220,6 +220,19 @@ const menuOptions = computed<MenuOption[]>(() => {
         }
       ]
     },
+    {
+      label: '通知管理',
+      key: 'notifications',
+      icon: renderIcon('ri:notification-line'),
+      children: [
+        {
+          label: '发送通知',
+          key: 'notification-send',
+          icon: renderIcon('ri:send-plane-line'),
+          click: () => navigateToRoute('/notification/send')
+        }
+      ]
+    },
   ]
 
   // 添加动态菜单

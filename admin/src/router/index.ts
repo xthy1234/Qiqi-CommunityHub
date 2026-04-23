@@ -141,7 +141,14 @@ const routes: Array<RouteRecordRaw> = [
         path: 'profile/password',
         component: () => import('@/views/profile/UserPasswordChange.vue'),
         meta: { title: '修改密码' }
+      },
+      // 通知管理
+      {
+        path: 'notification/send',
+        component: () => import('@/views/notification/send.vue'),
+        meta: { title: '发送通知' }
       }
+
     ]
   },
   

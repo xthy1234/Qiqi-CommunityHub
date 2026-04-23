@@ -28,12 +28,12 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
       const client = (ws as any).client
 
       if (client && client.state === 'CONNECTING') {
-        console.log('[圈子聊天] WebSocket 正在连接中，等待连接完成...')
+
 
         const checkInterval = setInterval(() => {
           if (ws.isConnected()) {
             clearInterval(checkInterval)
-            console.log('[圈子聊天] WebSocket 连接成功')
+
             resolve()
           }
         }, 100)
@@ -43,11 +43,11 @@ export function ensureCircleWebSocketConnected(): Promise<void> {
           reject(new Error('WebSocket 连接超时'))
         }, 10000)
       } else {
-        console.log('[圈子聊天] WebSocket 未连接，正在连接...')
+
 
         ws.connect()
             .then(() => {
-              console.log('[圈子聊天] WebSocket 连接成功')
+
               resolve()
             })
             .catch(reject)

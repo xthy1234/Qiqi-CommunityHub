@@ -33,6 +33,7 @@ export type WsMessageType =
   | 'CIRCLE_CHAT_MESSAGE_DELETE'
   | 'NOTIFICATION'
   | 'NOTIFICATION_READ_UPDATE'
+  | 'NOTIFICATION_CLEAR'
   | 'NEW_CONVERSATION'
   | 'UNREAD_COUNT_UPDATE'
 
@@ -51,6 +52,7 @@ export interface WsMessageMap {
   'CIRCLE_CHAT_MESSAGE_DELETE': CircleMessageDeletePayload['data']
   'NOTIFICATION': NotificationPayload['data']
   'NOTIFICATION_READ_UPDATE': NotificationPayload['data']
+  'NOTIFICATION_CLEAR': void
   'NEW_CONVERSATION': NewConversationPayload['data']
   'UNREAD_COUNT_UPDATE': UnreadCountUpdatePayload['data']
 }
@@ -452,13 +454,21 @@ class WebSocketManager {
         messageType: 'NOTIFICATION',
         destination: `/user/${userId}/queue/notification`,
         description: '系统通知',
-        handler: (data: any) => this.dispatchMessage('NOTIFICATION', data)
-      },
-      {
-        messageType: 'NOTIFICATION_READ_UPDATE',
-        destination: `/user/${userId}/queue/notification`,
-        description: '通知已读更新',
-        handler: (data: any) => this.dispatchMessage('NOTIFICATION_READ_UPDATE', data)
+        handler: (data: any) => {
+
+          
+          // 根据消息体中的 type 字段进行二次分发
+          if (data.type === 'NOTIFICATION_READ_UPDATE') {
+
+            this.dispatchMessage('NOTIFICATION_READ_UPDATE', data)
+          } else if (data.type === 'NOTIFICATION_CLEARED') {
+
+            this.dispatchMessage('NOTIFICATION_CLEAR', data)
+          } else {
+
+            this.dispatchMessage('NOTIFICATION', data)
+          }
+        }
       }
     ]
 

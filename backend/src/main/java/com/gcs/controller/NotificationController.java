@@ -185,6 +185,7 @@ public class NotificationController {
         }
     }
 
+
     /**
      * 管理员发送通知
      */
@@ -200,7 +201,6 @@ public class NotificationController {
             @Parameter(description = "通知数据", required = true) @Valid @RequestBody AdminSendNotificationDTO dto,
             HttpServletRequest request) {
         try {
-            // 验证管理员权限
             Long currentUserId = getCurrentUserId(request);
             if (currentUserId == null) {
                 return R.error("请先登录");
@@ -212,36 +212,38 @@ public class NotificationController {
 
             String adminAccount = getSessionAttribute(request, "account");
 
-            // 构建通知内容
-            Map<String, Object> content = new HashMap<>();
-            content.put("title", dto.getTitle());
-            content.put("content", dto.getContent());
-            content.put("linkUrl", dto.getLinkUrl());
-            content.put("priority", dto.getPriority());
-            content.put("isTop", dto.getIsTop());
-            content.put("sender", "system");
-            content.put("senderAccount", adminAccount);
-
-            // 合并额外数据
             Map<String, Object> extraData = new HashMap<>();
+            extraData.put("title", dto.getTitle());
+            extraData.put("content", dto.getContent());
+            extraData.put("linkUrl", dto.getLinkUrl());
+            extraData.put("priority", dto.getPriority());
+            extraData.put("isTop", dto.getIsTop());
+            extraData.put("sender", "system");
+            extraData.put("senderAccount", adminAccount);
+            
             if (dto.getExtra() != null) {
                 extraData.putAll(dto.getExtra());
             }
             extraData.put("sentTime", LocalDateTime.now().toString());
             extraData.put("adminAccount", adminAccount);
 
-            // 发送通知
             int sentCount;
             if (CollectionUtils.isEmpty(dto.getUserIds())) {
-                // 全员广播
-                sentCount = notificationService.sendBroadcastNotification(dto.getType(), content, extraData);
+                sentCount = notificationService.sendBroadcastNotification(
+                    NotificationType.SYSTEM_MESSAGE.getCode(), 
+                    null, 
+                    extraData
+                );
             } else {
-                // 发送给指定用户
-                sentCount = notificationService.sendBatchNotifications(dto.getUserIds(), dto.getType(), content, extraData);
+                sentCount = notificationService.sendBatchNotifications(
+                    dto.getUserIds(), 
+                    NotificationType.SYSTEM_MESSAGE.getCode(), 
+                    null, 
+                    extraData
+                );
             }
 
-            log.info("管理员发送通知，类型：{}, 接收人数：{}, 操作人：{}", 
-                    dto.getType(), sentCount, adminAccount);
+            log.info("管理员发送系统通知，接收人数：{}, 操作人：{}", sentCount, adminAccount);
 
             return R.ok("发送成功，共发送 " + sentCount + " 条通知");
         } catch (Exception e) {
@@ -405,7 +407,7 @@ public class NotificationController {
         vo.setContent(notification.getContent());
         
         // 添加调试日志
-        log.info("🔄 [转换 VO] notificationId: {}, extra: {}", notification.getId(), notification.getExtra());
+        log.info("[转换 VO] notificationId: {}, extra: {}", notification.getId(), notification.getExtra());
         if (notification.getExtra() instanceof Map) {
             Map<?, ?> extraMap = (Map<?, ?>) notification.getExtra();
             log.info("   - extra 是 Map，包含 keys: {}", extraMap.keySet());

@@ -105,7 +105,9 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { TreeOption } from 'naive-ui'
 import { useMessage, useDialog, NTree, NCard, NDescriptions, NDescriptionsItem, NTag, NButton, NSpace, NGrid, NGi, NModal, NForm, NFormItem, NCheckboxGroup, NCheckbox } from 'naive-ui'
-import { menuApi, roleApi, roleMenuApi, type Menu, type Role, type RoleMenu } from '@/api/role'
+import { roleApi, type Role } from '@/api/role'
+import { menuApi, type Menu } from '@/api/menu'
+import { roleMenuApi, type RoleMenu } from '@/api/roleMenu'
 import PageContainer from "@/components/common/PageContainer.vue"
 
 const router = useRouter()

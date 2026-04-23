@@ -132,8 +132,8 @@ import { useMessage } from 'naive-ui'
 import { getAvatarUrl, getGenderText, formatDateTime } from '@/utils/userUtils'
 import PageContainer from '@/components/common/PageContainer.vue'
 import ArticleGridList from '@/components/common/ArticleGridList.vue'
-import userService from '@/api/user'
-import httpClient from '@/utils/http'
+import { userApi } from '@/api/user'
+import { articleApi } from '@/api/article'
 
 interface UserInfo {
   id?: number
@@ -192,7 +192,8 @@ const articlePagination = ref<Pagination>({ page: 1, limit: 5 })
 
 const fetchUserInfo = async (): Promise<void> => {
   try {
-    const currentUser = await userService.getCurrentUser()
+    const currentUserResponse = await userApi.getCurrentUser()
+    const currentUser = currentUserResponse.data?.data
 
     if (!currentUser?.id) {
       message.error('请先登录')
@@ -200,11 +201,9 @@ const fetchUserInfo = async (): Promise<void> => {
       return
     }
 
-    const response = await httpClient.get(`users/${currentUser.id}`, {
-      params: { detail: true }
-    })
+    const response = await userApi.getUserById(currentUser.id)
 
-    const userData = response.data.data
+    const userData = response.data?.data
     if (userData) {
       userInfo.value = {
         id: userData.id,
@@ -243,11 +242,11 @@ const fetchUserArticles = async (): Promise<void> => {
       authorId: userInfo.value.id
     }
 
-    const response = await httpClient.get('/articles', { params })
+    const response = await articleApi.getArticleList(params)
 
-    const apiData = response.data.data
-    articleList.value = apiData.list || []
-    articleTotalCount.value = apiData.totalCount || 0
+    const apiData = response.data?.data
+    articleList.value = apiData?.list || []
+    articleTotalCount.value = apiData?.total || 0
   } catch (error) {
     console.error('获取用户文章列表失败:', error)
   } finally {

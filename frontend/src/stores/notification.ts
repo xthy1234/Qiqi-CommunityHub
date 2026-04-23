@@ -175,6 +175,17 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   /**
+   * 清空所有通知（WebSocket 同步）
+   */
+  function clearAllNotifications() {
+
+    
+    notificationList.value = []
+    unreadCount.value = 0
+
+  }
+
+  /**
    * 初始化 WebSocket 订阅（新版 - 使用 WebSocketManager）
    */
   function initWebSocketSubscription() {
@@ -223,6 +234,8 @@ export const useNotificationStore = defineStore('notification', () => {
         // 后端发送的格式：{ type: 'NOTIFICATION', data: {...} }
         // 需要提取 data 字段
         const notificationData = message.data || message
+
+        
         addNotification(notificationData)
       })
 
@@ -233,9 +246,18 @@ export const useNotificationStore = defineStore('notification', () => {
         
         // 提取 data 字段
         const data = message.data || message
+
+        
         if (data.notificationIds) {
           updateReadStatus(data.notificationIds)
         }
+      })
+
+      // 订阅清空通知
+      const unsubscribeClear = ws.on('NOTIFICATION_CLEAR', (message: any) => {
+
+        
+        clearAllNotifications()
       })
 
       isSubscribed.value = true
@@ -245,6 +267,7 @@ export const useNotificationStore = defineStore('notification', () => {
       return () => {
         unsubscribeNotification()
         unsubscribeReadUpdate()
+        unsubscribeClear()
         isSubscribed.value = false
 
       }

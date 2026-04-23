@@ -118,7 +118,7 @@ import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { FormRules, FormInst } from 'naive-ui'
 import { Icon } from '@iconify/vue'
-import apiService from '@/api'
+import { userApi } from '@/api/user'
 
 interface RegisterForm {
   account: string
@@ -203,8 +203,6 @@ const handleRegister = async () => {
 
     loading.value = true
 
-
-
     try {
       const registerData = {
         account: registerForm.account,
@@ -214,7 +212,7 @@ const handleRegister = async () => {
         email: registerForm.email
       }
 
-      const response = await apiService.user.adminRegister(registerData)
+      const response = await userApi.adminRegister(registerData)
       const responseData = response.data
 
       if (responseData.code === 200 || responseData.code === 0) {
@@ -227,12 +225,6 @@ const handleRegister = async () => {
       }
     } catch (error: any) {
       console.error('[注册请求] 注册失败:', error)
-      console.error('[注册请求] 错误详情:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: error.config
-      })
       const errorMsg = error.response?.data?.msg || '注册失败，请稍后重试'
       message.error(errorMsg)
     } finally {

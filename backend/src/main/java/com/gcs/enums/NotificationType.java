@@ -26,9 +26,13 @@ public enum NotificationType {
     SUGGESTION_REVIEW(13, "建议审核结果"),
     SYSTEM_MESSAGE(14, "系统通知"),
     REPORT_RESULT(15, "举报处理结果");
+    
+    // 如果需要更细粒度的系统通知类型，可以添加：
+    // SYSTEM_ANNOUNCEMENT(16, "系统公告"),
+    // SYSTEM_ACTIVITY(17, "活动通知"),
+    // SYSTEM_WARNING(18, "警告通知");
 
-
-    private final Integer code;
+    private final int code;
     private final String description;
 
     /**
@@ -59,7 +63,7 @@ public enum NotificationType {
         }
 
         for (NotificationType type : values()) {
-            if (type.getCode().equals(code)) {
+            if (type.getCode()==code) {
                 return type;
             }
         }

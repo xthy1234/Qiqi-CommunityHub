@@ -2,7 +2,6 @@ package com.gcs.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
@@ -17,10 +16,6 @@ public class AdminSendNotificationDTO {
 
     @Schema(description = "接收用户 ID 列表（为空表示全员发送）", example = "[1, 2, 3]")
     private List<Long> userIds;
-
-    @NotNull(message = "通知类型不能为空")
-    @Schema(description = "通知类型（9:系统公告，10:活动通知，11:警告通知）", example = "9", required = true)
-    private Integer type;
 
     @NotBlank(message = "通知标题不能为空")
     @Schema(description = "通知标题", example = "系统维护公告", required = true)

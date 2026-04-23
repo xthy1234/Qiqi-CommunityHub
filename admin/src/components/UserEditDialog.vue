@@ -113,7 +113,8 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { FormRules, FormInst } from 'naive-ui'
 import { useMessage } from 'naive-ui'
-import apiService from '@/api'
+import { roleApi } from '@/api/role'
+import { userApi } from '@/api/user'
 
 const router = useRouter()
 const message = useMessage()
@@ -250,13 +251,13 @@ watch(() => props.visible, (val: boolean) => {
 
 const fetchRoles = async () => {
   try {
-    const response = await apiService.role.getAllRoles()
-    if (response.code === 0 || response.code === 200) {
-      roleOptions.value = (response.data || []).map((role: any) => ({
+    const response = await roleApi.getAllRoles()
+    if (response.data.code === 0 || response.data.code === 200) {
+      roleOptions.value = (response.data.data || []).map((role: any) => ({
         label: role.roleName,
         value: role.id
       }))
-    } else if (response.code === 401) {
+    } else if (response.data.code === 401) {
       message.error('请先登录')
       setTimeout(() => {
         emit('update:visible', false)
@@ -300,36 +301,32 @@ const handleSubmit = async () => {
     submitLoading.value = true
     
     const submitData = { ...formData }
+
     if (isEdit.value) {
-      // 编辑模式，不需要密码字段
       delete submitData.password
-      
-      const response = await apiService.user.updateUser(submitData.id!, submitData)
-      
-      if (response.code === 0 || response.code === 200) {
+      const response = await userApi.updateUser(submitData.id!, submitData)
+
+      if (response.data.code === 0) {
         message.success('更新成功')
-        emit('update:visible', false)
         emit('success')
+        handleCancel()
       } else {
-        message.error(response.msg || '更新失败')
+        message.error(response.data.msg || '更新失败')
       }
     } else {
-      // 新增模式
-      const response = await apiService.user.createUser(submitData)
+      const response = await userApi.createUser(submitData)
       
-      if (response.code === 0 || response.code === 200) {
+      if (response.data.code === 0) {
         message.success('创建成功')
-        emit('update:visible', false)
         emit('success')
+        handleCancel()
       } else {
-        message.error(response.msg || '创建失败')
+        message.error(response.data.msg || '创建失败')
       }
     }
   } catch (error: any) {
-    if (error !== false) {
-      console.error('提交失败:', error)
-      message.error(error.response?.data?.msg || '操作失败')
-    }
+    console.error('提交失败:', error)
+    message.error(error.response?.data?.msg || '操作失败')
   } finally {
     submitLoading.value = false
   }

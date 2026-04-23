@@ -29,17 +29,19 @@ const menu = {
 	async fetchUserMenus(): Promise<MenuItem[]> {
 		try {
 			// 调用 /menus/auth 接口获取当前用户角色的菜单
-			const apiMenus = await menuService.getAuthMenus()
-			
+			const response = await menuService.getAuthMenus()
+
+			// 提取实际的菜单数据（response.data 是 ApiResponse，response.data.data 是 Menu[]）
+			const apiMenus = response.data?.data || response.data || []
+
 			// 将 API 菜单数据转换为前端需要的格式
 			const menus = this.convertApiMenusToFrontend(apiMenus)
-			
+
 			// 存储到本地
 			toolUtil.storageSet('menus', JSON.stringify(menus))
-			
+
 			return menus
 		} catch (error) {
-// console.error('获取用户菜单失败:', error)
 			throw error
 		}
 	},

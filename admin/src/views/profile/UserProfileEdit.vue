@@ -166,8 +166,7 @@ import { getFullUrl } from '@/utils/userUtils'
 import type { FormRules } from 'naive-ui'
 import AvatarUpload from '@/components/common/AvatarUpload.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
-import userService from '@/api/user'
-import httpClient from '@/utils/http'
+import { userApi } from '@/api/user'
 
 const router = useRouter()
 const editFormRef = ref<any>(null)
@@ -243,18 +242,18 @@ const getDefaultAvatar = (): string => {
 
 const fetchUserInfo = async () => {
   try {
-    const currentUser = await userService.getCurrentUser()
+    const currentUserResponse = await userApi.getCurrentUser()
+    const currentUser = currentUserResponse.data?.data
+
     if (!currentUser?.id) {
       message.error('请先登录')
       router.push('/login')
       return
     }
 
-    const response = await httpClient.get(`users/${currentUser.id}`, {
-      params: { detail: true }
-    })
+    const response = await userApi.getUserById(currentUser.id)
     
-    const userData = response.data.data
+    const userData = response.data?.data
     if (userData) {
       editForm.account = userData.account || ''
       editForm.nickname = userData.nickname || userData.username || ''
@@ -310,7 +309,7 @@ const handleSubmit = async () => {
       signature: editForm.signature
     }
 
-    const response = await httpClient.put(`users/${editForm.id}`, updateData)
+    const response = await userApi.updateUser(editForm.id!, updateData)
 
     if (response.data && response.data.data) {
       const userInfoKey = 'userInfo'

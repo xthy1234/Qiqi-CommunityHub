@@ -68,7 +68,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
 
         log.info("创建通知成功，userId: {}, type: {}, extra: {}", userId, type, extra);
         
-        // 🚀 立即推送 WebSocket 消息
+        // 立即推送 WebSocket 消息
         pushNotificationToUser(notification);
         
         return notification;
@@ -142,7 +142,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
         List<Notification> notifications = notificationDao.selectByUserIdPage(userId, isRead, offset, limit);
         
         // 添加调试日志
-        log.info("📋 [查询通知] userId: {}, isRead: {}, page: {}, limit: {}, 查询结果数量：{}", 
+        log.info("[查询通知] userId: {}, isRead: {}, page: {}, limit: {}, 查询结果数量：{}",
                  userId, isRead, page, limit, notifications.size());
         for (Notification notification : notifications) {
             log.info("  - notificationId: {}, type: {}, extra={}", 
@@ -166,7 +166,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
         notificationDao.markAsRead(userId, notificationIds);
         log.info("标记通知已读成功，userId: {}, count: {}", userId, notificationIds.size());
         
-        // 🚀 推送已读状态更新
+        // 推送已读状态更新
         pushReadStatusToUpdate(userId, notificationIds);
     }
     
@@ -205,7 +205,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
         notificationDao.clearAll(userId);
         log.info("清空通知成功，userId: {}", userId);
         
-        // 🚀 推送清空消息
+        // 推送清空消息
         pushClearNotification(userId);
     }
     
@@ -237,13 +237,12 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int sendBatchNotifications(List<Long> userIds, Integer type, Map<String, Object> content, Map<String, Object> extra) {
-        if (type == null || content == null) {
-            throw new IllegalArgumentException("通知类型和内容不能为空");
+        if (type == null) {
+            throw new IllegalArgumentException("通知类型不能为空");
         }
 
         List<Long> targetUserIds = userIds;
         
-        // 如果 userIds 为空，发送给所有用户
         if (CollectionUtils.isEmpty(userIds)) {
             List<User> allUsers = userDao.selectList(new QueryWrapper<User>().select("id"));
             targetUserIds = allUsers.stream()
@@ -252,23 +251,23 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
         }
 
         if (CollectionUtils.isEmpty(targetUserIds)) {
+            log.warn("没有目标用户，跳过发送通知");
             return 0;
         }
 
-        // 批量插入通知
         List<Notification> notifications = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
         for (Long uid : targetUserIds) {
             Notification notification = new Notification();
             notification.setUserId(uid);
             notification.setType(type);
-            notification.setContent(content);
+            notification.setContent(null);
             notification.setExtra(extra);
             notification.setIsRead(false);
-            notification.setCreateTime(LocalDateTime.now());
+            notification.setCreateTime(now);
             notifications.add(notification);
         }
 
-        // 分批插入，每批 1000 条
         final int BATCH_SIZE = 1000;
         int sentCount = 0;
         for (int i = 0; i < notifications.size(); i += BATCH_SIZE) {
@@ -277,10 +276,15 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationDao, Notifi
             boolean result = this.saveBatch(batch);
             if (result) {
                 sentCount += batch.size();
+                
+                for (Notification notification : batch) {
+                    pushNotificationToUser(notification);
+                }
             }
         }
 
-        log.info("批量发送通知，目标用户数：{}, 实际发送：{}", targetUserIds.size(), sentCount);
+        log.info("批量发送通知完成，目标用户数：{}, 实际发送：{}, 通知类型：{}", 
+                 targetUserIds.size(), sentCount, type);
         return sentCount;
     }
 
