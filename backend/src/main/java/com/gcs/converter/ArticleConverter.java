@@ -8,11 +8,7 @@ import com.gcs.dto.ArticleDraftDTO;
 import com.gcs.entity.Article;
 import com.gcs.entity.view.ArticleView;
 import com.gcs.enums.AuditStatus;
-import com.gcs.vo.ArticleVO;
-import com.gcs.vo.ArticleDetailVO;
-import com.gcs.vo.AdminArticleDetailVO;
-import com.gcs.vo.ArticleAuditHistoryVO;
-import com.gcs.vo.ArticleDashboardStatsVO;
+import com.gcs.vo.*;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
@@ -211,19 +207,29 @@ public interface ArticleConverter {
             ));
         }
         
-        if (article.getAuditStatus() != null) {
-            vo.setAuditStatus(article.getAuditStatus().getCode());
-        }
-        
-        if (article.getCurrentVersion() != null) {
-            vo.setMajorVersion(1);
-            vo.setMinorVersion(article.getCurrentVersion());
-        } else {
-            vo.setMajorVersion(1);
-            vo.setMinorVersion(0);
-        }
-        
+        // 设置置顶和推荐状态
+        vo.setIsTop(article.getIsTop() != null ? article.getIsTop() : false);
         vo.setIsFeatured(article.getIsFeatured() != null ? article.getIsFeatured() : false);
-        vo.setIsTop(article.getIsFeatured() != null && article.getIsFeatured());
+    }
+    
+    /**
+     * ArticleView 转 AdminArticleListVO
+     */
+    @Mapping(target = "commentCount", ignore = true)
+    AdminArticleListVO toAdminListVO(com.gcs.entity.view.ArticleView articleView);
+    
+    @AfterMapping
+    default void handleAdminListVO(com.gcs.entity.view.ArticleView articleView, @MappingTarget AdminArticleListVO vo) {
+        if (articleView.getPublishTime() == null && articleView.getCreateTime() != null) {
+            vo.setPublishTime(java.util.Date.from(
+                articleView.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()
+            ));
+        }
+        
+        // 确保置顶和推荐字段正确映射
+        vo.setIsTop(articleView.getIsTop() != null ? articleView.getIsTop() : false);
+        vo.setTopLevel(articleView.getTopLevel() != null ? articleView.getTopLevel() : 0);
+        vo.setIsFeatured(articleView.getIsFeatured() != null ? articleView.getIsFeatured() : false);
+        vo.setFeaturedLevel(articleView.getFeaturedLevel() != null ? articleView.getFeaturedLevel() : 0);
     }
 }

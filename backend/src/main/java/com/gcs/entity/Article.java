@@ -167,6 +167,18 @@ public class Article implements Serializable {
     private Integer featuredLevel;
     
     /**
+     * 是否置顶
+     */
+    @Schema(description = "是否置顶", example = "false")
+    private Boolean isTop;
+    
+    /**
+     * 置顶等级（0-不置顶，1-普通置顶，2-重要置顶）
+     */
+    @Schema(description = "置顶等级（0-不置顶，1-普通置顶，2-重要置顶）", example = "0")
+    private Integer topLevel;
+    
+    /**
      * 逻辑删除标志 (false:未删除，true:已删除)
      */
     @Schema(description = "逻辑删除标志", example = "false")

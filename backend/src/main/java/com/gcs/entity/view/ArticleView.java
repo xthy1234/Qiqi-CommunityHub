@@ -62,6 +62,12 @@ public class ArticleView extends Article implements Serializable {
            this.setViewCount(article.getViewCount());
            this.setCreateTime(article.getCreateTime());
            this.setUpdateTime(article.getUpdateTime());
+           this.setCurrentVersion(article.getCurrentVersion());
+           this.setEditMode(article.getEditMode());
+           this.setIsFeatured(article.getIsFeatured());
+           this.setFeaturedLevel(article.getFeaturedLevel());
+           this.setIsTop(article.getIsTop());
+           this.setTopLevel(article.getTopLevel());
        }
    }
 }

@@ -34,17 +34,17 @@ interface PageResponse<T> {
 }
 
 /**
- * 获取文章列表
+ * 管理员查询文章列表
  */
 export function getArticleList(params: PageParams): Promise<ApiResponse<PageResponse<any>>> {
-  return httpClient.get('/articles', { params })
+  return httpClient.get('/articles/admin/list', { params })
 }
 
 /**
- * 获取文章详情
+ * 管理员获取文章详情
  */
 export function getArticleById(id: number): Promise<ApiResponse<any>> {
-  return httpClient.get(`/articles/${id}`)
+  return httpClient.get(`/articles/admin/${id}`)
 }
 
 /**
@@ -72,7 +72,14 @@ export function deleteArticle(id: number): Promise<ApiResponse<any>> {
  * 批量审核文章
  */
 export function batchAuditArticles(data: { ids: number[]; status: number; reply?: string }): Promise<ApiResponse<any>> {
-  return httpClient.post('/articles/batch-audit', data)
+  return httpClient.post('/articles/admin/batch-audit', data)
+}
+
+/**
+ * 批量修改文章分类
+ */
+export function batchUpdateCategory(data: { ids: number[]; categoryId: number }): Promise<ApiResponse<any>> {
+  return httpClient.post('/articles/admin/batch-update-category', data)
 }
 
 /**
@@ -182,6 +189,68 @@ export function getReceivedSuggestions(params?: PageParams): Promise<ApiResponse
   return httpClient.get('/articles/suggestions/received-by-me', { params })
 }
 
+/**
+ * 设置文章推荐状态
+ * @param articleId 文章ID
+ * @param isFeatured 是否推荐
+ * @param featuredLevel 推荐等级（0-普通，1-推荐，2-热门）
+ */
+export function setArticleFeatured(
+  articleId: number,
+  isFeatured: boolean,
+  featuredLevel?: number
+): Promise<ApiResponse<any>> {
+  const params = new URLSearchParams()
+  params.append('isFeatured', String(isFeatured))
+  if (featuredLevel !== undefined) {
+    params.append('featuredLevel', String(featuredLevel))
+  }
+  
+  return httpClient.put(`/articles/admin/${articleId}/featured`, params, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  })
+}
+
+/**
+ * 设置文章置顶状态
+ * @param articleId 文章ID
+ * @param isTop 是否置顶
+ * @param topLevel 置顶等级（0-不置顶，1-普通置顶，2-重要置顶）
+ */
+export function setArticleTop(
+  articleId: number,
+  isTop: boolean,
+  topLevel?: number
+): Promise<ApiResponse<any>> {
+  const params = new URLSearchParams()
+  params.append('isTop', String(isTop))
+  if (topLevel !== undefined) {
+    params.append('topLevel', String(topLevel))
+  }
+  
+  return httpClient.put(`/articles/admin/${articleId}/top`, params, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  })
+}
+
+/**
+ * 获取管理后台统计数据
+ */
+export function getDashboardStats(): Promise<ApiResponse<any>> {
+  return httpClient.get('/articles/admin/dashboard-stats')
+}
+
+/**
+ * 获取文章审核历史
+ */
+export function getAuditHistory(articleId: number): Promise<ApiResponse<any[]>> {
+  return httpClient.get(`/articles/admin/${articleId}/audit-history`)
+}
+
 export default {
   getArticleList,
   getArticleById,
@@ -189,6 +258,7 @@ export default {
   updateArticle,
   deleteArticle,
   batchAuditArticles,
+  batchUpdateCategory,
   batchDeleteArticles,
   getArticleCount,
   getStatsByColumn,
@@ -203,5 +273,9 @@ export default {
   getSuggestionDetail,
   auditSuggestion,
   getArticleContributors,
-  getReceivedSuggestions
+  getReceivedSuggestions,
+  setArticleFeatured,
+  setArticleTop,
+  getDashboardStats,
+  getAuditHistory
 }

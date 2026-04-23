@@ -256,7 +256,6 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
         try {
 
             int inserted = articleViewLogDao.insertIgnore(id, identifier);
-            
 
             if (inserted > 0) {
                 Article article = this.getById(id);
@@ -432,6 +431,23 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> impleme
         
         log.info("设置文章推荐状态，articleId: {}, isFeatured: {}, level: {}", 
             articleId, isFeatured, featuredLevel);
+        return true;
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean setTop(Long articleId, Boolean isTop, Integer topLevel) {
+        Article article = this.getById(articleId);
+        if (article == null) {
+            return false;
+        }
+        
+        article.setIsTop(isTop);
+        article.setTopLevel(topLevel != null ? topLevel : 0);
+        this.updateById(article);
+        
+        log.info("设置文章置顶状态，articleId: {}, isTop: {}, level: {}", 
+            articleId, isTop, topLevel);
         return true;
     }
     

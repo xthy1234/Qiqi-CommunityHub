@@ -60,25 +60,25 @@
       <NSpace>
         <span>已选择 {{ checkedRowKeys.length }} 篇文章</span>
         <NButton
-          type="success"
-          size="small"
-          @click="handleBatchAudit(1)"
-        >
-          批量通过
-        </NButton>
-        <NButton
           type="warning"
           size="small"
-          @click="handleBatchAudit(0)"
+          @click="handleBatchSetFeatured(1)"
         >
-          批量待审
+          批量推荐
         </NButton>
         <NButton
           type="error"
           size="small"
-          @click="handleBatchAudit(2)"
+          @click="handleBatchSetTop(1)"
         >
-          批量拒绝
+          批量置顶
+        </NButton>
+        <NButton
+          type="default"
+          size="small"
+          @click="handleBatchResetOperation"
+        >
+          取消推荐/置顶
         </NButton>
         <NButton
           type="error"
@@ -186,7 +186,7 @@ import {
   useMessage, useDialog
 } from 'naive-ui'
 import PageContainer from '@/components/common/PageContainer.vue'
-import apiService from '@/api'
+import articleApiService from '@/api/article'
 import { normalizeFileUrl } from '@/utils/fileUrl'
 
 interface ApiResponse<T = any> {
@@ -222,7 +222,21 @@ interface ArticleItem {
   updateTime?: string
   publishTime?: string
   isTop?: number
-  isHot?: number
+  topLevel?: number
+  isFeatured?: number
+  featuredLevel?: number
+}
+
+const FEATURED_LEVEL_CONFIG = {
+  0: { label: '普通', type: 'default' as const },
+  1: { label: '推荐', type: 'success' as const },
+  2: { label: '热门', type: 'warning' as const }
+}
+
+const TOP_LEVEL_CONFIG = {
+  0: { label: '不置顶', type: 'default' as const },
+  1: { label: '普通置顶', type: 'info' as const },
+  2: { label: '重要置顶', type: 'error' as const }
 }
 
 const router = useRouter()
@@ -289,139 +303,147 @@ const columns: DataTableColumns = [
   {
     title: 'ID',
     key: 'id',
-    width: 80
+    width: 70
   },
   {
     title: '封面',
     key: 'coverUrl',
-    width: 100,
+    width: 80,
     render: (row) => {
       const rowData = row as unknown as ArticleItem
       if (rowData.coverUrl) {
         return h('img', {
           src: rowData.coverUrl,
-          style: { width: '80px', height: '50px', objectFit: 'cover', borderRadius: '4px' }
+          style: { width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px' }
         })
       }
-      return h('span', { style: { color: '#999' } }, '无封面')
+      return h('span', { style: { color: '#999', fontSize: '12px' } }, '无')
     }
   },
   {
     title: '文章标题',
     key: 'title',
-    width: 300,
+    minWidth: 200,
     ellipsis: {
       tooltip: true
     },
     render: (row) => {
       const rowData = row as unknown as ArticleItem
-      return h(NSpace, { align: 'center' }, {
-        default: () => [
-          h('span', { 
-            style: { cursor: 'pointer', color: '#18a058' },
-            onClick: () => handleViewDetail(rowData)
-          }, rowData.title),
-          rowData.isTop === 1 ? h(NTag, { type: 'error', size: 'small' }, { default: () => '置顶' }) : null,
-          rowData.isHot === 1 ? h(NTag, { type: 'warning', size: 'small' }, { default: () => '热门' }) : null
-        ]
-      })
+      return h('div', {
+        style: { cursor: 'pointer', color: '#18a058', fontWeight: '500' },
+        onClick: () => handleViewDetail(rowData)
+      }, rowData.title)
     }
   },
   {
     title: '作者',
     key: 'authorNickname',
-    width: 120,
+    width: 100,
+    ellipsis: { tooltip: true },
     render: (row) => {
       const rowData = row as unknown as ArticleItem
-      return h(NSpace, { align: 'center' }, {
+      return h('span', {}, rowData.authorNickname || '-')
+    }
+  },
+  {
+    title: '分类',
+    key: 'categoryName',
+    width: 100,
+    ellipsis: { tooltip: true }
+  },
+  {
+    title: '运营状态',
+    key: 'operationStatus',
+    width: 180,
+    render: (row) => {
+      const rowData = row as unknown as ArticleItem
+      const featuredLevel = rowData.featuredLevel ?? 0
+      const topLevel = rowData.topLevel ?? 0
+
+      return h(NSpace, { size: 'small', wrap: true }, {
         default: () => [
-          rowData.authorAvatar ? h('img', {
-            src: rowData.authorAvatar,
-            style: { width: '24px', height: '24px', borderRadius: '50%', marginRight: '8px' }
-          }) : null,
-          h('span', {}, {
-            default: () => rowData.authorNickname || '-'
+          // 推荐状态标签（点击切换）
+          h(NTag, {
+            size: 'small',
+            type: featuredLevel === 2 ? 'warning' : (featuredLevel === 1 ? 'success' : 'default'),
+            bordered: false,
+            style: { cursor: 'pointer' },
+            onClick: () => handleToggleFeatured(rowData)
+          }, {
+            default: () => featuredLevel === 2 ? '热门' : (featuredLevel === 1 ? '推荐' : '普通')
+          }),
+
+          // 置顶状态标签（点击切换）
+          h(NTag, {
+            size: 'small',
+            type: topLevel === 2 ? 'error' : (topLevel === 1 ? 'info' : 'default'),
+            bordered: false,
+            style: { cursor: 'pointer' },
+            onClick: () => handleToggleTop(rowData)
+          }, {
+            default: () => topLevel === 2 ? '重要置顶' : (topLevel === 1 ? '置顶' : '不置顶')
           })
         ]
       })
     }
   },
   {
-    title: '分类',
-    key: 'categoryName',
-    width: 120
-  },
-  {
     title: '审核状态',
     key: 'auditStatus',
-    width: 100,
+    width: 90,
     render: (row) => {
       const rowData = row as unknown as ArticleItem
       return h(NTag, {
-        type: getAuditStatusType(rowData.auditStatus)
+        size: 'small',
+        type: getAuditStatusType(rowData.auditStatus),
+        bordered: false
       }, {
         default: () => getAuditStatusLabel(rowData.auditStatus)
       })
     }
   },
   {
-    title: '浏览/点赞/评论',
+    title: '数据',
     key: 'stats',
-    width: 150,
+    width: 120,
     render: (row) => {
       const rowData = row as unknown as ArticleItem
-      return h('span', {}, {
-        default: () => `${rowData.viewCount || 0} / ${rowData.likeCount || 0} / ${rowData.commentCount || 0}`
+      return h('div', { style: { fontSize: '12px', color: '#666' } }, {
+        default: () => `阅:${rowData.viewCount || 0} 赞:${rowData.likeCount || 0}`
       })
     }
   },
   {
     title: '发布时间',
     key: 'createTime',
-    width: 180
+    width: 160
   },
   {
     title: '操作',
     key: 'actions',
-    width: 250,
+    width: 100,
     fixed: 'right',
     render: (row) => {
       const rowData = row as unknown as ArticleItem
-      return h(NSpace, {}, {
+      return h(NSpace, { size: 'small' }, {
         default: () => [
           h(NButton, {
-            size: 'small',
+            size: 'tiny',
             type: 'primary',
             text: true,
             onClick: () => handleViewDetail(rowData)
           }, {
-            default: () => '查看'
+            default: () => '详情'
           }),
-          rowData.auditStatus === 0 ? h(NButton, {
-            size: 'small',
-            type: 'success',
-            text: true,
-            onClick: () => handleSingleAudit(rowData, 1)
-          }, {
-            default: () => '通过'
-          }) : null,
-          rowData.auditStatus === 0 ? h(NButton, {
-            size: 'small',
-            type: 'error',
-            text: true,
-            onClick: () => handleSingleAudit(rowData, 2)
-          }, {
-            default: () => '拒绝'
-          }) : null,
           h(NButton, {
-            size: 'small',
+            size: 'tiny',
             type: 'error',
             text: true,
             onClick: () => handleDelete(rowData)
           }, {
             default: () => '删除'
           })
-        ].filter(Boolean)
+        ]
       })
     }
   }
@@ -467,7 +489,7 @@ const loadData = async () => {
       params.endDate = searchEndDate.value
     }
 
-    const response = await apiService.article.getArticleList(params)
+    const response = await articleApiService.getArticleList(params)
 
     if (response.code === 0 || response.code === 200) {
       const list = response.data.list || []
@@ -541,7 +563,7 @@ const handleSingleAudit = async (row: ArticleItem, status: number) => {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        const response = await apiService.article.batchAuditArticles({
+        const response = await articleApiService.batchAuditArticles({
           ids: [row.id],
           status: status,
           reply: ''
@@ -574,7 +596,7 @@ const handleBatchAudit = (status: number) => {
 
 const confirmBatchAudit = async () => {
   try {
-    const response = await apiService.article.batchAuditArticles({
+    const response = await articleApiService.batchAuditArticles({
       ids: checkedRowKeys.value,
       status: auditForm.value.status,
       reply: auditForm.value.reply
@@ -602,7 +624,7 @@ const handleDelete = async (row: ArticleItem) => {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        const response = await apiService.article.deleteArticle(row.id)
+        const response = await articleApiService.deleteArticle(row.id)
 
         if (response.code === 0 || response.code === 200) {
           message.success('删除成功')
@@ -631,7 +653,7 @@ const handleBatchDelete = async () => {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        const response = await apiService.article.batchDeleteArticles(checkedRowKeys.value)
+        const response = await articleApiService.batchDeleteArticles(checkedRowKeys.value)
 
         if (response.code === 0 || response.code === 200) {
           message.success('批量删除成功')
@@ -654,6 +676,166 @@ const handleRefresh = () => {
 
 const onChecked = (keys: number[]) => {
   checkedRowKeys.value = keys
+}
+
+/**
+ * 切换推荐状态（循环：普通 -> 推荐 -> 热门 -> 普通）
+ */
+const handleToggleFeatured = async (row: ArticleItem) => {
+  const currentLevel = row.featuredLevel ?? 0
+  // 循环逻辑：0 -> 1 -> 2 -> 0
+  const nextLevel = currentLevel >= 2 ? 0 : currentLevel + 1
+
+  try {
+    const response = await articleApiService.setArticleFeatured(
+      row.id,
+      nextLevel > 0,
+      nextLevel
+    )
+
+    if (response.code === 0 || response.code === 200) {
+      message.success(`已设置为${nextLevel === 1 ? '推荐' : (nextLevel === 2 ? '热门' : '普通')}`)
+      row.featuredLevel = nextLevel
+      row.isFeatured = nextLevel > 0 ? 1 : 0
+    } else {
+      message.error(response.msg || '设置失败')
+    }
+  } catch (error: any) {
+    console.error('设置推荐状态失败:', error)
+    message.error(error.response?.data?.msg || '设置失败')
+  }
+}
+
+/**
+ * 切换置顶状态（循环：不置顶 -> 普通置顶 -> 重要置顶 -> 不置顶）
+ */
+const handleToggleTop = async (row: ArticleItem) => {
+  const currentLevel = row.topLevel ?? 0
+  // 循环逻辑：0 -> 1 -> 2 -> 0
+  const nextLevel = currentLevel >= 2 ? 0 : currentLevel + 1
+
+  try {
+    const response = await articleApiService.setArticleTop(
+      row.id,
+      nextLevel > 0,
+      nextLevel
+    )
+
+    if (response.code === 0 || response.code === 200) {
+      message.success(`已设置为${nextLevel === 1 ? '普通置顶' : (nextLevel === 2 ? '重要置顶' : '不置顶')}`)
+      row.topLevel = nextLevel
+      row.isTop = nextLevel > 0 ? 1 : 0
+    } else {
+      message.error(response.msg || '设置失败')
+    }
+  } catch (error: any) {
+    console.error('设置置顶状态失败:', error)
+    message.error(error.response?.data?.msg || '设置失败')
+  }
+}
+
+/**
+ * 批量设置推荐状态
+ */
+const handleBatchSetFeatured = async (level: number) => {
+  if (checkedRowKeys.value.length === 0) {
+    message.warning('请先选择文章')
+    return
+  }
+
+  dialog.warning({
+    title: '批量设置推荐',
+    content: `确定将选中的 ${checkedRowKeys.value.length} 篇文章设置为${level === 1 ? '推荐' : '热门'}吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        // 注意：由于后端没有提供批量接口，这里需要循环调用
+        const promises = checkedRowKeys.value.map(id =>
+          articleApiService.setArticleFeatured(id, true, level)
+        )
+
+        const results = await Promise.all(promises)
+        const successCount = results.filter(r => r.code === 0 || r.code === 200).length
+
+        message.success(`成功设置 ${successCount} 篇文章`)
+        checkedRowKeys.value = []
+        loadData()
+      } catch (error: any) {
+        console.error('批量设置失败:', error)
+        message.error('批量设置失败')
+      }
+    }
+  })
+}
+
+/**
+ * 批量设置置顶状态
+ */
+const handleBatchSetTop = async (level: number) => {
+  if (checkedRowKeys.value.length === 0) {
+    message.warning('请先选择文章')
+    return
+  }
+
+  dialog.warning({
+    title: '批量设置置顶',
+    content: `确定将选中的 ${checkedRowKeys.value.length} 篇文章设置为${level === 1 ? '普通置顶' : '重要置顶'}吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const promises = checkedRowKeys.value.map(id =>
+          articleApiService.setArticleTop(id, true, level)
+        )
+
+        const results = await Promise.all(promises)
+        const successCount = results.filter(r => r.code === 0 || r.code === 200).length
+
+        message.success(`成功设置 ${successCount} 篇文章`)
+        checkedRowKeys.value = []
+        loadData()
+      } catch (error: any) {
+        console.error('批量设置失败:', error)
+        message.error('批量设置失败')
+      }
+    }
+  })
+}
+
+/**
+ * 批量取消推荐和置顶
+ */
+const handleBatchResetOperation = async () => {
+  if (checkedRowKeys.value.length === 0) {
+    message.warning('请先选择文章')
+    return
+  }
+
+  dialog.warning({
+    title: '批量取消运营状态',
+    content: `确定取消选中文章的推荐和置顶状态吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const promises = checkedRowKeys.value.flatMap(id => [
+          articleApiService.setArticleFeatured(id, false, 0),
+          articleApiService.setArticleTop(id, false, 0)
+        ])
+
+        const results = await Promise.all(promises)
+        const successCount = results.filter(r => r.code === 0 || r.code === 200).length / 2
+
+        message.success(`成功重置 ${successCount} 篇文章`)
+        checkedRowKeys.value = []
+        loadData()
+      } catch (error: any) {
+        console.error('批量重置失败:', error)
+        message.error('批量重置失败')
+      }
+    }
+  })
 }
 
 onMounted(() => {

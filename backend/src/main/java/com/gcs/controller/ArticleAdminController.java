@@ -17,6 +17,7 @@ import com.gcs.utils.PageUtils;
 import com.gcs.utils.R;
 import com.gcs.utils.SessionUtils;
 import com.gcs.vo.AdminArticleDetailVO;
+import com.gcs.vo.AdminArticleListVO;
 import com.gcs.vo.ArticleAuditHistoryVO;
 import com.gcs.vo.ArticleDashboardStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Tag(name = "文章管理后台", description = "文章审核、批量操作、统计等管理功能")
 @RestController
-@RequestMapping("/articles")
+@RequestMapping("/articles/admin")
 public class ArticleAdminController {
 
     @Autowired
@@ -75,7 +76,7 @@ public class ArticleAdminController {
             @ApiResponse(responseCode = "401", description = "未登录"),
             @ApiResponse(responseCode = "403", description = "无管理员权限")
     })
-    @GetMapping("/admin/list")
+    @GetMapping("/list")
     public R adminGetArticles(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer limit,
@@ -125,8 +126,8 @@ public class ArticleAdminController {
             PageUtils pageResult = articleService.adminQueryPage(params, queryWrapper);
 
             List<ArticleView> articleViews = (List<ArticleView>) pageResult.getList();
-            List<AdminArticleDetailVO> voList = articleViews.stream()
-                    .map(this::convertToAdminVO)
+            List<AdminArticleListVO> voList = articleViews.stream()
+                    .map(articleConverter::toAdminListVO)
                     .collect(Collectors.toList());
 
             pageResult.setList(voList);
@@ -148,7 +149,7 @@ public class ArticleAdminController {
             @ApiResponse(responseCode = "403", description = "无管理员权限"),
             @ApiResponse(responseCode = "404", description = "文章不存在")
     })
-    @GetMapping("/admin/{id}")
+    @GetMapping("/{id}")
     public R adminGetArticleDetail(
             @Parameter(description = "文章 ID") @PathVariable("id") Long id,
             HttpServletRequest request) {
@@ -247,7 +248,7 @@ public class ArticleAdminController {
             @ApiResponse(responseCode = "401", description = "未登录"),
             @ApiResponse(responseCode = "403", description = "无管理员权限")
     })
-    @PostMapping("/admin/batch-update-category")
+    @PostMapping("/batch-update-category")
     @Transactional
     public R batchUpdateCategory(
             @Parameter(description = "文章 ID 数组") @RequestBody Long[] articleIds,
@@ -278,7 +279,7 @@ public class ArticleAdminController {
     /**
      * 设置文章推荐/置顶
      */
-    @Operation(summary = "设置文章推荐/置顶", description = "管理员设置文章为推荐或置顶状态")
+    @Operation(summary = "设置文章推荐", description = "管理员设置文章为推荐状态")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "设置成功"),
             @ApiResponse(responseCode = "401", description = "未登录"),
@@ -313,6 +314,43 @@ public class ArticleAdminController {
     }
 
     /**
+     * 设置文章置顶状态
+     */
+    @Operation(summary = "设置文章置顶", description = "管理员设置文章置顶状态及等级")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "设置成功"),
+            @ApiResponse(responseCode = "401", description = "未登录"),
+            @ApiResponse(responseCode = "403", description = "无管理员权限")
+    })
+    @PutMapping("/{id}/top")
+    public R setTop(
+            @Parameter(description = "文章 ID") @PathVariable("id") Long id,
+            @Parameter(description = "是否置顶") @RequestParam Boolean isTop,
+            @Parameter(description = "置顶等级（0-不置顶，1-普通置顶，2-重要置顶）") @RequestParam(required = false) Integer topLevel,
+            HttpServletRequest request) {
+        try {
+            Long currentUserId = sessionUtils.getCurrentUserId(request);
+            if (currentUserId == null) {
+                return R.error("请先登录");
+            }
+
+            if (!authUtils.isAdmin(currentUserId)) {
+                return R.error("无管理员权限");
+            }
+
+            boolean result = articleService.setTop(id, isTop, topLevel);
+            if (result) {
+                return R.ok("设置成功");
+            } else {
+                return R.error("设置失败");
+            }
+        } catch (Exception e) {
+            log.error("设置文章置顶状态失败，ID: {}", id, e);
+            return R.error("设置失败");
+        }
+    }
+
+    /**
      * 获取管理后台统计数据
      */
     @Operation(summary = "获取管理后台统计数据", description = "获取文章相关的统计数据，用于仪表盘展示")
@@ -321,7 +359,7 @@ public class ArticleAdminController {
             @ApiResponse(responseCode = "401", description = "未登录"),
             @ApiResponse(responseCode = "403", description = "无管理员权限")
     })
-    @GetMapping("/admin/dashboard-stats")
+    @GetMapping("/dashboard-stats")
     public R getDashboardStats(HttpServletRequest request) {
         try {
             Long currentUserId = sessionUtils.getCurrentUserId(request);

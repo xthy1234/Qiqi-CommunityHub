@@ -39,7 +39,7 @@ const MAX_ANNOTATIONS = 20
 
 const visible = computed({
   get: () => props.show,
-  set: (value) => emit('update:show', value)
+  set: (value: boolean) => emit('update:show', value)
 })
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null)

@@ -122,10 +122,10 @@ public interface ArticleService extends IService<Article> {
     void incrementViewCount(Long id, String identifier);
     
     /**
-     * 管理员查询所有文章（包含全部审核状态）
+     * 管理员分页查询文章列表
      * @param params 查询参数
      * @param queryWrapper 查询条件
-     * @return 分页结果
+     * @return 分页结果（包含 AdminArticleListVO）
      */
     PageUtils adminQueryPage(Map<String, Object> params, Wrapper<Article> queryWrapper);
     
@@ -178,6 +178,15 @@ public interface ArticleService extends IService<Article> {
      * @return 是否成功
      */
     boolean setFeatured(Long articleId, Boolean isFeatured, Integer featuredLevel);
+    
+    /**
+     * 设置文章置顶状态
+     * @param articleId 文章 ID
+     * @param isTop 是否置顶
+     * @param topLevel 置顶等级（0-不置顶，1-普通置顶，2-重要置顶）
+     * @return 是否成功
+     */
+    boolean setTop(Long articleId, Boolean isTop, Integer topLevel);
     
     /**
      * 获取文章审核历史
