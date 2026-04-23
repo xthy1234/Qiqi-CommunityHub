@@ -67,7 +67,7 @@
         <div class="form-actions">
           <n-button
             type="primary" 
-            :loading="isSubmitting"
+            :loading="isSubmitting" 
             class="submit-btn"
             @click="handleSubmit"
           >
@@ -86,14 +86,15 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
+import { Icon } from '@iconify/vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import type { FormRules } from 'naive-ui'
 import PageContainer from '@/components/common/PageContainer.vue'
-import userService from '@/api/user'
-import httpClient from '@/utils/http'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 const router = useRouter()
 const appContext = useGlobalProperties()
+const $http = appContext.$http
 const message = useMessage()
 
 interface PasswordForm {
@@ -161,14 +162,14 @@ const handleSubmit = async () => {
     
     isSubmitting.value = true
     
-    const currentUser = await userService.getCurrentUser()
+    const userid = appContext?.$toolUtil.storageGet('userid')
 
-    if (!currentUser?.id) {
+    if (!userid) {
       message.error('用户未登录')
       return
     }
 
-    const response = await httpClient.put(`users/${currentUser.id}/password`, null, {
+    const response = await $http.put(`users/${userid}/password`, null, {
       params: {
         oldPassword: passwordForm.oldPassword,
         newPassword: passwordForm.newPassword

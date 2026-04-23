@@ -63,6 +63,12 @@ export const useUserStore = defineStore('user', {
         this.userRole = userInfo.role
         localStorage.setItem('userRole', userInfo.role)
       }
+      if (userInfo.avatar) {
+        localStorage.setItem('avatar', userInfo.avatar)
+      }
+      if (userInfo.nickname) {
+        localStorage.setItem('nickname', userInfo.nickname)
+      }
     },
 
     loadUserFromStorage() {

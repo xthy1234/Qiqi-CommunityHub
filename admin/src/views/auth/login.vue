@@ -147,6 +147,14 @@ const handleLogin = async () => {
         userStore.setUserInfo(userInfo)
         localStorage.setItem('adminName', loginForm.account)
 
+        if (userInfo.avatar) {
+          localStorage.setItem('avatar', userInfo.avatar)
+        }
+        if (userInfo.nickname) {
+          localStorage.setItem('nickname', userInfo.nickname)
+        }
+        localStorage.setItem('account', loginForm.account)
+
         if (rememberPassword.value) {
           localStorage.setItem('loginForm', JSON.stringify({
             account: loginForm.account,

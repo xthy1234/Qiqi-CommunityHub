@@ -415,7 +415,10 @@ const initializeComponent = async (): Promise<void> => {
   }
 
   await loadMenuData()
-  loadUserInfo()
+
+  if (authToken.value) {
+    loadUserInfo()
+  }
 }
 
 const loadUserInfo = (): void => {

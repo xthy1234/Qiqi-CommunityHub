@@ -160,19 +160,24 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Icon } from '@iconify/vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { useMessage } from 'naive-ui'
+import { NMessageProvider, useDialog, NButton, NInput, NForm, NFormItem, NAvatar, NSpace } from 'naive-ui'
 import { getFullUrl } from '@/utils/userUtils'
 import type { FormRules } from 'naive-ui'
-import AvatarUpload from '@/components/common/AvatarUpload.vue'
+import AvatarUpload from '@/components/upload/AvatarUpload.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
+
 import userService from '@/api/user'
-import httpClient from '@/utils/http'
 
 const router = useRouter()
+const formRef = ref<any>(null)
 const editFormRef = ref<any>(null)
 const message = useMessage()
+const dialog = useDialog()
 const appContext = useGlobalProperties()
+const $http = appContext?.$http
 
 interface EditForm {
   id?: number
@@ -250,7 +255,7 @@ const fetchUserInfo = async () => {
       return
     }
 
-    const response = await httpClient.get(`users/${currentUser.id}`, {
+    const response = await $http.get(`users/${currentUser.id}`, {
       params: { detail: true }
     })
     
@@ -286,6 +291,7 @@ const fetchUserInfo = async () => {
 const handleAvatarChange = (url: string) => {
   editForm.avatar = url
   if (editForm.avatar) {
+    // 直接赋值，因为 AvatarUpload 已经返回完整 URL
     avatarUrl.value = editForm.avatar.startsWith('http')
       ? editForm.avatar
       : `${appContext?.$config?.url || 'http://localhost:8080'}/${editForm.avatar}`
@@ -310,7 +316,7 @@ const handleSubmit = async () => {
       signature: editForm.signature
     }
 
-    const response = await httpClient.put(`users/${editForm.id}`, updateData)
+    const response = await $http.put(`users/${editForm.id}`, updateData)
 
     if (response.data && response.data.data) {
       const userInfoKey = 'userInfo'

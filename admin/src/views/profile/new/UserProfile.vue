@@ -125,14 +125,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useGlobalProperties } from '@/utils/globalProperties'
-import { useMessage } from 'naive-ui'
-import { getAvatarUrl, getGenderText, formatDateTime } from '@/utils/userUtils'
-import PageContainer from '@/components/common/PageContainer.vue'
-import ArticleGridList from '@/components/common/ArticleGridList.vue'
+import { NMessageProvider, useMessage, NButton, NInput, NSelect, NPagination, NCard, NAvatar, NTag, NSkeleton, NGrid, NGridItem, NEmpty, NSpace } from 'naive-ui'
+import { Icon } from '@iconify/vue'
+import { handleImageError, getFullUrl, getGenderText, formatDateTime, getAvatarUrl } from '@/utils/userUtils'
+import { articleAPI } from '@/api/article'
 import userService from '@/api/user'
+import PageContainer from '@/components/common/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import ArticleGridList from '@/components/article/ArticleGridList.vue'
+import ArticleCategorySelect from '@/components/article/ArticleCategorySelect.vue'
 import httpClient from '@/utils/http'
 
 interface UserInfo {
@@ -171,8 +175,9 @@ interface Pagination {
 }
 
 const router = useRouter()
+const route = useRoute()
 const appContext = useGlobalProperties()
-const message = useMessage()
+const $http = appContext.$http
 
 const userInfo = ref<UserInfo>({
   account: '',
@@ -195,7 +200,7 @@ const fetchUserInfo = async (): Promise<void> => {
     const currentUser = await userService.getCurrentUser()
 
     if (!currentUser?.id) {
-      message.error('请先登录')
+      appContext?.$toolUtil.message('请先登录', 'error')
       router.push('/login')
       return
     }
@@ -229,7 +234,7 @@ const fetchUserInfo = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('获取用户信息失败:', error)
-    message.error('获取用户信息失败')
+    appContext?.$toolUtil.message('获取用户信息失败', 'error')
   }
 }
 

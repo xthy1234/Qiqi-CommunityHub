@@ -50,6 +50,9 @@ public class UserSignIn implements Serializable {
     @Schema(description = "获得积分", example = "10")
     private Integer pointsEarned;
 
+    @Schema(description = "当前积分", example = "10")
+    private Integer balance;
+
     /**
      * 创建时间
      */

@@ -50,8 +50,7 @@ public class SignInServiceImpl extends ServiceImpl<UserSignInDao, UserSignIn>
         }
         
 
-        int streak = calculateSignInStreak(userId);
-        
+        int streak = calculateAndUpdateSignInStreak(userId);
 
         int pointsEarned = calculateDailyBonus(streak);
         
@@ -60,25 +59,24 @@ public class SignInServiceImpl extends ServiceImpl<UserSignInDao, UserSignIn>
         signIn.setUserId(userId);
         signIn.setSignDate(today);
         signIn.setPointsEarned(pointsEarned);
+        
+        Integer currentBalance = pointsService.getUserPoints(userId);
+        signIn.setBalance(currentBalance);
+        
         this.save(signIn);
         
 
         pointsService.addPoints(userId, pointsEarned, "sign_in", null, "每日签到");
-        
 
-        User user = userService.getById(userId);
-        if (user != null) {
-            user.setSignInStreak(streak);
-            userService.updateById(user);
-        }
+
+        log.info("用户签到成功，userId: {}, 获得积分：{}, 连续天数：{}", userId, pointsEarned, streak);
         
 
         Map<String, Object> result = new HashMap<>();
         result.put("pointsEarned", pointsEarned);
         result.put("streak", streak);
+        result.put("balance", currentBalance + pointsEarned);
         result.put("message", getSignInMessage(streak));
-        
-        log.info("用户签到成功，userId: {}, 获得积分：{}, 连续天数：{}", userId, pointsEarned, streak);
         
         return result;
     }
@@ -96,35 +94,64 @@ public class SignInServiceImpl extends ServiceImpl<UserSignInDao, UserSignIn>
 
     @Override
     public int getSignInStreak(Long userId) {
-        return calculateSignInStreak(userId);
+        if (userId == null) {
+            return 0;
+        }
+        
+        User user = userService.getById(userId);
+        if (user != null && user.getSignInStreak() != null) {
+            return user.getSignInStreak();
+        }
+        
+        return 0;
     }
 
     /**
-     * 计算连续签到天数
+     * 计算并更新连续签到天数（仅在签到时调用）
      */
-    private int calculateSignInStreak(Long userId) {
+    private int calculateAndUpdateSignInStreak(Long userId) {
         UserSignIn lastSignIn = userSignInDao.selectLastSignIn(userId);
+        
+        int newStreak;
         if (lastSignIn == null) {
-            return 1;
-        }
-        
-        LocalDate today = LocalDate.now();
-        LocalDate lastSignDate = lastSignIn.getSignDate();
-        
-
-        long daysDiff = ChronoUnit.DAYS.between(lastSignDate, today);
-        
-        if (daysDiff <= 1) {
-
-            User user = userService.getById(userId);
-            if (user != null && user.getSignInStreak() != null) {
-                return user.getSignInStreak() + 1;
-            }
-            return 1;
+            newStreak = 1;
         } else {
-
-            return 1;
+            LocalDate today = LocalDate.now();
+            LocalDate lastSignDate = lastSignIn.getSignDate();
+            long daysDiff = ChronoUnit.DAYS.between(lastSignDate, today);
+            
+            if (daysDiff <= 1) {
+                User user = userService.getById(userId);
+                if (user != null && user.getSignInStreak() != null) {
+                    newStreak = user.getSignInStreak() + 1;
+                } else {
+                    newStreak = 1;
+                }
+            } else {
+                newStreak = 1;
+            }
         }
+        
+        User user = userService.getById(userId);
+        if (user != null) {
+            user.setSignInStreak(newStreak);
+            userService.updateById(user);
+        }
+        
+        return newStreak;
+    }
+
+    /**
+     * 计算连续签到天数（仅用于历史数据兼容，不推荐使用）
+     * @deprecated 使用 getSignInStreak 直接读取数据库字段
+     */
+    @Deprecated
+    private int calculateSignInStreak(Long userId) {
+        User user = userService.getById(userId);
+        if (user != null && user.getSignInStreak() != null) {
+            return user.getSignInStreak();
+        }
+        return 0;
     }
 
     /**
