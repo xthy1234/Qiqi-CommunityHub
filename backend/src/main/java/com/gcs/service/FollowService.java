@@ -6,6 +6,7 @@ import com.gcs.utils.PageUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 用户关注关系服务接口
@@ -78,6 +79,14 @@ public interface FollowService extends IService<Follow> {
     Integer countFollowers(Long userId);
 
     /**
+     * 批量查询当前用户已关注的目标用户 ID 集合
+     * @param currentUserId 当前用户 ID
+     * @param targetUserIds 目标用户 ID 列表
+     * @return 已关注的目标用户 ID 集合
+     */
+    Set<Long> getFollowedUserIds(Long currentUserId, List<Long> targetUserIds);
+    
+    /**
      * 检查是否已关注
      *
      * @param followerId 关注者 ID
@@ -85,4 +94,18 @@ public interface FollowService extends IService<Follow> {
      * @return 是否已关注
      */
     boolean isFollowing(Long followerId, Long followingId);
+    
+    /**
+     * 批量统计用户的粉丝数量
+     * @param userIds 用户 ID 列表
+     * @return Map<用户ID, 粉丝数>
+     */
+    Map<Long, Integer> batchCountFollowers(List<Long> userIds);
+    
+    /**
+     * 批量统计用户的关注数量
+     * @param userIds 用户 ID 列表
+     * @return Map<用户ID, 关注数>
+     */
+    Map<Long, Integer> batchCountFollowing(List<Long> userIds);
 }

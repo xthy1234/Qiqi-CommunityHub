@@ -2,8 +2,38 @@
 <template>
   <div
     class="user-card"
+    :class="{ 'self-card': user.isSelf }"
     @click="handleUserClick"
   >
+    <!-- 自身标识 -->
+    <div
+      v-if="user.isSelf"
+      class="self-badge"
+    >
+      <n-tag
+        type="success"
+        size="small"
+        round
+      >
+        <template #icon>
+          <n-icon size="12">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="currentColor"
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+              />
+            </svg>
+          </n-icon>
+        </template>
+        我
+      </n-tag>
+    </div>
+
     <div class="user-avatar-wrapper">
       <n-avatar
         v-if="user.avatar"
@@ -62,7 +92,23 @@
             >
               <path
                 fill="currentColor"
-                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05c1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+              />
+            </svg>
+          </n-icon>
+          {{ user.followingCount || 0 }}
+        </span>
+        <span class="stat-item">
+          <n-icon size="14">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="currentColor"
+                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
               />
             </svg>
           </n-icon>
@@ -74,6 +120,7 @@
     <div class="user-actions">
       <div class="action-buttons">
         <n-button
+          v-if="!user.isSelf"
           :type="user.isFollowing ? 'default' : 'primary'"
           size="small"
           round
@@ -83,6 +130,7 @@
         </n-button>
 
         <n-button
+          v-if="!user.isSelf"
           size="small"
           round
           @click.stop="handleMessage"
@@ -95,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { NAvatar, NEllipsis, NIcon, NButton } from 'naive-ui'
+import { NAvatar, NEllipsis, NIcon, NButton, NTag } from 'naive-ui'
 import { getAvatarUrl } from '@/utils/userUtils'
 import type { UserInfo } from '@/types/discover'
 
@@ -154,9 +202,21 @@ const handleMessage = () => {
   flex-direction: column;
   align-items: center;
 
+  &.self-card {
+    border: 2px solid #18a058;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  }
+
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .self-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
   }
 
   .user-avatar-wrapper {

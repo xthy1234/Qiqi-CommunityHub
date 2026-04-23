@@ -10,6 +10,7 @@ export interface UserInfo {
   articleCount?: number
   isFollowing?: boolean
   isOnline?: boolean
+  isSelf?: boolean
 }
 
 export interface CircleInfo {

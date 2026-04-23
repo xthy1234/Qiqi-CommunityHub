@@ -11,6 +11,7 @@ import com.gcs.converter.UserRegisterConverter;
 import com.gcs.dto.*;
 import com.gcs.entity.Role;
 import com.gcs.enums.CommonStatus;
+import com.gcs.service.FollowService;
 import com.gcs.service.RoleService;
 import com.gcs.service.impl.UserServiceImpl;
 import com.gcs.utils.RequestUtils;
@@ -70,6 +71,9 @@ public class UserController {
 
     @Autowired
     private AuthUtils authUtils;
+    
+    @Autowired
+    private FollowService followService;
 
     @Autowired
     public UserController(UserService userService, TokenService tokenService, RoleService roleService, 
@@ -732,7 +736,7 @@ public class UserController {
      */
     @GetMapping("/public/list")
     @IgnoreAuth
-    @Operation(summary = "获取用户公开列表", description = "分页查询用户公开信息列表，用于前端展示")
+    @Operation(summary = "获取用户公开列表", description = "分页查询普通用户的公开信息列表，用于前端展示")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "获取成功"),
         @ApiResponse(responseCode = "500", description = "获取失败")
@@ -742,10 +746,10 @@ public class UserController {
         @RequestParam Map<String, Object> params,
         @Parameter(hidden = true) HttpServletRequest request) {
         try {
-            // 尝试获取当前登录用户 ID（可选）
             Long currentUserId = sessionUtils.getCurrentUserId(request);
             
             PageUtils page = userService.getUserPublicList(params, currentUserId);
+            
             return R.ok().put("data", page);
         } catch (Exception e) {
             log.error("获取用户公开列表失败", e);

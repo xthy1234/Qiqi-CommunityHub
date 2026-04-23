@@ -2,6 +2,7 @@ package com.gcs.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.gcs.annotation.IgnoreAuth;
 import com.gcs.converter.ArticleConverter;
 import com.gcs.dto.ArticleCreateDTO;
@@ -167,7 +168,7 @@ public class ArticleController {
                 queryWrapper.eq("a.category_id", categoryId);
             }
 
-            IPage<ArticleView> articlePage = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, limit);
+            IPage<ArticleView> articlePage = new Page<>(page, limit);
             IPage<ArticleView> resultPage = articleService.selectListViewPage(articlePage, queryWrapper);
 
             List<ArticleVO> voList = resultPage.getRecords()

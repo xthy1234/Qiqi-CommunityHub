@@ -106,13 +106,14 @@ const pagination = ref({
 const loadUsers = async () => {
   try {
     loading.value = true
-    
+
     const result = await userApi.getRecommendedUsers({
       page: pagination.value.page,
       limit: pagination.value.limit,
       keyword: searchKeyword.value
     })
-    
+
+
     users.value = result.list.map((item: any) => ({
       id: item.id,
       nickname: item.nickname,
@@ -122,7 +123,8 @@ const loadUsers = async () => {
       followingCount: item.followingCount,
       articleCount: item.articleCount,
       isFollowing: item.isFollowing,
-      isOnline: item.isOnline
+      isOnline: item.isOnline,
+      isSelf: item.isSelf
     }))
     total.value = result.total
     pagination.value.totalPages = result.totalPage

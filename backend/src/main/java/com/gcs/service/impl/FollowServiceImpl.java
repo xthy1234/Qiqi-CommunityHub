@@ -23,8 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 用户关注关系服务实现类
@@ -216,5 +219,80 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, Follow> implements
                    .eq("following_id", followingId)
                    .eq("status", CommonStatus.ENABLED);
         return this.count(queryWrapper) > 0;
+    }
+    
+    @Override
+    public Map<Long, Integer> batchCountFollowers(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        QueryWrapper<Follow> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("following_id", userIds)
+                   .eq("status", CommonStatus.ENABLED)
+                   .select("following_id", "count(*) as count")
+                   .groupBy("following_id");
+        
+        List<Map<String, Object>> results = this.listMaps(queryWrapper);
+        
+        Map<Long, Integer> countMap = new HashMap<>();
+        for (Long userId : userIds) {
+            countMap.put(userId, 0);
+        }
+        
+        for (Map<String, Object> result : results) {
+            Long followingId = ((Number) result.get("following_id")).longValue();
+            Long count = ((Number) result.get("count")).longValue();
+            countMap.put(followingId, count.intValue());
+        }
+        
+        return countMap;
+    }
+    
+    @Override
+    public Map<Long, Integer> batchCountFollowing(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        QueryWrapper<Follow> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("follower_id", userIds)
+                   .eq("status", CommonStatus.ENABLED)
+                   .select("follower_id", "count(*) as count")
+                   .groupBy("follower_id");
+        
+        List<Map<String, Object>> results = this.listMaps(queryWrapper);
+        
+        Map<Long, Integer> countMap = new HashMap<>();
+        for (Long userId : userIds) {
+            countMap.put(userId, 0);
+        }
+        
+        for (Map<String, Object> result : results) {
+            Long followerId = ((Number) result.get("follower_id")).longValue();
+            Long count = ((Number) result.get("count")).longValue();
+            countMap.put(followerId, count.intValue());
+        }
+        
+        return countMap;
+    }
+    
+    @Override
+    public Set<Long> getFollowedUserIds(Long currentUserId, List<Long> targetUserIds) {
+        if (currentUserId == null || targetUserIds == null || targetUserIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        
+        QueryWrapper<Follow> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("follower_id", currentUserId)
+                   .in("following_id", targetUserIds)
+                   .eq("status", CommonStatus.ENABLED)
+                   .select("following_id");
+        
+        List<Follow> follows = this.list(queryWrapper);
+        
+        return follows.stream()
+                     .map(Follow::getFollowingId)
+                     .collect(Collectors.toSet());
     }
 }

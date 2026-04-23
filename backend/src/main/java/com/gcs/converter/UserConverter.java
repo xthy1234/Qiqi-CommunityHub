@@ -42,8 +42,31 @@ public interface UserConverter {
     @Named("toProfileVO")
     UserProfileVO toProfileVO(User entity);
     
+    /**
+     * User 转 UserPublicProfileVO
+     */
     @Named("toPublicProfileVO")
+    @Mapping(target = "followerCount", ignore = true)
+    @Mapping(target = "followingCount", ignore = true)
+    @Mapping(target = "articleCount", ignore = true)
+    @Mapping(target = "isFollowed", ignore = true)
     UserPublicProfileVO toPublicProfileVO(User entity);
+    
+    /**
+     * User 转 UserPublicListVO
+     */
+    @Named("toPublicListVO")
+    @Mapping(target = "followerCount", ignore = true)
+    @Mapping(target = "followingCount", ignore = true)
+    @Mapping(target = "articleCount", ignore = true)
+    @Mapping(target = "isFollowing", ignore = true)
+    @Mapping(target = "isSelf", ignore = true)
+    UserPublicListVO toPublicListVO(User entity);
+    
+    /**
+     * User 列表转 UserPublicListVO 列表
+     */
+    List<UserPublicListVO> toPublicListVOList(List<User> entities);
     
     @Named("toSimpleVO")
     @Mapping(target = "lastOnlineTime", source = "lastOnlineTime")

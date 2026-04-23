@@ -1,11 +1,11 @@
 package com.gcs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.gcs.converter.UserConverter;
+import com.gcs.vo.UserPublicListVO;
 import org.springframework.stereotype.Service;
-import java.util.Map;
-import java.util.List;
-import java.util.Objects;
+
+import java.util.*;
 import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
@@ -49,6 +49,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     
     @Autowired(required = false)
     private ArticleService articleService;
+
+    @Autowired
+    private UserConverter userConverter;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -298,7 +301,8 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         
 
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getStatus, CommonStatus.ENABLED);
+        queryWrapper.eq(User::getStatus, CommonStatus.ENABLED)
+                    .eq(User::getRoleId, 1L);
         
 
         if (StringUtils.hasText(keyword)) {
@@ -309,12 +313,86 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             );
         }
         
+        queryWrapper.orderByDesc(User::getCreateTime);
 
         IPage<User> userPage = new Query<User>(params).getPage();
         IPage<User> resultPage = this.page(userPage, queryWrapper);
         
-        return new PageUtils(resultPage);
+        List<User> userList = resultPage.getRecords();
+        
+        if (userList.isEmpty()) {
+            return new PageUtils(resultPage);
+        }
+        
+        List<UserPublicListVO> voList = userConverter.toPublicListVOList(userList);
+        
+        List<Long> userIds = userList.stream().map(User::getId).collect(Collectors.toList());
+        
+        Map<Long, Integer> followerCountMap = followService != null ? 
+            followService.batchCountFollowers(userIds) : Collections.emptyMap();
+        Map<Long, Integer> followingCountMap = followService != null ? 
+            followService.batchCountFollowing(userIds) : Collections.emptyMap();
+        
+        Map<Long, Integer> articleCountMap = batchCountArticles(userIds);
+        
+        Set<Long> followedUserIds = new HashSet<>();
+        if (currentUserId != null && followService != null) {
+            followedUserIds = followService.getFollowedUserIds(currentUserId, userIds);
+        }
+        
+        final Set<Long> finalFollowedUserIds = followedUserIds;
+        voList.forEach(vo -> {
+            vo.setFollowerCount(followerCountMap.getOrDefault(vo.getId(), 0));
+            vo.setFollowingCount(followingCountMap.getOrDefault(vo.getId(), 0));
+            vo.setArticleCount(articleCountMap.getOrDefault(vo.getId(), 0));
+            
+            if (currentUserId != null && !currentUserId.equals(vo.getId())) {
+                vo.setIsFollowing(finalFollowedUserIds.contains(vo.getId()));
+                vo.setIsSelf(false);
+            } else if (currentUserId != null && currentUserId.equals(vo.getId())) {
+                vo.setIsFollowing(false);
+                vo.setIsSelf(true);
+            } else {
+                vo.setIsFollowing(false);
+                vo.setIsSelf(false);
+            }
+        });
+        
+        PageUtils pageUtils = new PageUtils(resultPage);
+        pageUtils.setList(voList);
+        return pageUtils;
     }
+    
+    /**
+     * 批量统计用户的文章数量（已审核通过）
+     * @param userIds 用户 ID 列表
+     * @return Map<用户ID, 文章数>
+     */
+    private Map<Long, Integer> batchCountArticles(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty() || articleService == null) {
+            return Collections.emptyMap();
+        }
+        
+        LambdaQueryWrapper<Article> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(Article::getAuthorId, userIds)
+                   .eq(Article::getAuditStatus, AuditStatus.APPROVED.getCode())
+                   .select(Article::getAuthorId);
+        
+        List<Article> articles = articleService.list(queryWrapper);
+        
+        Map<Long, Integer> countMap = new HashMap<>();
+        for (Long userId : userIds) {
+            countMap.put(userId, 0);
+        }
+        
+        for (Article article : articles) {
+            Long authorId = article.getAuthorId();
+            countMap.put(authorId, countMap.getOrDefault(authorId, 0) + 1);
+        }
+        
+        return countMap;
+    }
+
 
     /**
      * 安全地从 Map 中获取 Integer 参数
@@ -593,7 +671,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             Boolean isFollowed = followService != null ? followService.isFollowing(currentUserId, user.getId()) : false;
             vo.setIsFollowed(isFollowed);
         } else {
-            vo.setIsFollowed(false); // 自己访问自己或未登录时显示 false
+            vo.setIsFollowed(false);
         }
         
         return vo;
