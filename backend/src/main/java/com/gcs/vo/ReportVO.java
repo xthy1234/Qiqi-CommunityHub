@@ -42,7 +42,7 @@ public class ReportVO implements Serializable {
     private UserSimpleVO reviewUserInfo;
 
     @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝)", example = "0")
-    private AuditStatus reviewStatus;
+    private Integer reviewStatus;
     
     @Schema(description = "状态 (0:有效，1:无效)", example = "0")
     private CommonStatus status;

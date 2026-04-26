@@ -72,7 +72,7 @@ public class Report implements Serializable {
      * 审核状态 (0:待审核，1:已通过，2:已拒绝)
      */
     @Schema(description = "审核状态 (0:待审核，1:已通过，2:已拒绝)", example = "0")
-    private AuditStatus reviewStatus = AuditStatus.PENDING;
+    private Integer reviewStatus = 0;
 
     /**
      * 审核人id

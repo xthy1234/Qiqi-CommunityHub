@@ -237,7 +237,7 @@ public class ReportController {
             report.setReporterId(currentUserId);
             report.setReportedUserId(reportedUserId);
             report.setReportReason(createDTO.getReportReason());
-            report.setReviewStatus(AuditStatus.PENDING);
+            report.setReviewStatus(AuditStatus.PENDING.getCode());
             report.setStatus(CommonStatus.ENABLED);
             report.setReviewTime(LocalDateTime.now());
             

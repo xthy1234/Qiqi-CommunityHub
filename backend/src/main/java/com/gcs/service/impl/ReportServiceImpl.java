@@ -97,7 +97,7 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
     @Override
     public boolean createReport(Report report) {
         validateReportForCreate(report);
-        report.setReviewStatus(AuditStatus.PENDING);
+        report.setReviewStatus(AuditStatus.PENDING.getCode());
         report.setStatus(CommonStatus.ENABLED);
         
         return this.save(report);
@@ -114,7 +114,7 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
             throw new RuntimeException("举报信息不存在");
         }
         AuditStatus auditStatus = AuditStatus.valueOf(reviewStatus);
-        report.setReviewStatus(auditStatus);
+        report.setReviewStatus(auditStatus.getCode());
         report.setReplyContent(replyContent);
         
         // 根据账号查询审核人 ID
@@ -183,7 +183,7 @@ public class ReportServiceImpl extends ServiceImpl<ReportDao, Report> implements
         }
         
         AuditStatus auditStatus = AuditStatus.valueOf(reviewStatus);
-        report.setReviewStatus(auditStatus);
+        report.setReviewStatus(auditStatus.getCode());
         report.setReplyContent(replyContent);
         
         User reviewer = userService.getUserByAccount(reviewerAccount);
