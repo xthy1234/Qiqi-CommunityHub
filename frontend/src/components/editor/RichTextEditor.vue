@@ -441,119 +441,10 @@
     </n-modal>
 
     <!-- 分享卡片插入对话框 -->
-    <n-modal
+    <ArticleSelectorModal
       v-model:show="shareCardDialogVisible"
-      preset="dialog"
-      title="选择要分享的文章"
-      :style="{ width: '700px' }"
-    >
-      <div class="article-selector">
-        <!-- 搜索框 -->
-        <n-input
-          v-model:value="searchKeyword"
-          placeholder="搜索文章标题..."
-          clearable
-          style="margin-bottom: 16px;"
-        >
-          <template #prefix>
-            <Icon icon="ri:search-line" />
-          </template>
-        </n-input>
-
-        <!-- 文章列表 -->
-        <div class="article-list">
-          <n-spin :show="loadingArticles">
-            <n-empty
-              v-if="!loadingArticles && filteredArticles.length === 0"
-              description="暂无文章"
-            />
-
-            <div
-              v-else
-              class="article-grid"
-            >
-              <n-card
-                v-for="article in filteredArticles"
-                :key="article.id"
-                class="article-item"
-                size="small"
-                :bordered="selectedArticle?.id === article.id"
-                @click="selectArticle(article)"
-              >
-                <div class="article-card-content">
-                  <!-- 封面图 -->
-                  <div
-                    v-if="article.coverUrl"
-                    class="article-cover"
-                  >
-                    <n-image
-                      :src="getArticleCoverUrl(article.coverUrl)"
-                      object-fit="cover"
-                      class="cover-img"
-                      :preview-disabled="true"
-                    />
-                  </div>
-
-                  <!-- 文章信息 -->
-                  <div class="article-info">
-                    <h3 class="article-title">
-                      {{ article.title }}
-                    </h3>
-                    <p class="article-summary">
-                      {{ article.summary || '暂无摘要' }}
-                    </p>
-                    <div class="article-meta">
-                      <span class="meta-item">
-                        <Icon icon="ri:eye-line" />
-                        {{ article.viewCount || 0 }}
-                      </span>
-                      <span class="meta-item">
-                        <Icon icon="ri:star-line" />
-                        {{ article.favoriteCount || 0 }}
-                      </span>
-                      <span class="meta-item">
-                        <Icon icon="ri:time-line" />
-                        {{ formatDate(article.createTime) }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </n-card>
-            </div>
-          </n-spin>
-        </div>
-
-        <!-- 分页 -->
-        <div
-          v-if="totalPages > 1"
-          class="article-pagination"
-        >
-          <n-pagination
-            v-model:page="currentPage"
-            :page-count="totalPages"
-            :page-size="pageSize"
-            show-size-picker
-            :page-sizes="[10, 20, 50]"
-            @update-page-size="handlePageSizeChange"
-          />
-        </div>
-      </div>
-
-      <template #action>
-        <n-space justify="end">
-          <n-button @click="shareCardDialogVisible = false">
-            取消
-          </n-button>
-          <n-button
-            type="primary"
-            :disabled="!selectedArticle"
-            @click="insertSelectedArticle"
-          >
-            插入文章卡片
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
+      @confirm="insertSelectedArticle"
+    />
 
     <!-- 视频插入对话框 -->
     <n-modal
@@ -704,6 +595,8 @@ import { VideoNodeExtension } from '@/utils/tiptap-video-node'
 import { VideoAnnotationRefExtension } from '@/utils/tiptap-video-annotation-ref'
 import { uploadAPI } from '@/api/upload'
 import { articleAPI, type Article } from '@/api/article'
+import ArticleSelectorModal from './ArticleSelector.vue'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 const message = useMessage()
 
@@ -800,19 +693,31 @@ const formatDate = (dateString: string | null): string => {
 }
 
 /**
- * 获取文章封面 URL
+ * 打开文章选择器(新)
  */
-const getArticleCoverUrl = (coverUrl: string): string => {
-  if (!coverUrl) {return ''}
+const openArticleSelector = () => {
+  shareCardDialogVisible.value = true
+}
 
-  // 如果已经是完整 URL，直接返回
-  if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) {
-    return coverUrl
+/**
+ * 插入选中的文章卡片
+ */
+const insertSelectedArticle = (article: Article) => {
+  if (!editor.value) {
+    message.warning('编辑器未初始化')
+    return
   }
 
-  // 拼接完整 URL
-  const baseUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
-  return `${baseUrl}/${coverUrl}`
+  editor.value.commands.setShareCard({
+    title: article.title,
+    summary: article.summary || '',
+    cover: normalizeFileUrl(article.coverUrl),
+    url: `${window.location.origin}/index/articleDetail?id=${article.id}`,
+    author: article.authorNickname || '匿名用户',
+    publishTime: formatDate(article.publishTime || article.createTime)
+  })
+
+  message.success('文章卡片插入成功')
 }
 
 /**
@@ -944,18 +849,6 @@ const editor = useEditor({
 })
 
 /**
- * 打开文章选择器并加载用户文章
- */
-const openArticleSelector = async () => {
-  shareCardDialogVisible.value = true
-  selectedArticle.value = null
-  searchKeyword.value = ''
-  currentPage.value = 1
-
-  await loadUserArticles()
-}
-
-/**
  * 加载用户文章列表
  */
 const loadUserArticles = async () => {
@@ -996,29 +889,6 @@ const loadUserArticles = async () => {
  */
 const selectArticle = (article: Article) => {
   selectedArticle.value = article
-}
-
-/**
- * 插入选中的文章卡片
- */
-const insertSelectedArticle = () => {
-  if (!editor.value || !selectedArticle.value) {
-    message.warning('请先选择一篇文章')
-    return
-  }
-
-  // 使用选中文章的信息创建分享卡片
-  editor.value.commands.setShareCard({
-    title: selectedArticle.value.title,
-    summary: selectedArticle.value.summary || '',
-    cover: selectedArticle.value.coverUrl ? getArticleCoverUrl(selectedArticle.value.coverUrl) : '',
-    url: `${window.location.origin}/index/articleDetail?id=${selectedArticle.value.id}`,
-    author: selectedArticle.value.authorNickname || '匿名用户',
-    publishTime: formatDate(selectedArticle.value.publishTime || selectedArticle.value.createTime)
-  })
-
-  shareCardDialogVisible.value = false
-  message.success('文章卡片插入成功')
 }
 
 /**

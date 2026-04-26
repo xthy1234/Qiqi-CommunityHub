@@ -257,7 +257,7 @@ watch(() => formData.categoryId, (newVal: string) => {
 const categorySelectOptions = computed(() => {
   return categoryOptions.value.map((cat: any) => ({
     label: cat.categoryName,
-    value: String(cat.id)  // 转换为字符串
+    value: String(cat.id)
   }))
 })
 

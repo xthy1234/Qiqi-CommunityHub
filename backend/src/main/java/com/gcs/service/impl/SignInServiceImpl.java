@@ -60,9 +60,6 @@ public class SignInServiceImpl extends ServiceImpl<UserSignInDao, UserSignIn>
         signIn.setSignDate(today);
         signIn.setPointsEarned(pointsEarned);
         
-        Integer currentBalance = pointsService.getUserPoints(userId);
-        signIn.setBalance(currentBalance);
-        
         this.save(signIn);
         
 
@@ -72,10 +69,12 @@ public class SignInServiceImpl extends ServiceImpl<UserSignInDao, UserSignIn>
         log.info("用户签到成功，userId: {}, 获得积分：{}, 连续天数：{}", userId, pointsEarned, streak);
         
 
+        Integer currentBalance = pointsService.getUserPoints(userId);
+        
         Map<String, Object> result = new HashMap<>();
         result.put("pointsEarned", pointsEarned);
         result.put("streak", streak);
-        result.put("balance", currentBalance + pointsEarned);
+        result.put("balance", currentBalance);
         result.put("message", getSignInMessage(streak));
         
         return result;
