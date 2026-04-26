@@ -6,9 +6,9 @@ import {
 
 // 导入新的布局组件
 import MainLayout from '@/views/MainLayout.vue'
-import LoginView from '../views/auth/login.vue'
-import UserRegisterView from '../views/auth/register.vue'
-import HomeView from "@/views/HomeView.vue";
+import LoginView from '../views/auth/Login.vue'
+import UserRegisterView from '../views/auth/Register.vue'
+import HomeView from "src/views/dashboard/HomeView.vue";
 
 const routes: Array<RouteRecordRaw> = [
   // 公开路由 - 不需要登录
@@ -37,13 +37,13 @@ const routes: Array<RouteRecordRaw> = [
       // 首页
       {
         path: 'index',
-        component: () => import('@/views/HomeView.vue'),
+        component: () => import('src/views/dashboard/HomeView.vue'),
         meta: { title: '首页' }
       },
       // 兼容带 /index 前缀的路径
       {
         path: 'index/home',
-        component: () => import('@/views/HomeView.vue'),
+        component: () => import('src/views/dashboard/HomeView.vue'),
         meta: { title: '首页' }
       },
       // 用户管理
@@ -60,19 +60,19 @@ const routes: Array<RouteRecordRaw> = [
       // 文章管理
       {
         path: 'articles',
-        component: () => import('@/views/article/list.vue'),
+        component: () => import('@/views/content/article/ArticleList.vue'),
         meta: { title: '文章管理' }
       },
       {
         path: 'articles/audit',
-        component: () => import('@/views/article/ArticleAudit.vue'),
+        component: () => import('@/views/content/article/ArticleAudit.vue'),
         meta: { title: '文章审核' }
       },
       // 评论管理
       {
         path: 'comments',
         name: 'Comments',
-        component: () => import('@/views/comment/list.vue'),
+        component: () => import('@/views/content/comment/CommentList.vue'),
         meta: { requiresAuth: true }
       },
       {
@@ -90,62 +90,62 @@ const routes: Array<RouteRecordRaw> = [
       // 系统管理
       {
         path: 'admin/roles',
-        component: () => import('@/views/admin/RoleList.vue'),
+        component: () => import('src/views/system/role/RoleList.vue'),
         meta: { title: '角色管理' }
       },
       {
         path: 'admin/menus',
-        component: () => import('@/views/admin/MenuList.vue'),
+        component: () => import('src/views/system/menu/MenuList.vue'),
         meta: { title: '菜单管理' }
       },
       {
         path: 'admin/role-menus',
-        component: () => import('@/views/admin/RoleMenu.vue'),
+        component: () => import('src/views/system/role/RoleMenu.vue'),
         meta: { title: '权限分配' }
       },
       // 分类管理
       {
         path: 'admin/categories',
-        component: () => import('@/views/category/CategoryList.vue'),
+        component: () => import('@/views/content/category/CategoryList.vue'),
         meta: { title: '分类管理' }
       },
       {
         path: 'admin/categories/edit',
-        component: () => import('@/views/category/CategoryEdit.vue'),
+        component: () => import('@/views/content/category/CategoryEdit.vue'),
         meta: { title: '分类编辑' }
       },
       // 举报管理
       {
         path: 'admin/reports',
-        component: () => import('@/views/report/ReportList.vue'),
+        component: () => import('@/views/content/report/ReportList.vue'),
         meta: { title: '举报管理' }
       },
       // 轮播图管理
       {
         path: 'admin/swipers',
-        component: () => import('@/views/swiper/SwiperList.vue'),
+        component: () => import('@/views/content/swiper/SwiperList.vue'),
         meta: { title: '轮播图管理' }
       },
       // 个人中心
       {
         path: 'profile',
-        component: () => import('@/views/profile/UserProfile.vue'),
+        component: () => import('@/views/user/UserProfile/Index.vue'),
         meta: { title: '个人资料' }
       },
       {
         path: 'profile/edit',
-        component: () => import('@/views/profile/UserProfileEdit.vue'),
+        component: () => import('@/views/user/UserProfile/Edit.vue'),
         meta: { title: '编辑资料' }
       },
       {
         path: 'profile/password',
-        component: () => import('@/views/profile/UserPasswordChange.vue'),
+        component: () => import('@/views/user/UserProfile/PasswordChange.vue'),
         meta: { title: '修改密码' }
       },
       // 通知管理
       {
         path: 'notification/send',
-        component: () => import('@/views/notification/send.vue'),
+        component: () => import('@/views/notification/NotificationSend.vue'),
         meta: { title: '发送通知' }
       }
 

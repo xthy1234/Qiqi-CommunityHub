@@ -1,7 +1,7 @@
 // src/utils/tiptap-video-annotation-ref.ts
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import VideoAnnotationRefNode from '@/components/nodes/VideoAnnotationRefNode.vue'
+import VideoAnnotationRefNode from '@/components/editor/nodes/VideoAnnotationRefNode.vue'
 
 export interface AnnotationRefOptions {
   HTMLAttributes: Record<string, any>

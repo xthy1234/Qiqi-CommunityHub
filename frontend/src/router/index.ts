@@ -5,44 +5,44 @@ import {
 } from 'vue-router'
 
 // 导入新的布局组件
-import MainLayout from '@/views/MainLayout.vue'
+import MainLayout from '@/views/layout/MainLayout.vue'
 import LoginView from '../views/auth/login.vue'
 
 // 文章相关页面
 
-import ArticleFormView from '@/views/article/edit.vue'
-import ArticleDetailView from '@/views/article/detail.vue'
-import ArticleEditorView from '@/views/article/edit.vue'
-import ArticleDraftView from '@/views/article/draftList.vue'
-import FavoriteListView from '@/views/article/favoriteList.vue'
-import SuggestionReviewListView from '@/views/cooperation/SuggestionReviewList.vue'
+import ArticleFormView from '@/views/article/ArticleEdit.vue'
+import ArticleDetailView from '@/views/article/ArticleDetail.vue'
+import ArticleEditorView from '@/views/article/ArticleEdit.vue'
+import ArticleDraftView from '@/views/article/DraftList.vue'
+import FavoriteListView from '@/views/article/FavoriteList.vue'
+import SuggestionReviewListView from '@/views/collaboration/SuggestionReviewList.vue'
 import VersionListView from '@/views/article/VersionList.vue'
-import SuggestionEditorView from '@/views/cooperation/SuggestionEditor.vue'
-import MySuggestionsView from '@/views/cooperation/MySuggestions.vue'
-import SuggestionReviewDetailView from '@/views/cooperation/SuggestionReviewDetail.vue'
-import VersionDetailView from '@/views/article/versionDetail.vue'
+import SuggestionEditorView from '@/views/collaboration/SuggestionEditor.vue'
+import MySuggestionsView from '@/views/collaboration/MySuggestions.vue'
+import SuggestionReviewDetailView from '@/views/collaboration/SuggestionReviewDetail.vue'
+import VersionDetailView from '@/views/article/VersionDetail.vue'
 
 // 用户相关页面 - 已精简，只保留个人中心相关页面
 import UserRegisterView from '../views/auth/register.vue'
 import UserProfileView from '@/views/user/UserProfile.vue'
 import UserProfileEditView from '@/views/user/UserProfileEdit.vue'
-import UserPasswordChangeView from '@/views/user/UserPasswordChange.vue'
+import UserPasswordChangeView from '@/views/user/PasswordChange.vue'
 import UserPublicProfile from '@/views/user/UserPublicProfile.vue'
-import UserFollowingList from '@/views/user/UserFollowingList.vue'
-import UserFollowersList from '@/views/user/UserFollowersList.vue'
-import UserSignInView from '@/views/user/UserSignIn.vue'
-import BlockRuleManagementView from '@/views/user/BlockRuleManagement.vue'
-import HomeView from "@/views/HomeView.vue";
+import UserFollowingList from '@/views/user/UserFollowing.vue'
+import UserFollowersList from '@/views/user/UserFollowers.vue'
+import UserSignInView from '@/views/user/SignIn.vue'
+import BlockRuleManagementView from '@/views/user/BlockRule.vue'
+import HomeView from "@/views/layout/HomeView.vue";
 
 // 发现相关页面
 import RecommendUsersView from '@/views/discover/RecommendUsers.vue'
 import RecommendCirclesView from '@/views/discover/RecommendCircles.vue'
 import ArticleListView from '@/views/discover/RecommendArticles.vue'
 // 消息相关页面
-import ChatView from '@/views/message/chat.vue'
+import ChatView from '@/views/chat/ChatRoom.vue'
 
 // 圈子聊天相关页面
-import CircleChatView from '@/views/circle-chat/circle-chat.vue'
+import CircleChatView from '@/views/circle/CircleChat.vue'
 import CircleEditorView from '@/views/circle/CircleEditor.vue'
 
 // 通知中心
@@ -57,13 +57,13 @@ const routes: Array<RouteRecordRaw> = [
       // 首页
       {
         path: 'index',
-        component: () => import('@/views/HomeView.vue'),
+        component: () => import('@/views/layout/HomeView.vue'),
         meta: { title: '首页' }
       },
       // 兼容带 /index 前缀的路径
       {
         path: 'index/home',
-        component: () => import('@/views/HomeView.vue'),
+        component: () => import('@/views/layout/HomeView.vue'),
         meta: { title: '首页' }
       },
 

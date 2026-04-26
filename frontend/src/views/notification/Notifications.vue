@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import {useMessage, useDialog, NButton} from 'naive-ui'
-import PageContainer from '@/components/common/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import NotificationList from '@/components/notification/NotificationList.vue'
 import { useNotificationStore } from '@/stores/notification'
 import {storeToRefs} from "pinia";

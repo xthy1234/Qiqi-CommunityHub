@@ -595,7 +595,7 @@ import { VideoNodeExtension } from '@/utils/tiptap-video-node'
 import { VideoAnnotationRefExtension } from '@/utils/tiptap-video-annotation-ref'
 import { uploadAPI } from '@/api/upload'
 import { articleAPI, type Article } from '@/api/article'
-import ArticleSelectorModal from './ArticleSelector.vue'
+import ArticleSelectorModal from '../article/ArticleSelector.vue'
 import { normalizeFileUrl } from '@/utils/fileUrl'
 
 const message = useMessage()

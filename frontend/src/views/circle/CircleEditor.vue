@@ -116,7 +116,7 @@ import {useMessage, useDialog, type FormRules, NButton, NFormItem} from 'naive-u
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { circleApi } from '@/api/circle'
 import AvatarUpload from '@/components/upload/AvatarUpload.vue'
-import PageContainer from '@/components/common/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 
 const appContext = useGlobalProperties()
 const route = useRoute()

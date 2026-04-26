@@ -138,7 +138,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { FormRules } from 'naive-ui'
-import PageContainer from '@/components/common/PageContainer.vue'
+import PageContainer from 'src/components/layout/PageContainer.vue'
 import { adminUserApi } from '@/api/adminUser'
 import { roleApi } from '@/api/role'
 
