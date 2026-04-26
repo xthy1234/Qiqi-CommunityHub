@@ -156,6 +156,8 @@ import { useNotificationStore } from '@/stores/notification'
 import { useChatStore } from '@/stores/chat'
 import { useCircleChatStore } from '@/stores/circleChat'
 import { usePointsStore } from '@/stores/points'
+import { articleSuggestionAPI } from '@/api/articleSuggestion'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 interface MenuItem {
   menu: string
@@ -186,6 +188,7 @@ const chatUnreadCount = ref<number>(0)
 const circleChatUnreadCount = ref<number>(0)
 const userPoints = ref<number>(0)
 const dialog = useDialog()
+const isPendingCountLoading = ref<boolean>(false)
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -266,7 +269,7 @@ const menuOptions = computed<MenuOption[]>(() => {
         {
           label: '圈子',
           key: 'message-circle',
-          icon: renderIcon('ri:user-group-line'),
+          icon: renderIcon('ri:group-line'),
           extra: (circleChatUnreadCount.value || 0) > 0 ? renderBadge(circleChatUnreadCount.value || 0) : undefined,
           click: () => navigateToRoute('/index/circle-chat')
         }
@@ -313,7 +316,7 @@ const menuOptions = computed<MenuOption[]>(() => {
         {
           label: '待审建议',
           key: 'publish-suggestions',
-          icon: renderIcon('ri:review-line'),
+          icon: renderIcon('ri:file-check-line'),
           click: () => navigateToSuggestions(),
           extra: pendingCount.value > 0 ? renderBadge(pendingCount.value) : undefined
         }
@@ -374,7 +377,7 @@ const menuOptions = computed<MenuOption[]>(() => {
         {
           label: '屏蔽规则',
           key: 'profile-block-rules',
-          icon: renderIcon('ri:shield-ban-line'),
+          icon: renderIcon('ri:forbid-line'),
           click: () => navigateToRoute('/index/user/block-rules')
         },
         {
@@ -476,6 +479,15 @@ watch(() => {
 
 const navigateToRoute = (path: string): void => {
   if (!path) {return}
+
+  if (path.includes('/index/notifications')) {
+    notificationUnreadCount.value = 0
+  } else if (path.includes('/index/chat')) {
+    chatUnreadCount.value = 0
+  } else if (path.includes('/index/circle-chat')) {
+    circleChatUnreadCount.value = 0
+  }
+
   router.push(path.startsWith('/') ? path : `/index/${path}`)
 
   // 如果是聊天页面，自动收起侧边栏
@@ -486,6 +498,7 @@ const navigateToRoute = (path: string): void => {
 
 const navigateToSuggestions = (): void => {
   // 跳转到待审核建议列表页（作者所有文章的待审建议）
+  pendingCount.value = 0
   router.push('/index/article/suggestions?status=0')
 }
 
@@ -498,29 +511,6 @@ const navigateToPoints = (): void => {
   router.push('/index/user/profile?tab=points')
 }
 
-const navigateToVersions = (): void => {
-  // 版本管理需要先选择文章，这里给出提示
-  dialog.info({
-    title: '版本管理',
-    content: '请先在文章列表中打开要查看版本历史的文章详情页，然后点击"版本历史"按钮。',
-    positiveText: '知道了',
-    onPositiveClick: () => {
-      router.push('/index/articleList')
-    }
-  })
-}
-
-const navigateToContributors = (): void => {
-  // 贡献者页面也需要先选择文章
-  dialog.info({
-    title: '贡献者列表',
-    content: '请先在文章列表中打开要查看贡献者的文章详情页，然后查看底部的贡献者列表。',
-    positiveText: '知道了',
-    onPositiveClick: () => {
-      router.push('/index/articleList')
-    }
-  })
-}
 
 const navigateToFavorite = (): void => {
   router.push('/index/favoriteList?centerType=1')
@@ -572,24 +562,20 @@ const initializeComponent = async (): Promise<void> => {
   const token = appContext?.$toolUtil?.storageGet('Token')
   authToken.value = !!token
 
-  //  读取锁定状态
+  // 读取锁定状态（默认锁定）
   const locked = appContext?.$toolUtil?.storageGet('sidebarLocked')
+  sidebarLocked.value = locked === null ? true : Boolean(locked)
 
-  if(locked===null){
-    sidebarLocked.value = true
+  if (locked === null) {
     appContext?.$toolUtil?.storageSet('sidebarLocked', true)
-  }else{
-    sidebarLocked.value = Boolean(locked)
   }
 
-  // 读取展开/收起状态
+  // 读取展开状态（默认展开）
   const savedExpanded = appContext?.$toolUtil?.storageGet('sidebarExpanded')
+  isExpanded.value = savedExpanded === null ? true : Boolean(savedExpanded)
 
   if (savedExpanded === null) {
-    isExpanded.value = true
     appContext?.$toolUtil?.storageSet('sidebarExpanded', true)
-  } else {
-    isExpanded.value = Boolean(savedExpanded)
   }
 
   await loadMenuData()
@@ -602,8 +588,7 @@ const loadUserInfo = (): void => {
   const account = appContext?.$toolUtil?.storageGet('account')
 
   if (avatar) {
-    const baseUrl = appContext?.$config?.url || 'http://localhost:8080'
-    userAvatarUrl.value = getFullUrl(avatar, baseUrl)
+    userAvatarUrl.value = normalizeFileUrl(avatar)
   }
 
   userNickname.value = nickname || ''
@@ -618,13 +603,17 @@ const loadUserInfo = (): void => {
 }
 
 const loadPendingSuggestionsCount = async (): Promise<void> => {
+  if (isPendingCountLoading.value) {return}
+
   try {
-    // TODO: 调用 API 获取待审核建议数量
-    // const response = await articleSuggestionAPI.getMyReceivedSuggestions({ status: 0, page: 1, limit: 1 })
-    // pendingCount.value = response.data.data?.total || 0
-    pendingCount.value = 0 // 临时值，实际应该调用 API
+    isPendingCountLoading.value = true
+    const response = await articleSuggestionAPI.getMyReceivedSuggestions({ status: 0, page: 1, limit: 1 })
+    pendingCount.value = response.data?.data?.total || 0
   } catch (error) {
-    console.error('加载待审核数量失败:', error)
+    console.error('[Sidebar] 加载待审核数量失败:', error)
+    pendingCount.value = 0
+  } finally {
+    isPendingCountLoading.value = false
   }
 }
 
@@ -634,7 +623,8 @@ const loadNotificationUnreadCount = async (): Promise<void> => {
     await notificationStore.loadUnreadCount()
     notificationUnreadCount.value = notificationStore.unreadCount
   } catch (error) {
-    console.error('加载未读通知数量失败:', error)
+    console.error('[Sidebar] 加载未读通知数量失败:', error)
+    notificationUnreadCount.value = 0
   }
 }
 
@@ -644,7 +634,8 @@ const loadChatUnreadCount = async (): Promise<void> => {
     await chatStore.loadConversations()
     chatUnreadCount.value = chatStore.unreadCount
   } catch (error) {
-    console.error('加载私聊未读数量失败:', error)
+    console.error('[Sidebar] 加载私聊未读数量失败:', error)
+    chatUnreadCount.value = 0
   }
 }
 
@@ -653,7 +644,8 @@ const loadCircleChatUnreadCount = async (): Promise<void> => {
     const circleChatStore = useCircleChatStore()
     circleChatUnreadCount.value = circleChatStore.totalUnreadCount
   } catch (error) {
-    console.error('加载圈子聊天未读数量失败:', error)
+    console.error('[Sidebar] 加载圈子聊天未读数量失败:', error)
+    circleChatUnreadCount.value = 0
   }
 }
 
@@ -666,7 +658,6 @@ const loadUserPoints = async (): Promise<void> => {
 
     const pointsStore = usePointsStore()
 
-    // 如果 Store 还没有加载过积分，则加载一次
     if (pointsStore.points === 0 && !pointsStore.loading) {
       await pointsStore.loadPointsInfo()
     }
@@ -674,20 +665,9 @@ const loadUserPoints = async (): Promise<void> => {
     userPoints.value = pointsStore.points
 
   } catch (error) {
-    console.error('加载积分失败:', error)
+    console.error('[Sidebar] 加载积分失败:', error)
     userPoints.value = 0
   }
-}
-
-const getFullUrl = (path: string, baseUrl?: string): string => {
-  if (!path) {return ''}
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path
-  }
-  if (baseUrl) {
-    return `${baseUrl}/${path}`
-  }
-  return path
 }
 
 onMounted(() => {
@@ -777,8 +757,6 @@ watch(authToken, (newVal: boolean) => {
     position: fixed;
     top: 0;
     left: 0;
-    //overflow: visible;
-    //box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
     border-right: 1px solid #e4e7ed;
     flex-shrink: 0;
     z-index: 1000;

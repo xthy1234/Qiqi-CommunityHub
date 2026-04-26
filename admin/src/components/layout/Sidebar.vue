@@ -184,7 +184,7 @@ const menuOptions = computed<MenuOption[]>(() => {
         {
           label: '举报管理',
           key: 'system-reports',
-          icon: renderIcon('ri:flag-warning-line'),
+          icon: renderIcon('ri:error-warning-line'),
           click: () => navigateToRoute('/admin/reports')
         },
         {
