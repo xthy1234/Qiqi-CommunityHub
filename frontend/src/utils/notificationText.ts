@@ -15,7 +15,7 @@ export function getNotificationTitle(notification: Notification): string {
   // 根据类型生成标题
   switch (type) {
     case 1: // COMMENT
-      return `${(safeExtra as any)?.commenter?.nickname || fromUserNickname || '有人'} 评论了你的文章`
+      return `${(safeExtra as any)?.commenter?.nickname || fromUserNickname || '有人'} 评论了你的内容`
     
     case 2: // LIKE
       if ((safeExtra as any)?.targetType === 'comment') {

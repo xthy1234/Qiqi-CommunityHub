@@ -128,8 +128,8 @@ import { ref, h, reactive, onMounted, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import type { DataTableColumns, FormRules } from 'naive-ui'
 import { NButton, NTag, NSpace, NInput, NSelect, NInputNumber, NRadioGroup, NRadioButton, useMessage, useDialog } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
-import CrudDialog from 'src/components/form/CrudDialog.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import CrudDialog from '@/components/form/CrudDialog.vue'
 import pointsApi, { type PointsRule } from '@/api/points'
 
 const message = useMessage()

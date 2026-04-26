@@ -37,7 +37,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { NResult, NButton } from 'naive-ui'
-import Sidebar from 'src/components/layout/Sidebar.vue'
+import Sidebar from '@/components/layout/Sidebar.vue'
 import UserAvatarDropdown from '@/components/UserAvatarDropdown.vue'
 import { useGlobalProperties } from '@/utils/globalProperties'
 

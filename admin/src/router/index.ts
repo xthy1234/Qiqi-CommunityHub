@@ -6,9 +6,9 @@ import {
 
 // 导入新的布局组件
 import MainLayout from '@/views/MainLayout.vue'
-import LoginView from '../views/auth/Login.vue'
-import UserRegisterView from '../views/auth/Register.vue'
-import HomeView from "src/views/dashboard/HomeView.vue";
+import LoginView from '@/views/auth/Login.vue'
+import UserRegisterView from '@/views/auth/Register.vue'
+import HomeView from "@/views/dashboard/HomeView.vue";
 
 const routes: Array<RouteRecordRaw> = [
   // 公开路由 - 不需要登录
@@ -37,13 +37,13 @@ const routes: Array<RouteRecordRaw> = [
       // 首页
       {
         path: 'index',
-        component: () => import('src/views/dashboard/HomeView.vue'),
+        component: () => import('@/views/dashboard/HomeView.vue'),
         meta: { title: '首页' }
       },
       // 兼容带 /index 前缀的路径
       {
         path: 'index/home',
-        component: () => import('src/views/dashboard/HomeView.vue'),
+        component: () => import('@/views/dashboard/HomeView.vue'),
         meta: { title: '首页' }
       },
       // 用户管理
@@ -75,34 +75,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/content/comment/CommentList.vue'),
         meta: { requiresAuth: true }
       },
-      {
-        path: 'points-rules',
-        name: 'PointsRules',
-        component: () => import('@/views/points/PointsRuleList.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'points-transactions',
-        name: 'PointsTransactions',
-        component: () => import('@/views/points/PointsTransactionList.vue'),
-        meta: { requiresAuth: true }
-      },
-      // 系统管理
-      {
-        path: 'admin/roles',
-        component: () => import('src/views/system/role/RoleList.vue'),
-        meta: { title: '角色管理' }
-      },
-      {
-        path: 'admin/menus',
-        component: () => import('src/views/system/menu/MenuList.vue'),
-        meta: { title: '菜单管理' }
-      },
-      {
-        path: 'admin/role-menus',
-        component: () => import('src/views/system/role/RoleMenu.vue'),
-        meta: { title: '权限分配' }
-      },
       // 分类管理
       {
         path: 'admin/categories',
@@ -125,6 +97,35 @@ const routes: Array<RouteRecordRaw> = [
         path: 'admin/swipers',
         component: () => import('@/views/content/swiper/SwiperList.vue'),
         meta: { title: '轮播图管理' }
+      },
+      // 积分管理
+      {
+        path: 'points-rules',
+        name: 'PointsRules',
+        component: () => import('@/views/points/PointsRuleList.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'points-transactions',
+        name: 'PointsTransactions',
+        component: () => import('@/views/points/PointsTransactionList.vue'),
+        meta: { requiresAuth: true }
+      },
+      // 系统管理
+      {
+        path: 'admin/roles',
+        component: () => import('@/views/system/role/RoleList.vue'),
+        meta: { title: '角色管理' }
+      },
+      {
+        path: 'admin/menus',
+        component: () => import('@/views/system/menu/MenuList.vue'),
+        meta: { title: '菜单管理' }
+      },
+      {
+        path: 'admin/role-menus',
+        component: () => import('@/views/system/role/RoleMenu.vue'),
+        meta: { title: '权限分配' }
       },
       // 个人中心
       {

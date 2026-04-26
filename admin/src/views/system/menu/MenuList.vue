@@ -148,7 +148,7 @@ import { Icon } from '@iconify/vue'
 import type { DataTableColumns, FormRules, FormInst, TreeSelectOption } from 'naive-ui'
 import { NButton, NTag, NSpace, useMessage, useDialog, NForm, NFormItem, NInput, NModal, NRadioGroup, NRadioButton, NTreeSelect, NInputNumber, NDynamicTags } from 'naive-ui'
 import { menuApi, type Menu } from '@/api/menu'
-import PageContainer from "src/components/layout/PageContainer.vue"
+import PageContainer from "@/components/layout/PageContainer.vue"
 
 interface PageResponse<T> {
   list: T[]

@@ -106,7 +106,7 @@ import { ref, h, reactive, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import type { DataTableColumns, FormRules, FormInst } from 'naive-ui'
 import { NButton, NTag, NSpace, NInput, NInputNumber, NDatePicker, NModal, NForm, NFormItem, useMessage } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import pointsApi, { type PointsTransaction } from '@/api/points'
 
 const message = useMessage()

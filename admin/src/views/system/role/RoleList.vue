@@ -97,7 +97,7 @@ import { Icon } from '@iconify/vue'
 import type { DataTableColumns, FormRules, FormInst } from 'naive-ui'
 import { NButton, NTag, NSpace, useMessage, useDialog, NSwitch, NForm, NFormItem, NInput, NModal } from 'naive-ui'
 import { roleApi, type Role } from '@/api/role'
-import PageContainer from "src/components/layout/PageContainer.vue"
+import PageContainer from "@/components/layout/PageContainer.vue"
 
 interface PageResponse<T> {
   list: T[]

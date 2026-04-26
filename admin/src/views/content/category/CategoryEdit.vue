@@ -85,7 +85,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { FormRules, TreeSelectOption } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import { categoryApi, type CategoryVO, type CategoryTreeVO } from '@/api/category'
 
 const router = useRouter()

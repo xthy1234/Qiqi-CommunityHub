@@ -88,7 +88,7 @@ import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import type { FormRules } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import { userApi } from '@/api/user'
 
 const router = useRouter()

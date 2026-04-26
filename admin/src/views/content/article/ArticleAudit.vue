@@ -217,7 +217,7 @@ import {
   NModal, NCard, NForm, NFormItem, NRadioGroup, NRadio,
   useMessage, useDialog, NAlert, NTimeline, NTimelineItem, NEmpty
 } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import { adminUserApi } from '@/api/adminUser'
 import articleApi from '@/api/article'
 import statsApi, { type AuditOverviewStats } from '@/api/stats'

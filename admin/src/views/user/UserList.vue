@@ -59,7 +59,7 @@ import { Icon } from '@iconify/vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NTag, NSpace, useMessage, useDialog } from 'naive-ui'
 import { adminUserApi } from '@/api/adminUser'
-import PageContainer from "src/components/layout/PageContainer.vue";
+import PageContainer from "@/components/layout/PageContainer.vue";
 
 interface ApiResponse<T = any> {
   code: number

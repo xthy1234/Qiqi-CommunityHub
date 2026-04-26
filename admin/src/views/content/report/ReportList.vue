@@ -224,7 +224,24 @@ import { Icon } from '@iconify/vue'
 import type { DataTableColumns, FormRules, FormInst } from 'naive-ui'
 import { NButton, NTag, NSpace, useMessage, useDialog, NModal, NForm, NFormItem, NInput, NAlert, NDescriptions, NDescriptionsItem, NRadioGroup, NRadioButton, NBadge, NDatePicker, NSelect, NCheckbox } from 'naive-ui'
 import { reportApi, type ReportVO, type ReportReviewWithActionDTO, ReviewStatus, ReportAction } from '@/api/report'
-import PageContainer from "src/components/layout/PageContainer.vue"
+import PageContainer from "@/components/layout/PageContainer.vue"
+
+interface ReportItem {
+  id: number
+  reporterName: string
+  reportedName: string
+  contentTitle: string
+  reportReason: string
+  reviewStatus: number
+  createTime: string
+  reporterUserInfo?: {
+    nickname: string
+  }
+  reportedUserInfo?: {
+    nickname: string
+  }
+  reportDesc?: string
+}
 
 const router = useRouter()
 const message = useMessage()
@@ -305,9 +322,7 @@ const auditFormRules: FormRules = {
     trigger: 'change'
   },
   replyContent: {
-    required: true,
-    message: '请输入处理备注',
-    trigger: ['blur', 'change']
+    trigger: ['blur']
   },
   action: {
     required: true,
@@ -499,7 +514,10 @@ const handleAudit = (row: ReportVO) => {
 
 const handleAuditSubmit = async () => {
   await auditFormRef.value?.validate(async (errors) => {
-    if (errors) return
+    if (errors) {
+      message.error('请完善表单信息：审核结果、处理动作和处理备注为必填项')
+      return
+    }
     
     if (!currentReport.value?.id) return
     
@@ -541,7 +559,10 @@ const handleBatchAudit = () => {
 
 const handleBatchAuditSubmit = async () => {
   await batchAuditFormRef.value?.validate(async (errors) => {
-    if (errors) return
+    if (errors) {
+      message.error('请完善表单信息：审核结果、处理动作和处理备注为必填项')
+      return
+    }
     
     auditing.value = true
     try {

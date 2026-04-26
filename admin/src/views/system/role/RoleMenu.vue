@@ -108,7 +108,7 @@ import { useMessage, useDialog, NTree, NCard, NDescriptions, NDescriptionsItem, 
 import { roleApi, type Role } from '@/api/role'
 import { menuApi, type Menu } from '@/api/menu'
 import { roleMenuApi, type RoleMenu } from '@/api/roleMenu'
-import PageContainer from "src/components/layout/PageContainer.vue"
+import PageContainer from "@/components/layout/PageContainer.vue"
 
 const router = useRouter()
 const route = useRoute()

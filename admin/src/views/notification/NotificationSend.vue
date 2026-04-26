@@ -182,7 +182,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import { notificationApi } from '@/api/notification'
 import { adminUserApi } from '@/api/adminUser'
 import type { FormRules, SelectOption } from 'naive-ui'

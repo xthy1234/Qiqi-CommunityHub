@@ -185,7 +185,7 @@ import {
   NModal, NForm, NFormItem, NRadioGroup, NRadio,
   useMessage, useDialog
 } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import articleApiService from '@/api/article'
 import { normalizeFileUrl } from '@/utils/fileUrl'
 

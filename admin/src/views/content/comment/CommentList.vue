@@ -148,7 +148,7 @@ import {
   NModal, NCard, useMessage, useDialog, NAlert, NDescriptions, NDescriptionsItem,
   NAvatar
 } from 'naive-ui'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import { commentApi } from '@/api/comment'
 import { useGlobalProperties } from '@/utils/globalProperties'
 

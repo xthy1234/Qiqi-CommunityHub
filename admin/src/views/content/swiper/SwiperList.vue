@@ -166,10 +166,10 @@ import type { DataTableColumns, FormRules, FormInst, UploadFileInfo } from 'naiv
 import { NButton, NTag, NSpace, useMessage, useDialog, NModal, NForm, NFormItem, NInput, NUpload, NImage, NInputNumber, NRadioGroup, NRadioButton } from 'naive-ui'
 import { swiperApi, type SwiperVO, type SwiperCreateDTO, type SwiperUpdateDTO } from '@/api/swiper'
 import { uploadAPI } from '@/api/upload'
-import SearchBar from "src/components/form/SearchBar.vue"
+import SearchBar from "@/components/form/SearchBar.vue"
 import StatusTag from "@/components/display/StatusTag.vue"
-import CrudDialog from "src/components/form/CrudDialog.vue"
-import PageHeader from "src/components/layout/PageHeader.vue"
+import CrudDialog from "@/components/form/CrudDialog.vue"
+import PageHeader from "@/components/layout/PageHeader.vue"
 import { commonStatusConfigs, imageUploadHelper } from '@/utils/componentHelpers'
 
 const router = useRouter()

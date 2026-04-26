@@ -164,8 +164,8 @@ import { useGlobalProperties } from '@/utils/globalProperties'
 import { useMessage } from 'naive-ui'
 import { getFullUrl } from '@/utils/userUtils'
 import type { FormRules } from 'naive-ui'
-import AvatarUpload from 'src/components/form/AvatarUpload.vue'
-import PageContainer from 'src/components/layout/PageContainer.vue'
+import AvatarUpload from '@/components/form/AvatarUpload.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 import { userApi } from '@/api/user'
 
 const router = useRouter()
