@@ -112,32 +112,24 @@ export const useNotificationStore = defineStore('notification', () => {
    * 删除单条通知
    */
   async function removeNotification(id: number) {
-    console.log('[NotificationStore] 开始删除通知', {
-      id,
-      currentListLength: notificationList.value.length,
-      targetIndex: notificationList.value.findIndex((n) => n.id === id),
-      targetNotification: notificationList.value.find((n) => n.id === id)
-    })
-    
+
     try {
-      console.log('[NotificationStore] 调用 API 删除:', `/notifications/${id}`)
       await notificationAPI.delete(id)
-      console.log('[NotificationStore] API 调用成功')
       
       const index = notificationList.value.findIndex((n) => n.id === id)
-      console.log('[NotificationStore] 查找本地通知索引:', index)
+
       
       if (index !== -1) {
         const wasUnread = !notificationList.value[index].isRead
-        console.log('[NotificationStore] 通知未读状态:', wasUnread)
+
         
         notificationList.value.splice(index, 1)
-        console.log('[NotificationStore] 已从本地列表移除，剩余数量:', notificationList.value.length)
+
         
         if (wasUnread) {
-          console.log('[NotificationStore] 删除的是未读通知，重新加载未读数量')
+
           await loadUnreadCount()
-          console.log('[NotificationStore] 未读数量已更新:', unreadCount.value)
+
         }
       } else {
         console.warn('[NotificationStore] 未在本地列表中找到该通知，可能已被移除')

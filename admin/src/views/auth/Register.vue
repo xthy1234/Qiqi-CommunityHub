@@ -225,34 +225,32 @@ const loadBackgroundImage = () => {
   if (cachedUrl && cachedTime) {
     const now = Date.now()
     const cacheAge = now - parseInt(cachedTime)
-    const maxAge = 10 * 60 * 1000
+    const maxAge = 30 * 60 * 1000
 
     if (cacheAge < maxAge) {
-
       backgroundImageUrl.value = cachedUrl
       setTimeout(() => {
         imageLoaded.value = true
-      }, 100)
+      }, 50)
       return
     }
   }
 
   const img = new Image()
-  const timestamp = Date.now()
-  const url = `https://image.smallbottle.top/landscape?t=${timestamp}`
+  const url = 'https://image.smallbottle.top/landscape/'
 
   img.onload = () => {
-    backgroundImageUrl.value = url
-    sessionStorage.setItem('loginBackgroundImage', url)
-    sessionStorage.setItem('loginBackgroundImageTime', timestamp.toString())
+    backgroundImageUrl.value = img.src
+    sessionStorage.setItem('loginBackgroundImage', img.src)
+    sessionStorage.setItem('loginBackgroundImageTime', Date.now().toString())
 
     setTimeout(() => {
       imageLoaded.value = true
-    }, 100)
+    }, 50)
   }
 
   img.onerror = () => {
-    console.warn('背景图加载失败，保持渐变背景')
+    console.warn('[背景图] 加载失败，使用渐变背景')
     imageLoaded.value = false
   }
 
