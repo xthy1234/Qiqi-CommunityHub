@@ -58,102 +58,6 @@
           @update:checked-row-keys="handleCheckAll"
           striped
       />
-
-      <!-- 新增/编辑对话框 -->
-      <CrudDialog
-        v-model:visible="editDialogVisible"
-        :is-edit="isEdit"
-        :form-data="formData"
-        :form-rules="formRules"
-        :create-title="'新建轮播图'"
-        :edit-title="'编辑轮播图'"
-        width="700px"
-        @submit="handleSubmit"
-        @cancel="handleDialogCancel"
-        @after-leave="handleDialogAfterLeave"
-      >
-        <template #form-content>
-          <NFormItem label="轮播图标题" path="title">
-            <NInput
-                v-model:value="formData.title"
-                placeholder="请输入轮播图标题"
-            />
-          </NFormItem>
-
-          <NFormItem label="轮播图片" path="imageUrl">
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <NUpload
-                  :action="uploadUrl"
-                  :headers="uploadHeaders"
-                  :show-file-list="false"
-                  accept="image/*"
-                  @finish="handleImageUploadFinish"
-              >
-                <NButton>选择图片</NButton>
-              </NUpload>
-              <span v-if="formData.imageUrl" style="color: #999; font-size: 13px;">
-                {{ getFileName(formData.imageUrl) }}
-              </span>
-            </div>
-            <div v-if="previewVisible" class="image-preview-wrapper">
-              <NImage
-                  :src="getFullImageUrl(formData.imageUrl)"
-                  width="200"
-                  object-fit="cover"
-              />
-            </div>
-          </NFormItem>
-
-          <NFormItem label="跳转链接" path="linkUrl">
-            <NInput
-                v-model:value="formData.linkUrl"
-                placeholder="请输入点击跳转的链接（可选）"
-            />
-          </NFormItem>
-
-          <NFormItem label="排序" path="sort">
-            <NInputNumber
-                v-model:value="formData.sort"
-                :min="0"
-                style="width: 100%"
-            />
-          </NFormItem>
-
-          <NFormItem label="状态" path="status">
-            <NRadioGroup v-model:value="formData.status">
-              <NRadioButton :value="1" label="显示" />
-              <NRadioButton :value="0" label="隐藏" />
-            </NRadioGroup>
-          </NFormItem>
-
-          <NFormItem label="描述信息" path="description">
-            <NInput
-                v-model:value="formData.description"
-                type="textarea"
-                placeholder="请输入轮播图描述（可选）"
-                :rows="3"
-            />
-          </NFormItem>
-        </template>
-      </CrudDialog>
-
-      <!-- 图片预览弹窗 -->
-      <NModal
-          v-model:show="previewModalVisible"
-          preset="dialog"
-          title="图片预览"
-          :show-icon="false"
-          :closable="true"
-          style="width: 800px;"
-      >
-        <div style="text-align: center;">
-          <NImage
-              :src="currentPreviewUrl"
-              width="100%"
-              object-fit="contain"
-          />
-        </div>
-      </NModal>
     </div>
   </div>
 </template>
@@ -205,23 +109,6 @@ const pagination = reactive({
 
 const checkedRowKeys = ref<number[]>([])
 
-const editDialogVisible = ref(false)
-const isEdit = ref(false)
-const submitting = ref(false)
-const formRef = ref<FormInst | null>(null)
-const previewVisible = ref(false)
-const previewModalVisible = ref(false)
-const currentPreviewUrl = ref('')
-
-// 表单数据
-const formData = ref<SwiperCreateDTO & { id?: number }>({
-  title: '',
-  imageUrl: '',
-  linkUrl: '',
-  sort: 1,
-  status: 0,
-  description: ''
-})
 
 // 上传配置
 const backendUrl = localStorage.getItem('backendUrl') || 'http://localhost:8080'
@@ -380,10 +267,6 @@ const loadData = async () => {
       tableData.value = res.data.list
       pagination.itemCount = res.data.totalCount
 
-      if (tableData.value.length > 0) {
-
-        console.table(tableData.value[0])
-      }
     } else {
       console.error('[SwiperList] 加载失败 - 错误码:', res?.code)
       console.error('[SwiperList] 错误信息:', res?.msg)
@@ -413,31 +296,11 @@ const handleReset = () => {
 }
 
 const handleCreate = () => {
-
-  isEdit.value = false
-  formData.value = {
-    title: '',
-    imageUrl: '',
-    linkUrl: '',
-    sort: 1,
-    status: 0,
-    description: ''
-  }
-  editDialogVisible.value = true
+  router.push('/admin/swipers/create')
 }
 
 const handleEdit = (row: SwiperVO) => {
-  isEdit.value = true
-  formData.value = {
-    id: row.id,
-    title: row.title,
-    imageUrl: row.imageUrl,
-    linkUrl: row.linkUrl,
-    sort: row.sort,
-    status: row.status,
-    description: row.description
-  }
-  editDialogVisible.value = true
+  router.push(`/admin/swipers/edit/${row.id}`)
 }
 
 const handleToggleStatus = async (row: SwiperVO) => {
@@ -628,6 +491,24 @@ const handleDialogAfterLeave = () => {
 const handlePreview = (imageUrl: string) => {
   currentPreviewUrl.value = getFullImageUrl(imageUrl)
   previewModalVisible.value = true
+}
+
+const handleImageUploadFinish = ({ file, event }: { file: UploadFileInfo; event?: ProgressEvent }) => {
+  try {
+    const response = JSON.parse((event?.target as XMLHttpRequest).response)
+
+    if (response.code === 0 || response.code === 200) {
+      formData.value.imageUrl = response.data.url || response.data
+      message.success('图片上传成功')
+    } else {
+      message.error(response.msg || '图片上传失败')
+    }
+  } catch (error) {
+    console.error('图片上传解析失败:', error)
+    message.error('图片上传失败')
+  }
+
+  return null
 }
 
 // 使用工具函数

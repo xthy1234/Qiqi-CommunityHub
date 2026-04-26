@@ -40,7 +40,8 @@
 import { ref, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useMessage } from 'naive-ui'
-import { useGlobalProperties } from '@/utils/globalProperties'
+import { uploadAPI } from '@/api/upload'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 
 const props = defineProps<{
   modelValue?: string
@@ -51,22 +52,11 @@ const emit = defineEmits<{
 }>()
 
 const message = useMessage()
-const appContext = useGlobalProperties()
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
-const baseUrl = computed(() => appContext?.$config?.url || 'http://localhost:8080')
-const uploadUrl = computed(() => `${baseUrl.value}/files`)
-const uploadHeaders = computed(() => ({
-  token: appContext?.$toolUtil?.storageGet('Token') || ''
-}))
-
 const imageUrl = computed(() => {
-  if (!props.modelValue) return ''
-
-  return props.modelValue.startsWith('http')
-    ? props.modelValue
-    : `${baseUrl.value}/${props.modelValue}`
+  return normalizeFileUrl(props.modelValue)
 })
 
 const triggerUpload = () => {
@@ -80,42 +70,25 @@ const handleFileChange = async (event: Event) => {
   if (!file) return
 
   const isImage = file.type.startsWith('image/')
-  const isLt2M = file.size / 1024 / 1024 < 10
+  const isLt10M = file.size / 1024 / 1024 < 10
 
   if (!isImage) {
     message.error('只能上传图片文件!')
     return
   }
-  if (!isLt2M) {
+  if (!isLt10M) {
     message.error('图片大小不能超过 10MB!')
     return
   }
 
-  const formDataUpload = new FormData()
-  formDataUpload.append('file', file)
-
   try {
-    const response = await appContext?.$http({
-      url: uploadUrl.value,
-      method: 'post',
-      data: formDataUpload,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        token: uploadHeaders.value.token
-      }
-    })
+    const viewUrl = await uploadAPI.uploadImage(file)
 
-    const res = response.data
-    if (res.code === 0 || res.code === 200 || res.success) {
-      const fileUrl = res.data?.url || res.fileName
-      if (fileUrl) {
-        emit('update:modelValue', "files/"+fileUrl)
-        message.success('封面上传成功')
-      } else {
-        message.error('上传失败：未获取到图片 URL')
-      }
+    if (viewUrl) {
+      emit('update:modelValue', viewUrl)
+      message.success('封面上传成功')
     } else {
-      message.error(res.message || '封面上传失败')
+      message.error('上传失败')
     }
   } catch (error) {
     console.error('上传失败:', error)

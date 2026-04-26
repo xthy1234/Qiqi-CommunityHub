@@ -2,24 +2,7 @@
 import http from '@/utils/http'
 import { normalizeFileUrl, getFileViewUrl } from '@/utils/fileUrl'
 
-/**
- * 文件上传响应类型
- * 
- *  根据后端实际响应结构调整
- * 当前后端返回格式（嵌套结构）：
- * {
- *   "code": 0,
- *   "msg": "文件上传成功",
- *   "file": {
- *     "id": 4,
- *     "fileName": "...",
- *     "fileUrl": "/api/files/4",
- *     "viewUrl": "/api/files/4/view",
- *     "downloadUrl": "/api/files/4/download",
- *     ...
- *   }
- * }
- */
+
 export interface UploadResponse {
   code: number
   msg: string
@@ -102,7 +85,7 @@ export class UploadAPI {
         }
       })
 
-      const backendData = response.data as unknown as BackendUploadResponse
+      const backendData = response as unknown as BackendUploadResponse
       
       if (!backendData.file) {
         throw new Error('上传响应格式错误：缺少 file 对象')
@@ -226,22 +209,17 @@ export class UploadAPI {
   async getFileInfo(fileId: number): Promise<any> {
     try {
       const response = await http.get(`/api/files/${fileId}`)
-      return response.data as unknown as any
+      return response as unknown as any
     } catch (error) {
       console.error('[UploadAPI] 获取文件信息失败:', error)
       throw error
     }
   }
 
-  /**
-   * 删除文件
-   * @param fileId 文件ID
-   * @returns Promise<any>
-   */
   async deleteFile(fileId: number): Promise<any> {
     try {
       const response = await http.delete(`/api/files/${fileId}`)
-      return response.data
+      return response
     } catch (error) {
       console.error('[UploadAPI] 删除文件失败:', error)
       throw error

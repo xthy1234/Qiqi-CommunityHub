@@ -4,35 +4,7 @@
     :show-back="false"
   >
     <!-- 轮播图区域 -->
-    <n-card
-      :bordered="false"
-      class="carousel-card"
-    >
-      <n-spin
-        v-if="isLoadingCarousel"
-        description="加载轮播图中..."
-      >
-        <n-skeleton
-          text
-          style="height: 300px; width: 1200px"
-        />
-      </n-spin>
-      <n-carousel
-        v-else
-        show-arrow
-        autoplay
-        class="custom-carousel"
-      >
-        <img
-          v-for="(item, index) in carouselImages"
-          :key="item.id || index"
-          class="carousel-image"
-          :src="baseUrl + '/' + (item.imageUrl || item.linkUrl || '')"
-          :alt="item.title || '轮播图'"
-          @error="handleImageError"
-        />
-      </n-carousel>
-    </n-card>
+    <CarouselComponent @click="handleCarouselClick" />
 
     <!-- 每日签到组件 -->
     <DailySignIn
@@ -69,13 +41,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { NCarousel, NCarouselItem, NButton, NSkeleton } from 'naive-ui'
+import { NButton } from 'naive-ui'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { Icon } from '@iconify/vue'
 import { articleAPI } from '@/api/article'
 import ArticleGridList from '@/components/article/ArticleGridList.vue'
 import PageContainer from "@/components/layout/PageContainer.vue";
 import DailySignIn from '@/components/common/DailySignIn.vue'
+import CarouselComponent from '@/components/common/CarouselComponent.vue'
 
 interface ArticleItem {
   id: number | string
@@ -95,21 +68,11 @@ interface ArticleItem {
   [key: string]: any
 }
 
-interface CarouselImage {
-  id?: number | string
-  imageUrl?: string
-  linkUrl?: string
-  title?: string
-}
-
 const appContext = useGlobalProperties()
 const router = useRouter()
 
-const carouselImages = ref<CarouselImage[]>([])
 const hotArticles = ref<ArticleItem[]>([])
-const isLoadingCarousel = ref<boolean>(false)
 const isLoadingArticles = ref<boolean>(false)
-const baseUrl = appContext?.$config?.url || 'http://localhost:8080'
 const signInRef = ref<InstanceType<typeof DailySignIn> | null>(null)
 
 // 检查是否已登录
@@ -117,20 +80,6 @@ const isLoggedIn = computed(() => {
   const token = appContext?.$toolUtil?.storageGet('Token')
   return !!token
 })
-
-const fetchCarouselImages = async (): Promise<void> => {
-  isLoadingCarousel.value = true
-  try {
-    const response = await appContext?.$http.get('swipers/enabled')
-    const apiData = response.data.data
-    carouselImages.value = Array.isArray(apiData) ? apiData : (apiData?.list || [])
-  } catch (error) {
-    console.error('加载轮播图失败:', error)
-    carouselImages.value = []
-  } finally {
-    isLoadingCarousel.value = false
-  }
-}
 
 const fetchHotArticles = async (): Promise<void> => {
   isLoadingArticles.value = true
@@ -145,111 +94,37 @@ const fetchHotArticles = async (): Promise<void> => {
     const response = await articleAPI.getList(params)
     const apiData = response.data?.data || response.data || {}
     hotArticles.value = apiData.list || (Array.isArray(apiData) ? apiData : [])
-
-
-    if (hotArticles.value.length > 0) {
-
-    }
   } catch (error) {
-    console.error('加载文章失败:', error)
+    console.error('[HomeView] 加载文章失败:', error)
   } finally {
     isLoadingArticles.value = false
   }
-}
-
-const getDefaultAvatar = (): string => {
-  return '/placeholder.svg'
-}
-
-const isHttpUrl = (url: string): boolean => {
-  if (!url) {return false}
-  return url.startsWith('http')
-}
-
-const getCoverImageUrl = (coverUrl: string): string => {
-  if (!coverUrl || coverUrl === 'null') {
-
-    return '/placeholder.svg'
-  }
-
-  // 如果已经是完整 URL，直接返回
-  if (isHttpUrl(coverUrl)) {
-
-    return coverUrl
-  }
-
-  // 如果是相对路径，拼接 baseUrl
-  const fullUrl = baseUrl + '/' + coverUrl
-
-  return fullUrl
-}
-
-const formatDate = (dateStr: string): string => {
-  if (!dateStr) {return ''}
-  const date = new Date(dateStr)
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-const formatNumber = (num: number | undefined | null): string => {
-  if (num === undefined || num === null) {return '0'}
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w'
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k'
-  }
-  return String(num)
-}
-
-const navigateToArticleDetail = (id: number | string): void => {
-  router.push(`/index/articleDetail?id=${id}`)
 }
 
 const navigateToArticleList = (): void => {
   router.push('/index/articleList')
 }
 
+const handleCarouselClick = (item: any) => {
+  // 如果轮播图有跳转链接，可以在这里处理
+  if (item.linkUrl) {
+    window.open(item.linkUrl, '_blank')
+  }
+}
+
 /**
  * 签到刷新回调
  */
 const handleSignInRefresh = () => {
-
   // 可以在这里执行其他需要刷新的操作
 }
 
 onMounted(() => {
-  fetchCarouselImages()
   fetchHotArticles()
 })
 </script>
 
 <style lang="scss" scoped>
-.home-view-container {
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.carousel-card {
-  margin-bottom: 30px;
-  overflow: hidden;
-
-  :deep(.n-carousel) {
-    max-width: 100%;
-  }
-
-  .carousel-image {
-    width: 100%;
-    height: 350px;
-    object-fit: cover;
-    cursor: pointer;
-    border-radius: 8px;
-  }
-}
-
 .view-more-container {
   display: flex;
   justify-content: center;
@@ -271,16 +146,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .home-view-container {
-    padding: 10px;
-  }
-
-  .carousel-card {
-    .carousel-image {
-      height: 200px;
-    }
-  }
-
   .view-more-container {
     .view-more-btn {
       min-width: 160px;

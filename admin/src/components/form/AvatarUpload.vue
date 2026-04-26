@@ -1,10 +1,8 @@
 <template>
   <div class="avatar-upload-wrapper">
     <n-upload
-      :action="uploadUrl"
-      :headers="uploadHeaders"
+      :custom-request="handleCustomUpload"
       :show-file-list="false"
-      @finish="handleAvatarSuccess"
       :before-upload="beforeAvatarUpload"
       :disabled="isDisabled"
     >
@@ -20,25 +18,26 @@
         <Icon icon="carbon:plus" class="uploader-icon" />
       </div>
     </n-upload>
-
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
-import { useGlobalProperties } from '@/utils/globalProperties'
+import { useMessage } from 'naive-ui'
+import { uploadAPI } from '@/api/upload'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 import type { UploadCustomRequestOptions } from 'naive-ui'
 
 interface Props {
   modelValue?: string
-  uploadAction: string
+  uploadAction?: string
   isDisabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
+  uploadAction: '',
   isDisabled: false
 })
 
@@ -47,41 +46,31 @@ const emit = defineEmits<{
   (e: 'change', url: string): void
 }>()
 
-const globalProps = useGlobalProperties()
+const message = useMessage()
 const imageUrl = ref(props.modelValue)
 
-watch(() => props.modelValue, (newVal) => {
-  imageUrl.value = newVal
+watch(() => props.modelValue, (newVal : string) => {
+  imageUrl.value = normalizeFileUrl(newVal)
 })
 
-const uploadUrl = computed(() => {
-  const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
+const handleCustomUpload = async ({ file, onFinish, onError }: UploadCustomRequestOptions) => {
+  try {
+    const viewUrl = await uploadAPI.uploadImage(file.file as File)
 
-
-  return `${baseUrl}/${props.uploadAction}`
-})
-
-const uploadHeaders = computed(() => {
-  const token = globalProps.$toolUtil?.storageGet("Token")
-  return {
-    'Authorization': token || ''
-  }
-})
-
-const handleAvatarSuccess = ({ event }: { event: Event }) => {
-  const target = event.target as XMLHttpRequest
-  const response = JSON.parse(target.response)
-
-  const uploadedFilePath = "files/" + response.fileName
-  const baseUrl = globalProps.$config?.url || 'http://localhost:8080'
-  imageUrl.value = `${baseUrl}/${uploadedFilePath}`
-
-
-  emit('update:modelValue', uploadedFilePath)
-  emit('change', imageUrl.value)
-
-  if (globalProps.$toolUtil?.message) {
-    globalProps.$toolUtil.message('头像上传成功', 'success')
+    if (viewUrl) {
+      imageUrl.value = viewUrl
+      emit('update:modelValue', viewUrl)
+      emit('change', viewUrl)
+      message.success('头像上传成功')
+      onFinish()
+    } else {
+      message.error('上传失败')
+      onError()
+    }
+  } catch (error) {
+    console.error('上传失败:', error)
+    message.error('上传失败，请重试')
+    onError()
   }
 }
 
@@ -90,15 +79,11 @@ const beforeAvatarUpload = ({ file }: { file: File }) => {
   const isLt10M = file.size / 1024 / 1024 < 10
 
   if (!isImage) {
-    if (globalProps.$toolUtil?.message) {
-      globalProps.$toolUtil.message('只能上传图片文件!', 'error')
-    }
+    message.error('只能上传图片文件!')
     return false
   }
   if (!isLt10M) {
-    if (globalProps.$toolUtil?.message) {
-      globalProps.$toolUtil.message('图片大小不能超过 10MB!', 'error')
-    }
+    message.error('图片大小不能超过 10MB!')
     return false
   }
 

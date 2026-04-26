@@ -94,9 +94,22 @@ const routes: Array<RouteRecordRaw> = [
       },
       // 轮播图管理
       {
-        path: 'admin/swipers',
+        path: '/admin/swipers',
+        name: 'SwiperList',
         component: () => import('@/views/content/swiper/SwiperList.vue'),
         meta: { title: '轮播图管理' }
+      },
+      {
+        path: '/admin/swipers/create',
+        name: 'SwiperCreate',
+        component: () => import('@/views/content/swiper/SwiperEdit.vue'),
+        meta: { title: '新建轮播图' }
+      },
+      {
+        path: '/admin/swipers/edit/:id',
+        name: 'SwiperEdit',
+        component: () => import('@/views/content/swiper/SwiperEdit.vue'),
+        meta: { title: '编辑轮播图' }
       },
       // 积分管理
       {
