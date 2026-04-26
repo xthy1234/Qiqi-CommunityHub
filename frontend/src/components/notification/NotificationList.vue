@@ -16,7 +16,6 @@
         :key="notification.id"
         :notification="processNotificationContent(notification)"
         @mark-read="handleMarkRead"
-        @delete="handleDelete"
         @navigate="handleNavigate"
       />
 
@@ -96,26 +95,6 @@ const handleMarkRead = async (ids: number[]) => {
     message.success('标记成功')
   } catch (error) {
     message.error('标记失败')
-  }
-}
-
-// 删除通知
-const handleDelete = async (id: number) => {
-  try {
-    await dialog.confirm({
-      title: '提示',
-      content: '确定要删除这条通知吗？',
-      positiveText: '确定',
-      negativeText: '取消',
-      onPositiveClick: async () => {
-        await notificationStore.removeNotification(id)
-        message.success('删除成功')
-      }
-    })
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      message.error('删除失败')
-    }
   }
 }
 

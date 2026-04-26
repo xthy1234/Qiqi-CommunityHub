@@ -67,14 +67,6 @@
       >
         标记已读
       </n-button>
-      <n-button
-        type="error"
-        size="small"
-        text
-        @click.stop="handleDelete"
-      >
-        删除
-      </n-button>
     </div>
   </div>
 </template>
@@ -104,7 +96,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'mark-read', ids: number[]): void
-  (e: 'delete', id: number): void
   (e: 'navigate', notification: Notification): void
 }>()
 
@@ -246,10 +237,6 @@ const handleMarkAsRead = () => {
   emit('mark-read', [props.notification.id])
 }
 
-// 删除
-const handleDelete = () => {
-  emit('delete', props.notification.id)
-}
 </script>
 
 <style scoped lang="scss">
