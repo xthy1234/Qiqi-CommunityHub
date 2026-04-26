@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import FileNode from '@/components/nodes/FileNode.vue'
+import FileNode from '@/components/editor/nodes/FileNode.vue'
 
 export interface FileNodeOptions {
   HTMLAttributes: Record<string, any>

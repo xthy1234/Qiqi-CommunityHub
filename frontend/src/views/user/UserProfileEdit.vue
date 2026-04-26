@@ -167,7 +167,7 @@ import { NMessageProvider, useDialog, NButton, NInput, NForm, NFormItem, NAvatar
 import { getFullUrl } from '@/utils/userUtils'
 import type { FormRules } from 'naive-ui'
 import AvatarUpload from '@/components/upload/AvatarUpload.vue'
-import PageContainer from '@/components/common/PageContainer.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
 
 import userService from '@/api/user'
 

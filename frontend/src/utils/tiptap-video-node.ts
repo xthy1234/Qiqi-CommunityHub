@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import VideoNode from '@/components/nodes/VideoNode.vue'
+import VideoNode from '@/components/editor/nodes/VideoNode.vue'
 
 export interface Annotation {
   id: string

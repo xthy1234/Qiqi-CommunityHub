@@ -1,7 +1,7 @@
 // src/utils/tiptap-share-card-node.ts
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import ShareCardNode from '@/components/nodes/ShareCardNode.vue'
+import ShareCardNode from '@/components/editor/nodes/ShareCardNode.vue'
 
 export interface ShareCardNodeOptions {
   HTMLAttributes: Record<string, any>
