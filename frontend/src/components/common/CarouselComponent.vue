@@ -108,7 +108,7 @@ onMounted(() => {
 
   .carousel-image {
     width: 100%;
-    height: 350px;
+    height: 400px;
     object-fit: cover;
     cursor: pointer;
     border-radius: 8px;

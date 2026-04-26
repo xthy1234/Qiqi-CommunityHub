@@ -1,77 +1,85 @@
 <template>
   <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <div class="logo-wrapper">
-          <Icon icon="ri:admin-line" :size="48" color="#18a058" />
-        </div>
-        <h1 class="title">游戏社区管理平台</h1>
-        <p class="subtitle">管理员登录</p>
+    <div class="background-layer" :style="backgroundStyle"></div>
+
+    <div class="login-left">
+      <div class="brand-section">
+        <h1 class="brand-title">游戏社区管理平台</h1>
+        <p class="brand-subtitle">欢迎回来，管理员！</p>
       </div>
+    </div>
 
-      <NForm
-        ref="loginFormRef"
-        :model="loginForm"
-        :rules="loginRules"
-        label-placement="left"
-        label-width="70px"
-        size="large"
-      >
-        <NFormItem label="账号" path="account">
-          <NInput
-            v-model:value="loginForm.account"
-            placeholder="请输入管理员账号"
-            clearable
-          >
-            <template #prefix>
-              <Icon icon="ri:user-line" />
-            </template>
-          </NInput>
-        </NFormItem>
-
-        <NFormItem label="密码" path="password">
-          <NInput
-            v-model:value="loginForm.password"
-            type="password"
-            placeholder="请输入密码"
-            show-password-on="click"
-            @keyup.enter="handleLogin"
-          >
-            <template #prefix>
-              <Icon icon="ri:lock-line" />
-            </template>
-          </NInput>
-        </NFormItem>
-
-        <NFormItem>
-          <NCheckbox v-model:checked="rememberPassword">
-            记住密码
-          </NCheckbox>
-        </NFormItem>
-
-        <NButton
-          type="primary"
-          size="large"
-          :loading="loading"
-          block
-          @click="handleLogin"
-        >
-          {{ loading ? '登录中...' : '登录' }}
-        </NButton>
-
-        <div class="register-link">
-          <span>还没有账号？</span>
-          <NButton text type="primary" @click="goToRegister">
-            立即注册
-          </NButton>
+    <div class="login-right">
+      <div class="login-card">
+        <div class="login-header">
+          <h2 class="title">管理员登录</h2>
+          <p class="subtitle">请输入您的账号和密码</p>
         </div>
-      </NForm>
+
+        <NForm
+          ref="loginFormRef"
+          :model="loginForm"
+          :rules="loginRules"
+          label-placement="left"
+          label-width="70px"
+          size="large"
+        >
+          <NFormItem label="账号" path="account">
+            <NInput
+              v-model:value="loginForm.account"
+              placeholder="请输入管理员账号"
+              clearable
+            >
+              <template #prefix>
+                <Icon icon="ri:user-line" />
+              </template>
+            </NInput>
+          </NFormItem>
+
+          <NFormItem label="密码" path="password">
+            <NInput
+              v-model:value="loginForm.password"
+              type="password"
+              placeholder="请输入密码"
+              show-password-on="click"
+              @keyup.enter="handleLogin"
+            >
+              <template #prefix>
+                <Icon icon="ri:lock-line" />
+              </template>
+            </NInput>
+          </NFormItem>
+
+          <NFormItem>
+            <NCheckbox v-model:checked="rememberPassword">
+              记住密码
+            </NCheckbox>
+          </NFormItem>
+
+          <NButton
+            type="primary"
+            size="large"
+            :loading="loading"
+            block
+            @click="handleLogin"
+          >
+            {{ loading ? '登录中...' : '登录' }}
+          </NButton>
+
+          <div class="register-link">
+            <span>还没有账号？</span>
+            <NButton text type="primary" @click="goToRegister">
+              立即注册
+            </NButton>
+          </div>
+        </NForm>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { NCard, NForm, NFormItem, NInput, NButton, NCheckbox, useMessage, NIcon } from 'naive-ui'
 import { Icon } from '@iconify/vue'
@@ -91,6 +99,8 @@ const userStore = useUserStore()
 const loginFormRef = ref<FormInst | null>(null)
 const loading = ref(false)
 const rememberPassword = ref(false)
+const backgroundImageUrl = ref('')
+const imageLoaded = ref(false)
 
 const loginForm = reactive<LoginForm>({
   account: '',
@@ -106,7 +116,59 @@ const loginRules: FormRules = {
   ]
 }
 
+const backgroundStyle = computed(() => {
+  if (imageLoaded.value && backgroundImageUrl.value) {
+    return {
+      backgroundImage: `url(${backgroundImageUrl.value})`,
+      opacity: 1
+    }
+  }
+  return {
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    opacity: imageLoaded.value ? 0 : 1
+  }
+})
 
+const loadBackgroundImage = () => {
+  const cachedUrl = sessionStorage.getItem('loginBackgroundImage')
+  const cachedTime = sessionStorage.getItem('loginBackgroundImageTime')
+
+  if (cachedUrl && cachedTime) {
+    const now = Date.now()
+    const cacheAge = now - parseInt(cachedTime)
+    const maxAge = 10 * 60 * 1000
+
+    if (cacheAge < maxAge) {
+
+      backgroundImageUrl.value = cachedUrl
+      setTimeout(() => {
+        imageLoaded.value = true
+      }, 100)
+      return
+    }
+  }
+
+  const img = new Image()
+  const timestamp = Date.now()
+  const url = `https://image.smallbottle.top/landscape?t=${timestamp}`
+
+  img.onload = () => {
+    backgroundImageUrl.value = url
+    sessionStorage.setItem('loginBackgroundImage', url)
+    sessionStorage.setItem('loginBackgroundImageTime', timestamp.toString())
+
+    setTimeout(() => {
+      imageLoaded.value = true
+    }, 100)
+  }
+
+  img.onerror = () => {
+    console.warn('背景图加载失败，保持渐变背景')
+    imageLoaded.value = false
+  }
+
+  img.src = url
+}
 
 const handleLogin = async () => {
 
@@ -119,7 +181,6 @@ const handleLogin = async () => {
 
 
   try {
-    // Naive UI 3.x 使用 await validate()，成功时不返回任何值，失败时抛出错误
     await loginFormRef.value.validate()
 
     loading.value = true
@@ -134,7 +195,6 @@ const handleLogin = async () => {
       })
 
 
-      // 修复：直接使用 response，因为拦截器已经解包了
       const responseData =  response
 
       if (responseData.code === 200 || responseData.code === 0) {
@@ -218,28 +278,85 @@ const loadCachedLogin = () => {
 
 onMounted(() => {
   loadCachedLogin()
+  loadBackgroundImage()
 })
 </script>
 
 <style lang="scss" scoped>
 .login-container {
+  position: relative;
   display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
+}
+
+.background-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-size: cover;
   background-position: center;
-  padding: 20px;
+  background-repeat: no-repeat;
+  transition: opacity 1s ease-in-out;
+  z-index: 0;
+}
+
+.login-left {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+
+  .brand-section {
+    position: absolute;
+    bottom: 80px;
+    left: 80px;
+    color: #fff;
+    z-index: 2;
+
+    .brand-title {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 0 0 16px 0;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand-subtitle {
+      font-size: 18px;
+      opacity: 0.9;
+      margin: 0;
+      letter-spacing: 2px;
+    }
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
+    z-index: 1;
+  }
+}
+
+.login-right {
+  width: 500px;
+  background: rgba(255,255,255,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 2;
 }
 
 .login-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 480px;
-  padding: 48px 40px;
+  max-width: 460px;
 
   .login-header {
     text-align: center;
@@ -262,10 +379,6 @@ onMounted(() => {
       font-weight: 700;
       color: #1a1a1a;
       margin: 0 0 8px 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
 
     .subtitle {
@@ -316,6 +429,16 @@ onMounted(() => {
     span {
       margin-right: 8px;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .login-left {
+    display: none;
+  }
+
+  .login-right {
+    width: 100%;
   }
 }
 </style>
