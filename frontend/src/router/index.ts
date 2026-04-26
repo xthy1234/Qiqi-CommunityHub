@@ -6,7 +6,7 @@ import {
 
 // 导入新的布局组件
 import MainLayout from '@/views/layout/MainLayout.vue'
-import LoginView from '../views/auth/login.vue'
+import LoginView from '../views/auth/Login.vue'
 
 // 文章相关页面
 
@@ -23,7 +23,7 @@ import SuggestionReviewDetailView from '@/views/collaboration/SuggestionReviewDe
 import VersionDetailView from '@/views/article/VersionDetail.vue'
 
 // 用户相关页面 - 已精简，只保留个人中心相关页面
-import UserRegisterView from '../views/auth/register.vue'
+import UserRegisterView from '../views/auth/Register.vue'
 import UserProfileView from '@/views/user/UserProfile.vue'
 import UserProfileEditView from '@/views/user/UserProfileEdit.vue'
 import UserPasswordChangeView from '@/views/user/PasswordChange.vue'

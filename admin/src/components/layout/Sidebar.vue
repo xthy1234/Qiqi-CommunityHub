@@ -284,6 +284,13 @@ const menuOptions = computed<MenuOption[]>(() => {
           key: 'profile-password',
           icon: renderIcon('ri:lock-password-line'),
           click: () => navigateToRoute('/profile/password')
+        },
+        {
+          label: '退出登录',
+          key: 'profile-logout',
+          icon: renderIcon('ri:logout-box-line'),
+          className: 'logout-item',
+          click: () => handleLogout()
         }
       ]
     })
@@ -365,8 +372,10 @@ const handleLogout = (): void => {
 }
 
 const handleAvatarClick = (): void => {
-  if (authToken.value) {
-    router.push('/index/user/profile')
+  const currentToken = appContext?.$toolUtil?.storageGet('Token')
+
+  if (currentToken) {
+    router.push('/profile')
   } else {
     router.push('/login')
   }
@@ -396,14 +405,28 @@ const loadMenuData = async (): Promise<void> => {
       menuItems.value = []
     }
   } catch (error) {
-// console.error('加载菜单失败:', error)
     menuItems.value = []
   }
 }
 
+const loadUserInfo = (): void => {
+  const avatar = appContext?.$toolUtil?.storageGet('avatar')
+  const nickname = appContext?.$toolUtil?.storageGet('nickname')
+  const account = appContext?.$toolUtil?.storageGet('account')
+
+  if (avatar) {
+    userAvatarUrl.value = normalizeFileUrl(avatar)
+  }
+
+  userNickname.value = nickname || ''
+  userAccount.value = account || ''
+}
+
 const initializeComponent = async (): Promise<void> => {
   const token = appContext?.$toolUtil?.storageGet('Token')
+
   authToken.value = !!token
+
 
 
   //  读取锁定状态
@@ -430,24 +453,15 @@ const initializeComponent = async (): Promise<void> => {
   await loadMenuData()
 
   if (authToken.value) {
+
     loadUserInfo()
+  } else {
+
   }
-}
-
-const loadUserInfo = (): void => {
-  const avatar = appContext?.$toolUtil?.storageGet('avatar')
-  const nickname = appContext?.$toolUtil?.storageGet('nickname')
-  const account = appContext?.$toolUtil?.storageGet('account')
-
-  if (avatar) {
-    userAvatarUrl.value = normalizeFileUrl(avatar)
-  }
-
-  userNickname.value = nickname || ''
-  userAccount.value = account || ''
 }
 
 onMounted(() => {
+
   initializeComponent()
 })
 
@@ -512,8 +526,6 @@ const handleManualToggle = (): void => {
     position: fixed;
     top: 0;
     left: 0;
-    //overflow: visible;
-    //box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
     border-right: 1px solid #e4e7ed;
     flex-shrink: 0;
     z-index: 1000;
@@ -560,7 +572,6 @@ const handleManualToggle = (): void => {
       min-height: 0;
       position: relative;
 
-      // 自定义滚动条样式
       &::-webkit-scrollbar {
         width: 4px;
       }
@@ -581,7 +592,6 @@ const handleManualToggle = (): void => {
       .sidebar-menu {
         background: transparent !important;
 
-        // 一级菜单项
         :deep(.n-menu-item) {
           .n-menu-item-content {
             &::before {
@@ -590,7 +600,6 @@ const handleManualToggle = (): void => {
           }
         }
 
-        // 二级菜单项 - 更深的背景色
         :deep(.n-submenu-children) {
           .n-menu-item-content {
             &:hover {
@@ -600,6 +609,14 @@ const handleManualToggle = (): void => {
             &.n-menu-item-content--selected {
               background-color: rgba(24, 160, 88, 0.1);
             }
+          }
+        }
+
+        .logout-item {
+          color: #ff4d4f !important;
+
+          &:hover {
+            background-color: rgba(255, 77, 79, 0.08) !important;
           }
         }
       }

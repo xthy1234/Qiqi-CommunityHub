@@ -259,7 +259,6 @@ const handleUserSearch = async (query: string) => {
         avatar: user.avatar || null  // 保存头像URL
       }))
 
-      console.log('搜索到用户:', userOptions.value.length, '个')
     } else {
       userOptions.value = []
       console.warn('未找到用户或响应格式错误')

@@ -87,39 +87,6 @@
           <span class="info-value">{{ formatDateTime(userInfo.lastLoginTime) }}</span>
         </div>
       </div>
-
-      <!-- 作者的文章列表 -->
-      <div class="author-articles-section">
-        <h3 class="section-title">
-          TA 的文章
-        </h3>
-
-        <!-- 使用 ArticleGridList 组件 -->
-        <ArticleGridList
-          :articles="articleList"
-          :loading="articlesLoading"
-          :loading-count="5"
-          empty-text="暂无文章"
-          :cols="1"
-        />
-
-        <!-- 分页组件 -->
-        <n-pagination
-          v-if="articleList.length > 0 && !articlesLoading"
-          v-model:page="articlePagination.page"
-          :item-count="articleTotalCount"
-          :page-size="articlePagination.limit"
-          show-size-picker
-          :page-sizes="[5, 10, 20]"
-          class="article-pagination"
-          @update:page="handleArticlePageChange"
-          @update:page-size="handlePageSizeChange"
-        >
-          <template #prefix="{ itemCount }">
-            共 {{ itemCount }} 条
-          </template>
-        </n-pagination>
-      </div>
     </div>
   </PageContainer>
 </template>
@@ -131,9 +98,7 @@ import { useGlobalProperties } from '@/utils/globalProperties'
 import { useMessage } from 'naive-ui'
 import { getAvatarUrl, getGenderText, formatDateTime } from '@/utils/userUtils'
 import PageContainer from '@/components/layout/PageContainer.vue'
-import ArticleGridList from '@/components/display/ArticleGridList.vue'
 import { userApi } from '@/api/user'
-import { articleApi } from '@/api/article'
 
 interface UserInfo {
   id?: number
@@ -148,26 +113,6 @@ interface UserInfo {
   createTime?: string
   lastLoginTime?: string
   lastLoginIp?: string
-}
-
-interface Article {
-  id: number | string
-  title: string
-  coverUrl: string
-  categoryId?: number | string
-  categoryName?: string
-  authorId?: number | string
-  authorNickname?: string
-  favoriteCount?: number
-  viewCount?: number
-  status?: number
-  createTime?: string
-  [key: string]: any
-}
-
-interface Pagination {
-  page: number
-  limit: number
 }
 
 const router = useRouter()
@@ -185,15 +130,17 @@ const userInfo = ref<UserInfo>({
   signature: ''
 })
 
-const articleList = ref<Article[]>([])
-const articlesLoading = ref<boolean>(false)
-const articleTotalCount = ref<number>(0)
-const articlePagination = ref<Pagination>({ page: 1, limit: 5 })
-
 const fetchUserInfo = async (): Promise<void> => {
   try {
     const currentUserResponse = await userApi.getCurrentUser()
-    const currentUser = currentUserResponse.data?.data
+
+    let currentUser = null
+
+    if (currentUserResponse.data?.data) {
+      currentUser = currentUserResponse.data.data
+    } else if (currentUserResponse.data) {
+      currentUser = currentUserResponse.data
+    }
 
     if (!currentUser?.id) {
       message.error('请先登录')
@@ -203,7 +150,7 @@ const fetchUserInfo = async (): Promise<void> => {
 
     const response = await userApi.getUserById(currentUser.id)
 
-    const userData = response.data?.data
+    const userData = response.data?.data || response.data
     if (userData) {
       userInfo.value = {
         id: userData.id,
@@ -223,46 +170,17 @@ const fetchUserInfo = async (): Promise<void> => {
       appContext?.$toolUtil.storageSet('userid', userData.id)
       appContext?.$toolUtil.storageSet('nickname', userData.account)
       appContext?.$toolUtil.storageSet('avatar', userData.avatar)
-
-      fetchUserArticles()
     }
-  } catch (error) {
-    console.error('获取用户信息失败:', error)
-    message.error('获取用户信息失败')
-  }
-}
+  } catch (error: any) {
+    console.error('[UserProfile] 获取用户信息失败:', error)
 
-const fetchUserArticles = async (): Promise<void> => {
-  articlesLoading.value = true
-
-  try {
-    const params = {
-      page: articlePagination.value.page,
-      limit: articlePagination.value.limit,
-      authorId: userInfo.value.id
+    if (error.response?.status === 401) {
+      message.error('请先登录')
+      router.push('/login')
+    } else {
+      message.error('获取用户信息失败')
     }
-
-    const response = await articleApi.getArticleList(params)
-
-    const apiData = response.data?.data
-    articleList.value = apiData?.list || []
-    articleTotalCount.value = apiData?.total || 0
-  } catch (error) {
-    console.error('获取用户文章列表失败:', error)
-  } finally {
-    articlesLoading.value = false
   }
-}
-
-const handleArticlePageChange = (page: number) => {
-  articlePagination.value.page = page
-  fetchUserArticles()
-}
-
-const handlePageSizeChange = (size: number) => {
-  articlePagination.value.limit = size
-  articlePagination.value.page = 1
-  fetchUserArticles()
 }
 
 const getAvatarInitials = (): string => {
@@ -325,27 +243,6 @@ onMounted(() => {
           word-break: break-all;
         }
       }
-    }
-  }
-
-  .author-articles-section {
-    margin-bottom: 40px;
-    padding-top: 30px;
-    border-top: 2px solid #f0f0f0;
-
-    .section-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 20px;
-      padding-left: 15px;
-      border-left: 4px solid #18a058;
-    }
-
-    .article-pagination {
-      margin-top: 20px;
-      display: flex;
-      justify-content: center;
     }
   }
 }

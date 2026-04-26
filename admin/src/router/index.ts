@@ -190,9 +190,6 @@ router.beforeEach((to: any, from: any, next: any) => {
     document.title = `${to.meta.title} - 游戏社区管理平台`
   }
 
-  // 调试日志：路由守卫触发
-
-  
   // 白名单路由（不需要登录）
   const whiteList = ['/login', '/register']
   
@@ -202,21 +199,14 @@ router.beforeEach((to: any, from: any, next: any) => {
   if (!whiteList.includes(to.path)) {
     // 除登录/注册外的所有页面都需要登录
     if (!token) {
-      // 调试日志：未登录，需要重定向
-
-      
+      console.error('[Router Guard] 未登录，重定向到登录页')
       // 未登录，保存当前要访问的路径，登录后跳转
       localStorage.setItem('redirectPath', to.fullPath)
 
-      
       // 重定向到登录页
       next('/login')
       return
-    } else {
-
     }
-  } else {
-
   }
 
   next()

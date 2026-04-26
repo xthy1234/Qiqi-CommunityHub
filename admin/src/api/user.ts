@@ -78,7 +78,7 @@ export const userApi = {
    * 获取用户详情
    */
   getUserById: (id: number) => {
-    return httpClient.get<ApiResponse<any>>(`/users/${id}`)
+    return httpClient.get<ApiResponse<any>>(`/users/${id}?detail=true`)
   },
 
   /**

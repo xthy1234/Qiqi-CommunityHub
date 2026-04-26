@@ -165,6 +165,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             throw new RuntimeException("账户已被禁用");
         }
 
+        user.setLastLoginTime(LocalDateTime.now());
+        baseMapper.updateLastLoginInfo(user.getId(), null);
+        
         return user;
     }
 

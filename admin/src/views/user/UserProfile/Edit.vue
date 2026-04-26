@@ -162,7 +162,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGlobalProperties } from '@/utils/globalProperties'
 import { useMessage } from 'naive-ui'
-import { getFullUrl } from '@/utils/userUtils'
+import { normalizeFileUrl } from '@/utils/fileUrl'
 import type { FormRules } from 'naive-ui'
 import AvatarUpload from '@/components/form/AvatarUpload.vue'
 import PageContainer from '@/components/layout/PageContainer.vue'
@@ -243,7 +243,14 @@ const getDefaultAvatar = (): string => {
 const fetchUserInfo = async () => {
   try {
     const currentUserResponse = await userApi.getCurrentUser()
-    const currentUser = currentUserResponse.data?.data
+
+    let currentUser = null
+
+    if (currentUserResponse.data?.data) {
+      currentUser = currentUserResponse.data.data
+    } else if (currentUserResponse.data) {
+      currentUser = currentUserResponse.data
+    }
 
     if (!currentUser?.id) {
       message.error('请先登录')
@@ -253,7 +260,7 @@ const fetchUserInfo = async () => {
 
     const response = await userApi.getUserById(currentUser.id)
     
-    const userData = response.data?.data
+    const userData = response.data?.data || response.data
     if (userData) {
       editForm.account = userData.account || ''
       editForm.nickname = userData.nickname || userData.username || ''
@@ -273,12 +280,18 @@ const fetchUserInfo = async () => {
       editForm.id = userData.id
 
       if (editForm.avatar) {
-        avatarUrl.value = getFullUrl(editForm.avatar)
+        avatarUrl.value = normalizeFileUrl(editForm.avatar)
       }
     }
-  } catch (error) {
-    console.error('获取用户信息失败:', error)
-    message.error('获取用户信息失败')
+  } catch (error: any) {
+    console.error('[Edit] 获取用户信息失败:', error)
+
+    if (error.response?.status === 401) {
+      message.error('请先登录')
+      router.push('/login')
+    } else {
+      message.error('获取用户信息失败')
+    }
   }
 }
 
@@ -326,10 +339,10 @@ const handleSubmit = async () => {
 
     message.success('修改成功')
     setTimeout(() => {
-      router.push('/index/user/profile')
+      router.push('/profile')
     }, 500)
   } catch (error: any) {
-    console.error('修改失败:', error)
+    console.error('[Edit] 修改失败:', error)
     message.error(error.message || '修改失败')
   } finally {
     isSubmitting.value = false
