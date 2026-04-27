@@ -1,6 +1,22 @@
 <template>
   <div class="register-container">
-    <div class="background-layer" :style="backgroundStyle"></div>
+    <div
+      class="blur-background-layer"
+      :style="{
+        backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : 'none',
+        opacity: imageLoaded ? 1 : 0
+      }"
+    ></div>
+
+    <div
+      class="main-background-layer"
+      :style="{
+        backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : 'none',
+        opacity: imageLoaded ? 1 : 0
+      }"
+    ></div>
+
+    <div class="gradient-mask"></div>
 
     <div class="register-left">
       <div class="brand-section">
@@ -127,6 +143,7 @@ import { useMessage } from 'naive-ui'
 import type { FormRules, FormInst } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { userApi } from '@/api/user'
+import { useBackgroundImage } from '@/utils/useBackgroundImage'
 
 interface RegisterForm {
   account: string
@@ -141,8 +158,7 @@ const router = useRouter()
 const message = useMessage()
 const registerFormRef = ref<FormInst | null>(null)
 const loading = ref(false)
-const backgroundImageUrl = ref('')
-const imageLoaded = ref(false)
+
 
 const registerForm = reactive<RegisterForm>({
   account: '',
@@ -152,6 +168,8 @@ const registerForm = reactive<RegisterForm>({
   phone: '',
   email: ''
 })
+
+const { backgroundImageUrl, imageLoaded } = useBackgroundImage()
 
 const validateConfirmPassword = (_rule: any, value: string) => {
   if (value !== registerForm.password) {
@@ -205,57 +223,7 @@ const registerRules: FormRules = {
   ]
 }
 
-const backgroundStyle = computed(() => {
-  if (imageLoaded.value && backgroundImageUrl.value) {
-    return {
-      backgroundImage: `url(${backgroundImageUrl.value})`,
-      opacity: 1
-    }
-  }
-  return {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    opacity: imageLoaded.value ? 0 : 1
-  }
-})
 
-const loadBackgroundImage = () => {
-  const cachedUrl = sessionStorage.getItem('loginBackgroundImage')
-  const cachedTime = sessionStorage.getItem('loginBackgroundImageTime')
-
-  if (cachedUrl && cachedTime) {
-    const now = Date.now()
-    const cacheAge = now - parseInt(cachedTime)
-    const maxAge = 30 * 60 * 1000
-
-    if (cacheAge < maxAge) {
-      backgroundImageUrl.value = cachedUrl
-      setTimeout(() => {
-        imageLoaded.value = true
-      }, 50)
-      return
-    }
-  }
-
-  const img = new Image()
-  const url = 'https://image.smallbottle.top/landscape/'
-
-  img.onload = () => {
-    backgroundImageUrl.value = img.src
-    sessionStorage.setItem('loginBackgroundImage', img.src)
-    sessionStorage.setItem('loginBackgroundImageTime', Date.now().toString())
-
-    setTimeout(() => {
-      imageLoaded.value = true
-    }, 50)
-  }
-
-  img.onerror = () => {
-    console.warn('[背景图] 加载失败，使用渐变背景')
-    imageLoaded.value = false
-  }
-
-  img.src = url
-}
 
 const handleRegister = async () => {
   if (!registerFormRef.value) return
@@ -300,7 +268,6 @@ const goToLogin = () => {
 }
 
 onMounted(() => {
-  loadBackgroundImage()
 })
 </script>
 
@@ -310,9 +277,10 @@ onMounted(() => {
   display: flex;
   min-height: 100vh;
   overflow: hidden;
+  background: #ffffff;
 }
 
-.background-layer {
+.blur-background-layer {
   position: absolute;
   top: 0;
   left: 0;
@@ -320,15 +288,43 @@ onMounted(() => {
   bottom: 0;
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
-  transition: opacity 1s ease-in-out;
+  filter: blur(40px) brightness(1.1);
+  transform: scale(1.15);
+  transition: opacity 0.8s ease-in-out;
   z-index: 0;
 }
 
-.register-left {
-  flex: 1;
-  position: relative;
+/* 2. 清晰主图层：占用左侧 80% */
+.main-background-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 80%;
+
+  background-size: auto 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  transition: opacity 0.8s ease-in-out;
   z-index: 1;
+}
+
+.gradient-mask {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.3) 50%, #ffffff 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.register-left {
+  position: relative;
+  z-index: 3;
+  flex: 1;
 
   .brand-section {
     position: absolute;
@@ -341,7 +337,7 @@ onMounted(() => {
       font-size: 42px;
       font-weight: 700;
       margin: 0 0 16px 0;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
 
     .brand-subtitle {
@@ -359,23 +355,24 @@ onMounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
+    background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
     z-index: 1;
   }
 }
 
 .register-right {
   width: 500px;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.05);
   overflow-y: auto;
   max-height: 100vh;
   position: relative;
-  z-index: 2;
+  z-index: 3;
 }
 
 .register-card {
